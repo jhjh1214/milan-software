@@ -177,6 +177,91 @@ void main() {
     });
   });
 
+  group('rules that need the whole order', () {
+    PricedLine line(
+      String variant, {
+      String? material,
+      Layer layer = Layer.single,
+    }) => priceLine(
+      request: LineRequest(
+        variant: variant,
+        materialKey: material,
+        layer: layer,
+        width: ft(20),
+        height: ft(20),
+      ),
+      card: card,
+      stage: PricingStage.estimate,
+    );
+
+    test('herringbone SPC with no self levelling is flagged', () {
+      // §4.1 lists this as a constraint, not a price. Laying herringbone on an
+      // unlevelled floor fails at installation, long after the quote.
+      final issues = checkOrderRules(
+        lines: [line('spc_herringbone_5mm_1mm')],
+        card: card,
+      );
+      expect(issues, hasLength(1));
+      expect(issues.single.rule.target, 'self_levelling');
+      expect(issues.single.rule.messages('zh'), contains('自流平'));
+      expect(issues.single.rule.messages('en'), contains('self levelling'));
+    });
+
+    test('adding the self levelling line clears it', () {
+      final issues = checkOrderRules(
+        lines: [line('spc_herringbone_5mm_1mm'), line('self_levelling')],
+        card: card,
+      );
+      expect(issues, isEmpty);
+    });
+
+    test('an intermediate joint with no motor is flagged', () {
+      final issues = checkOrderRules(
+        lines: [line('intermediate_joint')],
+        card: card,
+      );
+      expect(issues.map((i) => i.rule.target), contains('motor'));
+    });
+
+    test('an intermediate joint with a motor is fine', () {
+      final issues = checkOrderRules(
+        lines: [line('intermediate_joint'), line('motor')],
+        card: card,
+      );
+      expect(issues, isEmpty);
+    });
+
+    test('a quote with none of these products raises nothing', () {
+      final issues = checkOrderRules(
+        lines: [
+          priceLine(
+            request: LineRequest(
+              variant: 'night_curtain',
+              layer: Layer.night,
+              width: ft(12),
+              height: ft(9),
+            ),
+            card: card,
+            stage: PricingStage.estimate,
+          ),
+        ],
+        card: card,
+      );
+      expect(issues, isEmpty);
+    });
+
+    test('it reports rather than throws', () {
+      // Refusing the quote would lose the sale; staying silent would lose the
+      // floor. So the engine returns the problem and the UI shows it while the
+      // customer is still there.
+      expect(
+        () => line('spc_herringbone_5mm_1mm'),
+        returnsNormally,
+        reason: 'the line itself still prices',
+      );
+    });
+  });
+
   group('the engine is pure', () {
     test('nothing under lib/pricing imports Flutter', () {
       // CLAUDE.md: "The pricing engine is pure. No Flutter imports, no I/O, no

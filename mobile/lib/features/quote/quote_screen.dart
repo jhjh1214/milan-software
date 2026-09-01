@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/date_format.dart';
 import '../../core/money.dart';
 import '../../l10n/app_localizations.dart';
+import '../../pricing/engine.dart';
 import '../../pricing/models.dart';
 import '../../ui/theme.dart';
 import '../../ui/unit_labels.dart';
@@ -68,6 +69,14 @@ class QuoteScreen extends ConsumerWidget {
                               left: p.line.isUpgrade ? Space.xl : 0,
                             ),
                             child: _LineCard(priced: p),
+                          ),
+                        // Herringbone with no self levelling, a joint with no
+                        // motor. Shown loudly while the customer is still here,
+                        // rather than discovered at installation.
+                        for (final issue in priced.orderIssues)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: Space.md),
+                            child: _OrderIssueRow(issue: issue),
                           ),
                         if (priced.totals.anyFloorApplied)
                           _FloorRow(totals: priced.totals),
@@ -406,6 +415,46 @@ class _FloorRow extends StatelessWidget {
           ),
           const SizedBox(height: Space.xs),
           Text(l.depositFloorExplain, style: AppText.caption),
+        ],
+      ),
+    );
+  }
+}
+
+/// A rule the quote as a whole breaks.
+///
+/// Herringbone SPC requires self levelling; an intermediate joint requires a
+/// motor. Neither is knowable from one line, and neither is a reason to refuse
+/// the quote — refusing loses the sale, and staying quiet means finding out at
+/// installation. So it is shown, in the reader's language, while the customer
+/// is still standing there.
+class _OrderIssueRow extends ConsumerWidget {
+  final OrderRuleViolation issue;
+
+  const _OrderIssueRow({required this.issue});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final language = ref.watch(languageProvider);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(Space.lg),
+      decoration: BoxDecoration(
+        color: AppColors.warningSurface,
+        borderRadius: BorderRadius.circular(Radii.lg),
+        border: Border.all(color: AppColors.warning, width: 1.5),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.rule, color: AppColors.warning),
+          const SizedBox(width: Space.md),
+          Expanded(
+            child: Text(
+              issue.rule.messages(language),
+              style: AppText.bodyStrong.copyWith(color: AppColors.warning),
+            ),
+          ),
         ],
       ),
     );

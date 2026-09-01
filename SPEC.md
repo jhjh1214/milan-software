@@ -991,9 +991,10 @@ Steps 1–3 have no UI at all. **Resist starting with screens.**
 - [x] A curtain line does **not** add a track by itself. The upgrade is offered,
       declining is the default, and a plain curtain quotes at the fabric rate
       alone
-- [ ] Herringbone SPC without self levelling is blocked with a clear message
-      — `requires` rules need whole-order context, unlike `max_dimension`
-      which is done. Outstanding.
+- [x] Herringbone SPC without self levelling is flagged with a clear message,
+      in the reader's language, and adding the self-levelling line clears it.
+      Reported rather than refused: refusing loses the sale, silence loses the
+      floor.
 - [x] ZIP blind over 20ft width is blocked, at 20ft 0in 1/10mm
 - [x] Wallpaper rounds up to whole BOGO pairs
 - [x] Delivery charge appears before the customer sees a total, never after

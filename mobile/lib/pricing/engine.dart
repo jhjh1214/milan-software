@@ -381,7 +381,52 @@ void _checkProductRules(RateCard card, LineRequest request) {
     if (breached) throw ProductRuleViolation(rule: rule, actual: value);
   }
   // `requires` and `excludes` need the whole order rather than one line, so
-  // they are checked when the quote is totalled. Phase 2.
+  // they are checked by [checkOrderRules].
+}
+
+/// A `requires` or `excludes` rule the quote as a whole breaks.
+///
+/// Distinct from [ProductRuleViolation], which a single line can raise: this
+/// one only exists in the context of the other lines. Herringbone SPC needs
+/// self levelling, and an intermediate joint needs a motor — neither is
+/// knowable from the line alone.
+class OrderRuleViolation {
+  final ProductRule rule;
+
+  /// The variant that triggered the rule.
+  final String variant;
+
+  const OrderRuleViolation({required this.rule, required this.variant});
+}
+
+/// Checks the rules that only make sense across a whole quote.
+///
+/// Returned rather than thrown. A missing self levelling is not a reason to
+/// refuse the quote — it is a reason to tell the salesperson to add a line,
+/// while the customer is still standing there. Refusing would lose the sale;
+/// staying silent would lose the floor.
+List<OrderRuleViolation> checkOrderRules({
+  required List<PricedLine> lines,
+  required RateCard card,
+}) {
+  final present = {for (final l in lines) l.rule.variant};
+  final out = <OrderRuleViolation>[];
+
+  for (final rule in card.productRules) {
+    if (!present.contains(rule.variant)) continue;
+    final target = rule.target;
+    if (target == null) continue;
+
+    final breached = switch (rule.kind) {
+      'requires' => !present.contains(target),
+      'excludes' => present.contains(target),
+      _ => false,
+    };
+    if (breached) {
+      out.add(OrderRuleViolation(rule: rule, variant: rule.variant));
+    }
+  }
+  return out;
 }
 
 Rational _rawQuantity(PricingRule rule, LineRequest request) {

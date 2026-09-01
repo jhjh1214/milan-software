@@ -271,6 +271,11 @@ class PricedQuote {
   final QuoteTotals totals;
   final bool provisionalCard;
 
+  /// Rules the quote as a whole breaks — a herringbone floor with no self
+  /// levelling, an intermediate joint with no motor. Surfaced, never used to
+  /// refuse the quote: refusing loses the sale, staying silent loses the floor.
+  final List<OrderRuleViolation> orderIssues;
+
   /// The promotion these rates belong to, when it has already ended.
   ///
   /// Non-null means the app is quoting expired fair rates, which undercharges
@@ -281,6 +286,7 @@ class PricedQuote {
     required this.lines,
     required this.totals,
     required this.provisionalCard,
+    this.orderIssues = const [],
     this.expiredPromo,
   });
 }
@@ -344,6 +350,13 @@ final pricedQuoteProvider = Provider<AsyncValue<PricedQuote>>((ref) {
         card: card,
         stage: PricingStage.estimate,
         deliveryZoneId: quote.deliveryZoneId,
+      ),
+      orderIssues: checkOrderRules(
+        lines: [
+          for (final p in priced)
+            if (p.priced != null) p.priced!,
+        ],
+        card: card,
       ),
       provisionalCard: card.provisional,
       expiredPromo: card.isExpiredOn(today) ? card.promo : null,
