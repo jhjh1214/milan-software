@@ -51,9 +51,12 @@ Future<void> shareQuotePdf(BuildContext context, WidgetRef ref) async {
     final file = File('${dir.path}/quote-${quote.quoteId.substring(0, 8)}.pdf');
     await file.writeAsBytes(bytes, flush: true);
 
-    await Share.shareXFiles([
-      XFile(file.path, mimeType: 'application/pdf'),
-    ], subject: l.pdfTitle);
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path, mimeType: 'application/pdf')],
+        subject: l.pdfTitle,
+      ),
+    );
   } catch (e) {
     // A failed share must not take the quote down with it. The part-timer can
     // keep working and try again.

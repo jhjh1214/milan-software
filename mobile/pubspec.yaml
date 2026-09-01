@@ -34,11 +34,16 @@ dependencies:
   # server-side.
   pdf: 3.11.3
   printing: 5.14.2
-  share_plus: 10.1.4
+  share_plus: 13.3.0
 
   # Photo per window. §8.1 wants one tap from inside the line — no gallery
   # round-trip, no crop step.
   image_picker: 1.1.2
+
+  # Picking the edited price list back off the device. Without it the admin has
+  # to get a file into the app's private folder by hand, which is not a thing
+  # anyone does.
+  file_picker: 12.1.3
 
 dev_dependencies:
   flutter_test:

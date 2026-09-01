@@ -9,8 +9,10 @@
 /// moves this to the dashboard, where the office can do it properly.
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
@@ -114,40 +116,38 @@ class _RateCardScreenState extends ConsumerState<RateCardScreen> {
       // A BOM, so Excel opens the Chinese product names correctly instead of
       // showing mojibake and sending the admin back to us.
       await file.writeAsString('﻿$csv', flush: true);
-      await Share.shareXFiles([
-        XFile(file.path, mimeType: 'text/csv'),
-      ], subject: l.ratesTitle);
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'text/csv')],
+          subject: l.ratesTitle,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
   Future<void> _import(RateCard card) async {
-    // Phase 2 reads the file the admin shared back to the app's documents
-    // folder. Phase 5 does this properly in the dashboard, where the office
-    // has a keyboard and a real screen.
-    final l = L.of(context);
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _busy = true);
     try {
-      final dir = await getApplicationDocumentsDirectory();
-      final candidates = dir
-          .listSync()
-          .whereType<File>()
-          .where((f) => f.path.toLowerCase().endsWith('.csv'))
-          .toList();
-      if (candidates.isEmpty) {
-        messenger.showSnackBar(SnackBar(content: Text(l.ratesErrors)));
-        return;
-      }
-      candidates.sort(
-        (a, b) => b.statSync().modified.compareTo(a.statSync().modified),
+      final picked = await FilePicker.pickFiles(type: FileType.any);
+      final file = picked.firstOrNull;
+      if (file == null) return; // Cancelling is not an error.
+
+      // Bytes rather than a path: on Android a picked file often arrives as a
+      // content:// URI with no readable filesystem path.
+      final text = utf8.decode(await file.readAsBytes(), allowMalformed: true);
+
+      // Excel writes a UTF-8 BOM. Left in place it becomes part of the header
+      // cell and every row fails to match.
+      setState(
+        () => _pending = readRateCardCsv(text.replaceFirst('﻿', ''), card),
       );
-      final text = (await candidates.first.readAsString()).replaceFirst(
-        '﻿',
-        '',
-      );
-      setState(() => _pending = readRateCardCsv(text, card));
+    } catch (e) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text('$e')));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
