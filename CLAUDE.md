@@ -15,13 +15,12 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 **Phase 1 — Quotation Proof.** Flutter only, no server, no persistence.
 Building `Length`, `Money`, the unit parser and rounding first.
 
-**Blocked:** `SPEC.md` §13 **A1** (the 10ft band boundary) and **A2a** (the
-curtain and blind rate rows).
-**Do not build the pricing engine until those two are answered in writing.**
+**Blocked:** `SPEC.md` §13 **A2a** only — the curtain and blind rate rows.
+**Do not build the pricing engine until that seed card exists as data.**
 
-A3 and A4 were retagged `BLOCKING P2` — Phase 1 applies no discount, so promo
-vs standard rates and the discount application order cannot block it. A10 is
-answered: round up. Everything else in Phase 1 is unblocked.
+A1 answered: exactly 10ft is the **lower** band, `band_max_mm = 3049`.
+A10 answered: round up. A3 and A4 retagged `BLOCKING P2` — Phase 1 applies no
+discount, so they cannot block it. Everything else in Phase 1 is unblocked.
 
 ---
 
@@ -39,6 +38,9 @@ currency is forbidden. Python: `int` sen, `Decimal` at boundaries only, never
   roll. There is no 19.99 sqft line. Applied after `min_qty`, never before.
   `MM_PER_FT` is 304.8, not an integer — compare in tenths of a mm. Test
   `3048 → 10` and `3049 → 11`.
+- *Band edges*: max is **exclusive**, so a 10ft cutoff is `band_max_mm = 3049`,
+  never 3048. 3048 would push exactly 10ft into the upper band and overcharge
+  RM144 on a 12ft curtain. Assert the constant in a test, not just the price.
 - *Money*: round half-up to the nearest sen, **once**, at the line total. Never
   round intermediates.
 

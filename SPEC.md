@@ -251,20 +251,20 @@ delivery_zones
 
 **Band semantics:** `band_min_mm <= value < band_max_mm`, max **exclusive**.
 
-> ⚠ **This paragraph previously contradicted itself and §4.4.** It claimed
-> `band_max_mm = 3048` puts exactly 10ft in the lower band. It does not: 10ft is
-> exactly 3048mm, and `3048 < 3048` is false, so that constant puts exactly 10ft
-> in the **upper** band at RM696 — contradicting golden row 4 and the Phase 1
-> acceptance criterion, which both demand RM552.
->
-> To place exactly 10ft in the **lower** band the constant must be
-> `band_max_mm = 3049`. To place it in the **upper** band, `band_max_mm = 3048`
-> and both §4.4 row 4 and the Phase 1 acceptance line must change to RM696.
->
-> **Pending A1.** Whichever way A1 is ruled, the constant, the golden row and the
-> acceptance criterion must be corrected together in one commit.
+**A1 ANSWERED: exactly 10ft is the LOWER band.** A 10ft height bills at RM46,
+not RM58. The step happens at 10ft 1in.
 
-Print the ruling in words on the rate card screen: 10 尺以内（含 10 尺）.
+Therefore the 10ft cutoff is **`band_max_mm = 3049`, not 3048.**
+
+10ft is exactly 3048mm, and under an exclusive max `3048 < 3048` is false — so
+`band_max_mm = 3048` would push exactly 10ft into the *upper* band and overcharge
+by RM144 on a 12ft curtain. The spec previously said 3048 and said it produced
+the lower band. It does not. **3049 is the constant. Assert it in a test.**
+
+Their printed list heads the columns "Below 10ft (H)" and "Up to 10ft (H)", both
+of which read as 10ft or under. **Their document needs correcting** to "Up to
+10ft (H)" and "Over 10ft (H)". Print the ruling in words on the rate card screen:
+10 尺以内（含 10 尺）.
 
 ## 4.3 Engine
 
@@ -1134,9 +1134,9 @@ orders, supplier management and costing come later.
 `[BLOCKING]` means do not start that phase until answered **in writing**.
 
 ## A. Pricing structure
-- `[BLOCKING P1]` **A1.** Their list heads the curtain columns "Below 10ft (H)"
-  and "Up to 10ft (H)". Both read as 10ft or under. Is exactly 10ft lower or
-  upper band? **Their own document needs correcting.**
+- ~~**A1.**~~ **ANSWERED — exactly 10ft is the LOWER band, RM46.** The step is at
+  10ft 1in. Encoded as `band_max_mm = 3049`; see §4.2. **Their printed list still
+  needs correcting** to "Up to 10ft (H)" / "Over 10ft (H)".
 - `[BLOCKING P1]` **A2a.** The **curtain and blind rows only**: day curtain,
   night curtain, roller, zebra. Per variant — layer, material_key where it moves
   the rate, both height bands, rate, MVP rate, minimum quantity. This is the
@@ -1158,11 +1158,14 @@ orders, supplier management and costing come later.
 - **A9.** Flooring: skirting always separate? Wastage % by lay pattern?
 - ~~**A10.**~~ **ANSWERED — round UP to a whole unit, every basis.** See §4.3
   step 5b. A quotation is not a measurement; billed quantity is never fractional.
-- `[BLOCKING P6]` **A11.** Does the same round-up apply at **final** pricing,
-  after the site measurement, when the customer actually pays? A10 was answered
-  in the context of quotation. If final pricing rounds differently, the estimate
-  and the final are computed by two different rules and §6.3's variance report
-  measures the rule, not the salesperson.
+- `[BLOCKING P6]` **A11.** **Partly answered:** at final pricing the *dimensions*
+  come from the site measurement rather than an estimate, and the held rate
+  multiplies those. What is still open is whether the **whole-unit round-up**
+  survives that step. `12ft 4in` measured on site — does it bill 13ft, or 12.33ft?
+  Round-up reads like a billing convention (you cannot buy 12.33ft of track), not
+  an estimation shortcut, but that is inference and this is money.
+  If the two stages round differently, §6.3's variance report measures the rule
+  change rather than the salesperson.
 - **A12.** Does the fair promo % **stack on top of** an MVP flat rate? RM46 →
   MVP RM40 → then also 20% off? Or is MVP the floor, whichever is lower? Not
   Phase 1, but it is the same shape of silent-money question as A4.
@@ -1209,8 +1212,11 @@ orders, supplier management and costing come later.
 - **G2.** Will there ever be an in-house dev team, Java-shop by policy?
 
 ## Answered
+- **Exactly 10ft is the LOWER band, RM46.** `band_max_mm = 3049` (A1) ✓
 - **Billed quantity rounds UP to a whole unit**, every basis, once, after
   `min_qty` (A10) ✓
+- **Final pricing uses site-measured dimensions**, multiplied by the rate held at
+  deposit. The deposit locks the rate, not a quantity (A11, partly) ✓
 - **Rates always come from the published price list** and must be updatable
   without a code change or a deploy ✓
 - **The deposit locks the promo rate only.** It does not bill a quantity — exact
