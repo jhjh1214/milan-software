@@ -8,6 +8,7 @@ import '../../pricing/models.dart';
 import '../../ui/theme.dart';
 import '../../ui/unit_labels.dart';
 import 'quote_state.dart';
+import 'share_quote.dart';
 import 'wizard_screen.dart';
 
 /// The quote. A list of windows, a running total pinned to the bottom, and the
@@ -79,7 +80,10 @@ class QuoteScreen extends ConsumerWidget {
                       ],
                     ),
             ),
-            _TotalBar(total: priced.totals.total),
+            _TotalBar(
+              total: priced.totals.total,
+              hasLines: priced.lines.isNotEmpty,
+            ),
           ],
         ),
       ),
@@ -573,13 +577,14 @@ class _Disclaimer extends StatelessWidget {
   }
 }
 
-class _TotalBar extends StatelessWidget {
+class _TotalBar extends ConsumerWidget {
   final Money total;
+  final bool hasLines;
 
-  const _TotalBar({required this.total});
+  const _TotalBar({required this.total, required this.hasLines});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = L.of(context);
     // §8.1: the running total is the most-looked-at number in the app, and
     // primary actions live in the bottom third where a thumb reaches.
@@ -605,14 +610,34 @@ class _TotalBar extends StatelessWidget {
               ),
               const SizedBox(height: Space.md),
               Builder(
-                builder: (context) => FilledButton.icon(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const WizardScreen(),
+                builder: (context) => Row(
+                  children: [
+                    if (hasLines) ...[
+                      Expanded(
+                        child: SizedBox(
+                          height: Touch.primary,
+                          child: OutlinedButton.icon(
+                            onPressed: () => shareQuotePdf(context, ref),
+                            icon: const Icon(Icons.ios_share, size: 20),
+                            label: Text(l.share),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: Space.md),
+                    ],
+                    Expanded(
+                      flex: hasLines ? 1 : 2,
+                      child: FilledButton.icon(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const WizardScreen(),
+                          ),
+                        ),
+                        icon: const Icon(Icons.add),
+                        label: Text(l.addWindow),
+                      ),
                     ),
-                  ),
-                  icon: const Icon(Icons.add),
-                  label: Text(l.addWindow),
+                  ],
                 ),
               ),
             ],

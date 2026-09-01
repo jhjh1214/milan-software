@@ -518,6 +518,90 @@ abstract class L {
   /// **'保存'**
   String get save;
 
+  /// No description provided for @share.
+  ///
+  /// In zh, this message translates to:
+  /// **'分享报价'**
+  String get share;
+
+  /// No description provided for @pdfTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'报价单'**
+  String get pdfTitle;
+
+  /// No description provided for @pdfCompany.
+  ///
+  /// In zh, this message translates to:
+  /// **'米兰窗帘地板'**
+  String get pdfCompany;
+
+  /// No description provided for @pdfQuoteNo.
+  ///
+  /// In zh, this message translates to:
+  /// **'报价编号'**
+  String get pdfQuoteNo;
+
+  /// No description provided for @pdfDate.
+  ///
+  /// In zh, this message translates to:
+  /// **'日期'**
+  String get pdfDate;
+
+  /// No description provided for @pdfRoom.
+  ///
+  /// In zh, this message translates to:
+  /// **'房间'**
+  String get pdfRoom;
+
+  /// No description provided for @pdfProduct.
+  ///
+  /// In zh, this message translates to:
+  /// **'产品'**
+  String get pdfProduct;
+
+  /// No description provided for @pdfSize.
+  ///
+  /// In zh, this message translates to:
+  /// **'尺寸'**
+  String get pdfSize;
+
+  /// No description provided for @pdfBilled.
+  ///
+  /// In zh, this message translates to:
+  /// **'计算'**
+  String get pdfBilled;
+
+  /// No description provided for @pdfRate.
+  ///
+  /// In zh, this message translates to:
+  /// **'单价'**
+  String get pdfRate;
+
+  /// No description provided for @pdfAmount.
+  ///
+  /// In zh, this message translates to:
+  /// **'金额'**
+  String get pdfAmount;
+
+  /// No description provided for @pdfNotAnInvoice.
+  ///
+  /// In zh, this message translates to:
+  /// **'此单不是税务发票，只是报价参考。'**
+  String get pdfNotAnInvoice;
+
+  /// No description provided for @pdfValidity.
+  ///
+  /// In zh, this message translates to:
+  /// **'报价有效期 {days} 天'**
+  String pdfValidity(int days);
+
+  /// No description provided for @pdfPage.
+  ///
+  /// In zh, this message translates to:
+  /// **'第 {page} 页，共 {total} 页'**
+  String pdfPage(int page, int total);
+
   /// No description provided for @subtotal.
   ///
   /// In zh, this message translates to:

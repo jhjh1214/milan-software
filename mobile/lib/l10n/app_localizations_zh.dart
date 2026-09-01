@@ -247,6 +247,52 @@ class LZh extends L {
   String get save => '保存';
 
   @override
+  String get share => '分享报价';
+
+  @override
+  String get pdfTitle => '报价单';
+
+  @override
+  String get pdfCompany => '米兰窗帘地板';
+
+  @override
+  String get pdfQuoteNo => '报价编号';
+
+  @override
+  String get pdfDate => '日期';
+
+  @override
+  String get pdfRoom => '房间';
+
+  @override
+  String get pdfProduct => '产品';
+
+  @override
+  String get pdfSize => '尺寸';
+
+  @override
+  String get pdfBilled => '计算';
+
+  @override
+  String get pdfRate => '单价';
+
+  @override
+  String get pdfAmount => '金额';
+
+  @override
+  String get pdfNotAnInvoice => '此单不是税务发票，只是报价参考。';
+
+  @override
+  String pdfValidity(int days) {
+    return '报价有效期 $days 天';
+  }
+
+  @override
+  String pdfPage(int page, int total) {
+    return '第 $page 页，共 $total 页';
+  }
+
+  @override
   String get subtotal => '小计';
 
   @override

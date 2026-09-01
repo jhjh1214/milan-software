@@ -29,6 +29,13 @@ dependencies:
   # collide, so ids are made on the device and never issued by the server.
   uuid: 4.5.1
 
+  # On-device PDF. CLAUDE.md pins these, and §9 requires the quote to reach
+  # WhatsApp with the phone in airplane mode — so nothing may be rendered
+  # server-side.
+  pdf: 3.11.3
+  printing: 5.14.2
+  share_plus: 10.1.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -44,10 +51,20 @@ flutter:
 
   assets:
     - assets/data/
+    - assets/fonts/
 
-  # No bundled font. Four weights of Noto Sans SC is roughly 40MB, against the
-  # <30MB bundle target in SPEC.md §12, and Flutter does not subset CJK text
-  # fonts the way it tree-shakes icon fonts. Android ships Noto Sans CJK
-  # system-wide, so Chinese falls back correctly with zero bytes shipped.
-  # If a device is ever found rendering tofu, the fix is a pyftsubset build
-  # step over the strings we actually use — not shipping the whole family.
+  # The SCREEN bundles no font: Android ships Noto Sans CJK system-wide, so
+  # Chinese falls back correctly for zero bytes.
+  #
+  # The PDF cannot borrow it. A PDF carries its own glyphs, so the document
+  # needs an embedded CJK face. The full family is ~9MB and would push the APK
+  # past the <30MB target in SPEC.md §12, so assets/fonts/NotoSansSC-Subset.ttf
+  # is Noto Sans SC instanced at Regular and subset to GB2312 levels 1 and 2
+  # plus every character in the ARB files and the rate card — 7,272 characters
+  # in 2.2MB.
+  #
+  # GB2312 rather than only our own strings, because a customer's name is free
+  # text: a narrower subset would render an unusual name as tofu on the very
+  # document they take away.
+  #
+  # SIL Open Font License; assets/fonts/OFL.txt ships alongside it.

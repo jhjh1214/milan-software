@@ -250,6 +250,53 @@ class LEn extends L {
   String get save => 'Save';
 
   @override
+  String get share => 'Share quotation';
+
+  @override
+  String get pdfTitle => 'Quotation';
+
+  @override
+  String get pdfCompany => 'Milan Curtain & Flooring';
+
+  @override
+  String get pdfQuoteNo => 'Quotation no.';
+
+  @override
+  String get pdfDate => 'Date';
+
+  @override
+  String get pdfRoom => 'Room';
+
+  @override
+  String get pdfProduct => 'Product';
+
+  @override
+  String get pdfSize => 'Size';
+
+  @override
+  String get pdfBilled => 'Billed';
+
+  @override
+  String get pdfRate => 'Rate';
+
+  @override
+  String get pdfAmount => 'Amount';
+
+  @override
+  String get pdfNotAnInvoice =>
+      'This document is a quotation, not a tax invoice.';
+
+  @override
+  String pdfValidity(int days) {
+    return 'Valid for $days days';
+  }
+
+  @override
+  String pdfPage(int page, int total) {
+    return 'Page $page of $total';
+  }
+
+  @override
   String get subtotal => 'Subtotal';
 
   @override

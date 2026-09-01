@@ -60,6 +60,16 @@ jobs:
       - name: Test
         run: flutter test --coverage
 
+      # The Dart suite writes sample quotations; this extracts their real text.
+      # A grep over the PDF bytes proves nothing, because an embedded subset
+      # font stores text as glyph indices — so only extraction can show that
+      # the document says what hard rule 7 requires, and that the Chinese
+      # actually rendered rather than coming out as tofu.
+      - name: Check what the printed quotation actually says
+        run: |
+          pip install --quiet pypdf
+          python3 ../tool/check_pdf_text.py
+
       # SPEC.md Phase 1 acceptance: 100% coverage on Length and Money. Asserted
       # rather than eyeballed, because a coverage number nobody checks is not a
       # criterion.

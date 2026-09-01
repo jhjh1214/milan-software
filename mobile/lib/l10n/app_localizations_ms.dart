@@ -249,6 +249,53 @@ class LMs extends L {
   String get save => 'Simpan';
 
   @override
+  String get share => 'Kongsi sebut harga';
+
+  @override
+  String get pdfTitle => 'Sebut Harga';
+
+  @override
+  String get pdfCompany => 'Milan Langsir & Lantai';
+
+  @override
+  String get pdfQuoteNo => 'No. sebut harga';
+
+  @override
+  String get pdfDate => 'Tarikh';
+
+  @override
+  String get pdfRoom => 'Bilik';
+
+  @override
+  String get pdfProduct => 'Produk';
+
+  @override
+  String get pdfSize => 'Ukuran';
+
+  @override
+  String get pdfBilled => 'Dikira';
+
+  @override
+  String get pdfRate => 'Kadar';
+
+  @override
+  String get pdfAmount => 'Jumlah';
+
+  @override
+  String get pdfNotAnInvoice =>
+      'Dokumen ini adalah sebut harga, bukan invois cukai.';
+
+  @override
+  String pdfValidity(int days) {
+    return 'Sah selama $days hari';
+  }
+
+  @override
+  String pdfPage(int page, int total) {
+    return 'Halaman $page daripada $total';
+  }
+
+  @override
   String get subtotal => 'Jumlah kecil';
 
   @override
