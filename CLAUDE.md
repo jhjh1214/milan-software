@@ -15,10 +15,13 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 **Phase 1 — Quotation Proof.** Flutter only, no server, no persistence.
 Building `Length`, `Money`, the unit parser and rounding first.
 
-**Blocked:** `SPEC.md` §13 items A1–A4 (full price list, promo vs standard rates,
-the 10ft band boundary, discount-on-unit-rate vs line-total).
-**Do not build the pricing engine until those are answered in writing.**
-Everything else in Phase 1 is unblocked.
+**Blocked:** `SPEC.md` §13 **A1** (the 10ft band boundary) and **A2a** (the
+curtain and blind rate rows).
+**Do not build the pricing engine until those two are answered in writing.**
+
+A3 and A4 were retagged `BLOCKING P2` — Phase 1 applies no discount, so promo
+vs standard rates and the discount application order cannot block it. A10 is
+answered: round up. Everything else in Phase 1 is unblocked.
 
 ---
 
@@ -32,11 +35,17 @@ currency is forbidden. Python: `int` sen, `Decimal` at boundaries only, never
 `float`.
 
 **Two distinct roundings, never conflated.**
-- *Billing*: curtain width rounds **up to the next whole foot**. `12ft 4in → 13ft`,
-  exactly `12ft 0in → 12ft`. `MM_PER_FT` is 304.8, not an integer — compare in
-  tenths of a mm. Test `3048 → 10` and `3049 → 11`.
+- *Quantity*: **always up, to a whole unit, once.** Every basis — ft, sqft, m,
+  roll. There is no 19.99 sqft line. Applied after `min_qty`, never before.
+  `MM_PER_FT` is 304.8, not an integer — compare in tenths of a mm. Test
+  `3048 → 10` and `3049 → 11`.
 - *Money*: round half-up to the nearest sen, **once**, at the line total. Never
   round intermediates.
+
+**Quantity arithmetic is exact rational, never float.** A foot is 304.8mm, so
+ft→mm→sqft cannot be exact in binary, and `96.0000000001` ceils to 97 and
+overcharges by a whole sqft. Integer numerator over integer denominator; divide
+last. This is what keeps the Dart and Python engines bit-identical.
 
 **Version pinning.** A rate lock pins **both** `held_rate_card_version` **and**
 `held_discount_pct`. Pinning only the version silently reprices held orders when

@@ -249,9 +249,22 @@ delivery_zones
   charge_kind enum(round_trip, transport)
 ```
 
-**Band semantics:** `band_min_mm <= value < band_max_mm`. A 10ft cutoff is
-`band_max_mm = 3048`, so exactly 10ft sits in the lower band — **pending A1**.
-Print it in words on the rate card screen: 10 尺以内（含 10 尺）.
+**Band semantics:** `band_min_mm <= value < band_max_mm`, max **exclusive**.
+
+> ⚠ **This paragraph previously contradicted itself and §4.4.** It claimed
+> `band_max_mm = 3048` puts exactly 10ft in the lower band. It does not: 10ft is
+> exactly 3048mm, and `3048 < 3048` is false, so that constant puts exactly 10ft
+> in the **upper** band at RM696 — contradicting golden row 4 and the Phase 1
+> acceptance criterion, which both demand RM552.
+>
+> To place exactly 10ft in the **lower** band the constant must be
+> `band_max_mm = 3049`. To place it in the **upper** band, `band_max_mm = 3048`
+> and both §4.4 row 4 and the Phase 1 acceptance line must change to RM696.
+>
+> **Pending A1.** Whichever way A1 is ruled, the constant, the golden row and the
+> acceptance criterion must be corrected together in one commit.
+
+Print the ruling in words on the rate card screen: 10 尺以内（含 10 尺）.
 
 ## 4.3 Engine
 
@@ -266,15 +279,16 @@ priceLine(family, variant, layer, material_key, fulfilment,
      no match -> throw NoApplicableRate       # NEVER pick the cheapest
    else:
      rule = candidates.single()
-3. billedQty by basis:
-     per_ft_width : ceilToFoot(widthMm)                     unit 'ft'
-     per_sqft     : sqft(widthMm, heightMm)                 unit 'sqft'
+3. rawQty by basis, held EXACTLY, never as a float:
+     per_ft_width : widthMm * 10 / 3048                     unit 'ft'
+     per_sqft     : widthMm * heightMm * 100 / 9290304      unit 'sqft'
      per_m_length : widthMm / 1000                          unit 'm'
      per_piece    : 1                                       unit 'pc'
      per_set      : 1                                       unit 'set'
-     per_roll     : ceil(sqft / coverage_sqft / bundle_qty) unit 'roll'
-4. if wastage_pct > 0: billedQty *= (1 + wastage_pct/100)
-5. if min_qty:         billedQty = max(billedQty, min_qty)    # BEFORE multiply
+     per_roll     : rawSqft / coverage_sqft / bundle_qty    unit 'roll'
+4. if wastage_pct > 0: rawQty *= (1 + wastage_pct/100)
+5. if min_qty:         rawQty = max(rawQty, min_qty)          # BEFORE multiply
+5b. billedQty = ceil(rawQty)      # ANSWERED A10 — round UP, whole units, ONCE
 6. rate = (tier == mvp && mvp_rate_sen != null) ? mvp_rate_sen : rate_sen
 7. if promoPct > 0: apply per A4 (unit rate vs line total — UNANSWERED)
 8. total = roundHalfUp(billedQty * rate) * qty
@@ -283,6 +297,16 @@ priceLine(family, variant, layer, material_key, fulfilment,
 
 **Height selects the band. Height never multiplies.** For `per_ft_width` only
 width is charged. Single most likely thing to get wrong.
+
+**Billed quantity is always a whole unit, rounded UP, exactly once** (A10). There
+is no such thing as 19.99 sqft on a line. The ceiling is applied after wastage
+and after `min_qty`, never before — rounding up twice overcharges.
+
+**`rawQty` must be exact rational arithmetic, not a float.** A foot is 304.8mm,
+so ft→mm→sqft can never be exact in binary. A 12ft × 8ft blind that computes as
+96.0000000001 sqft would ceil to 97 and overcharge by a whole sqft. Integer
+numerator and denominator only; the divisions above are deferred, not evaluated.
+The two engines must agree bit for bit — see §9.4.
 
 ## 4.4 Golden tests
 
@@ -1113,19 +1137,35 @@ orders, supplier management and costing come later.
 - `[BLOCKING P1]` **A1.** Their list heads the curtain columns "Below 10ft (H)"
   and "Up to 10ft (H)". Both read as 10ft or under. Is exactly 10ft lower or
   upper band? **Their own document needs correcting.**
-- `[BLOCKING P1]` **A2.** Full standard price list. Every family, variant,
-  minimum quantity, height band, MVP rate, add-on, service, delivery zone.
-- `[BLOCKING P1]` **A3.** Are RM46 / RM58 the **promo** rates? If so, is the
+- `[BLOCKING P1]` **A2a.** The **curtain and blind rows only**: day curtain,
+  night curtain, roller, zebra. Per variant — layer, material_key where it moves
+  the rate, both height bands, rate, MVP rate, minimum quantity. This is the
+  Phase 1 seed card and nothing else in Phase 1 needs the rest.
+- `[BLOCKING P2]` **A2b.** The remaining standard price list. Tracks and rods,
+  flooring, wallpaper, add-ons, services, delivery zones.
+- `[BLOCKING P2]` **A3.** Are RM46 / RM58 the **promo** rates? If so, is the
   standard list supplied directly or derived from these?
-- `[BLOCKING P1]` **A4.** Is the discount applied to the **unit rate** (discount
+  *Retagged from P1: Phase 1 seeds the printed numbers and applies no discount,
+  so the answer changes labelling in Phase 2, not the Phase 1 engine.*
+- `[BLOCKING P2]` **A4.** Is the discount applied to the **unit rate** (discount
   → round → multiply) or the **line total** (multiply → discount → round)?
   Differs by sen per line and real money across a house.
+  *Retagged from P1: Phase 1 builds no discount and no golden case exercises one.*
 - **A5.** One discount % for everything, or different per family?
 - **A6.** Is "Sgp Pleat" a heading bundled with a rod, or standalone fabric?
 - **A7.** Wallpaper pattern-repeat wastage: absorbed already, or added per range?
 - **A8.** Minimum charge per panel or per order, separate from minimum quantity?
 - **A9.** Flooring: skirting always separate? Wastage % by lay pattern?
-- **A10.** Does round-up-to-whole-foot apply only to curtain width, or also sqft?
+- ~~**A10.**~~ **ANSWERED — round UP to a whole unit, every basis.** See §4.3
+  step 5b. A quotation is not a measurement; billed quantity is never fractional.
+- `[BLOCKING P6]` **A11.** Does the same round-up apply at **final** pricing,
+  after the site measurement, when the customer actually pays? A10 was answered
+  in the context of quotation. If final pricing rounds differently, the estimate
+  and the final are computed by two different rules and §6.3's variance report
+  measures the rule, not the salesperson.
+- **A12.** Does the fair promo % **stack on top of** an MVP flat rate? RM46 →
+  MVP RM40 → then also 20% off? Or is MVP the floor, whichever is lower? Not
+  Phase 1, but it is the same shape of silent-money question as A4.
 
 ## B. Deposits and locks
 - `[BLOCKING P4]` **B1.** Curtain RM300 paid at a fair, customer returns six
@@ -1169,6 +1209,12 @@ orders, supplier management and costing come later.
 - **G2.** Will there ever be an in-house dev team, Java-shop by policy?
 
 ## Answered
+- **Billed quantity rounds UP to a whole unit**, every basis, once, after
+  `min_qty` (A10) ✓
+- **Rates always come from the published price list** and must be updatable
+  without a code change or a deploy ✓
+- **The deposit locks the promo rate only.** It does not bill a quantity — exact
+  quantities come from the site measurement appointment afterwards ✓
 - Day/night curtain = sheer + blackout, two layers on one window ✓
 - Blinds and tracks ride the `curtain` RM300 deposit ✓
 - RM300 covers unlimited windows within its category ✓
