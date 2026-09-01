@@ -81,5 +81,83 @@ void main() {
       expect(const Money.sen(25000).max(const Money.sen(30000)).sen, 30000);
       expect(const Money.sen(55200).max(const Money.sen(30000)).sen, 55200);
     });
+
+    test('min returns the smaller amount', () {
+      expect(const Money.sen(25000).min(const Money.sen(30000)).sen, 25000);
+      expect(const Money.sen(55200).min(const Money.sen(30000)).sen, 30000);
+    });
+
+    test('negation flips the sign, for refunds', () {
+      expect((-const Money.sen(30000)).sen, -30000);
+      expect((-const Money.sen(-30000)).sen, 30000);
+      expect((-Money.zero).sen, 0);
+    });
+
+    test('isNegative and isZero', () {
+      expect(const Money.sen(-1).isNegative, isTrue);
+      expect(const Money.sen(1).isNegative, isFalse);
+      expect(Money.zero.isNegative, isFalse);
+      expect(Money.zero.isZero, isTrue);
+      expect(const Money.sen(1).isZero, isFalse);
+    });
+
+    test('ringgit truncates toward zero', () {
+      expect(const Money.sen(55299).ringgit, 552);
+      expect(const Money.sen(99).ringgit, 0);
+    });
+  });
+
+  group('comparison', () {
+    test('compareTo orders by sen', () {
+      expect(const Money.sen(100).compareTo(const Money.sen(200)), lessThan(0));
+      expect(
+        const Money.sen(200).compareTo(const Money.sen(100)),
+        greaterThan(0),
+      );
+      expect(const Money.sen(100).compareTo(const Money.sen(100)), 0);
+    });
+
+    test('the operators agree with compareTo', () {
+      const a = Money.sen(100);
+      const b = Money.sen(200);
+      expect(a < b, isTrue);
+      expect(a <= b, isTrue);
+      expect(a > b, isFalse);
+      expect(a >= b, isFalse);
+      expect(b > a, isTrue);
+      expect(b >= a, isTrue);
+      expect(a <= const Money.sen(100), isTrue);
+      expect(a >= const Money.sen(100), isTrue);
+    });
+
+    test('a list of amounts sorts correctly', () {
+      final amounts = [
+        const Money.sen(55200),
+        const Money.sen(-100),
+        Money.zero,
+        const Money.sen(16200),
+      ]..sort();
+      expect(amounts.map((m) => m.sen), [-100, 0, 16200, 55200]);
+    });
+  });
+
+  group('value semantics', () {
+    test('equality is by amount', () {
+      expect(const Money.sen(4600) == const Money.rm(46), isTrue);
+      expect(const Money.sen(4600) == const Money.sen(4601), isFalse);
+      expect(const Money.sen(4600) == Object(), isFalse);
+    });
+
+    test('equal amounts share a hash code', () {
+      expect(const Money.sen(4600).hashCode, const Money.rm(46).hashCode);
+      final byValue = <Money>{}
+        ..add(const Money.sen(4600))
+        ..add(const Money.rm(46));
+      expect(byValue.length, 1);
+    });
+
+    test('toString is the formatted amount', () {
+      expect(const Money.sen(55200).toString(), 'RM 552.00');
+    });
   });
 }

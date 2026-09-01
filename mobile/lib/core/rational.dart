@@ -54,6 +54,10 @@ class Rational implements Comparable<Rational> {
   /// the whole point: `2.4m` must land on exactly 2400mm.
   static Rational? tryParseDecimal(String s) {
     if (s.isEmpty) return null;
+    // `int.tryParse` tolerates surrounding whitespace and a leading sign, so
+    // " 7", "+7" and "-7" would all slip through. Callers currently hand this
+    // clean regex captures, but a value type should not depend on that.
+    if (!_digitsAndPoint.hasMatch(s)) return null;
     final dot = s.indexOf('.');
     if (dot == -1) {
       final v = int.tryParse(s);
@@ -138,6 +142,9 @@ class Rational implements Comparable<Rational> {
 
   @override
   String toString() => d == 1 ? '$n' : '$n/$d';
+
+  /// Digits, with at most one decimal point. No sign, no whitespace.
+  static final RegExp _digitsAndPoint = RegExp(r'^\d*\.?\d*$');
 
   static int _gcd(int a, int b) {
     while (b != 0) {

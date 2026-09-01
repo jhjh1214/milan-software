@@ -358,8 +358,8 @@ Live in `shared/pricing-fixtures.json`, run by both Dart and Python suites.
 All six below are `stage = estimate`. **Final-stage cases must be added before
 Phase 6**, since that path rounds quantity differently and is currently untested.
 Worked example for the fixture: a night curtain measured on site at 12ft 4in
-(3759mm) bills `37590/3048 = 12.3327 ft × RM46 = 56730.31 sen → RM 567.30`,
-against RM 598.00 quoted at 13ft.
+(37592 tenths of a mm) bills `37592/3048 = 37/3 = 12.3333 ft × RM46 =
+56733.33 sen → RM 567.33`, against RM 598.00 quoted at 13ft.
 
 | variant | W | H | band | billed | rate | total |
 |---|---|---|---|---|---|---|
@@ -1228,7 +1228,7 @@ orders, supplier management and costing come later.
 - ~~**A10.**~~ **ANSWERED — round UP to a whole unit, every basis.** See §4.3
   step 5b. A quotation is not a measurement; billed quantity is never fractional.
 - ~~**A11.**~~ **ANSWERED — final pricing is EXACT, no round-up.** 12ft 4in
-  measured on site bills 12.3327ft at RM46 = RM567.30, against RM598.00 quoted.
+  measured on site bills 37/3 = 12.3333ft at RM46 = RM567.33, against RM598.00 quoted.
   The quote rounds up, the bill does not. See §4.3 `stage`.
 - `[BLOCKING P6]` **A11a.** Follow-on: does `min_qty` still apply at the final
   stage? A site-measured 12 sqft roller against a printed "Min 18sqft" — 18 or

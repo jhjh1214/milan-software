@@ -1,0 +1,8 @@
+arb-dir: lib/l10n
+template-arb-file: app_zh.arb
+output-localization-file: app_localizations.dart
+output-class: L
+nullable-getter: false
+# Chinese is the template and the default. Any key missing from en or ms is a
+# build warning, not a silent fallback to Chinese in front of a customer.
+untranslated-messages-file: l10n-missing.txt

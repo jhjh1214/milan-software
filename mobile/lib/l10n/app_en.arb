@@ -1,0 +1,88 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Milan Quote",
+
+  "languageChinese": "中文",
+  "languageEnglish": "English",
+  "languageMalay": "Bahasa Melayu",
+  "language": "Language",
+
+  "quoteTitle": "Quotation",
+  "newQuote": "New quotation",
+  "addWindow": "Add window",
+  "emptyQuoteTitle": "No windows yet",
+  "emptyQuoteAction": "Tap below to add the first window",
+
+  "stepRoom": "Which room?",
+  "stepProduct": "Which product?",
+  "stepMaterial": "Which material?",
+  "stepSizes": "Sizes",
+  "stepProgress": "Window {current} of {total} · {room}",
+
+  "roomLiving": "Living room",
+  "roomMaster": "Master bedroom",
+  "roomBedroom": "Bedroom",
+  "roomKitchen": "Kitchen",
+  "roomBalcony": "Balcony",
+  "roomStudy": "Study",
+  "roomOther": "Other",
+  "roomCustom": "Type a name",
+
+  "width": "Width",
+  "height": "Height",
+  "quantity": "Quantity",
+  "sameWindows": "{count} identical windows",
+
+  "unitFoot": "ft",
+  "unitInch": "in",
+  "unitMm": "mm",
+  "unitCm": "cm",
+  "unitMetre": "m",
+  "unitSqft": "sqft",
+
+  "billedAs": "billed as {qty} {unit}",
+  "enteredAs": "entered {value}",
+
+  "minQtyApplied": "minimum {qty} {unit}",
+
+  "errorInvalidDimension": "That size cannot be read",
+  "errorDimensionRequired": "Enter a size",
+  "errorNoRate": "This product has no complete rate. Tell the office.",
+
+  "warnUnitLooksWrong": "{value} {unit} = {converted}. Did you mean {suggestion}?",
+  "warnSwitchTo": "Change to {unit}",
+  "warnDropVeryShort": "Height is only {value}. Is that right?",
+  "warnNearBandEdge": "Just over {edge}. Please check the size.",
+  "warnBandBothPrices": "Up to {lower}: {lowerPrice} · Over {upper}",
+
+  "runningTotal": "Total",
+  "subtotal": "Subtotal",
+  "lineTotal": "Line total",
+  "depositFloorRow": "Minimum quotation (deposit {amount})",
+  "depositFloorExplain": "A quotation is never less than the deposit, so the deposit can never exceed the order.",
+
+  "disclaimerTitle": "Reference price",
+  "disclaimerBody": "This quotation is rounded up to whole units and is for reference only. After on-site measurement the final price will be the same or lower, never higher.",
+
+  "provisionalCardBanner": "Rate card not confirmed. Do not quote a customer.",
+
+  "delete": "Delete",
+  "deleted": "Deleted",
+  "undo": "Undo",
+  "back": "Back",
+  "next": "Next",
+  "done": "Done",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+
+  "keypadClear": "Clear",
+  "keypadBackspace": "Backspace",
+  "keypadDone": "OK",
+
+  "bandLower": "Up to 10ft",
+  "bandUpper": "Over 10ft",
+
+  "tierMvp": "MVP rate",
+  "tierStandard": "Standard rate"
+}

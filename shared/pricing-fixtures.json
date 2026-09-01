@@ -1,0 +1,418 @@
+{
+  "_purpose": "THE CONTRACT between the Dart and Python pricing engines. Every case lives here once; both suites load this file. A rule change means editing this file first, then making both sides pass. See CLAUDE.md hard rule 3.",
+  "_rate_card": "rate-card-seed.json",
+  "_units": "Dimensions are in tenths of a millimetre (tmm). Money is in sen. 1ft = 3048 tmm, 1in = 254 tmm.",
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "golden-1-night-curtain-lower-band",
+      "source": "SPEC.md §4.4 row 1",
+      "why": "The base case. 12ft wide, 9ft high, under the 10ft band edge.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "night_curtain",
+        "material_key": null,
+        "layer": "night",
+        "fulfilment": "supply_install",
+        "width_tmm": 36576,
+        "height_tmm": 27432,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "seed-night-curtain-lower",
+        "billed_qty": "12",
+        "billed_unit": "ft",
+        "min_qty_applied": false,
+        "rate_sen": 4600,
+        "total_sen": 55200
+      }
+    },
+    {
+      "id": "golden-2-night-curtain-upper-band",
+      "source": "SPEC.md §4.4 row 2",
+      "why": "10ft 6in high crosses into the upper band. The RM144 step.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "night_curtain",
+        "material_key": null,
+        "layer": "night",
+        "fulfilment": "supply_install",
+        "width_tmm": 36576,
+        "height_tmm": 32004,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "seed-night-curtain-upper",
+        "billed_qty": "12",
+        "billed_unit": "ft",
+        "min_qty_applied": false,
+        "rate_sen": 5800,
+        "total_sen": 69600
+      }
+    },
+    {
+      "id": "golden-3-width-rounds-up-to-whole-foot",
+      "source": "SPEC.md §4.4 row 3",
+      "why": "12ft 4in bills as 13ft on a quotation. A10.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "night_curtain",
+        "material_key": null,
+        "layer": "night",
+        "fulfilment": "supply_install",
+        "width_tmm": 37592,
+        "height_tmm": 27432,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "seed-night-curtain-lower",
+        "billed_qty": "13",
+        "billed_unit": "ft",
+        "min_qty_applied": false,
+        "rate_sen": 4600,
+        "total_sen": 59800
+      }
+    },
+    {
+      "id": "golden-4-exactly-ten-feet-is-lower-band",
+      "source": "SPEC.md §4.4 row 4, open question A1",
+      "why": "THE fencepost. Exactly 10ft (30480 tmm) must price at RM46, not RM58. band_max_tmm is 30481, not 30480.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "night_curtain",
+        "material_key": null,
+        "layer": "night",
+        "fulfilment": "supply_install",
+        "width_tmm": 36576,
+        "height_tmm": 30480,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "seed-night-curtain-lower",
+        "billed_qty": "12",
+        "billed_unit": "ft",
+        "min_qty_applied": false,
+        "rate_sen": 4600,
+        "total_sen": 55200
+      }
+    },
+    {
+      "id": "golden-5-mvp-is-a-flat-rate",
+      "source": "SPEC.md §4.4 row 5",
+      "why": "MVP substitutes RM40 for RM46. No percentage arithmetic anywhere.",
+      "stage": "estimate",
+      "tier": "mvp",
+      "line": {
+        "variant": "night_curtain",
+        "material_key": null,
+        "layer": "night",
+        "fulfilment": "supply_install",
+        "width_tmm": 36576,
+        "height_tmm": 27432,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "seed-night-curtain-lower",
+        "billed_qty": "12",
+        "billed_unit": "ft",
+        "min_qty_applied": false,
+        "rate_sen": 4000,
+        "total_sen": 48000
+      }
+    },
+    {
+      "id": "golden-6-minimum-quantity",
+      "source": "SPEC.md §4.4 row 6",
+      "why": "A 3ft x 4ft roller is 12 sqft but bills the 18 sqft minimum.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "roller_blackout",
+        "material_key": null,
+        "layer": "single",
+        "fulfilment": "supply_install",
+        "width_tmm": 9144,
+        "height_tmm": 12192,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "seed-roller-blackout",
+        "billed_qty": "18",
+        "billed_unit": "sqft",
+        "min_qty_applied": true,
+        "rate_sen": 900,
+        "total_sen": 16200
+      }
+    },
+    {
+      "id": "band-edge-one-inch-over",
+      "source": "Phase 1 acceptance criteria",
+      "why": "10ft 1in is the upper band. Against golden-4, this is the RM144 swing the app exists to prevent.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "night_curtain",
+        "material_key": null,
+        "layer": "night",
+        "fulfilment": "supply_install",
+        "width_tmm": 36576,
+        "height_tmm": 30734,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "seed-night-curtain-upper",
+        "billed_qty": "12",
+        "billed_unit": "ft",
+        "min_qty_applied": false,
+        "rate_sen": 5800,
+        "total_sen": 69600
+      }
+    },
+    {
+      "id": "band-edge-one-tenth-mm-over",
+      "source": "band_max_tmm fencepost",
+      "why": "One tenth of a millimetre past 10ft is already the upper band. Pins the constant itself, not just the price.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "night_curtain",
+        "material_key": null,
+        "layer": "night",
+        "fulfilment": "supply_install",
+        "width_tmm": 36576,
+        "height_tmm": 30481,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "seed-night-curtain-upper",
+        "billed_qty": "12",
+        "billed_unit": "ft",
+        "min_qty_applied": false,
+        "rate_sen": 5800,
+        "total_sen": 69600
+      }
+    },
+    {
+      "id": "regression-twelve-feet-must-not-become-thirteen",
+      "source": "Storage-unit defect found in Phase 1",
+      "why": "Whole-millimetre storage made 12ft into 3658mm, back into 12.0013ft, and up to 13ft — quoting RM598 against golden-1's RM552. Tenths removed the round-trip.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "night_curtain",
+        "material_key": null,
+        "layer": "night",
+        "fulfilment": "supply_install",
+        "width_tmm": 36576,
+        "height_tmm": 27432,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "seed-night-curtain-lower",
+        "billed_qty": "12",
+        "billed_unit": "ft",
+        "min_qty_applied": false,
+        "rate_sen": 4600,
+        "total_sen": 55200
+      }
+    },
+    {
+      "id": "final-stage-bills-exactly",
+      "source": "Open question A11",
+      "why": "The same 12ft 4in window, measured on site, bills 12.3333ft not 13ft. Quote RM598.00, bill RM567.33.",
+      "stage": "final",
+      "tier": "standard",
+      "line": {
+        "variant": "night_curtain",
+        "material_key": null,
+        "layer": "night",
+        "fulfilment": "supply_install",
+        "width_tmm": 37592,
+        "height_tmm": 27432,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "seed-night-curtain-lower",
+        "billed_qty": "37/3",
+        "billed_unit": "ft",
+        "min_qty_applied": false,
+        "rate_sen": 4600,
+        "total_sen": 56733
+      }
+    },
+    {
+      "id": "final-stage-min-qty-still-applies",
+      "source": "Open question A11a — ASSUMED, awaiting confirmation",
+      "why": "A site-measured 3ft x 4ft roller still bills the printed 18 sqft minimum, because a minimum quantity is a commercial floor and not a rounding artefact.",
+      "stage": "final",
+      "tier": "standard",
+      "line": {
+        "variant": "roller_blackout",
+        "material_key": null,
+        "layer": "single",
+        "fulfilment": "supply_install",
+        "width_tmm": 9144,
+        "height_tmm": 12192,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "seed-roller-blackout",
+        "billed_qty": "18",
+        "billed_unit": "sqft",
+        "min_qty_applied": true,
+        "rate_sen": 900,
+        "total_sen": 16200
+      }
+    },
+    {
+      "id": "identical-windows-multiply-after-rounding",
+      "source": "SPEC.md §4.3 step 8",
+      "why": "Three identical windows are 3 x round(qty x rate), not round(3 x qty x rate).",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "night_curtain",
+        "material_key": null,
+        "layer": "night",
+        "fulfilment": "supply_install",
+        "width_tmm": 36576,
+        "height_tmm": 27432,
+        "quantity": 3
+      },
+      "expect": {
+        "rule_id": "seed-night-curtain-lower",
+        "billed_qty": "12",
+        "billed_unit": "ft",
+        "min_qty_applied": false,
+        "rate_sen": 4600,
+        "total_sen": 165600
+      }
+    },
+    {
+      "id": "material-key-changes-the-rate",
+      "source": "SPEC.md §4.1",
+      "why": "Zebra J/BL and TBL are different rates on the same variant. Material cannot be deferred past deposit for these.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "zebra_blackout",
+        "material_key": "tbl",
+        "layer": "single",
+        "fulfilment": "supply_install",
+        "width_tmm": 15240,
+        "height_tmm": 18288,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "seed-zebra-blackout-tbl",
+        "billed_qty": "30",
+        "billed_unit": "sqft",
+        "min_qty_applied": false,
+        "rate_sen": 1500,
+        "total_sen": 45000
+      }
+    },
+    {
+      "id": "day-curtain-lower-band",
+      "source": "SPEC.md §4.1",
+      "why": "A second banded variant, to prove the band logic is not hard-coded to night curtain.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "day_curtain",
+        "material_key": null,
+        "layer": "day",
+        "fulfilment": "supply_install",
+        "width_tmm": 36576,
+        "height_tmm": 27432,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "seed-day-curtain-lower",
+        "billed_qty": "12",
+        "billed_unit": "ft",
+        "min_qty_applied": false,
+        "rate_sen": 3600,
+        "total_sen": 43200
+      }
+    },
+    {
+      "id": "mvp-absent-falls-back-to-standard",
+      "source": "SPEC.md §4.1",
+      "why": "MVP applies only to some products. A day curtain has no MVP rate, so an MVP customer pays standard — not an invented discount.",
+      "stage": "estimate",
+      "tier": "mvp",
+      "line": {
+        "variant": "day_curtain",
+        "material_key": null,
+        "layer": "day",
+        "fulfilment": "supply_install",
+        "width_tmm": 36576,
+        "height_tmm": 27432,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "seed-day-curtain-lower",
+        "billed_qty": "12",
+        "billed_unit": "ft",
+        "min_qty_applied": false,
+        "rate_sen": 3600,
+        "total_sen": 43200
+      }
+    }
+  ],
+  "quote_total_cases": [
+    {
+      "id": "floor-lifts-a-small-quote-to-the-deposit",
+      "source": "SPEC.md §4.3, answered this phase",
+      "why": "A single small roller blind quotes RM162, below the RM300 deposit. The quote shows RM300 with the uplift on its own row, never folded into the line.",
+      "stage": "estimate",
+      "line_totals_sen": { "curtain": 16200 },
+      "expect": {
+        "category_subtotals_sen": { "curtain": 16200 },
+        "category_floor_uplift_sen": { "curtain": 13800 },
+        "total_sen": 30000
+      }
+    },
+    {
+      "id": "floor-does-not-touch-a-normal-quote",
+      "source": "SPEC.md §4.3",
+      "why": "Above RM300 the floor is inert.",
+      "stage": "estimate",
+      "line_totals_sen": { "curtain": 55200 },
+      "expect": {
+        "category_subtotals_sen": { "curtain": 55200 },
+        "category_floor_uplift_sen": { "curtain": 0 },
+        "total_sen": 55200
+      }
+    },
+    {
+      "id": "floor-is-per-category-not-per-order",
+      "source": "Open question B8 — ASSUMED, diverges from per-order in Phase 2",
+      "why": "Curtain RM250 plus flooring RM200 quotes RM600 under per-category, RM450 under per-order. Phase 1 carries one category only, so the readings agree here.",
+      "stage": "estimate",
+      "line_totals_sen": { "curtain": 25000, "flooring": 20000 },
+      "expect": {
+        "category_subtotals_sen": { "curtain": 25000, "flooring": 20000 },
+        "category_floor_uplift_sen": { "curtain": 5000, "flooring": 10000 },
+        "total_sen": 60000
+      }
+    },
+    {
+      "id": "floor-does-not-apply-at-final-pricing",
+      "source": "SPEC.md §4.3",
+      "why": "Final pricing is what it is. A quote of RM300 that measures down to RM240 lands in open question B4, not in a silent floor.",
+      "stage": "final",
+      "line_totals_sen": { "curtain": 24000 },
+      "expect": {
+        "category_subtotals_sen": { "curtain": 24000 },
+        "category_floor_uplift_sen": { "curtain": 0 },
+        "total_sen": 24000
+      }
+    }
+  ]
+}

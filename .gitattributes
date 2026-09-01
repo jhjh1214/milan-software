@@ -1,0 +1,17 @@
+# Normalise to LF in the repository. The Dart, Python and Angular toolchains
+# all prefer it, and mixed endings make diffs unreadable across the Windows
+# workstation and the Linux VPS.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
+*.ttf binary
+*.otf binary
+*.keystore binary
+*.jks binary
+
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+gradlew text eol=lf

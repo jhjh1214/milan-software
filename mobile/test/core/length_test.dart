@@ -130,6 +130,55 @@ void main() {
     });
   });
 
+  group('comparison and value semantics', () {
+    test('compareTo orders by tenths', () {
+      expect(Length.mm(100).compareTo(Length.mm(200)), lessThan(0));
+      expect(Length.mm(200).compareTo(Length.mm(100)), greaterThan(0));
+      expect(Length.mm(100).compareTo(Length.mm(100)), 0);
+    });
+
+    test('the operators agree with compareTo', () {
+      final a = Length.mm(100);
+      final b = Length.mm(200);
+      expect(a < b, isTrue);
+      expect(a <= b, isTrue);
+      expect(a > b, isFalse);
+      expect(a >= b, isFalse);
+      expect(b > a, isTrue);
+      expect(b >= a, isTrue);
+      expect(a <= Length.mm(100), isTrue);
+      expect(a >= Length.mm(100), isTrue);
+    });
+
+    test('a list of lengths sorts correctly', () {
+      final lengths = [Length.mm(300), Length.zero, Length.mm(100)]..sort();
+      expect(lengths.map((l) => l.mm), [0, 100, 300]);
+    });
+
+    test('equality is by stored tenths', () {
+      expect(Length.mm(3048) == Length.tenths(30480), isTrue);
+      expect(Length.mm(3048) == Length.tenths(30481), isFalse);
+      expect(Length.mm(3048) == Object(), isFalse);
+    });
+
+    test('equal lengths share a hash code', () {
+      expect(Length.mm(3048).hashCode, Length.tenths(30480).hashCode);
+      final set = <Length>{}
+        ..add(Length.mm(3048))
+        ..add(Length.tenths(30480));
+      expect(set.length, 1);
+    });
+
+    test('toString shows both units, so a log is never ambiguous', () {
+      expect(Length.tenths(36576).toString(), '36576tmm (3658mm)');
+    });
+
+    test('isZero', () {
+      expect(Length.zero.isZero, isTrue);
+      expect(Length.tenths(1).isZero, isFalse);
+    });
+  });
+
   group('area in square feet is exact', () {
     test('a whole-foot rectangle is a whole number of square feet', () {
       // Whole millimetres made this 11.9928, which is visibly wrong to anyone

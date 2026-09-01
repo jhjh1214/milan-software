@@ -1,0 +1,88 @@
+{
+  "@@locale": "ms",
+
+  "appTitle": "Milan Sebut Harga",
+
+  "languageChinese": "中文",
+  "languageEnglish": "English",
+  "languageMalay": "Bahasa Melayu",
+  "language": "Bahasa",
+
+  "quoteTitle": "Sebut Harga",
+  "newQuote": "Sebut harga baharu",
+  "addWindow": "Tambah tingkap",
+  "emptyQuoteTitle": "Belum ada tingkap",
+  "emptyQuoteAction": "Tekan di bawah untuk tambah tingkap pertama",
+
+  "stepRoom": "Bilik yang mana?",
+  "stepProduct": "Produk apa?",
+  "stepMaterial": "Bahan apa?",
+  "stepSizes": "Ukuran",
+  "stepProgress": "Tingkap {current} daripada {total} · {room}",
+
+  "roomLiving": "Ruang tamu",
+  "roomMaster": "Bilik utama",
+  "roomBedroom": "Bilik tidur",
+  "roomKitchen": "Dapur",
+  "roomBalcony": "Balkoni",
+  "roomStudy": "Bilik belajar",
+  "roomOther": "Lain-lain",
+  "roomCustom": "Taip nama",
+
+  "width": "Lebar",
+  "height": "Tinggi",
+  "quantity": "Kuantiti",
+  "sameWindows": "{count} tingkap serupa",
+
+  "unitFoot": "kaki",
+  "unitInch": "inci",
+  "unitMm": "mm",
+  "unitCm": "cm",
+  "unitMetre": "m",
+  "unitSqft": "kaki persegi",
+
+  "billedAs": "dikira {qty} {unit}",
+  "enteredAs": "dimasukkan {value}",
+
+  "minQtyApplied": "minimum {qty} {unit}",
+
+  "errorInvalidDimension": "Ukuran ini tidak dapat dibaca",
+  "errorDimensionRequired": "Masukkan ukuran",
+  "errorNoRate": "Produk ini tiada kadar lengkap. Beritahu pejabat.",
+
+  "warnUnitLooksWrong": "{value} {unit} = {converted}. Adakah anda maksudkan {suggestion}?",
+  "warnSwitchTo": "Tukar ke {unit}",
+  "warnDropVeryShort": "Tinggi hanya {value}. Betul ke?",
+  "warnNearBandEdge": "Baru melebihi {edge}. Sila semak ukuran.",
+  "warnBandBothPrices": "Sehingga {lower}: {lowerPrice} · Melebihi {upper}",
+
+  "runningTotal": "Jumlah",
+  "subtotal": "Jumlah kecil",
+  "lineTotal": "Jumlah baris",
+  "depositFloorRow": "Sebut harga minimum (deposit {amount})",
+  "depositFloorExplain": "Sebut harga tidak akan kurang daripada deposit, supaya deposit tidak melebihi tempahan.",
+
+  "disclaimerTitle": "Harga rujukan",
+  "disclaimerBody": "Sebut harga ini dibundarkan ke atas dan untuk rujukan sahaja. Selepas pengukuran di tapak, harga akhir adalah sama atau lebih rendah, tidak akan lebih tinggi.",
+
+  "provisionalCardBanner": "Senarai harga belum disahkan. Jangan beri sebut harga kepada pelanggan.",
+
+  "delete": "Padam",
+  "deleted": "Dipadam",
+  "undo": "Batal",
+  "back": "Kembali",
+  "next": "Seterusnya",
+  "done": "Selesai",
+  "cancel": "Batal",
+  "confirm": "Sahkan",
+
+  "keypadClear": "Kosongkan",
+  "keypadBackspace": "Padam",
+  "keypadDone": "OK",
+
+  "bandLower": "Sehingga 10ka",
+  "bandUpper": "Melebihi 10ka",
+
+  "tierMvp": "Kadar MVP",
+  "tierStandard": "Kadar biasa"
+}

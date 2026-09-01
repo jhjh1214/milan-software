@@ -1,0 +1,184 @@
+{
+  "provisional": true,
+  "_warning": "PROVISIONAL SEED CARD. NOT THE PRICE LIST. DO NOT QUOTE A REAL CUSTOMER FROM IT. Every rate here is copied from a number already published in SPEC.md sections 4.1 and 4.4, because open question A2a (the real curtain and blind rows) has not been answered. Replacing this file must not require a code change - that is the test of whether hard rule 1 was obeyed.",
+  "_blocked_on": "SPEC.md section 13, A2a",
+  "version": 0,
+  "config": {
+    "min_deposit_sen": 30000,
+    "band_edge_warn_tmm": 760,
+    "default_unit_width": "ft",
+    "default_unit_height": "ft"
+  },
+  "rules": [
+    {
+      "id": "seed-night-curtain-lower",
+      "family": "curtain",
+      "variant": "night_curtain",
+      "layer": "night",
+      "material_key": null,
+      "fulfilment": "supply_install",
+      "labels": {
+        "zh": "夜帘（遮光）",
+        "en": "Night Curtain (Dimout)",
+        "ms": "Langsir Malam (Dimout)"
+      },
+      "basis": "per_ft_width",
+      "band_field": "height",
+      "band_min_tmm": 0,
+      "band_max_tmm": 30481,
+      "band_labels": {
+        "zh": "10 尺以内（含 10 尺）",
+        "en": "Up to 10ft (inclusive)",
+        "ms": "Sehingga 10ka (termasuk)"
+      },
+      "rate_sen": 4600,
+      "mvp_rate_sen": 4000,
+      "min_qty": null,
+      "sort_order": 10
+    },
+    {
+      "id": "seed-night-curtain-upper",
+      "family": "curtain",
+      "variant": "night_curtain",
+      "layer": "night",
+      "material_key": null,
+      "fulfilment": "supply_install",
+      "labels": {
+        "zh": "夜帘（遮光）",
+        "en": "Night Curtain (Dimout)",
+        "ms": "Langsir Malam (Dimout)"
+      },
+      "basis": "per_ft_width",
+      "band_field": "height",
+      "band_min_tmm": 30481,
+      "band_max_tmm": null,
+      "band_labels": {
+        "zh": "超过 10 尺",
+        "en": "Over 10ft",
+        "ms": "Melebihi 10ka"
+      },
+      "rate_sen": 5800,
+      "mvp_rate_sen": 5200,
+      "min_qty": null,
+      "sort_order": 11
+    },
+    {
+      "id": "seed-day-curtain-lower",
+      "family": "curtain",
+      "variant": "day_curtain",
+      "layer": "day",
+      "material_key": null,
+      "fulfilment": "supply_install",
+      "labels": {
+        "zh": "日帘（纱帘）",
+        "en": "Day Curtain (Sheer)",
+        "ms": "Langsir Siang (Sheer)"
+      },
+      "basis": "per_ft_width",
+      "band_field": "height",
+      "band_min_tmm": 0,
+      "band_max_tmm": 30481,
+      "band_labels": {
+        "zh": "10 尺以内（含 10 尺）",
+        "en": "Up to 10ft (inclusive)",
+        "ms": "Sehingga 10ka (termasuk)"
+      },
+      "rate_sen": 3600,
+      "mvp_rate_sen": null,
+      "min_qty": null,
+      "sort_order": 20
+    },
+    {
+      "id": "seed-day-curtain-upper",
+      "family": "curtain",
+      "variant": "day_curtain",
+      "layer": "day",
+      "material_key": null,
+      "fulfilment": "supply_install",
+      "labels": {
+        "zh": "日帘（纱帘）",
+        "en": "Day Curtain (Sheer)",
+        "ms": "Langsir Siang (Sheer)"
+      },
+      "basis": "per_ft_width",
+      "band_field": "height",
+      "band_min_tmm": 30481,
+      "band_max_tmm": null,
+      "band_labels": {
+        "zh": "超过 10 尺",
+        "en": "Over 10ft",
+        "ms": "Melebihi 10ka"
+      },
+      "rate_sen": 4800,
+      "mvp_rate_sen": null,
+      "min_qty": null,
+      "sort_order": 21
+    },
+    {
+      "id": "seed-roller-blackout",
+      "family": "blind",
+      "variant": "roller_blackout",
+      "layer": "single",
+      "material_key": null,
+      "fulfilment": "supply_install",
+      "labels": {
+        "zh": "遮光卷帘",
+        "en": "Roller Blind (Blackout)",
+        "ms": "Bidai Gulung (Blackout)"
+      },
+      "basis": "per_sqft",
+      "band_field": "none",
+      "band_min_tmm": null,
+      "band_max_tmm": null,
+      "band_labels": null,
+      "rate_sen": 900,
+      "mvp_rate_sen": null,
+      "min_qty": 18,
+      "sort_order": 30
+    },
+    {
+      "id": "seed-zebra-blackout-jbl",
+      "family": "blind",
+      "variant": "zebra_blackout",
+      "layer": "single",
+      "material_key": "jbl",
+      "fulfilment": "supply_install",
+      "labels": {
+        "zh": "斑马帘 遮光 J/BL",
+        "en": "Zebra Blind Blackout J/BL",
+        "ms": "Bidai Zebra Blackout J/BL"
+      },
+      "basis": "per_sqft",
+      "band_field": "none",
+      "band_min_tmm": null,
+      "band_max_tmm": null,
+      "band_labels": null,
+      "rate_sen": 1200,
+      "mvp_rate_sen": null,
+      "min_qty": 18,
+      "sort_order": 40
+    },
+    {
+      "id": "seed-zebra-blackout-tbl",
+      "family": "blind",
+      "variant": "zebra_blackout",
+      "layer": "single",
+      "material_key": "tbl",
+      "fulfilment": "supply_install",
+      "labels": {
+        "zh": "斑马帘 遮光 TBL",
+        "en": "Zebra Blind Blackout TBL",
+        "ms": "Bidai Zebra Blackout TBL"
+      },
+      "basis": "per_sqft",
+      "band_field": "none",
+      "band_min_tmm": null,
+      "band_max_tmm": null,
+      "band_labels": null,
+      "rate_sen": 1500,
+      "mvp_rate_sen": null,
+      "min_qty": 18,
+      "sort_order": 41
+    }
+  ]
+}
