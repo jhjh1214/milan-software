@@ -34,8 +34,12 @@ currency is forbidden. Python: `int` sen, `Decimal` at boundaries only, never
 `float`.
 
 **Two distinct roundings, never conflated.**
-- *Quantity*: **always up, to a whole unit, once.** Every basis — ft, sqft, m,
-  roll. There is no 19.99 sqft line. Applied after `min_qty`, never before.
+- *Quantity, and it differs by stage.* On a **quotation**: up to a whole unit,
+  once, every basis — ft, sqft, m, roll — applied after `min_qty`, never before.
+  At **final pricing** after site measurement: **exact, no rounding.** The quote
+  rounds up, the bill does not. Two rules on purpose; never collapse them.
+  So the estimate is always ≥ the final — subtract that bias before reading the
+  variance report.
   `MM_PER_FT` is 304.8, not an integer — compare in tenths of a mm. Test
   `3048 → 10` and `3049 → 11`.
 - *Band edges*: max is **exclusive**, so a 10ft cutoff is `band_max_mm = 3049`,

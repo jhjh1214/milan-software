@@ -270,7 +270,10 @@ of which read as 10ft or under. **Their document needs correcting** to "Up to
 
 ```
 priceLine(family, variant, layer, material_key, fulfilment,
-          widthMm, heightMm, qty, card, promoPct, tier):
+          widthMm, heightMm, qty, card, promoPct, tier, stage):
+
+  stage = estimate  ->  billed quantity rounds UP to a whole unit
+  stage = final     ->  billed quantity is EXACT, no rounding of quantity
 
 1. candidates = rules.where(family, variant, layer, material_key, fulfilment)
 2. if band_field != none:
@@ -288,7 +291,8 @@ priceLine(family, variant, layer, material_key, fulfilment,
      per_roll     : rawSqft / coverage_sqft / bundle_qty    unit 'roll'
 4. if wastage_pct > 0: rawQty *= (1 + wastage_pct/100)
 5. if min_qty:         rawQty = max(rawQty, min_qty)          # BEFORE multiply
-5b. billedQty = ceil(rawQty)      # ANSWERED A10 — round UP, whole units, ONCE
+5b. billedQty = (stage == estimate) ? ceil(rawQty)   # A10  — quote rounds UP
+                                    : rawQty         # A11  — final is EXACT
 6. rate = (tier == mvp && mvp_rate_sen != null) ? mvp_rate_sen : rate_sen
 7. if promoPct > 0: apply per A4 (unit rate vs line total — UNANSWERED)
 8. total = roundHalfUp(billedQty * rate) * qty
@@ -298,9 +302,27 @@ priceLine(family, variant, layer, material_key, fulfilment,
 **Height selects the band. Height never multiplies.** For `per_ft_width` only
 width is charged. Single most likely thing to get wrong.
 
-**Billed quantity is always a whole unit, rounded UP, exactly once** (A10). There
-is no such thing as 19.99 sqft on a line. The ceiling is applied after wastage
-and after `min_qty`, never before — rounding up twice overcharges.
+**The two stages round quantity differently. This is deliberate — do not
+"fix" it into one rule.**
+
+- *Estimate* (A10): billed quantity is a whole unit, rounded **up**, exactly
+  once, after wastage and after `min_qty`. Never before — rounding up twice
+  overcharges. There is no 19.99 sqft on a quotation.
+- *Final*, after site measurement (A11): billed quantity is **exact**. The tape
+  is the truth and the held rate multiplies it directly.
+
+**Consequence: the estimate is systematically ≥ the final, on every line.**
+Rounding up only ever moves one way, so a customer's final price can only land
+at or below what they were quoted. That is the safe direction commercially — no
+rounding artefact ever produces a surprise increase — but §6.3's estimate-vs-final
+variance report must subtract this known bias before it can say anything about a
+salesperson's guessing. A line quoted at 13ft and billed at 12.33ft is not a bad
+estimate.
+
+**Assumption pending confirmation:** `min_qty` applies at **both** stages. "Min
+18 sqft" is printed on the price list as a commercial floor, not a rounding
+artefact, so a site-measured 12 sqft roller blind still bills 18. Confirm before
+Phase 6.
 
 **`rawQty` must be exact rational arithmetic, not a float.** A foot is 304.8mm,
 so ft→mm→sqft can never be exact in binary. A 12ft × 8ft blind that computes as
@@ -311,6 +333,12 @@ The two engines must agree bit for bit — see §9.4.
 ## 4.4 Golden tests
 
 Live in `shared/pricing-fixtures.json`, run by both Dart and Python suites.
+
+All six below are `stage = estimate`. **Final-stage cases must be added before
+Phase 6**, since that path rounds quantity differently and is currently untested.
+Worked example for the fixture: a night curtain measured on site at 12ft 4in
+(3759mm) bills `37590/3048 = 12.3327 ft × RM46 = 56730.31 sen → RM 567.30`,
+against RM 598.00 quoted at 13ft.
 
 | variant | W | H | band | billed | rate | total |
 |---|---|---|---|---|---|---|
@@ -1158,14 +1186,13 @@ orders, supplier management and costing come later.
 - **A9.** Flooring: skirting always separate? Wastage % by lay pattern?
 - ~~**A10.**~~ **ANSWERED — round UP to a whole unit, every basis.** See §4.3
   step 5b. A quotation is not a measurement; billed quantity is never fractional.
-- `[BLOCKING P6]` **A11.** **Partly answered:** at final pricing the *dimensions*
-  come from the site measurement rather than an estimate, and the held rate
-  multiplies those. What is still open is whether the **whole-unit round-up**
-  survives that step. `12ft 4in` measured on site — does it bill 13ft, or 12.33ft?
-  Round-up reads like a billing convention (you cannot buy 12.33ft of track), not
-  an estimation shortcut, but that is inference and this is money.
-  If the two stages round differently, §6.3's variance report measures the rule
-  change rather than the salesperson.
+- ~~**A11.**~~ **ANSWERED — final pricing is EXACT, no round-up.** 12ft 4in
+  measured on site bills 12.3327ft at RM46 = RM567.30, against RM598.00 quoted.
+  The quote rounds up, the bill does not. See §4.3 `stage`.
+- `[BLOCKING P6]` **A11a.** Follow-on: does `min_qty` still apply at the final
+  stage? A site-measured 12 sqft roller against a printed "Min 18sqft" — 18 or
+  12? Assumed **18** (a commercial floor, not a rounding artefact) and written
+  into §4.3 as an assumption. Confirm before Phase 6.
 - **A12.** Does the fair promo % **stack on top of** an MVP flat rate? RM46 →
   MVP RM40 → then also 20% off? Or is MVP the floor, whichever is lower? Not
   Phase 1, but it is the same shape of silent-money question as A4.
@@ -1213,10 +1240,11 @@ orders, supplier management and costing come later.
 
 ## Answered
 - **Exactly 10ft is the LOWER band, RM46.** `band_max_mm = 3049` (A1) ✓
-- **Billed quantity rounds UP to a whole unit**, every basis, once, after
-  `min_qty` (A10) ✓
-- **Final pricing uses site-measured dimensions**, multiplied by the rate held at
-  deposit. The deposit locks the rate, not a quantity (A11, partly) ✓
+- **On a quotation, billed quantity rounds UP to a whole unit**, every basis,
+  once, after `min_qty` (A10) ✓
+- **At final pricing, billed quantity is EXACT** — site-measured dimensions
+  times the rate held at deposit, no round-up. The deposit locks the rate, not a
+  quantity (A11) ✓
 - **Rates always come from the published price list** and must be updatable
   without a code change or a deploy ✓
 - **The deposit locks the promo rate only.** It does not bill a quantity — exact
