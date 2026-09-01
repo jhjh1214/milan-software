@@ -1231,7 +1231,7 @@
       "deposit_category": null,
       "is_addon": false,
       "attaches_to": null,
-      "note": "Decorative tape and ballchain (MERIT)",
+      "note": "Decorative tape and ballchain (MERIT). Decorative tape is INCLUDED in the printed rate on all timber blinds - confirmed by the client, Sep 2026. There is no upcharge variant.",
       "sort_order": 370
     },
     {
@@ -1827,7 +1827,7 @@
       "deposit_category": null,
       "is_addon": false,
       "attaches_to": null,
-      "note": "Must do self levelling. min_qty 200 ASSUMED - see SPEC.md A13.",
+      "note": "Must do self levelling. All SPC rows share the 200sqft minimum - confirmed by the client, Sep 2026.",
       "sort_order": 580
     },
     {
@@ -1990,12 +1990,12 @@
       "rate_sen": 80000,
       "mvp_rate_sen": null,
       "min_qty": null,
-      "coverage_sqft": 140,
+      "coverage_sqft": 280,
       "bundle_qty": 2,
       "deposit_category": null,
       "is_addon": false,
       "attaches_to": null,
-      "note": "RM800 covers 2 rolls, 14ft x 10ft",
+      "note": "RM800 buys 2 rolls. Each roll covers 14ft x 10ft = 140sqft, so one charge covers 280sqft. Confirmed by the client, Sep 2026 (SPEC.md A14).",
       "sort_order": 640
     },
     {

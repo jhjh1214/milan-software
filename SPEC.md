@@ -1247,22 +1247,20 @@ orders, supplier management and costing come later.
 - **A12.** Does the fair promo % **stack on top of** an MVP flat rate? RM46 →
   MVP RM40 → then also 20% off? Or is MVP the floor, whichever is lower? Not
   Phase 1, but it is the same shape of silent-money question as A4.
-- **A13.** Two readings left over from the price list, both **assumed** in the
-  card and both marked there:
-  - **SPC Herringbone minimum.** The `MIN 200sqft` box spans the four SPC rows
-    above Herringbone; Herringbone's own second column carries the
-    self-levelling note instead. Assumed `min_qty 200`, consistent with every
-    other SPC row. If wrong, small herringbone jobs are overquoted.
-  - **Timber Blinds "With Decorative Tape".** A note spanning the 25 / 35 / 50mm
-    rows. Is the tape included at the printed rate, or an upcharge? No separate
-    priced variant was created, because inventing one would invent a price.
-- `[BLOCKING P2]` **A14.** **Korea wallpaper coverage — a factor of two.**
-  The list reads `Korea Wallpaper (Buy 1 Free 1) 14ft x 10ft RM800.00 (2roll)`.
-  Does RM800 cover 140 sqft in total, or does *each* of the two rolls cover
-  140 sqft? That is RM5.71/sqft against RM2.86/sqft. The card carries the
-  **conservative** reading — 140 sqft per RM800 — so a quote can only fall at
-  measurement, never rise. A 20ft x 10ft wall currently quotes RM1,600; under
-  the other reading it is RM800.
+- ~~**A13.**~~ **ANSWERED.**
+  - **SPC minimums are all the same.** Every SPC row, Herringbone included,
+    carries `min_qty 200`. The assumption held.
+  - **Decorative tape is INCLUDED** in the printed timber blind rates. There is
+    no upcharge and no separate variant — the note in the second column
+    describes what the rate already covers.
+- ~~**A14.**~~ **ANSWERED — RM800 buys two rolls covering 280 sqft in total.**
+  Each roll covers 14ft x 10ft = 140 sqft, so `coverage_sqft` is **280** per
+  charge and `bundle_qty` 2 stays descriptive.
+
+  *This corrected a real over-quote.* The conservative reading in the card had
+  been 140 sqft per RM800, which billed a 20ft x 10ft wall at RM1,600 where the
+  right answer is RM800 — double. Erring high kept the §8.5 promise intact while
+  the question was open, but it was still wrong, and it is fixed.
 - **A15.** **Do the banded tracks and rods band on the curtain's height?**
   S-track, multi-track and the rod-with-pleat and rod-with-eyelet composites all
   print two prices under the same 10ft header as the curtains. Implemented as a
@@ -1343,6 +1341,9 @@ orders, supplier management and costing come later.
   deferred material is quoted at the dearest option in its group (B7) ✓
 - **The rate card is data and stays admin-editable.** One JSON file, no code
   change and no rebuild of anything but the asset ✓
+- **Korea wallpaper: RM800 buys two rolls covering 280 sqft in total** (A14) ✓
+- **All SPC rows share the 200 sqft minimum**, Herringbone included (A13) ✓
+- **Decorative tape is included** in the printed timber blind rates (A13) ✓
 - **Three languages: Chinese, English, Malay**, per user, default `zh`. Data
   labels are `{zh, en, ms}` maps, never parallel columns ✓
 - **A quotation never shows less than RM300 per deposit category**, and the

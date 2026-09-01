@@ -492,7 +492,7 @@
     {
       "id": "wallpaper-charges-whole-bogo-bundles",
       "source": "MITC price list — Korea Wallpaper, buy 1 free 1, 14ft x 10ft, RM800 (2 roll)",
-      "why": "A 20ft x 10ft wall is 200sqft. One RM800 charge covers 140sqft and delivers two rolls, so the wall needs two charges. ASSUMPTION, see SPEC.md §13 A14: the printed line can also be read as 140sqft PER ROLL, which would halve this to RM800. The conservative reading is used so a quote can only fall at measurement. Pattern-repeat wastage is deliberately NOT applied — §13 A7 is unanswered.",
+      "why": "ANSWERED A14: RM800 buys two rolls covering 280sqft in total. A 20ft x 10ft wall is 200sqft, so one charge covers it. Pattern-repeat wastage is deliberately NOT applied — §13 A7 is unanswered and a guessed percentage would silently overcharge every wall.",
       "stage": "estimate",
       "tier": "standard",
       "line": {
@@ -506,11 +506,60 @@
       },
       "expect": {
         "rule_id": "korea-wallpaper",
+        "billed_qty": "1",
+        "billed_unit": "roll",
+        "min_qty_applied": false,
+        "rate_sen": 80000,
+        "total_sen": 80000
+      }
+    },
+    {
+      "id": "wallpaper-rounds-up-to-the-next-whole-bundle",
+      "source": "MITC price list, A14",
+      "why": "A 30ft x 10ft wall is 300sqft, just over one 280sqft bundle, so it needs two. You cannot buy a fifth of a buy-one-free-one pair. This is the boundary that the 140-vs-280 reading moves, so it is pinned.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "korea_wallpaper",
+        "material_key": null,
+        "layer": "single",
+        "fulfilment": "supply_install",
+        "width_tmm": 91440,
+        "height_tmm": 30480,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "korea-wallpaper",
         "billed_qty": "2",
         "billed_unit": "roll",
         "min_qty_applied": false,
         "rate_sen": 80000,
         "total_sen": 160000
+      }
+    },
+    {
+      "id": "spc-herringbone-shares-the-200sqft-minimum",
+      "source": "Client, Sep 2026 — all SPC minimums are the same",
+      "why": "A13 answered. A 150sqft herringbone floor bills the 200sqft minimum like every other SPC row: 200 x RM8 = RM1,600, not 150 x RM8 = RM1,200.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "spc_herringbone_5mm_1mm",
+        "material_key": null,
+        "layer": "single",
+        "fulfilment": "supply_install",
+        "width_tmm": 45720,
+        "height_tmm": 30480,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "spc-herringbone",
+        "billed_qty": "200",
+        "billed_unit": "sqft",
+        "min_qty_applied": true,
+        "rate_sen": 800,
+        "total_sen": 160000,
+        "deposit_category": "flooring"
       }
     },
     {

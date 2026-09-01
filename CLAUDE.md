@@ -31,9 +31,10 @@ B7: material is **always** deferred to measurement, and a deferred material is
 quoted at the **dearest** option in its group — the only reading that keeps the
 §8.5 promise. A3 and A4 stay `BLOCKING P2`.
 
-Still open, and marked in the card itself: **A13** (SPC herringbone minimum,
-decorative tape), **A14** (wallpaper coverage — a factor of two), **A15**
-(whether banded tracks band on the curtain drop).
+A13 and A14 answered: all SPC rows share the 200 sqft minimum, decorative tape
+is included in the printed timber rates, and RM800 of Korea wallpaper covers
+280 sqft. Still open: **A15** — whether the banded tracks and rods band on the
+curtain drop.
 
 ---
 

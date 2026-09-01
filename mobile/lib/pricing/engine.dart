@@ -421,16 +421,14 @@ Rational _rawQuantity(PricingRule rule, LineRequest request) {
       }
       // `coverage_sqft` is the area ONE CHARGE covers, not the area one roll
       // covers. `bundle_qty` records how many rolls that charge delivers and
-      // deliberately does NOT divide here.
+      // deliberately does NOT divide here — dividing twice would halve the
+      // quote.
       //
-      // The printed list reads "Korea Wallpaper (Buy 1 Free 1) 14ft x 10ft
-      // RM800.00 (2roll)", which can mean the pair covers 140sqft or that each
-      // roll does — RM5.71/sqft against RM2.86/sqft, a factor of two. SPEC.md
-      // §13 A14 asks which. Until it is answered the card carries the
-      // conservative reading (the pair covers 140sqft), so a quote can only
-      // come down at measurement, never up.
+      // For the Korea wallpaper: RM800 buys two rolls of 14ft x 10ft, so one
+      // charge covers 280sqft (A14, answered). The ceiling then rounds up to
+      // whole bundles, because a buy-one-free-one pair cannot be split.
       //
-      // Pattern-repeat wastage is also NOT applied: §13 A7 asks whether it is
+      // Pattern-repeat wastage is NOT applied: §13 A7 asks whether it is
       // already absorbed in the roll price, and a guessed percentage would
       // silently overcharge on every wall.
       return areaSqft(request.width, height) / coverage;
