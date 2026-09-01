@@ -47,6 +47,9 @@ class QuoteRepository {
     return (await _db.latestQuote())!;
   }
 
+  /// The quote in progress, or null if none has been started.
+  Future<QuoteRow?> currentQuote() => _db.latestQuote();
+
   Future<List<QuoteLineRow>> lines(String quoteId) => _db.linesFor(quoteId);
 
   Stream<List<QuoteLineRow>> watchLines(String quoteId) =>
@@ -145,6 +148,23 @@ class QuoteRepository {
   Future<void> setTier(String quoteId, String tier) =>
       (_db.update(_db.quotes)..where((q) => q.id.equals(quoteId))).write(
         QuotesCompanion(tier: Value(tier), updatedAt: Value(DateTime.now())),
+      );
+
+  Future<void> setDeliveryZone(String quoteId, String? zoneId) =>
+      (_db.update(_db.quotes)..where((q) => q.id.equals(quoteId))).write(
+        QuotesCompanion(
+          deliveryZoneId: Value(zoneId),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+
+  Future<void> setCustomer(String quoteId, String? name, String? phone) =>
+      (_db.update(_db.quotes)..where((q) => q.id.equals(quoteId))).write(
+        QuotesCompanion(
+          customerName: Value(name),
+          customerPhone: Value(phone),
+          updatedAt: Value(DateTime.now()),
+        ),
       );
 
   Future<void> setLanguage(String quoteId, String language) =>

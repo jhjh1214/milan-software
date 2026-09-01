@@ -69,6 +69,11 @@ class QuoteScreen extends ConsumerWidget {
                           ),
                         if (priced.totals.anyFloorApplied)
                           _FloorRow(totals: priced.totals),
+                        const SizedBox(height: Space.md),
+                        // §4.1: the travel charge is surfaced here, above the
+                        // total, never sprung on the customer after they have
+                        // agreed a number.
+                        const _DeliveryRow(),
                         const SizedBox(height: Space.lg),
                         const _Disclaimer(),
                       ],
@@ -388,6 +393,139 @@ class _FloorRow extends StatelessWidget {
           const SizedBox(height: Space.xs),
           Text(l.depositFloorExplain, style: AppText.caption),
         ],
+      ),
+    );
+  }
+}
+
+/// The delivery area, and the travel charge it carries.
+///
+/// SPEC.md §4.1: "Ask for the delivery area early and surface the charge before
+/// the total, never after the customer has agreed a number." So it sits above
+/// the total on the quote, tappable, with the charge shown on its face.
+class _DeliveryRow extends ConsumerWidget {
+  const _DeliveryRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = L.of(context);
+    final language = ref.watch(languageProvider);
+    final cardAsync = ref.watch(rateCardProvider);
+    final quote = ref.watch(quoteProvider).valueOrNull;
+    final card = cardAsync.valueOrNull;
+    if (card == null || quote == null || card.deliveryZones.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final zone = card.deliveryZones
+        .where((z) => z.id == quote.deliveryZoneId)
+        .firstOrNull;
+
+    return Material(
+      color: zone == null ? AppColors.surface : AppColors.muted,
+      borderRadius: BorderRadius.circular(Radii.lg),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(Radii.lg),
+        onTap: () => _pick(context, ref, card, quote.deliveryZoneId),
+        child: Container(
+          padding: const EdgeInsets.all(Space.lg),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(Radii.lg),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.local_shipping_outlined,
+                color: AppColors.mutedForeground,
+              ),
+              const SizedBox(width: Space.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l.deliveryTitle, style: AppText.label),
+                    const SizedBox(height: 2),
+                    Text(
+                      zone == null ? l.deliveryNone : zone.labels(language),
+                      style: AppText.caption,
+                    ),
+                  ],
+                ),
+              ),
+              if (zone != null)
+                Text(
+                  '+${Money.sen(zone.chargeSen).format()}',
+                  style: AppText.money,
+                ),
+              const SizedBox(width: Space.sm),
+              const Icon(Icons.chevron_right, color: AppColors.mutedForeground),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _pick(
+    BuildContext context,
+    WidgetRef ref,
+    RateCard card,
+    String? current,
+  ) {
+    final l = L.of(context);
+    final language = ref.read(languageProvider);
+    final notifier = ref.read(quoteProvider.notifier);
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      builder: (sheet) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(Space.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l.deliveryTitle, style: AppText.title),
+                  const SizedBox(height: Space.xs),
+                  Text(l.deliveryAskEarly, style: AppText.caption),
+                ],
+              ),
+            ),
+            const Divider(),
+            ListTile(
+              minTileHeight: Touch.min,
+              title: Text(l.deliveryNone, style: AppText.body),
+              trailing: current == null
+                  ? const Icon(Icons.check, color: AppColors.accent)
+                  : null,
+              onTap: () {
+                notifier.setDeliveryZone(null);
+                Navigator.of(sheet).pop();
+              },
+            ),
+            for (final zone in card.deliveryZones)
+              ListTile(
+                minTileHeight: Touch.min,
+                title: Text(zone.labels(language), style: AppText.body),
+                subtitle: Text(
+                  '+${Money.sen(zone.chargeSen).format()}',
+                  style: AppText.caption,
+                ),
+                trailing: current == zone.id
+                    ? const Icon(Icons.check, color: AppColors.accent)
+                    : null,
+                onTap: () {
+                  notifier.setDeliveryZone(zone.id);
+                  Navigator.of(sheet).pop();
+                },
+              ),
+            const SizedBox(height: Space.md),
+          ],
+        ),
       ),
     );
   }

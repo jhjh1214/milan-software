@@ -319,6 +319,57 @@ void main() {
     expect(find.text('RM 1,512.00'), findsOneWidget);
   });
 
+  testWidgets('the delivery charge appears before the total, not after', (
+    tester,
+  ) async {
+    // §4.1: "Ask for the delivery area early and surface the charge before the
+    // total, never after the customer has agreed a number."
+    await pumpApp(tester);
+    await addWindow(
+      tester,
+      room: '客厅',
+      category: '窗帘',
+      product: '夜帘（遮光）',
+      width: "12'",
+      height: "9'",
+    );
+    expect(find.text('RM 552.00'), findsWidgets);
+    expect(find.text('马六甲市区（不加钱）'), findsOneWidget);
+
+    await tester.tap(find.text('马六甲市区（不加钱）'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('吉隆坡 / 芙蓉 / 森美兰'));
+    await tester.pumpAndSettle();
+
+    // RM552 + RM300 round trip.
+    expect(find.text('+RM 300.00'), findsOneWidget);
+    expect(find.text('RM 852.00'), findsOneWidget, reason: 'the running total');
+  });
+
+  testWidgets('travel is not dragged up by the RM300 deposit floor', (
+    tester,
+  ) async {
+    // The floor is per deposit category and travel is not a product, so a
+    // RM100 transport charge must stay RM100.
+    await pumpApp(tester);
+    await addWindow(
+      tester,
+      room: '房间',
+      category: '百叶 / 卷帘',
+      product: '遮光卷帘',
+      width: "3'",
+      height: "4'",
+    );
+    await tester.tap(find.text('马六甲市区（不加钱）'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('麻坡 / 东甲 / 亚罗牙也 / 淡边'));
+    await tester.pumpAndSettle();
+
+    // RM162 floors to RM300, plus RM100 travel = RM400. Not RM600.
+    expect(find.text('+RM 100.00'), findsOneWidget);
+    expect(find.text('RM 400.00'), findsOneWidget);
+  });
+
   testWidgets('a quote survives a force-quit and reopens with its lines', (
     tester,
   ) async {

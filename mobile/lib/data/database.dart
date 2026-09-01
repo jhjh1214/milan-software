@@ -43,6 +43,13 @@ class Quotes extends Table {
   TextColumn get customerName => text().nullable()();
   TextColumn get customerPhone => text().nullable()();
 
+  /// The delivery zone charged on this quote, if any.
+  ///
+  /// SPEC.md §4.1: the charge is driven by the delivery address, not by any
+  /// line, and must be surfaced **before** the total — never after the customer
+  /// has already agreed a number.
+  TextColumn get deliveryZoneId => text().nullable()();
+
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -117,17 +124,23 @@ class AppDatabase extends _$AppDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (m, from, to) async {
-      // v2 adds upgrade lines: a special track or motor charged on top of the
-      // curtain it belongs to (A16). Written as a real migration rather than a
-      // wipe, because by the time this ships a part-timer may already have an
-      // unsynced quote on their phone.
+      // Written as real migrations rather than a wipe, because by the time
+      // these ship a part-timer may already have an unsynced quote on their
+      // phone.
+      //
+      // v2: upgrade lines — a special track or motor charged on top of the
+      //     curtain it belongs to (A16).
+      // v3: the order-level delivery zone charge (§4.1).
       if (from < 2) {
         await m.addColumn(quoteLines, quoteLines.parentLineId);
+      }
+      if (from < 3) {
+        await m.addColumn(quotes, quotes.deliveryZoneId);
       }
     },
     beforeOpen: (details) async {

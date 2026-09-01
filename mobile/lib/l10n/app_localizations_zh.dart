@@ -218,6 +218,35 @@ class LZh extends L {
   String get runningTotal => '总额';
 
   @override
+  String get customerTitle => '客户资料';
+
+  @override
+  String get customerName => '客户姓名';
+
+  @override
+  String get customerPhone => '电话';
+
+  @override
+  String get customerOptional => '可以不填，之后再补';
+
+  @override
+  String get deliveryTitle => '送货地区';
+
+  @override
+  String get deliveryNone => '马六甲市区（不加钱）';
+
+  @override
+  String deliveryCharge(String area) {
+    return '路费 $area';
+  }
+
+  @override
+  String get deliveryAskEarly => '先问地区，免得报了价才加钱';
+
+  @override
+  String get save => '保存';
+
+  @override
   String get subtotal => '小计';
 
   @override

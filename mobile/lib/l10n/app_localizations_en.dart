@@ -221,6 +221,35 @@ class LEn extends L {
   String get runningTotal => 'Total';
 
   @override
+  String get customerTitle => 'Customer';
+
+  @override
+  String get customerName => 'Customer name';
+
+  @override
+  String get customerPhone => 'Phone';
+
+  @override
+  String get customerOptional => 'Optional — can be filled in later';
+
+  @override
+  String get deliveryTitle => 'Delivery area';
+
+  @override
+  String get deliveryNone => 'Melaka town (no charge)';
+
+  @override
+  String deliveryCharge(String area) {
+    return 'Travel $area';
+  }
+
+  @override
+  String get deliveryAskEarly => 'Asked before the total, never after';
+
+  @override
+  String get save => 'Save';
+
+  @override
   String get subtotal => 'Subtotal';
 
   @override

@@ -464,6 +464,60 @@ abstract class L {
   /// **'总额'**
   String get runningTotal;
 
+  /// No description provided for @customerTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'客户资料'**
+  String get customerTitle;
+
+  /// No description provided for @customerName.
+  ///
+  /// In zh, this message translates to:
+  /// **'客户姓名'**
+  String get customerName;
+
+  /// No description provided for @customerPhone.
+  ///
+  /// In zh, this message translates to:
+  /// **'电话'**
+  String get customerPhone;
+
+  /// No description provided for @customerOptional.
+  ///
+  /// In zh, this message translates to:
+  /// **'可以不填，之后再补'**
+  String get customerOptional;
+
+  /// No description provided for @deliveryTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'送货地区'**
+  String get deliveryTitle;
+
+  /// No description provided for @deliveryNone.
+  ///
+  /// In zh, this message translates to:
+  /// **'马六甲市区（不加钱）'**
+  String get deliveryNone;
+
+  /// No description provided for @deliveryCharge.
+  ///
+  /// In zh, this message translates to:
+  /// **'路费 {area}'**
+  String deliveryCharge(String area);
+
+  /// No description provided for @deliveryAskEarly.
+  ///
+  /// In zh, this message translates to:
+  /// **'先问地区，免得报了价才加钱'**
+  String get deliveryAskEarly;
+
+  /// No description provided for @save.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存'**
+  String get save;
+
   /// No description provided for @subtotal.
   ///
   /// In zh, this message translates to:

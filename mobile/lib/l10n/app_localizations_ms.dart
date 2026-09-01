@@ -220,6 +220,35 @@ class LMs extends L {
   String get runningTotal => 'Jumlah';
 
   @override
+  String get customerTitle => 'Pelanggan';
+
+  @override
+  String get customerName => 'Nama pelanggan';
+
+  @override
+  String get customerPhone => 'Telefon';
+
+  @override
+  String get customerOptional => 'Pilihan — boleh diisi kemudian';
+
+  @override
+  String get deliveryTitle => 'Kawasan penghantaran';
+
+  @override
+  String get deliveryNone => 'Bandar Melaka (tiada caj)';
+
+  @override
+  String deliveryCharge(String area) {
+    return 'Perjalanan $area';
+  }
+
+  @override
+  String get deliveryAskEarly => 'Ditanya sebelum jumlah, bukan selepas';
+
+  @override
+  String get save => 'Simpan';
+
+  @override
   String get subtotal => 'Jumlah kecil';
 
   @override

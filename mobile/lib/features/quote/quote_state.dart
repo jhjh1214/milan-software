@@ -106,10 +106,19 @@ class QuoteState {
   final List<QuoteLine> lines;
   final CustomerTier tier;
 
+  /// Null means Melaka town, which carries no travel charge.
+  final String? deliveryZoneId;
+
+  final String? customerName;
+  final String? customerPhone;
+
   const QuoteState({
     required this.quoteId,
     this.lines = const [],
     this.tier = CustomerTier.standard,
+    this.deliveryZoneId,
+    this.customerName,
+    this.customerPhone,
   });
 }
 
@@ -128,22 +137,29 @@ class QuoteNotifier extends AsyncNotifier<QuoteState> {
       rateCardVersion: card.version,
       language: language,
     );
-    return _load(quote.id, quote.tier);
+    return _load(quote);
   }
 
-  Future<QuoteState> _load(String quoteId, String tier) async {
-    final rows = await _repo.lines(quoteId);
+  Future<QuoteState> _load(QuoteRow quote) async {
+    final rows = await _repo.lines(quote.id);
     return QuoteState(
-      quoteId: quoteId,
+      quoteId: quote.id,
       lines: rows.map(QuoteLine.fromRow).toList(growable: false),
-      tier: tier == 'mvp' ? CustomerTier.mvp : CustomerTier.standard,
+      tier: quote.tier == 'mvp' ? CustomerTier.mvp : CustomerTier.standard,
+      deliveryZoneId: quote.deliveryZoneId,
+      customerName: quote.customerName,
+      customerPhone: quote.customerPhone,
     );
   }
 
+  /// Reloads everything from the database rather than patching state in place.
+  ///
+  /// The database is the source of truth, so state is always a projection of
+  /// it. Patching in memory is how the two drift apart.
   Future<void> _refresh() async {
-    final current = state.valueOrNull;
-    if (current == null) return;
-    state = AsyncData(await _load(current.quoteId, current.tier.name));
+    final quote = await _repo.currentQuote();
+    if (quote == null) return;
+    state = AsyncData(await _load(quote));
   }
 
   /// Adds a line and returns its id, so an upgrade can attach to it.
@@ -200,7 +216,25 @@ class QuoteNotifier extends AsyncNotifier<QuoteState> {
     final current = state.valueOrNull;
     if (current == null) return;
     await _repo.setTier(current.quoteId, tier.name);
-    state = AsyncData(await _load(current.quoteId, tier.name));
+    await _refresh();
+  }
+
+  /// Sets the delivery area, or clears it for Melaka town.
+  ///
+  /// §4.1: asked early and surfaced before the total, never after the customer
+  /// has agreed a number.
+  Future<void> setDeliveryZone(String? zoneId) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    await _repo.setDeliveryZone(current.quoteId, zoneId);
+    await _refresh();
+  }
+
+  Future<void> setCustomer({String? name, String? phone}) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    await _repo.setCustomer(current.quoteId, name, phone);
+    await _refresh();
   }
 
   Future<void> clear() async {
@@ -298,6 +332,7 @@ final pricedQuoteProvider = Provider<AsyncValue<PricedQuote>>((ref) {
         ],
         card: card,
         stage: PricingStage.estimate,
+        deliveryZoneId: quote.deliveryZoneId,
       ),
       provisionalCard: card.provisional,
       expiredPromo: card.isExpiredOn(today) ? card.promo : null,

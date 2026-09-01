@@ -447,13 +447,23 @@ class QuoteTotals {
   /// reference-price disclaimer exists to prevent.
   final Map<DepositCategory, Money> categoryFloorUplift;
 
-  /// The amount actually quoted, floors included.
+  /// The order-level delivery charge, when the address is outside Melaka.
+  ///
+  /// Driven by the address rather than by any line, and shown on its own row
+  /// **before** the total — §4.1 is explicit that it must never appear after
+  /// the customer has already agreed a number.
+  final DeliveryZone? deliveryZone;
+  final Money deliveryCharge;
+
+  /// The amount actually quoted: floors and delivery included.
   final Money total;
 
   const QuoteTotals({
     required this.categorySubtotals,
     required this.categoryFloorUplift,
     required this.total,
+    this.deliveryZone,
+    this.deliveryCharge = Money.zero,
   });
 
   /// True when any category was lifted to the deposit minimum.
@@ -467,6 +477,7 @@ class QuoteTotals {
 /// overpaid, and will argue about it at measurement.
 QuoteTotals totalQuote({
   required List<PricedLine> lines,
+  String? deliveryZoneId,
   required RateCard card,
   required PricingStage stage,
 }) {
@@ -487,9 +498,19 @@ QuoteTotals totalQuote({
     total = total + floored;
   }
 
+  // The delivery charge is order-level and sits outside the deposit
+  // categories: it is travel, not product, so it must not be dragged up to
+  // RM300 by a category floor.
+  final zone = deliveryZoneId == null
+      ? null
+      : card.deliveryZones.where((z) => z.id == deliveryZoneId).firstOrNull;
+  final delivery = zone == null ? Money.zero : Money.sen(zone.chargeSen);
+
   return QuoteTotals(
     categorySubtotals: subtotals,
     categoryFloorUplift: uplift,
-    total: total,
+    deliveryZone: zone,
+    deliveryCharge: delivery,
+    total: total + delivery,
   );
 }
