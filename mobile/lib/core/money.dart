@@ -57,6 +57,18 @@ class Money implements Comparable<Money> {
     return withSymbol ? 'RM $signed' : signed;
   }
 
+  /// `1500.00` — two decimals, no grouping, no symbol.
+  ///
+  /// For machine-readable output. [format] groups thousands with a comma, which
+  /// is right on a quote and wrong in a CSV cell, where the comma splits the
+  /// field and the row silently loses a column.
+  String toPlainString() {
+    final negative = sen < 0;
+    final abs = sen.abs();
+    final body = '${abs ~/ 100}.${(abs % 100).toString().padLeft(2, '0')}';
+    return negative ? '-$body' : body;
+  }
+
   static String _group(int value) {
     final digits = value.toString();
     if (digits.length <= 3) return digits;

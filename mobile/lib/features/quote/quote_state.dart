@@ -5,14 +5,12 @@
 /// force-quit, or a dropped handset at a fair costs nothing — SPEC.md §8.1.
 library;
 
-import 'dart:convert';
-
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/length.dart';
 import '../../data/database.dart';
 import '../../data/quote_repository.dart';
+import '../../data/rate_card_store.dart';
 import '../../pricing/engine.dart';
 import '../../pricing/models.dart';
 
@@ -27,16 +25,17 @@ final quoteRepositoryProvider = Provider<QuoteRepository>(
   (ref) => QuoteRepository(ref.watch(databaseProvider)),
 );
 
-/// Loads the rate card from the bundled asset.
+/// Where the price list lives. Overridden in tests.
+final rateCardStoreProvider = Provider<RateCardStore>((ref) => RateCardStore());
+
+/// The price list in force: the admin's imported edit if there is one,
+/// otherwise the list the app shipped with.
 ///
-/// The card is data, never code. Replacing it must not require a rebuild of
-/// anything but the asset — CLAUDE.md hard rule 1.
-final rateCardProvider = FutureProvider<RateCard>((ref) async {
-  final raw = await rootBundle.loadString(
-    'assets/data/rate-card-fair-2026-08.json',
-  );
-  return RateCard.fromJson(jsonDecode(raw) as Map<String, dynamic>);
-});
+/// The card is data, never code. Changing a price must not require a rebuild of
+/// anything but this file — CLAUDE.md hard rule 1.
+final rateCardProvider = FutureProvider<RateCard>(
+  (ref) => ref.watch(rateCardStoreProvider).load(),
+);
 
 /// The user's chosen language. Per user, not per device — SPEC.md §8.3.
 final languageProvider = StateProvider<String>((ref) => 'zh');

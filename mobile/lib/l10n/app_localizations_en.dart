@@ -250,6 +250,47 @@ class LEn extends L {
   String get save => 'Save';
 
   @override
+  String get ratesTitle => 'Price list';
+
+  @override
+  String ratesVersion(int version, int count) {
+    return 'Version $version · $count products';
+  }
+
+  @override
+  String get ratesExport => 'Export for Excel';
+
+  @override
+  String get ratesImport => 'Import edited file';
+
+  @override
+  String get ratesNoChanges => 'No price changes';
+
+  @override
+  String ratesReview(int count) {
+    return '$count prices would change. Nothing is applied until you confirm.';
+  }
+
+  @override
+  String get ratesApply => 'Apply these prices';
+
+  @override
+  String ratesApplied(int version) {
+    return 'Prices updated to version $version';
+  }
+
+  @override
+  String get ratesErrors => 'The file has problems. No prices were changed.';
+
+  @override
+  String get ratesRestore => 'Restore the original price list';
+
+  @override
+  String ratesCustom(int version) {
+    return 'Price list has been edited (version $version)';
+  }
+
+  @override
   String get share => 'Share quotation';
 
   @override

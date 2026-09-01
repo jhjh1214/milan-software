@@ -247,6 +247,47 @@ class LZh extends L {
   String get save => '保存';
 
   @override
+  String get ratesTitle => '价格表';
+
+  @override
+  String ratesVersion(int version, int count) {
+    return '版本 $version · $count 项';
+  }
+
+  @override
+  String get ratesExport => '导出 Excel 档';
+
+  @override
+  String get ratesImport => '导入改好的档';
+
+  @override
+  String get ratesNoChanges => '没有价格改动';
+
+  @override
+  String ratesReview(int count) {
+    return '$count 项价格有改动，确认后才生效';
+  }
+
+  @override
+  String get ratesApply => '确认更新价格';
+
+  @override
+  String ratesApplied(int version) {
+    return '价格已更新到版本 $version';
+  }
+
+  @override
+  String get ratesErrors => '档案有问题，未更新任何价格';
+
+  @override
+  String get ratesRestore => '还原原本价格表';
+
+  @override
+  String ratesCustom(int version) {
+    return '价格表已被修改（版本 $version）';
+  }
+
+  @override
   String get share => '分享报价';
 
   @override

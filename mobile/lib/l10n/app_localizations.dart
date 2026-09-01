@@ -518,6 +518,72 @@ abstract class L {
   /// **'保存'**
   String get save;
 
+  /// No description provided for @ratesTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'价格表'**
+  String get ratesTitle;
+
+  /// No description provided for @ratesVersion.
+  ///
+  /// In zh, this message translates to:
+  /// **'版本 {version} · {count} 项'**
+  String ratesVersion(int version, int count);
+
+  /// No description provided for @ratesExport.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出 Excel 档'**
+  String get ratesExport;
+
+  /// No description provided for @ratesImport.
+  ///
+  /// In zh, this message translates to:
+  /// **'导入改好的档'**
+  String get ratesImport;
+
+  /// No description provided for @ratesNoChanges.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有价格改动'**
+  String get ratesNoChanges;
+
+  /// No description provided for @ratesReview.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 项价格有改动，确认后才生效'**
+  String ratesReview(int count);
+
+  /// No description provided for @ratesApply.
+  ///
+  /// In zh, this message translates to:
+  /// **'确认更新价格'**
+  String get ratesApply;
+
+  /// No description provided for @ratesApplied.
+  ///
+  /// In zh, this message translates to:
+  /// **'价格已更新到版本 {version}'**
+  String ratesApplied(int version);
+
+  /// No description provided for @ratesErrors.
+  ///
+  /// In zh, this message translates to:
+  /// **'档案有问题，未更新任何价格'**
+  String get ratesErrors;
+
+  /// No description provided for @ratesRestore.
+  ///
+  /// In zh, this message translates to:
+  /// **'还原原本价格表'**
+  String get ratesRestore;
+
+  /// No description provided for @ratesCustom.
+  ///
+  /// In zh, this message translates to:
+  /// **'价格表已被修改（版本 {version}）'**
+  String ratesCustom(int version);
+
   /// No description provided for @share.
   ///
   /// In zh, this message translates to:

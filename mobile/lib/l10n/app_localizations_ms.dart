@@ -249,6 +249,47 @@ class LMs extends L {
   String get save => 'Simpan';
 
   @override
+  String get ratesTitle => 'Senarai harga';
+
+  @override
+  String ratesVersion(int version, int count) {
+    return 'Versi $version · $count produk';
+  }
+
+  @override
+  String get ratesExport => 'Eksport untuk Excel';
+
+  @override
+  String get ratesImport => 'Import fail yang disunting';
+
+  @override
+  String get ratesNoChanges => 'Tiada perubahan harga';
+
+  @override
+  String ratesReview(int count) {
+    return '$count harga akan berubah. Tiada apa-apa digunakan sehingga anda sahkan.';
+  }
+
+  @override
+  String get ratesApply => 'Gunakan harga ini';
+
+  @override
+  String ratesApplied(int version) {
+    return 'Harga dikemas kini ke versi $version';
+  }
+
+  @override
+  String get ratesErrors => 'Fail ini bermasalah. Tiada harga diubah.';
+
+  @override
+  String get ratesRestore => 'Pulihkan senarai harga asal';
+
+  @override
+  String ratesCustom(int version) {
+    return 'Senarai harga telah disunting (versi $version)';
+  }
+
+  @override
   String get share => 'Kongsi sebut harga';
 
   @override

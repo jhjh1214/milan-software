@@ -8,6 +8,7 @@ import '../../pricing/engine.dart';
 import '../../pricing/models.dart';
 import '../../ui/theme.dart';
 import '../../ui/unit_labels.dart';
+import '../rates/rate_card_screen.dart';
 import 'line_photo.dart';
 import 'quote_state.dart';
 import 'share_quote.dart';
@@ -31,6 +32,13 @@ class QuoteScreen extends ConsumerWidget {
         actions: [
           _TierToggle(tier: tier),
           _LanguageMenu(),
+          IconButton(
+            icon: const Icon(Icons.price_change_outlined),
+            tooltip: l.ratesTitle,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const RateCardScreen()),
+            ),
+          ),
           const SizedBox(width: Space.sm),
         ],
       ),
