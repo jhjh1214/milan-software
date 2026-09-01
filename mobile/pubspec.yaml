@@ -1,0 +1,40 @@
+name: milan_quote
+description: "Milan Software — quotation app. Phase 1: Quotation Proof."
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State. CLAUDE.md pins Riverpod.
+  flutter_riverpod: 2.6.1
+
+  # Message formatting and locale-aware number/date output.
+  intl: 0.20.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: 6.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Generates lib/l10n/app_localizations.dart from the ARB files.
+  generate: true
+
+  assets:
+    - assets/data/
+
+  # No bundled font. Four weights of Noto Sans SC is roughly 40MB, against the
+  # <30MB bundle target in SPEC.md §12, and Flutter does not subset CJK text
+  # fonts the way it tree-shakes icon fonts. Android ships Noto Sans CJK
+  # system-wide, so Chinese falls back correctly with zero bytes shipped.
+  # If a device is ever found rendering tofu, the fix is a pyftsubset build
+  # step over the strings we actually use — not shipping the whole family.

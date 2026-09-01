@@ -221,8 +221,8 @@ pricing_rules
   basis              enum(per_ft_width, per_sqft, per_m_length,
                           per_piece, per_set, per_roll)
   band_field         enum(height, width, none)
-  band_min_mm        int                 -- INCLUSIVE
-  band_max_mm        int NULL            -- EXCLUSIVE, null = unbounded
+  band_min_tmm       int                 -- INCLUSIVE, tenths of a mm
+  band_max_tmm       int NULL            -- EXCLUSIVE, tenths of a mm
   rate_sen           int
   mvp_rate_sen       int NULL            -- FLAT tier price
   min_qty            numeric NULL        -- minimum BILLED quantity
@@ -241,7 +241,7 @@ product_rules
   kind        enum(requires, excludes, max_dimension, min_dimension)
   target      text NULL                  -- required/excluded variant
   dimension   enum(width, height) NULL
-  value_mm    int NULL
+  value_tmm   int NULL
   messages    jsonb                      -- {zh, en, ms}
 
 delivery_zones
@@ -249,17 +249,19 @@ delivery_zones
   charge_kind enum(round_trip, transport)
 ```
 
-**Band semantics:** `band_min_mm <= value < band_max_mm`, max **exclusive**.
+**Band semantics:** `band_min_tmm <= value < band_max_tmm`, max **exclusive**.
 
 **A1 ANSWERED: exactly 10ft is the LOWER band.** A 10ft height bills at RM46,
 not RM58. The step happens at 10ft 1in.
 
-Therefore the 10ft cutoff is **`band_max_mm = 3049`, not 3048.**
+Lengths are stored in **tenths of a millimetre** (`*_tmm` — see CLAUDE.md), so
+the 10ft cutoff is **`band_max_tmm = 30481`**. Exactly 10ft is 30480 and falls
+below it; one tenth of a millimetre more does not.
 
-10ft is exactly 3048mm, and under an exclusive max `3048 < 3048` is false — so
-`band_max_mm = 3048` would push exactly 10ft into the *upper* band and overcharge
-by RM144 on a 12ft curtain. The spec previously said 3048 and said it produced
-the lower band. It does not. **3049 is the constant. Assert it in a test.**
+The spec previously said `band_max_mm = 3048` *and* said that produced the lower
+band. Under an exclusive max it does not — `3048 < 3048` is false — so it would
+have pushed exactly 10ft into the upper band and overcharged RM144 on a 12ft
+curtain. **Assert the constant in a test, not just the resulting price.**
 
 Their printed list heads the columns "Below 10ft (H)" and "Up to 10ft (H)", both
 of which read as 10ft or under. **Their document needs correcting** to "Up to
@@ -278,14 +280,15 @@ priceLine(family, variant, layer, material_key, fulfilment,
 1. candidates = rules.where(family, variant, layer, material_key, fulfilment)
 2. if band_field != none:
      v = (band_field == height) ? heightMm : widthMm
-     rule = first where band_min_mm <= v < band_max_mm
+     rule = first where band_min_tmm <= v < band_max_tmm
      no match -> throw NoApplicableRate       # NEVER pick the cheapest
    else:
      rule = candidates.single()
-3. rawQty by basis, held EXACTLY, never as a float:
-     per_ft_width : widthMm * 10 / 3048                     unit 'ft'
-     per_sqft     : widthMm * heightMm * 100 / 9290304      unit 'sqft'
-     per_m_length : widthMm / 1000                          unit 'm'
+3. rawQty by basis, held EXACTLY, never as a float.
+   Dimensions are in tenths of a millimetre (`_tmm`), so these are exact:
+     per_ft_width : widthTmm / 3048                         unit 'ft'
+     per_sqft     : widthTmm * heightTmm / 9290304          unit 'sqft'
+     per_m_length : widthTmm / 10000                        unit 'm'
      per_piece    : 1                                       unit 'pc'
      per_set      : 1                                       unit 'set'
      per_roll     : rawSqft / coverage_sqft / bundle_qty    unit 'roll'
@@ -412,7 +415,7 @@ Non-blocking, one-tap fix. Thresholds in config, not code.
 |---|---|
 | >3000mm with chip on `in` | 2400 寸 = 61 米，是不是要打 mm？ + [改成 mm] |
 | <300mm curtain drop | 高度只有 30cm，确认吗？ |
-| Within `BAND_EDGE_WARN_MM` (default 76mm ≈ 3in) of a band boundary | 刚刚超过 10 尺，请确认尺寸 + shows both prices |
+| Within `BAND_EDGE_WARN_TMM` (default 76mm ≈ 3in) of a band boundary | 刚刚超过 10 尺，请确认尺寸 + shows both prices |
 
 The band-edge warning is the highest-value validation in the app. On a 12ft
 curtain, `10ft 1in` vs `9ft 11in` is a RM144 swing.
@@ -509,8 +512,8 @@ order_lines
   category_lock_id          uuid NULL     -- which lock priced this, null = none
   parent_line_id            uuid NULL     -- add-ons attach to their parent
   room, label
-  est_width_mm, est_height_mm
-  final_width_mm, final_height_mm         -- NULL until measured
+  est_width_tmm, est_height_tmm
+  final_width_tmm, final_height_tmm         -- NULL until measured
   is_site_measured          bool DEFAULT false
   measured_by, measured_at
   billed_qty numeric, billed_unit text
@@ -617,7 +620,7 @@ devices
 - Every table: `id uuid PK`, client-generated (section 1.5).
 - Every syncing table: `synced_at timestamptz NULL`.
 - Soft delete only where history matters. Otherwise no delete at all.
-- Money columns end `_sen`, `int`. Lengths end `_mm`, `int`.
+- Money columns end `_sen`, `int`. Lengths end `_tmm`, `int` (tenths of a mm).
 - Timestamps `timestamptz`, stored UTC, displayed `Asia/Kuala_Lumpur`.
 - Postgres enums server-side, Dart enums client-side, kept in step by a
   **generated** file — not by hand.
@@ -1129,9 +1132,9 @@ customer two.
 projects      id, name, developer, area, version int, updated_at
 unit_types    id, project_id, name, floor_count
 openings      id, unit_type_id, label, room, floor,
-              nominal_w_mm, nominal_h_mm, sort_order
-rooms         id, unit_type_id, name, nominal_area_mm2, skirting_run_mm, floor
-floor_plans   id, unit_type_id, file_ref, scale_mm_per_px, uploaded_by
+              nominal_w_tmm, nominal_h_tmm, sort_order
+rooms         id, unit_type_id, name, nominal_area_mm2, skirting_run_tmm, floor
+floor_plans   id, unit_type_id, file_ref, scale_tmm_per_px, uploaded_by
 ```
 
 **Instantiate, never reference.** Copy values into the order line. Editing a
@@ -1201,7 +1204,7 @@ orders, supplier management and costing come later.
 
 ## A. Pricing structure
 - ~~**A1.**~~ **ANSWERED — exactly 10ft is the LOWER band, RM46.** The step is at
-  10ft 1in. Encoded as `band_max_mm = 3049`; see §4.2. **Their printed list still
+  10ft 1in. Encoded as `band_max_tmm = 30481`; see §4.2. **Their printed list still
   needs correcting** to "Up to 10ft (H)" / "Over 10ft (H)".
 - `[BLOCKING P1]` **A2a.** The **curtain and blind rows only**: day curtain,
   night curtain, roller, zebra. Per variant — layer, material_key where it moves
@@ -1293,7 +1296,7 @@ orders, supplier management and costing come later.
   uplift is shown as its own labelled row, never folded into the lines ✓
 - **The quote states plainly that the final will be the same or lower**, never
   higher. §8.5, binding ✓
-- **Exactly 10ft is the LOWER band, RM46.** `band_max_mm = 3049` (A1) ✓
+- **Exactly 10ft is the LOWER band, RM46.** `band_max_tmm = 30481` (A1) ✓
 - **On a quotation, billed quantity rounds UP to a whole unit**, every basis,
   once, after `min_qty` (A10) ✓
 - **At final pricing, billed quantity is EXACT** — site-measured dimensions

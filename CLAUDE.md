@@ -30,8 +30,24 @@ A3 and A4 retagged `BLOCKING P2` — Phase 1 applies no discount.
 
 ## Non-negotiable invariants
 
-**Lengths are integer millimetres.** Field naming `*_mm`. No `double` ever holds
-a dimension. Convert at the UI boundary only. Never round-trip `mm → ft → mm`.
+**Lengths are integer TENTHS of a millimetre.** Field naming `*_tmm`. No
+`double` ever holds a dimension. Convert at the UI boundary only.
+
+*This replaces "integer millimetres", which was wrong and provably overcharged.*
+A foot is 304.8mm, so no whole-mm value represents it. Storing millimetres made
+`12ft → 3657.6 → 3658mm → 12.0013ft → ceil 13ft`, quoting RM598 where golden row
+1 demands RM552 — the exact `mm → ft → mm` round-trip this invariant forbids,
+made unavoidable by the storage unit itself. In tenths every accepted unit is an
+exact integer:
+
+| mm | cm | m | inch | foot |
+|---|---|---|---|---|
+| 10 | 100 | 10000 | 254 | 3048 |
+
+so nothing rounds on conversion, `3ft × 4ft` is exactly 12.0000 sqft rather than
+11.9928, and `5ft × 4ft` at RM9/sqft is RM180.00 rather than RM179.97.
+`Length.mm` remains, as a **display accessor only** — never feed it back into a
+length or a price.
 
 **Money is integer sen.** Field naming `*_sen`. RM46.00 is `4600`. `double` for
 currency is forbidden. Python: `int` sen, `Decimal` at boundaries only, never
@@ -46,9 +62,11 @@ currency is forbidden. Python: `int` sen, `Decimal` at boundaries only, never
   variance report.
   `MM_PER_FT` is 304.8, not an integer — compare in tenths of a mm. Test
   `3048 → 10` and `3049 → 11`.
-- *Band edges*: max is **exclusive**, so a 10ft cutoff is `band_max_mm = 3049`,
-  never 3048. 3048 would push exactly 10ft into the upper band and overcharge
-  RM144 on a 12ft curtain. Assert the constant in a test, not just the price.
+- *Band edges*: max is **exclusive**. In tenths a 10ft cutoff is
+  `band_max_tmm = 30481` — exactly 10ft is 30480 and lands in the lower band
+  (A1); one tenth of a millimetre more does not. Getting this fencepost wrong
+  overcharges RM144 on a 12ft curtain, and the spec already got it wrong once.
+  **Assert the constant in a test, not just the resulting price.**
 - *Money*: round half-up to the nearest sen, **once**, at the line total. Never
   round intermediates.
 
@@ -156,7 +174,8 @@ shared/
 
 ## Conventions
 
-- Money columns end `_sen` and are `int`. Lengths end `_mm` and are `int`.
+- Money columns end `_sen` and are `int`. Lengths end `_tmm` and are `int`,
+  in tenths of a millimetre. A column named `_mm` is a bug.
 - Every table: `id uuid PK`, client-generated. Syncing tables carry `synced_at`.
 - Timestamps `timestamptz`, stored UTC, displayed `Asia/Kuala_Lumpur`.
 - Postgres enums server-side, Dart enums client-side, kept in step by a
