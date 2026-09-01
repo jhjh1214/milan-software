@@ -19,6 +19,17 @@ String unitLabel(L l, LengthUnit unit) => switch (unit) {
   LengthUnit.m => l.unitMetre,
 };
 
+/// The localised name of a product family, for the category step.
+String familyLabel(L l, Family family) => switch (family) {
+  Family.curtain => l.familyCurtain,
+  Family.blind => l.familyBlind,
+  Family.track => l.familyTrack,
+  Family.flooring => l.familyFlooring,
+  Family.wallpaper => l.familyWallpaper,
+  Family.addon => l.familyAddon,
+  Family.service => l.familyService,
+};
+
 /// The localised name of the unit a line is billed in.
 String billedUnitLabel(L l, PriceBasis basis) => switch (basis) {
   PriceBasis.perFtWidth => l.unitFoot,

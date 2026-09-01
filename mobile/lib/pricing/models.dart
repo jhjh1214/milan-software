@@ -174,6 +174,25 @@ class PricingRule {
   /// A different concept from a minimum charge.
   final Rational? minQty;
 
+  /// Square feet one roll or box covers, for `per_roll`.
+  final Rational? coverageSqft;
+
+  /// How many units one charge delivers. The Korea wallpaper is a
+  /// buy-one-free-one pair: charge 1, deliver 2.
+  final int bundleQty;
+
+  /// Overrides the family's deposit category. Flooring services ride the
+  /// flooring deposit, not the curtain one.
+  final DepositCategory? depositCategoryOverride;
+
+  final bool isAddon;
+
+  /// Variants this add-on may attach to. Null means any.
+  final List<String>? attachesTo;
+
+  /// Free text from the price list — series, warranty, openness. Not priced.
+  final String? note;
+
   final int sortOrder;
 
   const PricingRule({
@@ -193,6 +212,12 @@ class PricingRule {
     required this.mvpRateSen,
     required this.minQty,
     required this.sortOrder,
+    this.coverageSqft,
+    this.bundleQty = 1,
+    this.depositCategoryOverride,
+    this.isAddon = false,
+    this.attachesTo,
+    this.note,
   });
 
   factory PricingRule.fromJson(Map<String, dynamic> json) {
@@ -224,8 +249,24 @@ class PricingRule {
       mvpRateSen: json['mvp_rate_sen'] as int?,
       minQty: rawMin == null ? null : Rational.fromInt(rawMin as int),
       sortOrder: json['sort_order'] as int,
+      coverageSqft: json['coverage_sqft'] == null
+          ? null
+          : Rational.fromInt(json['coverage_sqft'] as int),
+      bundleQty: json['bundle_qty'] as int? ?? 1,
+      depositCategoryOverride: json['deposit_category'] == null
+          ? null
+          : DepositCategory.values.byName(json['deposit_category'] as String),
+      isAddon: json['is_addon'] as bool? ?? false,
+      attachesTo: (json['attaches_to'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(growable: false),
+      note: json['note'] as String?,
     );
   }
+
+  /// The deposit category a lock on this line would belong to.
+  DepositCategory get depositCategory =>
+      depositCategoryOverride ?? depositCategoryOf(family);
 
   /// Whether [value] falls inside this rule's band.
   ///
@@ -270,6 +311,74 @@ class RateCardConfig {
   );
 }
 
+/// An order-level charge driven by the delivery address, not by any line.
+///
+/// SPEC.md §4.1: ask for the delivery area early and surface the charge
+/// **before** the total, never after the customer has agreed a number.
+class DeliveryZone {
+  final String id;
+  final int chargeSen;
+
+  /// `round_trip` or `transport`. Different words on the printed quote.
+  final String chargeKind;
+
+  final List<String> areaLabels;
+  final Localised labels;
+
+  const DeliveryZone({
+    required this.id,
+    required this.chargeSen,
+    required this.chargeKind,
+    required this.areaLabels,
+    required this.labels,
+  });
+
+  factory DeliveryZone.fromJson(Map<String, dynamic> json) => DeliveryZone(
+    id: json['id'] as String,
+    chargeSen: json['charge_sen'] as int,
+    chargeKind: json['charge_kind'] as String,
+    areaLabels: (json['area_labels'] as List<dynamic>)
+        .map((e) => e as String)
+        .toList(growable: false),
+    labels: Localised.fromJson(json['labels'] as Map<String, dynamic>),
+  );
+}
+
+/// A constraint rather than a price. "ZIP blinds max 20ft wide" is not
+/// something to discover at installation.
+class ProductRule {
+  final String id;
+  final String variant;
+
+  /// `requires`, `excludes`, `max_dimension` or `min_dimension`.
+  final String kind;
+
+  final String? target;
+  final String? dimension;
+  final int? valueTmm;
+  final Localised messages;
+
+  const ProductRule({
+    required this.id,
+    required this.variant,
+    required this.kind,
+    required this.messages,
+    this.target,
+    this.dimension,
+    this.valueTmm,
+  });
+
+  factory ProductRule.fromJson(Map<String, dynamic> json) => ProductRule(
+    id: json['id'] as String,
+    variant: json['variant'] as String,
+    kind: json['kind'] as String,
+    target: json['target'] as String?,
+    dimension: json['dimension'] as String?,
+    valueTmm: json['value_tmm'] as int?,
+    messages: Localised.fromJson(json['messages'] as Map<String, dynamic>),
+  );
+}
+
 /// A published, versioned set of rules.
 class RateCard {
   final int version;
@@ -280,12 +389,16 @@ class RateCard {
 
   final RateCardConfig config;
   final List<PricingRule> rules;
+  final List<DeliveryZone> deliveryZones;
+  final List<ProductRule> productRules;
 
   const RateCard({
     required this.version,
     required this.provisional,
     required this.config,
     required this.rules,
+    this.deliveryZones = const [],
+    this.productRules = const [],
   });
 
   factory RateCard.fromJson(Map<String, dynamic> json) => RateCard(
@@ -295,18 +408,49 @@ class RateCard {
     rules: (json['rules'] as List<dynamic>)
         .map((e) => PricingRule.fromJson(e as Map<String, dynamic>))
         .toList(growable: false),
+    deliveryZones:
+        (json['delivery_zones'] as List<dynamic>?)
+            ?.map((e) => DeliveryZone.fromJson(e as Map<String, dynamic>))
+            .toList(growable: false) ??
+        const [],
+    productRules:
+        (json['product_rules'] as List<dynamic>?)
+            ?.map((e) => ProductRule.fromJson(e as Map<String, dynamic>))
+            .toList(growable: false) ??
+        const [],
   );
 
-  /// Every distinct variant in the card, in display order.
-  List<PricingRule> get distinctVariants {
+  /// Every rule for one variant, whatever its band or material.
+  List<PricingRule> forVariant(String variant) =>
+      rules.where((r) => r.variant == variant).toList(growable: false);
+
+  /// One entry per product a user can pick, in display order.
+  ///
+  /// Keyed on the variant alone, not on variant-and-material: at a fair the
+  /// customer picks "Zebra Blackout", not "Zebra Blackout TBL". Material is
+  /// chosen at measurement — see [PricingStage] and the deferred-material
+  /// handling in the engine.
+  ///
+  /// Add-ons are excluded; they attach to a parent line rather than start one.
+  List<PricingRule> get selectableProducts {
     final seen = <String>{};
     final out = <PricingRule>[];
     final sorted = [...rules]
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     for (final r in sorted) {
-      final key = '${r.variant}|${r.materialKey ?? ""}';
-      if (seen.add(key)) out.add(r);
+      if (r.isAddon) continue;
+      if (seen.add(r.variant)) out.add(r);
     }
     return out;
+  }
+
+  /// The material keys offered for [variant], excluding the null that means
+  /// "this product has no material choice".
+  List<String> materialsFor(String variant) {
+    final keys = <String>{
+      for (final r in rules)
+        if (r.variant == variant && r.materialKey != null) r.materialKey!,
+    };
+    return keys.toList(growable: false)..sort();
   }
 }

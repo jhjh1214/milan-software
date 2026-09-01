@@ -1206,12 +1206,22 @@ orders, supplier management and costing come later.
 - ~~**A1.**~~ **ANSWERED — exactly 10ft is the LOWER band, RM46.** The step is at
   10ft 1in. Encoded as `band_max_tmm = 30481`; see §4.2. **Their printed list still
   needs correcting** to "Up to 10ft (H)" / "Over 10ft (H)".
-- `[BLOCKING P1]` **A2a.** The **curtain and blind rows only**: day curtain,
-  night curtain, roller, zebra. Per variant — layer, material_key where it moves
-  the rate, both height bands, rate, MVP rate, minimum quantity. This is the
-  Phase 1 seed card and nothing else in Phase 1 needs the rest.
-- `[BLOCKING P2]` **A2b.** The remaining standard price list. Tracks and rods,
-  flooring, wallpaper, add-ons, services, delivery zones.
+- ~~**A2a / A2b.**~~ **ANSWERED — the MITC Mega Home Expo Aug 2026 list was
+  supplied and is transcribed in full** to `shared/rate-card-fair-2026-08.json`:
+  77 rows across curtain, blind, track, flooring, wallpaper, add-on and service,
+  plus both delivery zones and three product rules.
+
+  PDF text extraction flattened the two-column layout and orphaned five labels
+  from four prices. The page was re-rendered at 300dpi and read visually, which
+  resolved every one: **MULTI TRACK RM68/RM75**, **Roller Blinds (Printing)
+  RM17/sqft**, **Timber Blinds 35mm RM21/sqft**, **Self Levelling RM3.00/sqft**
+  and **SPC 8mm (HRW) RM12.00/sqft**. Nothing was inferred.
+
+  The render also showed the **second column is not always the >10ft band**. It
+  is the band for curtains, S-track, multi-track and the rod-with-pleat and
+  rod-with-eyelet composites; for Doso and Meyer it is a colour note, for Zebra
+  the material series, and for Fauxwood and Ultra Light Timber a slat size.
+  Reading it as a band throughout would have mispriced a dozen rows.
 - `[BLOCKING P2]` **A3.** Are RM46 / RM58 the **promo** rates? If so, is the
   standard list supplied directly or derived from these?
   *Retagged from P1: Phase 1 seeds the printed numbers and applies no discount,
@@ -1237,6 +1247,27 @@ orders, supplier management and costing come later.
 - **A12.** Does the fair promo % **stack on top of** an MVP flat rate? RM46 →
   MVP RM40 → then also 20% off? Or is MVP the floor, whichever is lower? Not
   Phase 1, but it is the same shape of silent-money question as A4.
+- **A13.** Two readings left over from the price list, both **assumed** in the
+  card and both marked there:
+  - **SPC Herringbone minimum.** The `MIN 200sqft` box spans the four SPC rows
+    above Herringbone; Herringbone's own second column carries the
+    self-levelling note instead. Assumed `min_qty 200`, consistent with every
+    other SPC row. If wrong, small herringbone jobs are overquoted.
+  - **Timber Blinds "With Decorative Tape".** A note spanning the 25 / 35 / 50mm
+    rows. Is the tape included at the printed rate, or an upcharge? No separate
+    priced variant was created, because inventing one would invent a price.
+- `[BLOCKING P2]` **A14.** **Korea wallpaper coverage — a factor of two.**
+  The list reads `Korea Wallpaper (Buy 1 Free 1) 14ft x 10ft RM800.00 (2roll)`.
+  Does RM800 cover 140 sqft in total, or does *each* of the two rolls cover
+  140 sqft? That is RM5.71/sqft against RM2.86/sqft. The card carries the
+  **conservative** reading — 140 sqft per RM800 — so a quote can only fall at
+  measurement, never rise. A 20ft x 10ft wall currently quotes RM1,600; under
+  the other reading it is RM800.
+- **A15.** **Do the banded tracks and rods band on the curtain's height?**
+  S-track, multi-track and the rod-with-pleat and rod-with-eyelet composites all
+  print two prices under the same 10ft header as the curtains. Implemented as a
+  height band on the line's own height, which for a track line is the curtain
+  drop. Plain rods and the Doso/Meyer tracks are unbanded, as printed.
 
 ## B. Deposits and locks
 - `[BLOCKING P4]` **B1.** Curtain RM300 paid at a fair, customer returns six
@@ -1258,8 +1289,24 @@ orders, supplier management and costing come later.
   RM450 under per-order.
 - **B5.** One customer, two properties: one lock or two?
 - **B6.** Always flat RM300, or higher on large orders?
-- **B7.** Which products can defer material choice past deposit? Zebra J/BL vs
-  TBL are different rates, so those cannot.
+- ~~**B7.**~~ **ANSWERED — every product defers material to measurement.** At a
+  fair the job is to lock the deposit, not to settle the specification.
+
+  This overrides the note in §4.1 that material "cannot be deferred past
+  deposit" for products whose material moves the rate. Seven variants do:
+  `zebra_blackout` (J/BL RM12 vs TBL RM15), `outdoor_zip_manual` and
+  `outdoor_zip_motor` (1% RM55 vs 0% RM60), `fauxwood` (50mm RM27 vs 63mm RM29),
+  `ultra_light_timber` (50mm RM26 vs 63mm RM30), `outdoor_roller_motor` (Somfy
+  RM1,800 vs AOK RM1,000) and `vinyl_3mm` (supply-and-install vs supply-only).
+
+  **A deferred material is quoted at the DEAREST option in its group.** That is
+  forced, not chosen: §8.5 promises the final will be the same or lower, and
+  quoting the cheaper material would make the final go *up*. The line says so on
+  its face, and the drop when the customer picks the cheaper option is the
+  promise being kept rather than a discount.
+
+  At **final** pricing a missing material raises rather than guessing — nobody
+  should be invoiced for a material they never chose.
 
 ## C. Operations
 - **C1.** Orders per fair? Per month at the showroom?
@@ -1290,6 +1337,12 @@ orders, supplier management and costing come later.
 - **G2.** Will there ever be an in-house dev team, Java-shop by policy?
 
 ## Answered
+- **The MITC Aug 2026 fair price list is supplied and transcribed in full** —
+  77 rows, two delivery zones, three product rules (A2a, A2b) ✓
+- **Material is always chosen at measurement, never at the fair**, and a
+  deferred material is quoted at the dearest option in its group (B7) ✓
+- **The rate card is data and stays admin-editable.** One JSON file, no code
+  change and no rebuild of anything but the asset ✓
 - **Three languages: Chinese, English, Malay**, per user, default `zh`. Data
   labels are `{zh, en, ms}` maps, never parallel columns ✓
 - **A quotation never shows less than RM300 per deposit category**, and the

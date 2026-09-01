@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+// Riverpod exports a `Family` of its own. `Family` here is the domain term
+// from SPEC.md — curtain, blind, track — so Riverpod's is the one that hides.
+import 'package:flutter_riverpod/flutter_riverpod.dart' hide Family;
 
 import '../../core/dimension_warnings.dart';
 import '../../core/length.dart';
@@ -24,7 +26,10 @@ class WizardScreen extends ConsumerStatefulWidget {
   ConsumerState<WizardScreen> createState() => _WizardScreenState();
 }
 
-enum _Step { room, product, sizes }
+/// The real price list carries 77 rows across seven families. A single flat
+/// product list would be a 60-item scroll, which is hostile to the four-minute
+/// quote §8.4 asks for, so the category comes first and every list stays short.
+enum _Step { room, family, product, sizes }
 
 enum _Field { width, height }
 
@@ -32,7 +37,12 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
   _Step _step = _Step.room;
 
   String? _room;
+  Family? _family;
   PricingRule? _product;
+
+  /// True when the chosen variant offers more than one material and the
+  /// customer will pick at measurement rather than at the fair.
+  bool _deferMaterial = false;
 
   String _rawWidth = '';
   String _rawHeight = '';
@@ -70,6 +80,7 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
           ),
           title: Text(switch (_step) {
             _Step.room => l.stepRoom,
+            _Step.family => l.stepFamily,
             _Step.product => l.stepProduct,
             _Step.sizes => l.stepSizes,
           }),
@@ -81,13 +92,27 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
             _Step.room => _RoomStep(
               onPick: (room) => setState(() {
                 _room = room;
+                _step = _Step.family;
+              }),
+            ),
+            _Step.family => _FamilyStep(
+              card: card,
+              onPick: (family) => setState(() {
+                _family = family;
                 _step = _Step.product;
               }),
             ),
             _Step.product => _ProductStep(
               card: card,
+              family: _family!,
               onPick: (rule) => setState(() {
                 _product = rule;
+                // `rule` is only a representative of its variant — the first
+                // row, which carries a material key. Passing that key on would
+                // silently pick one material (the cheaper one, as it happens)
+                // and defeat the deferral the client asked for. When the
+                // variant offers a choice, the line carries no material at all.
+                _deferMaterial = card.materialsFor(rule.variant).length > 1;
                 _widthUnit = _unitFromWire(card.config.defaultUnitWidth);
                 _heightUnit = _unitFromWire(card.config.defaultUnitHeight);
                 _step = _Step.sizes;
@@ -337,7 +362,7 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
         .addLine(
           room: _room!,
           variant: _product!.variant,
-          materialKey: _product!.materialKey,
+          materialKey: _deferMaterial ? null : _product!.materialKey,
           layer: _product!.layer,
           width: width.length,
           height: height.length,
@@ -379,15 +404,55 @@ class _RoomStep extends StatelessWidget {
   }
 }
 
+class _FamilyStep extends StatelessWidget {
+  final RateCard card;
+  final ValueChanged<Family> onPick;
+
+  const _FamilyStep({required this.card, required this.onPick});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = L.of(context);
+    // Only families the card actually carries. An empty category is a dead end.
+    final present = <Family>[
+      for (final f in Family.values)
+        if (card.selectableProducts.any((r) => r.family == f)) f,
+    ];
+
+    return ListView(
+      padding: const EdgeInsets.all(Space.lg),
+      children: [
+        for (final family in present)
+          Padding(
+            padding: const EdgeInsets.only(bottom: Space.md),
+            child: _BigChoice(
+              label: familyLabel(l, family),
+              onTap: () => onPick(family),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class _ProductStep extends ConsumerWidget {
   final RateCard card;
+  final Family family;
   final ValueChanged<PricingRule> onPick;
 
-  const _ProductStep({required this.card, required this.onPick});
+  const _ProductStep({
+    required this.card,
+    required this.family,
+    required this.onPick,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = L.of(context);
     final language = ref.watch(languageProvider);
+    final products = card.selectableProducts
+        .where((r) => r.family == family)
+        .toList(growable: false);
 
     // Rates are never shown here. §8.1 and hard rule 8: a part-timer picks a
     // product, the system picks the rate. Nothing selectable is nothing to get
@@ -395,11 +460,16 @@ class _ProductStep extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.all(Space.lg),
       children: [
-        for (final rule in card.distinctVariants)
+        for (final rule in products)
           Padding(
             padding: const EdgeInsets.only(bottom: Space.md),
             child: _BigChoice(
               label: rule.labels(language),
+              // Material is chosen at measurement, not at the fair. Say so on
+              // the choice itself so nobody goes hunting for a series picker.
+              subtitle: card.materialsFor(rule.variant).length > 1
+                  ? l.materialLater
+                  : null,
               onTap: () => onPick(rule),
             ),
           ),
@@ -410,9 +480,10 @@ class _ProductStep extends ConsumerWidget {
 
 class _BigChoice extends StatelessWidget {
   final String label;
+  final String? subtitle;
   final VoidCallback onTap;
 
-  const _BigChoice({required this.label, required this.onTap});
+  const _BigChoice({required this.label, required this.onTap, this.subtitle});
 
   @override
   Widget build(BuildContext context) {
@@ -434,7 +505,18 @@ class _BigChoice extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Expanded(child: Text(label, style: AppText.title)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: AppText.title),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: Space.xs),
+                      Text(subtitle!, style: AppText.caption),
+                    ],
+                  ],
+                ),
+              ),
               const Icon(Icons.chevron_right, color: AppColors.mutedForeground),
             ],
           ),

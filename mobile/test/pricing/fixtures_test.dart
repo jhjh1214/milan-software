@@ -31,7 +31,9 @@ void main() {
     }
     card = RateCard.fromJson(
       jsonDecode(
-            File('${dir.path}/shared/rate-card-seed.json').readAsStringSync(),
+            File(
+              '${dir.path}/shared/rate-card-fair-2026-08.json',
+            ).readAsStringSync(),
           )
           as Map<String, dynamic>,
     );
@@ -44,14 +46,64 @@ void main() {
             as Map<String, dynamic>;
   });
 
-  test('the seed card is flagged provisional until A2a arrives', () {
-    // If this ever fails because the flag was flipped, the real price list
-    // landed — check that the rates were replaced, not just the boolean.
+  test('the card is the real price list, not the provisional stand-in', () {
+    // A2a is answered: this card is transcribed from the MITC Aug 2026 list.
+    expect(card.provisional, isFalse);
+    expect(card.version, greaterThanOrEqualTo(1));
     expect(
-      card.provisional,
-      isTrue,
-      reason: 'shared/rate-card-seed.json is spec examples, not the price list',
+      card.rules.length,
+      greaterThan(60),
+      reason: 'the full list has 77 rows across seven families',
     );
+    expect(card.deliveryZones, hasLength(2));
+    expect(card.productRules, isNotEmpty);
+  });
+
+  test('the fair rates from the printed list are exactly what is loaded', () {
+    // Spot-checks straight off the PDF. If someone edits the card by hand and
+    // fat-fingers a rate, this is where it surfaces.
+    const printed = <String, int>{
+      'night-curtain-lo': 4600,
+      'night-curtain-hi': 5800,
+      'day-curtain-lo': 3600,
+      'day-curtain-hi': 4800,
+      's-track-night-lo': 8000,
+      's-track-night-hi': 9200,
+      'multi-track-lo': 6800,
+      'multi-track-hi': 7500,
+      'doso-track': 900,
+      'meyer-track': 1000,
+      'roller-blackout': 900,
+      'roller-printing': 1700,
+      'zebra-blackout-jbl': 1200,
+      'zebra-blackout-tbl': 1500,
+      'timber-35': 2100,
+      'spc-8mm-hrw': 1200,
+      'spc-herringbone': 800,
+      'self-levelling': 300,
+      'korea-wallpaper': 80000,
+    };
+    for (final entry in printed.entries) {
+      final rule = card.rules.firstWhere(
+        (r) => r.id == entry.key,
+        orElse: () => fail('missing rule ${entry.key}'),
+      );
+      expect(rule.rateSen, entry.value, reason: entry.key);
+    }
+  });
+
+  test('MVP rates appear only where the list prints them', () {
+    // Inventing an MVP rate for a product that has none would quietly discount
+    // it forever. The printed list gives MVP on night curtain and S-track only.
+    final withMvp =
+        card.rules.where((r) => r.mvpRateSen != null).map((r) => r.id).toList()
+          ..sort();
+    expect(withMvp, [
+      'night-curtain-hi',
+      'night-curtain-lo',
+      's-track-night-hi',
+      's-track-night-lo',
+    ]);
   });
 
   test('no rate is hardcoded in the engine — every rule came from data', () {
@@ -115,6 +167,28 @@ void main() {
               'expected ${Money.sen(expected['total_sen'] as int)}, '
               'got ${result.total}',
         );
+
+        if (expected.containsKey('material_deferred')) {
+          expect(
+            result.materialDeferred,
+            expected['material_deferred'],
+            reason: 'material deferral',
+          );
+        }
+        if (expected.containsKey('material_options')) {
+          expect(
+            result.materialOptions,
+            expected['material_options'],
+            reason: 'material options offered',
+          );
+        }
+        if (expected.containsKey('deposit_category')) {
+          expect(
+            result.depositCategory.name,
+            expected['deposit_category'],
+            reason: 'deposit category — a lock on the wrong category misprices',
+          );
+        }
       });
     }
   });

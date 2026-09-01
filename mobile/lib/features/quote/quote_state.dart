@@ -74,7 +74,9 @@ class QuoteState {
 /// The card is data, never code. Replacing it must not require a rebuild of
 /// anything but the asset — CLAUDE.md hard rule 1.
 final rateCardProvider = FutureProvider<RateCard>((ref) async {
-  final raw = await rootBundle.loadString('assets/data/rate-card-seed.json');
+  final raw = await rootBundle.loadString(
+    'assets/data/rate-card-fair-2026-08.json',
+  );
   return RateCard.fromJson(jsonDecode(raw) as Map<String, dynamic>);
 });
 

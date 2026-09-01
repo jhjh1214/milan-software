@@ -18,22 +18,26 @@ Flutter only. No server, no persistence between launches.
 **Working:** `Length`, `Money`, exact rational arithmetic, the unit parser,
 the pricing engine, the custom keypad, and the quote wizard in three languages.
 
-**Blocked on `SPEC.md` §13 A2a** — the real curtain and blind rate rows. Until
-they arrive, `shared/rate-card-seed.json` is built only from numbers already
-published in the spec and is flagged `"provisional": true`, which the app
-displays as a red banner.
+**The real price list is in.** `shared/rate-card-fair-2026-08.json` carries the
+MITC Mega Home Expo Aug 2026 fair list in full: 77 rows across curtains, blinds,
+tracks and rods, flooring, wallpaper, add-ons and services, plus both delivery
+zones and three product rules.
 
-> **Do not quote a real customer from the seed card.**
+That file **is** the price list. Editing a rate there changes the app, with no
+code change and no rebuild of anything but the asset. Nothing may put a rate
+back into Dart.
 
-Replacing it must not require a code change. That is the test of whether
-"never hardcode a price" was actually obeyed.
+**Material is chosen at measurement, not at the fair.** Seven variants have
+material-dependent rates, and a deferred material is quoted at the **dearest**
+option in its group — the only reading that keeps the promise that the final
+price can only stay level or fall.
 
 ## Getting started
 
 ```bash
 cd mobile
 flutter pub get
-flutter test          # 192 tests
+flutter test          # 204 tests
 flutter run
 ```
 

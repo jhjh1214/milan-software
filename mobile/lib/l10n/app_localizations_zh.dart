@@ -51,6 +51,36 @@ class LZh extends L {
   String get stepSizes => '尺寸';
 
   @override
+  String get stepFamily => '哪一类？';
+
+  @override
+  String get familyCurtain => '窗帘';
+
+  @override
+  String get familyBlind => '百叶 / 卷帘';
+
+  @override
+  String get familyTrack => '轨道 / 杆';
+
+  @override
+  String get familyFlooring => '地板';
+
+  @override
+  String get familyWallpaper => '壁纸';
+
+  @override
+  String get familyAddon => '配件';
+
+  @override
+  String get familyService => '服务';
+
+  @override
+  String get materialLater => '料丈量时再选';
+
+  @override
+  String get materialLaterNote => '报价按最贵的料算，选了较便宜的会更低。';
+
+  @override
   String stepProgress(int current, int total, String room) {
     return '第 $current 个，共 $total 个 · $room';
   }

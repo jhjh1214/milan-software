@@ -17,7 +17,9 @@ String _repoRoot() {
 
 RateCard _card() => RateCard.fromJson(
   jsonDecode(
-        File('${_repoRoot()}/shared/rate-card-seed.json').readAsStringSync(),
+        File(
+          '${_repoRoot()}/shared/rate-card-fair-2026-08.json',
+        ).readAsStringSync(),
       )
       as Map<String, dynamic>,
 );

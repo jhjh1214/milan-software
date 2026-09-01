@@ -19,6 +19,16 @@
   "stepProduct": "什么产品？",
   "stepMaterial": "什么料？",
   "stepSizes": "尺寸",
+  "stepFamily": "哪一类？",
+  "familyCurtain": "窗帘",
+  "familyBlind": "百叶 / 卷帘",
+  "familyTrack": "轨道 / 杆",
+  "familyFlooring": "地板",
+  "familyWallpaper": "壁纸",
+  "familyAddon": "配件",
+  "familyService": "服务",
+  "materialLater": "料丈量时再选",
+  "materialLaterNote": "报价按最贵的料算，选了较便宜的会更低。",
   "stepProgress": "第 {current} 个，共 {total} 个 · {room}",
   "@stepProgress": {
     "placeholders": {

@@ -1,6 +1,6 @@
 {
   "_purpose": "THE CONTRACT between the Dart and Python pricing engines. Every case lives here once; both suites load this file. A rule change means editing this file first, then making both sides pass. See CLAUDE.md hard rule 3.",
-  "_rate_card": "rate-card-seed.json",
+  "_rate_card": "rate-card-fair-2026-08.json",
   "_units": "Dimensions are in tenths of a millimetre (tmm). Money is in sen. 1ft = 3048 tmm, 1in = 254 tmm.",
   "schema_version": 1,
   "cases": [
@@ -20,7 +20,7 @@
         "quantity": 1
       },
       "expect": {
-        "rule_id": "seed-night-curtain-lower",
+        "rule_id": "night-curtain-lo",
         "billed_qty": "12",
         "billed_unit": "ft",
         "min_qty_applied": false,
@@ -44,7 +44,7 @@
         "quantity": 1
       },
       "expect": {
-        "rule_id": "seed-night-curtain-upper",
+        "rule_id": "night-curtain-hi",
         "billed_qty": "12",
         "billed_unit": "ft",
         "min_qty_applied": false,
@@ -68,7 +68,7 @@
         "quantity": 1
       },
       "expect": {
-        "rule_id": "seed-night-curtain-lower",
+        "rule_id": "night-curtain-lo",
         "billed_qty": "13",
         "billed_unit": "ft",
         "min_qty_applied": false,
@@ -92,7 +92,7 @@
         "quantity": 1
       },
       "expect": {
-        "rule_id": "seed-night-curtain-lower",
+        "rule_id": "night-curtain-lo",
         "billed_qty": "12",
         "billed_unit": "ft",
         "min_qty_applied": false,
@@ -116,7 +116,7 @@
         "quantity": 1
       },
       "expect": {
-        "rule_id": "seed-night-curtain-lower",
+        "rule_id": "night-curtain-lo",
         "billed_qty": "12",
         "billed_unit": "ft",
         "min_qty_applied": false,
@@ -140,7 +140,7 @@
         "quantity": 1
       },
       "expect": {
-        "rule_id": "seed-roller-blackout",
+        "rule_id": "roller-blackout",
         "billed_qty": "18",
         "billed_unit": "sqft",
         "min_qty_applied": true,
@@ -164,7 +164,7 @@
         "quantity": 1
       },
       "expect": {
-        "rule_id": "seed-night-curtain-upper",
+        "rule_id": "night-curtain-hi",
         "billed_qty": "12",
         "billed_unit": "ft",
         "min_qty_applied": false,
@@ -188,7 +188,7 @@
         "quantity": 1
       },
       "expect": {
-        "rule_id": "seed-night-curtain-upper",
+        "rule_id": "night-curtain-hi",
         "billed_qty": "12",
         "billed_unit": "ft",
         "min_qty_applied": false,
@@ -212,7 +212,7 @@
         "quantity": 1
       },
       "expect": {
-        "rule_id": "seed-night-curtain-lower",
+        "rule_id": "night-curtain-lo",
         "billed_qty": "12",
         "billed_unit": "ft",
         "min_qty_applied": false,
@@ -236,7 +236,7 @@
         "quantity": 1
       },
       "expect": {
-        "rule_id": "seed-night-curtain-lower",
+        "rule_id": "night-curtain-lo",
         "billed_qty": "37/3",
         "billed_unit": "ft",
         "min_qty_applied": false,
@@ -260,7 +260,7 @@
         "quantity": 1
       },
       "expect": {
-        "rule_id": "seed-roller-blackout",
+        "rule_id": "roller-blackout",
         "billed_qty": "18",
         "billed_unit": "sqft",
         "min_qty_applied": true,
@@ -284,7 +284,7 @@
         "quantity": 3
       },
       "expect": {
-        "rule_id": "seed-night-curtain-lower",
+        "rule_id": "night-curtain-lo",
         "billed_qty": "12",
         "billed_unit": "ft",
         "min_qty_applied": false,
@@ -308,7 +308,7 @@
         "quantity": 1
       },
       "expect": {
-        "rule_id": "seed-zebra-blackout-tbl",
+        "rule_id": "zebra-blackout-tbl",
         "billed_qty": "30",
         "billed_unit": "sqft",
         "min_qty_applied": false,
@@ -332,7 +332,7 @@
         "quantity": 1
       },
       "expect": {
-        "rule_id": "seed-day-curtain-lower",
+        "rule_id": "day-curtain-lo",
         "billed_qty": "12",
         "billed_unit": "ft",
         "min_qty_applied": false,
@@ -356,12 +356,210 @@
         "quantity": 1
       },
       "expect": {
-        "rule_id": "seed-day-curtain-lower",
+        "rule_id": "day-curtain-lo",
         "billed_qty": "12",
         "billed_unit": "ft",
         "min_qty_applied": false,
         "rate_sen": 3600,
         "total_sen": 43200
+      }
+    },
+    {
+      "id": "material-deferred-quotes-the-dearest-option",
+      "source": "Client instruction, Sep 2026 — material chosen at measurement",
+      "why": "At a fair the job is to lock the deposit, so nobody picks J/BL vs TBL. The two differ by RM3/sqft, and the quote promises the final can only fall, so the estimate must use the DEARER option (TBL RM15). Quoting J/BL would make the final go up, which is exactly what SPEC.md §8.5 says cannot happen.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "zebra_blackout",
+        "material_key": null,
+        "layer": "single",
+        "fulfilment": "supply_install",
+        "width_tmm": 15240,
+        "height_tmm": 18288,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "zebra-blackout-tbl",
+        "billed_qty": "30",
+        "billed_unit": "sqft",
+        "min_qty_applied": false,
+        "rate_sen": 1500,
+        "total_sen": 45000,
+        "material_deferred": true,
+        "material_options": ["jbl", "tbl"]
+      }
+    },
+    {
+      "id": "material-chosen-uses-the-chosen-rate",
+      "source": "Client instruction, Sep 2026",
+      "why": "Once the customer picks J/BL at measurement the line prices at RM12, RM90 below the deferred quote. That drop is the promise being kept, not an error.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "zebra_blackout",
+        "material_key": "jbl",
+        "layer": "single",
+        "fulfilment": "supply_install",
+        "width_tmm": 15240,
+        "height_tmm": 18288,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "zebra-blackout-jbl",
+        "billed_qty": "30",
+        "billed_unit": "sqft",
+        "min_qty_applied": false,
+        "rate_sen": 1200,
+        "total_sen": 36000,
+        "material_deferred": false
+      }
+    },
+    {
+      "id": "deferred-material-with-a-band",
+      "source": "Client instruction, Sep 2026",
+      "why": "Outdoor ZIP defers openness (1% RM55 vs 0% RM60) and carries a 30sqft minimum. The dearer option wins, and the minimum still applies on top.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "outdoor_zip_manual",
+        "material_key": null,
+        "layer": "single",
+        "fulfilment": "supply_install",
+        "width_tmm": 15240,
+        "height_tmm": 12192,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "outdoor-zip-manual-0",
+        "billed_qty": "30",
+        "billed_unit": "sqft",
+        "min_qty_applied": true,
+        "rate_sen": 6000,
+        "total_sen": 180000,
+        "material_deferred": true,
+        "material_options": ["openness_0pct", "openness_1pct"]
+      }
+    },
+    {
+      "id": "outdoor-wooden-chicks-band-on-a-per-sqft-product",
+      "source": "MITC price list — RM10/sqft, RM11/sqft over 10ft(H)",
+      "why": "Height bands are not a curtain-only idea. A per_sqft blind bands on height too, and here the height both selects the band AND multiplies, unlike per_ft_width.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "outdoor_wooden_chicks",
+        "material_key": null,
+        "layer": "single",
+        "fulfilment": "supply_install",
+        "width_tmm": 12192,
+        "height_tmm": 33528,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "outdoor-chicks-hi",
+        "billed_qty": "44",
+        "billed_unit": "sqft",
+        "min_qty_applied": false,
+        "rate_sen": 1100,
+        "total_sen": 48400
+      }
+    },
+    {
+      "id": "multi-track-resolved-from-the-rendered-table",
+      "source": "MITC price list — the row PDF text extraction orphaned",
+      "why": "Text extraction lost this row's label, leaving RM68/ft and RM75/ft unattached. Rendering the table at 300dpi showed it is MULTI TRACK, banded like the other tracks.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "multi_track",
+        "material_key": null,
+        "layer": "single",
+        "fulfilment": "supply_install",
+        "width_tmm": 36576,
+        "height_tmm": 27432,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "multi-track-lo",
+        "billed_qty": "12",
+        "billed_unit": "ft",
+        "min_qty_applied": false,
+        "rate_sen": 6800,
+        "total_sen": 81600
+      }
+    },
+    {
+      "id": "wallpaper-charges-whole-bogo-bundles",
+      "source": "MITC price list — Korea Wallpaper, buy 1 free 1, 14ft x 10ft, RM800 (2 roll)",
+      "why": "A 20ft x 10ft wall is 200sqft. One RM800 charge covers 140sqft and delivers two rolls, so the wall needs two charges. ASSUMPTION, see SPEC.md §13 A14: the printed line can also be read as 140sqft PER ROLL, which would halve this to RM800. The conservative reading is used so a quote can only fall at measurement. Pattern-repeat wastage is deliberately NOT applied — §13 A7 is unanswered.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "korea_wallpaper",
+        "material_key": null,
+        "layer": "single",
+        "fulfilment": "supply_install",
+        "width_tmm": 60960,
+        "height_tmm": 30480,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "korea-wallpaper",
+        "billed_qty": "2",
+        "billed_unit": "roll",
+        "min_qty_applied": false,
+        "rate_sen": 80000,
+        "total_sen": 160000
+      }
+    },
+    {
+      "id": "per-piece-addon",
+      "source": "MITC price list — Motor RM800/Unit",
+      "why": "An add-on priced per piece ignores dimensions entirely.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "motor",
+        "material_key": null,
+        "layer": "single",
+        "fulfilment": "supply_install",
+        "width_tmm": 36576,
+        "height_tmm": 27432,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "motor",
+        "billed_qty": "1",
+        "billed_unit": "pc",
+        "min_qty_applied": false,
+        "rate_sen": 80000,
+        "total_sen": 80000
+      }
+    },
+    {
+      "id": "flooring-service-rides-the-flooring-deposit",
+      "source": "SPEC.md §6.1",
+      "why": "Self levelling is a service, and services default to the curtain deposit. This one must not: it is flooring work and belongs to the flooring RM300. Applying a curtain lock to it is the expensive bug in this design.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "self_levelling",
+        "material_key": null,
+        "layer": "single",
+        "fulfilment": "supply_install",
+        "width_tmm": 60960,
+        "height_tmm": 60960,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "self-levelling",
+        "billed_qty": "400",
+        "billed_unit": "sqft",
+        "min_qty_applied": false,
+        "rate_sen": 300,
+        "total_sen": 120000,
+        "deposit_category": "flooring"
       }
     }
   ],

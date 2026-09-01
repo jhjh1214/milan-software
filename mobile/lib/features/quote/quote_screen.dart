@@ -253,6 +253,13 @@ class _LineDetail extends StatelessWidget {
           const SizedBox(height: Space.xs),
           Text(p.rule.bandLabels!(language), style: AppText.caption),
         ],
+        if (p.materialDeferred) ...[
+          const SizedBox(height: Space.xs),
+          Text(
+            '${l.materialLater} · ${l.materialLaterNote}',
+            style: AppText.caption.copyWith(color: AppColors.accent),
+          ),
+        ],
         if (p.minQtyApplied) ...[
           const SizedBox(height: Space.xs),
           Text(

@@ -183,6 +183,66 @@ abstract class L {
   /// **'尺寸'**
   String get stepSizes;
 
+  /// No description provided for @stepFamily.
+  ///
+  /// In zh, this message translates to:
+  /// **'哪一类？'**
+  String get stepFamily;
+
+  /// No description provided for @familyCurtain.
+  ///
+  /// In zh, this message translates to:
+  /// **'窗帘'**
+  String get familyCurtain;
+
+  /// No description provided for @familyBlind.
+  ///
+  /// In zh, this message translates to:
+  /// **'百叶 / 卷帘'**
+  String get familyBlind;
+
+  /// No description provided for @familyTrack.
+  ///
+  /// In zh, this message translates to:
+  /// **'轨道 / 杆'**
+  String get familyTrack;
+
+  /// No description provided for @familyFlooring.
+  ///
+  /// In zh, this message translates to:
+  /// **'地板'**
+  String get familyFlooring;
+
+  /// No description provided for @familyWallpaper.
+  ///
+  /// In zh, this message translates to:
+  /// **'壁纸'**
+  String get familyWallpaper;
+
+  /// No description provided for @familyAddon.
+  ///
+  /// In zh, this message translates to:
+  /// **'配件'**
+  String get familyAddon;
+
+  /// No description provided for @familyService.
+  ///
+  /// In zh, this message translates to:
+  /// **'服务'**
+  String get familyService;
+
+  /// No description provided for @materialLater.
+  ///
+  /// In zh, this message translates to:
+  /// **'料丈量时再选'**
+  String get materialLater;
+
+  /// No description provided for @materialLaterNote.
+  ///
+  /// In zh, this message translates to:
+  /// **'报价按最贵的料算，选了较便宜的会更低。'**
+  String get materialLaterNote;
+
   /// No description provided for @stepProgress.
   ///
   /// In zh, this message translates to:

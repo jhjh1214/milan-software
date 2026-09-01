@@ -51,6 +51,37 @@ class LEn extends L {
   String get stepSizes => 'Sizes';
 
   @override
+  String get stepFamily => 'Which category?';
+
+  @override
+  String get familyCurtain => 'Curtains';
+
+  @override
+  String get familyBlind => 'Blinds';
+
+  @override
+  String get familyTrack => 'Tracks & rods';
+
+  @override
+  String get familyFlooring => 'Flooring';
+
+  @override
+  String get familyWallpaper => 'Wallpaper';
+
+  @override
+  String get familyAddon => 'Add-ons';
+
+  @override
+  String get familyService => 'Services';
+
+  @override
+  String get materialLater => 'Material chosen at measurement';
+
+  @override
+  String get materialLaterNote =>
+      'Quoted at the dearest material. A cheaper choice lowers this.';
+
+  @override
   String stepProgress(int current, int total, String room) {
     return 'Window $current of $total · $room';
   }

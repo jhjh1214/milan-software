@@ -19,12 +19,16 @@ void main() {
 
   setUpAll(() {
     var dir = Directory.current;
-    while (!File('${dir.path}/shared/rate-card-seed.json').existsSync()) {
+    while (!File(
+      '${dir.path}/shared/rate-card-fair-2026-08.json',
+    ).existsSync()) {
       dir = dir.parent;
     }
     card = RateCard.fromJson(
       jsonDecode(
-            File('${dir.path}/shared/rate-card-seed.json').readAsStringSync(),
+            File(
+              '${dir.path}/shared/rate-card-fair-2026-08.json',
+            ).readAsStringSync(),
           )
           as Map<String, dynamic>,
     );
@@ -61,10 +65,12 @@ void main() {
     }
   }
 
-  /// Adds a window through the wizard exactly as a part-timer would.
+  /// Adds a window through the wizard exactly as a part-timer would:
+  /// room, then category, then product, then sizes.
   Future<void> addWindow(
     WidgetTester tester, {
     required String room,
+    required String category,
     required String product,
     required String width,
     required String height,
@@ -75,6 +81,14 @@ void main() {
     await tester.tap(find.text(room));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text(category));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text(product),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.text(product));
     await tester.pumpAndSettle();
 
@@ -96,6 +110,7 @@ void main() {
     await addWindow(
       tester,
       room: '客厅',
+      category: '窗帘',
       product: '夜帘（遮光）',
       width: "12'",
       height: "9'",
@@ -110,6 +125,7 @@ void main() {
     await addWindow(
       tester,
       room: '客厅',
+      category: '窗帘',
       product: '夜帘（遮光）',
       width: "12'",
       height: "10'6",
@@ -125,6 +141,7 @@ void main() {
     await addWindow(
       tester,
       room: '客厅',
+      category: '窗帘',
       product: '夜帘（遮光）',
       width: "12'4",
       height: "9'",
@@ -140,6 +157,7 @@ void main() {
     await addWindow(
       tester,
       room: '房间',
+      category: '百叶 / 卷帘',
       product: '遮光卷帘',
       width: "3'",
       height: "4'",
@@ -156,6 +174,7 @@ void main() {
     await addWindow(
       tester,
       room: '客厅',
+      category: '窗帘',
       product: '夜帘（遮光）',
       width: "12'",
       height: "9'",
@@ -176,6 +195,7 @@ void main() {
     await addWindow(
       tester,
       room: '客厅',
+      category: '窗帘',
       product: '夜帘（遮光）',
       width: "12'",
       height: "9'",
@@ -184,9 +204,54 @@ void main() {
     expect(find.textContaining('价格只会相同或更低'), findsOneWidget);
   });
 
-  testWidgets('the provisional rate card is flagged loudly', (tester) async {
+  testWidgets('the real price list shows no provisional banner', (
+    tester,
+  ) async {
+    // A2a is answered, so the banner must be gone. If it comes back, someone
+    // shipped a stand-in card.
     await pumpApp(tester);
+    expect(find.textContaining('价格表还没确认'), findsNothing);
+  });
+
+  testWidgets('a provisional card is still flagged loudly', (tester) async {
+    // The banner has to keep working, or a future stand-in ships silently.
+    final standIn = RateCard(
+      version: 0,
+      provisional: true,
+      config: card.config,
+      rules: card.rules,
+      deliveryZones: card.deliveryZones,
+      productRules: card.productRules,
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [rateCardProvider.overrideWith((ref) => standIn)],
+        child: const MilanQuoteApp(),
+      ),
+      duration: Duration.zero,
+    );
+    await tester.pumpAndSettle();
     expect(find.textContaining('价格表还没确认'), findsOneWidget);
+  });
+
+  testWidgets('deferred material quotes the dearest option, and says so', (
+    tester,
+  ) async {
+    // The client's instruction: at a fair nobody picks J/BL vs TBL, that
+    // happens at measurement. TBL is RM15/sqft against J/BL's RM12, and the
+    // quote promises the final can only fall, so the dearer one is quoted.
+    await pumpApp(tester);
+    await addWindow(
+      tester,
+      room: '客厅',
+      category: '百叶 / 卷帘',
+      product: '斑马帘 遮光',
+      width: "5'",
+      height: "6'",
+    );
+    // 30 sqft x RM15 = RM450, not 30 x RM12 = RM360.
+    expect(find.text('RM 450.00'), findsWidgets);
+    expect(find.textContaining('料丈量时再选'), findsOneWidget);
   });
 
   testWidgets('deleting a line offers undo rather than a confirmation', (
@@ -196,6 +261,7 @@ void main() {
     await addWindow(
       tester,
       room: '客厅',
+      category: '窗帘',
       product: '夜帘（遮光）',
       width: "12'",
       height: "9'",
@@ -226,6 +292,7 @@ void main() {
     await addWindow(
       tester,
       room: '客厅',
+      category: '窗帘',
       product: '夜帘（遮光）',
       width: "12'",
       height: "9'",
@@ -271,6 +338,7 @@ void main() {
     await addWindow(
       tester,
       room: '客厅',
+      category: '窗帘',
       product: '夜帘（遮光）',
       width: "12'",
       height: "9'",
@@ -278,6 +346,7 @@ void main() {
     await addWindow(
       tester,
       room: '主人房',
+      category: '窗帘',
       product: '夜帘（遮光）',
       width: "12'",
       height: "9'",

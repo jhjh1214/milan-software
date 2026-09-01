@@ -51,6 +51,37 @@ class LMs extends L {
   String get stepSizes => 'Ukuran';
 
   @override
+  String get stepFamily => 'Kategori yang mana?';
+
+  @override
+  String get familyCurtain => 'Langsir';
+
+  @override
+  String get familyBlind => 'Bidai';
+
+  @override
+  String get familyTrack => 'Trek & Rod';
+
+  @override
+  String get familyFlooring => 'Lantai';
+
+  @override
+  String get familyWallpaper => 'Kertas Dinding';
+
+  @override
+  String get familyAddon => 'Tambahan';
+
+  @override
+  String get familyService => 'Perkhidmatan';
+
+  @override
+  String get materialLater => 'Bahan dipilih semasa pengukuran';
+
+  @override
+  String get materialLaterNote =>
+      'Disebut harga pada bahan termahal. Pilihan lebih murah menurunkannya.';
+
+  @override
   String stepProgress(int current, int total, String room) {
     return 'Tingkap $current daripada $total · $room';
   }

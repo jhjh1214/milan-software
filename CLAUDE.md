@@ -16,19 +16,24 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 
 Built and green: `Length`, `Money`, `Rational`, the unit parser, the soft
 warnings, the pricing engine, the custom keypad, and the quote wizard in zh / en
-/ ms. 192 tests; 100% coverage on `Length`, `Money` and `Rational`. Release APK
+/ ms. 204 tests; 100% coverage on `Length`, `Money` and `Rational`. Release APK
 15.5MB against the 30MB target.
 
-**Awaiting A2a** — the real curtain and blind rate rows. Until they arrive the
-seed card in `shared/rate-card-seed.json` is built **only** from the numbers
-already published in `SPEC.md` §4.4, and is marked `"provisional": true`. It is
-enough to run the golden tests and the demo script; it is not the price list.
-**Do not quote a real customer from it.** Replacing it must not require a code
-change — that is the test of whether hard rule 1 was actually obeyed.
+**The real price list is in.** `shared/rate-card-fair-2026-08.json` carries the
+MITC Aug 2026 fair list in full — 77 rows, two delivery zones, three product
+rules. It is **data**: a price change is an edit to that file, with no code
+change and no rebuild of anything but the asset. Nothing may put a rate back
+into Dart.
 
-A1 answered: exactly 10ft is the **lower** band, `band_max_mm = 3049`.
-A10 answered: quotation rounds up. A11: final pricing is exact.
-A3 and A4 retagged `BLOCKING P2` — Phase 1 applies no discount.
+A1: exactly 10ft is the **lower** band, `band_max_tmm = 30481`.
+A10: quotation rounds up. A11: final pricing is exact.
+B7: material is **always** deferred to measurement, and a deferred material is
+quoted at the **dearest** option in its group — the only reading that keeps the
+§8.5 promise. A3 and A4 stay `BLOCKING P2`.
+
+Still open, and marked in the card itself: **A13** (SPC herringbone minimum,
+decorative tape), **A14** (wallpaper coverage — a factor of two), **A15**
+(whether banded tracks band on the curtain drop).
 
 ---
 
@@ -86,6 +91,14 @@ printed quote states it plainly, in the reader's language: *after site
 measurement the price will be the same or lower, never higher.* Removing that
 line turns an honest over-estimate into something that looks like a bait price.
 
+**Material is chosen at measurement, and a deferred material is quoted at the
+DEAREST option in its group.** At a fair the job is to lock the deposit, not to
+settle the specification. Seven variants have material-dependent rates, and
+quoting the cheaper one would make the final price go **up** — exactly what the
+reference-price disclaimer says cannot happen. At final pricing a missing
+material raises rather than guessing; nobody is invoiced for a material they
+never picked.
+
 **A quotation never shows less than the deposit.** RM300 per deposit category is
 the floor on a quoted category subtotal, because a customer who is quoted RM250
 and pays a RM300 deposit has overpaid and will argue. The uplift is shown, never
@@ -112,8 +125,9 @@ an injected one. Runnable in a test with no UI, no DB, no network.
 
 ## Hard rules
 
-1. **Never hardcode a price.** Rates come from data. Tests may use literals;
-   nothing else may.
+1. **Never hardcode a price.** Rates come from data — one JSON file the admin
+   edits. Tests may use literals; nothing else may. A price change must never
+   need a code change, a rebuild or a release.
 2. **When a business rule is unclear, add it to `SPEC.md` §13 and stop.** Do not
    guess. A wrong guess about money is silent and expensive.
 3. **`shared/pricing-fixtures.json` is the contract** between the Dart and Python

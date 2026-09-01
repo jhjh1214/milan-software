@@ -36,6 +36,23 @@ class NoApplicableRate implements Exception {
       '${materialKey == null ? '' : ' ($materialKey)'} — $detail';
 }
 
+/// Thrown when a line breaches a constraint that is not a price.
+///
+/// Distinct from [NoApplicableRate]: the rate card is fine, the order is not.
+/// It carries the rule so the UI can show the message in the reader's language
+/// rather than an English string baked in here.
+class ProductRuleViolation implements Exception {
+  final ProductRule rule;
+  final Length actual;
+
+  ProductRuleViolation({required this.rule, required this.actual});
+
+  @override
+  String toString() =>
+      'ProductRuleViolation: ${rule.variant} ${rule.kind} '
+      '${rule.dimension} ${rule.valueTmm} — got ${actual.tmm}';
+}
+
 /// One line, as the engine priced it.
 ///
 /// Carries everything `order_lines` records, so the quote, the PDF and the
@@ -60,6 +77,20 @@ class PricedLine {
   /// Shown on the line, or the customer queries it.
   final bool minQtyApplied;
 
+  /// True when the customer has not chosen a material yet and this line was
+  /// priced at the **dearest** option in the group.
+  ///
+  /// At a fair the job is to lock the deposit, not to settle every detail, so
+  /// material is chosen at measurement. Quoting the dearest option is the only
+  /// choice that keeps the promise in SPEC.md §8.5 — the final price can then
+  /// only stay the same or fall. Quoting the cheapest would make the final go
+  /// **up**, which is exactly what the disclaimer says cannot happen.
+  final bool materialDeferred;
+
+  /// The material options that were available when [materialDeferred] is true,
+  /// so the line can show what still has to be picked.
+  final List<String> materialOptions;
+
   /// The rate before any tier substitution. Printed on the quote.
   final int standardRateSen;
 
@@ -83,10 +114,12 @@ class PricedLine {
     required this.rateSen,
     required this.quantity,
     required this.total,
+    this.materialDeferred = false,
+    this.materialOptions = const [],
   });
 
   /// The deposit category this line's rate hold would belong to.
-  DepositCategory get depositCategory => depositCategoryOf(rule.family);
+  DepositCategory get depositCategory => rule.depositCategory;
 
   /// True when a tier rate replaced the standard one.
   bool get tierRateApplied => rateSen != standardRateSen;
@@ -133,12 +166,16 @@ PricedLine priceLine({
     );
   }
 
-  // 1. Candidate rules for this exact product.
-  final candidates = card.rules
+  // 0. Constraints that are not prices. A 25ft ZIP blind is not a wrong price,
+  //    it is an order that cannot be fulfilled, and finding that out at
+  //    installation is far more expensive than finding it out here.
+  _checkProductRules(card, request);
+
+  // 1. Candidate rules for this product, before material.
+  var candidates = card.rules
       .where(
         (r) =>
             r.variant == request.variant &&
-            r.materialKey == request.materialKey &&
             r.layer == request.layer &&
             r.fulfilment == request.fulfilment,
       )
@@ -153,8 +190,38 @@ PricedLine priceLine({
     );
   }
 
-  // 2. Select the band. Never pick the cheapest on a miss.
-  final rule = _selectBand(candidates, request);
+  // 2. Material, if the customer has chosen one.
+  final availableMaterials = <String>{
+    for (final r in candidates)
+      if (r.materialKey != null) r.materialKey!,
+  }..toList();
+
+  if (request.materialKey != null) {
+    candidates = candidates
+        .where((r) => r.materialKey == request.materialKey)
+        .toList(growable: false);
+    if (candidates.isEmpty) {
+      throw NoApplicableRate(
+        variant: request.variant,
+        materialKey: request.materialKey,
+        bandValue: null,
+        detail:
+            'no rule for that material — available: '
+            '${availableMaterials.join(", ")}',
+      );
+    }
+  }
+
+  // 3. Select the band. Never pick the cheapest on a miss.
+  final banded = _selectBandCandidates(candidates, request);
+
+  // 4. Resolve a still-unchosen material.
+  final (rule, materialDeferred) = _resolveMaterial(
+    banded,
+    request,
+    stage,
+    availableMaterials,
+  );
 
   // 3. Raw quantity by basis, exact.
   final rawQty = _rawQuantity(rule, request);
@@ -195,24 +262,23 @@ PricedLine priceLine({
     rateSen: rateSen,
     quantity: request.quantity,
     total: total,
+    materialDeferred: materialDeferred,
+    materialOptions: materialDeferred
+        ? (availableMaterials.toList()..sort())
+        : const [],
   );
 }
 
-PricingRule _selectBand(List<PricingRule> candidates, LineRequest request) {
+/// Narrows candidates to those whose band covers the relevant dimension.
+///
+/// Returns a list rather than a single rule, because several materials may
+/// share one band. Never falls back to the cheapest on a miss — §4.3 step 2.
+List<PricingRule> _selectBandCandidates(
+  List<PricingRule> candidates,
+  LineRequest request,
+) {
   final bandField = candidates.first.bandField;
-
-  if (bandField == BandField.none) {
-    if (candidates.length != 1) {
-      throw NoApplicableRate(
-        variant: request.variant,
-        materialKey: request.materialKey,
-        bandValue: null,
-        detail:
-            '${candidates.length} unbanded rules match; the card is ambiguous',
-      );
-    }
-    return candidates.single;
-  }
+  if (bandField == BandField.none) return candidates;
 
   final value = switch (bandField) {
     BandField.height => request.height,
@@ -240,16 +306,82 @@ PricingRule _selectBand(List<PricingRule> candidates, LineRequest request) {
           'no band covers ${value.mm}mm — a gap in the rate card, not a price',
     );
   }
-  if (matches.length > 1) {
+  return matches;
+}
+
+/// Picks the final rule, resolving a material the customer has not chosen yet.
+///
+/// Returns the rule and whether the material was deferred.
+(PricingRule, bool) _resolveMaterial(
+  List<PricingRule> candidates,
+  LineRequest request,
+  PricingStage stage,
+  Set<String> availableMaterials,
+) {
+  if (candidates.length == 1) return (candidates.single, false);
+
+  final distinctMaterials = <String?>{
+    for (final r in candidates) r.materialKey,
+  };
+
+  if (distinctMaterials.length != candidates.length) {
+    // Rules that match but do not differ only by material mean the card itself
+    // is ambiguous. Choosing between them would be inventing a price.
     throw NoApplicableRate(
       variant: request.variant,
       materialKey: request.materialKey,
-      bandValue: value,
+      bandValue: null,
       detail:
-          '${matches.length} bands overlap at ${value.mm}mm; the card is ambiguous',
+          '${candidates.length} rules match and they do not differ only by '
+          'material; the card is ambiguous',
     );
   }
-  return matches.single;
+
+  // Final pricing happens with the customer's actual choice in hand. Guessing
+  // there would put a number on an invoice nobody chose.
+  if (stage == PricingStage.finalPricing) {
+    throw NoApplicableRate(
+      variant: request.variant,
+      materialKey: null,
+      bandValue: null,
+      detail:
+          'material must be chosen before final pricing — one of '
+          '${availableMaterials.join(", ")}',
+    );
+  }
+
+  // Quote the dearest option, so the final can only stay level or fall.
+  final dearest = candidates.reduce((a, b) => b.rateSen > a.rateSen ? b : a);
+  return (dearest, true);
+}
+
+/// Enforces the constraints that are not prices.
+///
+/// A 25ft ZIP blind is not a wrong price, it is an order that cannot be
+/// fulfilled — and discovering that at installation costs far more than
+/// discovering it here.
+void _checkProductRules(RateCard card, LineRequest request) {
+  for (final rule in card.productRules) {
+    if (rule.variant != request.variant) continue;
+    final limit = rule.valueTmm;
+    if (limit == null) continue;
+
+    final value = switch (rule.dimension) {
+      'width' => request.width,
+      'height' => request.height,
+      _ => null,
+    };
+    if (value == null) continue;
+
+    final breached = switch (rule.kind) {
+      'max_dimension' => value.tmm > limit,
+      'min_dimension' => value.tmm < limit,
+      _ => false,
+    };
+    if (breached) throw ProductRuleViolation(rule: rule, actual: value);
+  }
+  // `requires` and `excludes` need the whole order rather than one line, so
+  // they are checked when the quote is totalled. Phase 2.
 }
 
 Rational _rawQuantity(PricingRule rule, LineRequest request) {
@@ -277,10 +409,31 @@ Rational _rawQuantity(PricingRule rule, LineRequest request) {
       return Rational.one;
 
     case PriceBasis.perRoll:
-      throw UnimplementedError(
-        'per_roll arrives with wallpaper in Phase 2, blocked on A7 (pattern '
-        'repeat wastage) and A2b',
-      );
+      final height = request.height;
+      final coverage = rule.coverageSqft;
+      if (height == null || coverage == null || coverage.isZero) {
+        throw NoApplicableRate(
+          variant: request.variant,
+          materialKey: request.materialKey,
+          bandValue: null,
+          detail: 'per_roll needs a height and a coverage_sqft on the rule',
+        );
+      }
+      // `coverage_sqft` is the area ONE CHARGE covers, not the area one roll
+      // covers. `bundle_qty` records how many rolls that charge delivers and
+      // deliberately does NOT divide here.
+      //
+      // The printed list reads "Korea Wallpaper (Buy 1 Free 1) 14ft x 10ft
+      // RM800.00 (2roll)", which can mean the pair covers 140sqft or that each
+      // roll does — RM5.71/sqft against RM2.86/sqft, a factor of two. SPEC.md
+      // §13 A14 asks which. Until it is answered the card carries the
+      // conservative reading (the pair covers 140sqft), so a quote can only
+      // come down at measurement, never up.
+      //
+      // Pattern-repeat wastage is also NOT applied: §13 A7 asks whether it is
+      // already absorbed in the roll price, and a guessed percentage would
+      // silently overcharge on every wall.
+      return areaSqft(request.width, height) / coverage;
   }
 }
 
