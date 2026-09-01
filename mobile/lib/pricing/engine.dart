@@ -126,7 +126,11 @@ PricedLine priceLine({
   CustomerTier tier = CustomerTier.standard,
 }) {
   if (request.quantity < 1) {
-    throw ArgumentError.value(request.quantity, 'quantity', 'must be at least 1');
+    throw ArgumentError.value(
+      request.quantity,
+      'quantity',
+      'must be at least 1',
+    );
   }
 
   // 1. Candidate rules for this exact product.
@@ -221,7 +225,8 @@ PricingRule _selectBand(List<PricingRule> candidates, LineRequest request) {
       variant: request.variant,
       materialKey: request.materialKey,
       bandValue: null,
-      detail: 'this product is banded by ${bandField.wire}, which was not given',
+      detail:
+          'this product is banded by ${bandField.wire}, which was not given',
     );
   }
 
@@ -301,8 +306,7 @@ class QuoteTotals {
   });
 
   /// True when any category was lifted to the deposit minimum.
-  bool get anyFloorApplied =>
-      categoryFloorUplift.values.any((m) => !m.isZero);
+  bool get anyFloorApplied => categoryFloorUplift.values.any((m) => !m.isZero);
 }
 
 /// Totals a set of priced lines, applying the RM300 per-category floor.

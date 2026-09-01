@@ -301,7 +301,8 @@ class RateCard {
   List<PricingRule> get distinctVariants {
     final seen = <String>{};
     final out = <PricingRule>[];
-    final sorted = [...rules]..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    final sorted = [...rules]
+      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     for (final r in sorted) {
       final key = '${r.variant}|${r.materialKey ?? ""}';
       if (seen.add(key)) out.add(r);

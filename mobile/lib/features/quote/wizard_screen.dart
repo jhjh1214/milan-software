@@ -282,12 +282,13 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
     final unit = billedUnitLabel(l, product.basis);
     return switch (product.basis) {
       PriceBasis.perFtWidth => l.billedAs('${width.length.feetCeil}', unit),
-      PriceBasis.perSqft => height == null
-          ? ''
-          : l.billedAs(
-              '${areaSqft(width.length, height.length).ceilToInt()}',
-              unit,
-            ),
+      PriceBasis.perSqft =>
+        height == null
+            ? ''
+            : l.billedAs(
+                '${areaSqft(width.length, height.length).ceilToInt()}',
+                unit,
+              ),
       _ => '',
     };
   }
@@ -434,10 +435,7 @@ class _BigChoice extends StatelessWidget {
           child: Row(
             children: [
               Expanded(child: Text(label, style: AppText.title)),
-              const Icon(
-                Icons.chevron_right,
-                color: AppColors.mutedForeground,
-              ),
+              const Icon(Icons.chevron_right, color: AppColors.mutedForeground),
             ],
           ),
         ),

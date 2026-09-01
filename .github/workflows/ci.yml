@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# The pricing engine is the reason this exists. A green suite here is the only
+# thing standing between a rate-card edit and a wrong number in front of a
+# customer.
+jobs:
+  mobile:
+    name: Flutter — analyse, test, coverage
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.0
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Verify generated localisations are current
+        run: |
+          flutter gen-l10n
+          if ! git diff --quiet -- lib/l10n; then
+            echo "::error::lib/l10n is stale. Run 'flutter gen-l10n' and commit."
+            git diff --stat -- lib/l10n
+            exit 1
+          fi
+
+      - name: Every string exists in all three languages
+        run: |
+          missing=$(cat l10n-missing.txt 2>/dev/null | tr -d '[:space:]')
+          if [ "$missing" != "{}" ] && [ -n "$missing" ]; then
+            echo "::error::Untranslated strings. zh, en and ms must all be complete."
+            cat l10n-missing.txt
+            exit 1
+          fi
+
+      - name: Analyse
+        run: flutter analyze --fatal-infos --fatal-warnings
+
+      - name: Format check
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Test
+        run: flutter test --coverage
+
+      # SPEC.md Phase 1 acceptance: 100% coverage on Length and Money. Asserted
+      # rather than eyeballed, because a coverage number nobody checks is not a
+      # criterion.
+      - name: Enforce 100% coverage on the money and length types
+        run: |
+          python3 - <<'PY'
+          import sys, collections
+          files = collections.OrderedDict()
+          cur = None
+          for line in open('coverage/lcov.info', encoding='utf-8'):
+              line = line.strip()
+              if line.startswith('SF:'):
+                  cur = line[3:].replace('\\', '/')
+                  files[cur] = [0, 0]
+              elif line.startswith('DA:') and cur:
+                  _, hits = line[3:].split(',')
+                  files[cur][1] += 1
+                  if int(hits) > 0:
+                      files[cur][0] += 1
+
+          required = ('core/length.dart', 'core/money.dart', 'core/rational.dart')
+          failed = False
+          for f, (hit, total) in files.items():
+              if f.endswith(required):
+                  pct = 100.0 * hit / total if total else 100.0
+                  status = 'ok' if pct == 100.0 else 'FAIL'
+                  print(f'{status:5} {f.split("/lib/")[-1]:<24} {pct:6.1f}%  {hit}/{total}')
+                  if pct < 100.0:
+                      failed = True
+          sys.exit(1 if failed else 0)
+          PY
+
+  fixtures:
+    name: Shared fixtures are well formed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # From Phase 3 the Python engine loads these same files, and this job
+      # grows a pytest run beside the Dart one.
+      - name: Validate JSON
+        run: |
+          python3 -c "import json; json.load(open('shared/pricing-fixtures.json'))"
+          python3 -c "import json; json.load(open('shared/rate-card-seed.json'))"
+
+      - name: The bundled rate card matches shared/
+        run: diff -u shared/rate-card-seed.json mobile/assets/data/rate-card-seed.json
+
+      - name: No printed document may claim to be a tax invoice
+        # CLAUDE.md hard rule 7 is a legal constraint, not a labelling
+        # preference. SQL Account is the sole issuer of record.
+        run: |
+          if grep -rniE '"(tax invoice|e-invoice)"|>\s*(Tax Invoice|e-Invoice)' \
+               --include='*.dart' --include='*.arb' mobile/lib; then
+            echo "::error::A user-facing string claims to be a tax invoice."
+            exit 1
+          fi
+          echo "ok — nothing claims to be a tax invoice"

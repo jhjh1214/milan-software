@@ -23,17 +23,25 @@ void main() {
     while (!File('${dir.path}/shared/pricing-fixtures.json').existsSync()) {
       final parent = dir.parent;
       if (parent.path == dir.path) {
-        fail('could not locate shared/pricing-fixtures.json from ${Directory.current}');
+        fail(
+          'could not locate shared/pricing-fixtures.json from ${Directory.current}',
+        );
       }
       dir = parent;
     }
     card = RateCard.fromJson(
-      jsonDecode(File('${dir.path}/shared/rate-card-seed.json').readAsStringSync())
+      jsonDecode(
+            File('${dir.path}/shared/rate-card-seed.json').readAsStringSync(),
+          )
           as Map<String, dynamic>,
     );
-    fixtures = jsonDecode(
-      File('${dir.path}/shared/pricing-fixtures.json').readAsStringSync(),
-    ) as Map<String, dynamic>;
+    fixtures =
+        jsonDecode(
+              File(
+                '${dir.path}/shared/pricing-fixtures.json',
+              ).readAsStringSync(),
+            )
+            as Map<String, dynamic>;
   });
 
   test('the seed card is flagged provisional until A2a arrives', () {
@@ -58,9 +66,10 @@ void main() {
       expect((fixtures['cases'] as List).length, greaterThanOrEqualTo(15));
     });
 
-    for (final raw in (jsonDecode(
-      File(_findFixtures()).readAsStringSync(),
-    ) as Map<String, dynamic>)['cases'] as List<dynamic>) {
+    for (final raw
+        in (jsonDecode(File(_findFixtures()).readAsStringSync())
+                as Map<String, dynamic>)['cases']
+            as List<dynamic>) {
       final c = raw as Map<String, dynamic>;
       final id = c['id'] as String;
       final why = c['why'] as String;
@@ -86,7 +95,11 @@ void main() {
           tier: _tier(c['tier'] as String),
         );
 
-        expect(result.rule.id, expected['rule_id'], reason: 'wrong rule chosen');
+        expect(
+          result.rule.id,
+          expected['rule_id'],
+          reason: 'wrong rule chosen',
+        );
         expect(
           result.billedQty.toString(),
           expected['billed_qty'],
@@ -98,7 +111,8 @@ void main() {
         expect(
           result.total.sen,
           expected['total_sen'],
-          reason: 'expected ${Money.sen(expected['total_sen'] as int)}, '
+          reason:
+              'expected ${Money.sen(expected['total_sen'] as int)}, '
               'got ${result.total}',
         );
       });
@@ -106,9 +120,10 @@ void main() {
   });
 
   group('quote total cases', () {
-    for (final raw in (jsonDecode(
-      File(_findFixtures()).readAsStringSync(),
-    ) as Map<String, dynamic>)['quote_total_cases'] as List<dynamic>) {
+    for (final raw
+        in (jsonDecode(File(_findFixtures()).readAsStringSync())
+                as Map<String, dynamic>)['quote_total_cases']
+            as List<dynamic>) {
       final c = raw as Map<String, dynamic>;
       final id = c['id'] as String;
 
@@ -135,11 +150,19 @@ void main() {
 
         for (final e in expectedSubtotals.entries) {
           final cat = DepositCategory.values.byName(e.key);
-          expect(totals.categorySubtotals[cat]?.sen, e.value, reason: 'subtotal ${e.key}');
+          expect(
+            totals.categorySubtotals[cat]?.sen,
+            e.value,
+            reason: 'subtotal ${e.key}',
+          );
         }
         for (final e in expectedUplift.entries) {
           final cat = DepositCategory.values.byName(e.key);
-          expect(totals.categoryFloorUplift[cat]?.sen, e.value, reason: 'uplift ${e.key}');
+          expect(
+            totals.categoryFloorUplift[cat]?.sen,
+            e.value,
+            reason: 'uplift ${e.key}',
+          );
         }
         expect(totals.total.sen, expected['total_sen'], reason: 'quote total');
       });

@@ -16,7 +16,9 @@ String _repoRoot() {
 }
 
 RateCard _card() => RateCard.fromJson(
-  jsonDecode(File('${_repoRoot()}/shared/rate-card-seed.json').readAsStringSync())
+  jsonDecode(
+        File('${_repoRoot()}/shared/rate-card-seed.json').readAsStringSync(),
+      )
       as Map<String, dynamic>,
 );
 
@@ -221,21 +223,24 @@ void main() {
       expect(mvp.tierRateApplied, isTrue);
     });
 
-    test('a product without an MVP rate charges standard, not an invention', () {
-      final mvp = priceLine(
-        request: LineRequest(
-          variant: 'day_curtain',
-          layer: Layer.day,
-          width: ft(12),
-          height: ft(9),
-        ),
-        card: card,
-        stage: PricingStage.estimate,
-        tier: CustomerTier.mvp,
-      );
-      expect(mvp.rateSen, 3600);
-      expect(mvp.tierRateApplied, isFalse);
-    });
+    test(
+      'a product without an MVP rate charges standard, not an invention',
+      () {
+        final mvp = priceLine(
+          request: LineRequest(
+            variant: 'day_curtain',
+            layer: Layer.day,
+            width: ft(12),
+            height: ft(9),
+          ),
+          card: card,
+          stage: PricingStage.estimate,
+          tier: CustomerTier.mvp,
+        );
+        expect(mvp.rateSen, 3600);
+        expect(mvp.tierRateApplied, isFalse);
+      },
+    );
   });
 
   group('deposit category mapping', () {

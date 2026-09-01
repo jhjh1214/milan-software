@@ -58,15 +58,18 @@ void main() {
     ];
 
     for (final (input, unit, expected) in cases) {
-      test('"$input" with chip on ${unit.symbol} -> ${expected ?? "error"}', () {
-        final result = parseLength(input, unit);
-        if (expected == null) {
-          expect(result, isNull, reason: 'must not fall back to a guess');
-        } else {
-          expect(result, isNotNull, reason: '"$input" should parse');
-          expect(result!.length.mm, expected);
-        }
-      });
+      test(
+        '"$input" with chip on ${unit.symbol} -> ${expected ?? "error"}',
+        () {
+          final result = parseLength(input, unit);
+          if (expected == null) {
+            expect(result, isNull, reason: 'must not fall back to a guess');
+          } else {
+            expect(result, isNotNull, reason: '"$input" should parse');
+            expect(result!.length.mm, expected);
+          }
+        },
+      );
     }
   });
 

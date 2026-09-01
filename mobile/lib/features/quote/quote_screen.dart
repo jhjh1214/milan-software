@@ -446,9 +446,7 @@ class _TierToggle extends ConsumerWidget {
       ),
       child: Text(
         isMvp ? l.tierMvp : l.tierStandard,
-        style: TextStyle(
-          fontWeight: isMvp ? FontWeight.w700 : FontWeight.w400,
-        ),
+        style: TextStyle(fontWeight: isMvp ? FontWeight.w700 : FontWeight.w400),
       ),
     );
   }
@@ -461,8 +459,7 @@ class _LanguageMenu extends ConsumerWidget {
     return PopupMenuButton<String>(
       icon: const Icon(Icons.language),
       tooltip: l.language,
-      onSelected: (code) =>
-          ref.read(languageProvider.notifier).state = code,
+      onSelected: (code) => ref.read(languageProvider.notifier).state = code,
       itemBuilder: (context) => [
         PopupMenuItem(value: 'zh', child: Text(l.languageChinese)),
         PopupMenuItem(value: 'en', child: Text(l.languageEnglish)),

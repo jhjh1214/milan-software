@@ -13,7 +13,11 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 ## Current state
 
 **Phase 1 — Quotation Proof.** Flutter only, no server, no persistence.
-Building `Length`, `Money`, the unit parser and rounding first.
+
+Built and green: `Length`, `Money`, `Rational`, the unit parser, the soft
+warnings, the pricing engine, the custom keypad, and the quote wizard in zh / en
+/ ms. 192 tests; 100% coverage on `Length`, `Money` and `Rational`. Release APK
+15.5MB against the 30MB target.
 
 **Awaiting A2a** — the real curtain and blind rate rows. Until they arrive the
 seed card in `shared/rate-card-seed.json` is built **only** from the numbers

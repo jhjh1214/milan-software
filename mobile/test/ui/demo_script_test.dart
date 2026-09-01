@@ -24,8 +24,9 @@ void main() {
     }
     card = RateCard.fromJson(
       jsonDecode(
-        File('${dir.path}/shared/rate-card-seed.json').readAsStringSync(),
-      ) as Map<String, dynamic>,
+            File('${dir.path}/shared/rate-card-seed.json').readAsStringSync(),
+          )
+          as Map<String, dynamic>,
     );
   });
 
@@ -207,7 +208,11 @@ void main() {
     // the action rather than on it.
     await tester.pump(const Duration(milliseconds: 750));
 
-    expect(find.text('还原'), findsOneWidget, reason: '§8.1 wants undo, not confirm');
+    expect(
+      find.text('还原'),
+      findsOneWidget,
+      reason: '§8.1 wants undo, not confirm',
+    );
 
     await tester.tap(find.text('还原'));
     await tester.pumpAndSettle();

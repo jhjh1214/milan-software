@@ -128,9 +128,7 @@ class DimensionField extends StatelessWidget {
                     overridden: state.parsed?.unitWasExplicit ?? false,
                     onTap: () {
                       final i = unitChoices.indexOf(state.chipUnit);
-                      onUnitChanged(
-                        unitChoices[(i + 1) % unitChoices.length],
-                      );
+                      onUnitChanged(unitChoices[(i + 1) % unitChoices.length]);
                     },
                   ),
                 ],

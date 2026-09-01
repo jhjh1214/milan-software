@@ -154,7 +154,12 @@ class NumericKeypad extends StatelessWidget {
       [
         const _KeySpec('.', _KeyKind.decimal, '.', 'decimal point'),
         const _KeySpec('0', _KeyKind.digit, '0', '0'),
-        _KeySpec(millimetresLabel, _KeyKind.millimetres, 'mm', millimetresLabel),
+        _KeySpec(
+          millimetresLabel,
+          _KeyKind.millimetres,
+          'mm',
+          millimetresLabel,
+        ),
         _KeySpec(doneLabel, _KeyKind.done, '', doneLabel),
       ],
     ];

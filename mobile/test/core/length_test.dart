@@ -87,8 +87,10 @@ void main() {
   group('exact feet — the final-pricing quantity', () {
     test('an exact foot value is a whole number', () {
       expect(Length.mm(3048).feetExact, Rational.fromInt(10));
-      expect(Length.of(Rational.fromInt(12), LengthUnit.foot).feetExact,
-          Rational.fromInt(12));
+      expect(
+        Length.of(Rational.fromInt(12), LengthUnit.foot).feetExact,
+        Rational.fromInt(12),
+      );
     });
 
     test('12ft 4in measured on site bills exactly, not rounded up', () {

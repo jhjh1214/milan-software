@@ -171,8 +171,14 @@ void main() {
       expect(Rational(1, 2).min(Rational(1, 3)), Rational(1, 3));
       // The minimum-quantity path relies on max returning the receiver when
       // the two are equal.
-      expect(Rational.fromInt(18).max(Rational.fromInt(18)), Rational.fromInt(18));
-      expect(Rational.fromInt(18).min(Rational.fromInt(18)), Rational.fromInt(18));
+      expect(
+        Rational.fromInt(18).max(Rational.fromInt(18)),
+        Rational.fromInt(18),
+      );
+      expect(
+        Rational.fromInt(18).min(Rational.fromInt(18)),
+        Rational.fromInt(18),
+      );
     });
   });
 

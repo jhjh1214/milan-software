@@ -131,9 +131,7 @@ class QuoteNotifier extends Notifier<QuoteState> {
     final index = state.lines.indexWhere((l) => l.id == id);
     if (index == -1) return null;
     final line = state.lines[index];
-    state = state.copyWith(
-      lines: [...state.lines]..removeAt(index),
-    );
+    state = state.copyWith(lines: [...state.lines]..removeAt(index));
     return (line, index);
   }
 

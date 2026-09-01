@@ -67,15 +67,18 @@ void main() {
       }
     });
 
-    test('millimetres have nothing smaller to suggest, so nothing is shown', () {
-      final warnings = checkDimension(
-        value: Length.mm(70000),
-        enteredUnit: LengthUnit.mm,
-        unitWasExplicit: false,
-        isHeight: false,
-      );
-      expect(warnings, isEmpty);
-    });
+    test(
+      'millimetres have nothing smaller to suggest, so nothing is shown',
+      () {
+        final warnings = checkDimension(
+          value: Length.mm(70000),
+          enteredUnit: LengthUnit.mm,
+          unitWasExplicit: false,
+          isHeight: false,
+        );
+        expect(warnings, isEmpty);
+      },
+    );
   });
 
   group('the very-short-drop nudge', () {
