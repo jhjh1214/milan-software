@@ -18,14 +18,15 @@ class QuoteScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = L.of(context);
-    final quote = ref.watch(quoteProvider);
+    final tier =
+        ref.watch(quoteProvider).valueOrNull?.tier ?? CustomerTier.standard;
     final pricedAsync = ref.watch(pricedQuoteProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l.quoteTitle),
         actions: [
-          _TierToggle(tier: quote.tier),
+          _TierToggle(tier: tier),
           _LanguageMenu(),
           const SizedBox(width: Space.sm),
         ],
@@ -236,19 +237,20 @@ class _LineCard extends ConsumerWidget {
     );
   }
 
-  void _delete(BuildContext context, WidgetRef ref, String id) {
+  Future<void> _delete(BuildContext context, WidgetRef ref, String id) async {
     final l = L.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     // Capture the notifier, not the ref. Deleting the line unmounts this card,
     // and a WidgetRef belonging to a dead widget cannot be read — the undo
     // action would fire into nothing. The notifier is owned by the
-    // ProviderScope and outlives the card.
+    // ProviderScope and outlives the card. The messenger is captured for the
+    // same reason: it is looked up before the await, not after.
     final notifier = ref.read(quoteProvider.notifier);
-    final removed = notifier.removeLine(id);
+    final removed = await notifier.removeLine(id);
     if (removed == null) return;
-    final (line, index) = removed;
 
     // §8.1: undo, not confirm. A modal gets tapped through blindly.
-    ScaffoldMessenger.of(context)
+    messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
@@ -256,7 +258,9 @@ class _LineCard extends ConsumerWidget {
           duration: Motion.undoWindow,
           action: SnackBarAction(
             label: l.undo,
-            onPressed: () => notifier.restoreLine(line, index),
+            // The stored row carries its own sort order, so undo puts the line
+            // back where it was rather than on the end.
+            onPressed: () => notifier.restoreLine(removed),
           ),
         ),
       );

@@ -28,6 +28,11 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # Drift's database.g.dart is generated, not committed. Without this step
+      # the analyzer fails on a missing part file rather than on anything real.
+      - name: Generate Drift code
+        run: dart run build_runner build --delete-conflicting-outputs
+
       - name: Verify generated localisations are current
         run: |
           flutter gen-l10n

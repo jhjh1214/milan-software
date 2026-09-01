@@ -18,10 +18,23 @@ dependencies:
   # Message formatting and locale-aware number/date output.
   intl: 0.20.2
 
+  # Local database. CLAUDE.md pins Drift — relational, not key-value. A quote is
+  # an order with lines, and Hive would turn every read into hand-rolled joins.
+  drift: 2.28.2
+  drift_flutter: 0.2.7
+  path_provider: 2.1.5
+  path: 1.9.1
+
+  # Client-generated UUID v4. Two part-timers offline at one fair must never
+  # collide, so ids are made on the device and never issued by the server.
+  uuid: 4.5.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: 6.0.0
+  drift_dev: 2.28.2
+  build_runner: 2.7.1
 
 flutter:
   uses-material-design: true

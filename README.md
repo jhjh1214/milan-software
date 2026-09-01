@@ -16,7 +16,8 @@ Curtains, blinds, SPC / vinyl / laminate flooring, wallpaper.
 Flutter only. No server, no persistence between launches.
 
 **Working:** `Length`, `Money`, exact rational arithmetic, the unit parser,
-the pricing engine, the custom keypad, and the quote wizard in three languages.
+the pricing engine, the custom keypad, the quote wizard in three languages, and
+local persistence — a quote survives a force-quit and reopens with its lines.
 
 **The real price list is in.** `shared/rate-card-fair-2026-08.json` carries the
 MITC Mega Home Expo Aug 2026 fair list in full: 77 rows across curtains, blinds,
@@ -37,9 +38,13 @@ price can only stay level or fall.
 ```bash
 cd mobile
 flutter pub get
-flutter test          # 204 tests
+dart run build_runner build --delete-conflicting-outputs   # Drift code
+flutter test          # 227 tests
 flutter run
 ```
+
+`lib/data/database.g.dart` is generated, not committed. Run the generator after
+a clone and after any change to `lib/data/database.dart`.
 
 ## The things most likely to be got wrong
 

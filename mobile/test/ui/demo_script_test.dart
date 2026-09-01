@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:milan_quote/app.dart';
+import 'package:milan_quote/data/database.dart';
 import 'package:milan_quote/features/quote/quote_state.dart';
 import 'package:milan_quote/pricing/models.dart';
 
@@ -39,6 +41,17 @@ void main() {
   /// every test would change behaviour depending on the day it runs.
   final duringFair = DateTime(2026, 8, 29);
 
+  late AppDatabase db;
+
+  setUp(() {
+    // A fresh in-memory database per test. The real one writes to app storage
+    // via path_provider, which does not exist under `flutter test`, and tests
+    // that shared a database would leak each other's quotes.
+    db = AppDatabase(NativeDatabase.memory());
+  });
+
+  tearDown(() => db.close());
+
   Future<void> pumpApp(WidgetTester tester, {DateTime? today}) async {
     // The card is supplied directly rather than loaded from the asset bundle.
     // The screen shows an indeterminate spinner while the future is pending,
@@ -48,6 +61,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          databaseProvider.overrideWithValue(db),
           rateCardProvider.overrideWith((ref) => card),
           todayProvider.overrideWithValue(today ?? duringFair),
         ],
@@ -212,6 +226,72 @@ void main() {
     expect(find.textContaining('价格只会相同或更低'), findsOneWidget);
   });
 
+  testWidgets('a quote survives a force-quit and reopens with its lines', (
+    tester,
+  ) async {
+    // Phase 2 acceptance: "Quote survives force-quit, reopens at the exact
+    // window." A dropped phone mid-fair must cost nothing.
+    await pumpApp(tester);
+    await addWindow(
+      tester,
+      room: '客厅',
+      category: '窗帘',
+      product: '夜帘（遮光）',
+      width: "12'",
+      height: "9'",
+    );
+    await addWindow(
+      tester,
+      room: '主人房',
+      category: '百叶 / 卷帘',
+      product: '遮光卷帘',
+      width: "5'",
+      height: "6'",
+    );
+    expect(find.text('RM 552.00'), findsWidgets);
+
+    // The force-quit: tear the whole widget tree down, losing every provider
+    // and all in-memory state. Only the database survives, exactly as it would
+    // if Android killed the process.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    expect(find.text('RM 552.00'), findsNothing);
+
+    // Reopening.
+    await pumpApp(tester);
+
+    expect(find.text('客厅'), findsOneWidget);
+    expect(find.text('主人房'), findsOneWidget);
+    expect(find.text('RM 552.00'), findsWidgets);
+    expect(find.text('RM 270.00'), findsWidgets, reason: '30 sqft x RM9');
+  });
+
+  testWidgets('an MVP quote reopens as an MVP quote after a force-quit', (
+    tester,
+  ) async {
+    // The tier lives on the quote row, not in memory. Losing it on restart
+    // would silently reprice an MVP customer at standard rates.
+    await pumpApp(tester);
+    await addWindow(
+      tester,
+      room: '客厅',
+      category: '窗帘',
+      product: '夜帘（遮光）',
+      width: "12'",
+      height: "9'",
+    );
+    await tester.tap(find.text('普通价'));
+    await tester.pumpAndSettle();
+    expect(find.text('RM 480.00'), findsWidgets);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    await pumpApp(tester);
+
+    expect(find.text('RM 480.00'), findsWidgets);
+    expect(find.text('RM 552.00'), findsNothing);
+  });
+
   testWidgets('quoting after the fair warns that the rates expired', (
     tester,
   ) async {
@@ -248,7 +328,11 @@ void main() {
     );
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [rateCardProvider.overrideWith((ref) => standIn)],
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+          rateCardProvider.overrideWith((ref) => standIn),
+          todayProvider.overrideWithValue(duringFair),
+        ],
         child: const MilanQuoteApp(),
       ),
       duration: Duration.zero,

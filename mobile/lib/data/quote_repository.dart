@@ -1,0 +1,134 @@
+/// Reads and writes quotes. The database is the source of truth; nothing lives
+/// only in memory.
+///
+/// SPEC.md §8.1: the app will be backgrounded mid-quote by a phone call, and
+/// reopening must return to the exact window. So every mutation lands in SQLite
+/// before the UI reports success — there is no "save" button to forget.
+library;
+
+import 'package:drift/drift.dart';
+import 'package:uuid/uuid.dart';
+
+import 'database.dart';
+
+const _uuid = Uuid();
+
+/// Generates a client-side UUID v4.
+///
+/// CLAUDE.md: ids are client-generated so two part-timers offline at one fair
+/// cannot collide. Nothing here ever waits on a server for an identifier.
+String newId() => _uuid.v4();
+
+class QuoteRepository {
+  final AppDatabase _db;
+
+  QuoteRepository(this._db);
+
+  /// Returns the quote in progress, creating one if there is none.
+  ///
+  /// Phase 1 has no order concept, so a device carries a single draft. Phase 4
+  /// turns this into a real order with a customer attached.
+  Future<QuoteRow> ensureDraft({
+    required int rateCardVersion,
+    required String language,
+  }) async {
+    final existing = await _db.latestQuote();
+    if (existing != null) return existing;
+
+    final now = DateTime.now();
+    final row = QuotesCompanion.insert(
+      id: newId(),
+      rateCardVersion: rateCardVersion,
+      language: Value(language),
+      createdAt: now,
+      updatedAt: now,
+    );
+    await _db.into(_db.quotes).insert(row);
+    return (await _db.latestQuote())!;
+  }
+
+  Future<List<QuoteLineRow>> lines(String quoteId) => _db.linesFor(quoteId);
+
+  Stream<List<QuoteLineRow>> watchLines(String quoteId) =>
+      _db.watchLines(quoteId);
+
+  /// Appends a line to a quote.
+  ///
+  /// The sort order is the current count, so lines stay in the order they were
+  /// entered — the order the customer watched them appear in.
+  Future<String> addLine({
+    required String quoteId,
+    required String room,
+    required String variant,
+    required String? materialKey,
+    required String layer,
+    required int widthTmm,
+    required int? heightTmm,
+    required String rawWidth,
+    required String rawHeight,
+    int quantity = 1,
+  }) async {
+    final existing = await _db.linesFor(quoteId);
+    final id = newId();
+    await _db.addLine(
+      QuoteLinesCompanion.insert(
+        id: id,
+        quoteId: quoteId,
+        sortOrder: existing.length,
+        room: room,
+        variant: variant,
+        materialKey: Value(materialKey),
+        layer: layer,
+        widthTmm: widthTmm,
+        heightTmm: Value(heightTmm),
+        rawWidth: rawWidth,
+        rawHeight: rawHeight,
+        quantity: Value(quantity),
+        createdAt: DateTime.now(),
+      ),
+      quoteId,
+    );
+    return id;
+  }
+
+  /// Restores a deleted line in its original position.
+  ///
+  /// Undo has to put the line back where it was, not on the end — §8.1 offers
+  /// undo precisely so a mis-tap costs nothing, and a line that reappears
+  /// somewhere else still costs the user their place.
+  Future<void> restoreLine(QuoteLineRow line) => _db.addLine(
+    QuoteLinesCompanion.insert(
+      id: line.id,
+      quoteId: line.quoteId,
+      sortOrder: line.sortOrder,
+      room: line.room,
+      variant: line.variant,
+      materialKey: Value(line.materialKey),
+      layer: line.layer,
+      widthTmm: line.widthTmm,
+      heightTmm: Value(line.heightTmm),
+      rawWidth: line.rawWidth,
+      rawHeight: line.rawHeight,
+      quantity: Value(line.quantity),
+      createdAt: line.createdAt,
+    ),
+    line.quoteId,
+  );
+
+  Future<void> deleteLine(String lineId) => _db.deleteLine(lineId);
+
+  Future<void> setTier(String quoteId, String tier) =>
+      (_db.update(_db.quotes)..where((q) => q.id.equals(quoteId))).write(
+        QuotesCompanion(tier: Value(tier), updatedAt: Value(DateTime.now())),
+      );
+
+  Future<void> setLanguage(String quoteId, String language) =>
+      (_db.update(_db.quotes)..where((q) => q.id.equals(quoteId))).write(
+        QuotesCompanion(
+          language: Value(language),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+
+  Future<void> clearAll() => _db.clearAll();
+}

@@ -1,9 +1,8 @@
-/// Quote state. Riverpod, per CLAUDE.md.
+/// Quote state. Riverpod over a Drift database, per CLAUDE.md.
 ///
-/// Phase 1 keeps nothing between launches — SPEC.md is explicit that
-/// persistence arrives with Drift in Phase 2. State does survive backgrounding
-/// within a session, which §8.1 requires ("the app will be backgrounded
-/// mid-quote by a phone call").
+/// The database is the source of truth, not this file. Every mutation lands in
+/// SQLite before the UI reports success, so a phone call mid-quote, a
+/// force-quit, or a dropped handset at a fair costs nothing — SPEC.md §8.1.
 library;
 
 import 'dart:convert';
@@ -12,10 +11,44 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/length.dart';
+import '../../data/database.dart';
+import '../../data/quote_repository.dart';
 import '../../pricing/engine.dart';
 import '../../pricing/models.dart';
 
-/// One window on the quote.
+/// The on-device database. Overridden with an in-memory one in tests.
+final databaseProvider = Provider<AppDatabase>((ref) {
+  final db = AppDatabase();
+  ref.onDispose(db.close);
+  return db;
+});
+
+final quoteRepositoryProvider = Provider<QuoteRepository>(
+  (ref) => QuoteRepository(ref.watch(databaseProvider)),
+);
+
+/// Loads the rate card from the bundled asset.
+///
+/// The card is data, never code. Replacing it must not require a rebuild of
+/// anything but the asset — CLAUDE.md hard rule 1.
+final rateCardProvider = FutureProvider<RateCard>((ref) async {
+  final raw = await rootBundle.loadString(
+    'assets/data/rate-card-fair-2026-08.json',
+  );
+  return RateCard.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+});
+
+/// The user's chosen language. Per user, not per device — SPEC.md §8.3.
+final languageProvider = StateProvider<String>((ref) => 'zh');
+
+/// Today's date, injected rather than read at the point of use.
+///
+/// The pricing engine takes no clock (CLAUDE.md), and overriding this in a test
+/// is what lets the expired-fair-rate warning be pinned to a fixed date instead
+/// of passing until August 2026 and failing quietly afterwards.
+final todayProvider = Provider<DateTime>((ref) => DateTime.now());
+
+/// One window on the quote, as the app works with it.
 class QuoteLine {
   final String id;
   final String room;
@@ -44,66 +77,67 @@ class QuoteLine {
     required this.rawHeight,
   });
 
-  QuoteLine copyWith({int? quantity}) => QuoteLine(
-    id: id,
-    room: room,
-    variant: variant,
-    materialKey: materialKey,
-    layer: layer,
-    width: width,
-    height: height,
-    quantity: quantity ?? this.quantity,
-    rawWidth: rawWidth,
-    rawHeight: rawHeight,
+  factory QuoteLine.fromRow(QuoteLineRow row) => QuoteLine(
+    id: row.id,
+    room: row.room,
+    variant: row.variant,
+    materialKey: row.materialKey,
+    layer: Layer.fromWire(row.layer),
+    width: Length.tenths(row.widthTmm),
+    height: row.heightTmm == null ? null : Length.tenths(row.heightTmm!),
+    quantity: row.quantity,
+    rawWidth: row.rawWidth,
+    rawHeight: row.rawHeight,
   );
 }
 
-/// The whole quote.
+/// The whole quote, as loaded from the database.
 class QuoteState {
+  final String quoteId;
   final List<QuoteLine> lines;
   final CustomerTier tier;
 
-  const QuoteState({this.lines = const [], this.tier = CustomerTier.standard});
-
-  QuoteState copyWith({List<QuoteLine>? lines, CustomerTier? tier}) =>
-      QuoteState(lines: lines ?? this.lines, tier: tier ?? this.tier);
+  const QuoteState({
+    required this.quoteId,
+    this.lines = const [],
+    this.tier = CustomerTier.standard,
+  });
 }
 
-/// Loads the rate card from the bundled asset.
-///
-/// The card is data, never code. Replacing it must not require a rebuild of
-/// anything but the asset — CLAUDE.md hard rule 1.
-final rateCardProvider = FutureProvider<RateCard>((ref) async {
-  final raw = await rootBundle.loadString(
-    'assets/data/rate-card-fair-2026-08.json',
-  );
-  return RateCard.fromJson(jsonDecode(raw) as Map<String, dynamic>);
-});
-
-/// The user's chosen language. Per user, not per device — SPEC.md §8.3.
-/// Phase 1 has no user record, so this is session state.
-final languageProvider = StateProvider<String>((ref) => 'zh');
-
-/// Today's date, injected rather than read at the point of use.
-///
-/// The pricing engine takes no clock (CLAUDE.md), and overriding this in a test
-/// is what lets the expired-fair-rate warning be pinned to a fixed date instead
-/// of passing until August 2026 and failing quietly afterwards.
-final todayProvider = Provider<DateTime>((ref) => DateTime.now());
-
-final quoteProvider = NotifierProvider<QuoteNotifier, QuoteState>(
+final quoteProvider = AsyncNotifierProvider<QuoteNotifier, QuoteState>(
   QuoteNotifier.new,
 );
 
-class QuoteNotifier extends Notifier<QuoteState> {
-  var _sequence = 0;
+class QuoteNotifier extends AsyncNotifier<QuoteState> {
+  QuoteRepository get _repo => ref.read(quoteRepositoryProvider);
 
   @override
-  QuoteState build() => const QuoteState();
+  Future<QuoteState> build() async {
+    final card = await ref.watch(rateCardProvider.future);
+    final language = ref.watch(languageProvider);
+    final quote = await _repo.ensureDraft(
+      rateCardVersion: card.version,
+      language: language,
+    );
+    return _load(quote.id, quote.tier);
+  }
 
-  String _nextId() => 'line-${_sequence++}';
+  Future<QuoteState> _load(String quoteId, String tier) async {
+    final rows = await _repo.lines(quoteId);
+    return QuoteState(
+      quoteId: quoteId,
+      lines: rows.map(QuoteLine.fromRow).toList(growable: false),
+      tier: tier == 'mvp' ? CustomerTier.mvp : CustomerTier.standard,
+    );
+  }
 
-  void addLine({
+  Future<void> _refresh() async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    state = AsyncData(await _load(current.quoteId, current.tier.name));
+  }
+
+  Future<void> addLine({
     required String room,
     required String variant,
     required String? materialKey,
@@ -113,46 +147,53 @@ class QuoteNotifier extends Notifier<QuoteState> {
     required String rawWidth,
     required String rawHeight,
     int quantity = 1,
-  }) {
-    state = state.copyWith(
-      lines: [
-        ...state.lines,
-        QuoteLine(
-          id: _nextId(),
-          room: room,
-          variant: variant,
-          materialKey: materialKey,
-          layer: layer,
-          width: width,
-          height: height,
-          quantity: quantity,
-          rawWidth: rawWidth,
-          rawHeight: rawHeight,
-        ),
-      ],
+  }) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    await _repo.addLine(
+      quoteId: current.quoteId,
+      room: room,
+      variant: variant,
+      materialKey: materialKey,
+      layer: layer.wire,
+      widthTmm: width.tmm,
+      heightTmm: height?.tmm,
+      rawWidth: rawWidth,
+      rawHeight: rawHeight,
+      quantity: quantity,
     );
+    await _refresh();
   }
 
-  /// Removes a line, returning it and its position so an undo can restore it
-  /// exactly where it was. §8.1 prefers undo over a confirmation dialog, which
-  /// gets tapped through blindly under pressure.
-  (QuoteLine, int)? removeLine(String id) {
-    final index = state.lines.indexWhere((l) => l.id == id);
-    if (index == -1) return null;
-    final line = state.lines[index];
-    state = state.copyWith(lines: [...state.lines]..removeAt(index));
-    return (line, index);
+  /// Removes a line and returns the stored row, so an undo can put it back
+  /// exactly where it was rather than on the end of the list.
+  Future<QuoteLineRow?> removeLine(String id) async {
+    final current = state.valueOrNull;
+    if (current == null) return null;
+    final rows = await _repo.lines(current.quoteId);
+    final row = rows.where((r) => r.id == id).firstOrNull;
+    if (row == null) return null;
+    await _repo.deleteLine(id);
+    await _refresh();
+    return row;
   }
 
-  void restoreLine(QuoteLine line, int index) {
-    final lines = [...state.lines];
-    lines.insert(index.clamp(0, lines.length), line);
-    state = state.copyWith(lines: lines);
+  Future<void> restoreLine(QuoteLineRow row) async {
+    await _repo.restoreLine(row);
+    await _refresh();
   }
 
-  void setTier(CustomerTier tier) => state = state.copyWith(tier: tier);
+  Future<void> setTier(CustomerTier tier) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    await _repo.setTier(current.quoteId, tier.name);
+    state = AsyncData(await _load(current.quoteId, tier.name));
+  }
 
-  void clear() => state = const QuoteState();
+  Future<void> clear() async {
+    await _repo.clearAll();
+    ref.invalidateSelf();
+  }
 }
 
 /// A line together with the price the engine gave it, or the error it raised.
@@ -193,37 +234,49 @@ class PricedQuote {
 /// other five windows to keep working.
 final pricedQuoteProvider = Provider<AsyncValue<PricedQuote>>((ref) {
   final cardAsync = ref.watch(rateCardProvider);
-  final quote = ref.watch(quoteProvider);
+  final quoteAsync = ref.watch(quoteProvider);
   final today = ref.watch(todayProvider);
 
-  return cardAsync.whenData((card) {
-    final priced = <PricedQuoteLine>[];
-    for (final line in quote.lines) {
-      try {
-        priced.add(
-          PricedQuoteLine(
-            line: line,
-            priced: priceLine(
-              request: LineRequest(
-                variant: line.variant,
-                materialKey: line.materialKey,
-                layer: line.layer,
-                width: line.width,
-                height: line.height,
-                quantity: line.quantity,
-              ),
-              card: card,
-              stage: PricingStage.estimate,
-              tier: quote.tier,
-            ),
-          ),
-        );
-      } catch (e) {
-        priced.add(PricedQuoteLine(line: line, error: e));
-      }
-    }
+  if (cardAsync.isLoading || quoteAsync.isLoading) {
+    return const AsyncValue.loading();
+  }
+  final card = cardAsync.valueOrNull;
+  final quote = quoteAsync.valueOrNull;
+  if (card == null || quote == null) {
+    return AsyncValue.error(
+      cardAsync.error ?? quoteAsync.error ?? 'rate card unavailable',
+      StackTrace.current,
+    );
+  }
 
-    return PricedQuote(
+  final priced = <PricedQuoteLine>[];
+  for (final line in quote.lines) {
+    try {
+      priced.add(
+        PricedQuoteLine(
+          line: line,
+          priced: priceLine(
+            request: LineRequest(
+              variant: line.variant,
+              materialKey: line.materialKey,
+              layer: line.layer,
+              width: line.width,
+              height: line.height,
+              quantity: line.quantity,
+            ),
+            card: card,
+            stage: PricingStage.estimate,
+            tier: quote.tier,
+          ),
+        ),
+      );
+    } catch (e) {
+      priced.add(PricedQuoteLine(line: line, error: e));
+    }
+  }
+
+  return AsyncValue.data(
+    PricedQuote(
       lines: priced,
       totals: totalQuote(
         lines: [
@@ -235,6 +288,6 @@ final pricedQuoteProvider = Provider<AsyncValue<PricedQuote>>((ref) {
       ),
       provisionalCard: card.provisional,
       expiredPromo: card.isExpiredOn(today) ? card.promo : null,
-    );
-  });
+    ),
+  );
 });
