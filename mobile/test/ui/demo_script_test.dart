@@ -96,6 +96,7 @@ void main() {
     required String product,
     required String width,
     required String height,
+    List<String> upgrades = const [],
   }) async {
     await tester.tap(find.text('加窗口'));
     await tester.pumpAndSettle();
@@ -123,6 +124,23 @@ void main() {
 
     await tester.tap(find.text('完成'));
     await tester.pumpAndSettle();
+
+    // The upgrade step. It only appears where the card actually offers
+    // something, and declining is the default — the normal track is already in
+    // the curtain rate, so nothing is added unless asked for.
+    if (find.text('不用，就这样').evaluate().isNotEmpty || upgrades.isNotEmpty) {
+      for (final upgrade in upgrades) {
+        await tester.scrollUntilVisible(
+          find.text(upgrade),
+          120,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.tap(find.text(upgrade));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.text(upgrades.isEmpty ? '不用，就这样' : '完成'));
+      await tester.pumpAndSettle();
+    }
   }
 
   testWidgets('step 1 — a 12ft x 9ft night curtain quotes RM552.00', (
@@ -224,6 +242,81 @@ void main() {
     );
     // SPEC.md §8.5 makes this binding and non-dismissible.
     expect(find.textContaining('价格只会相同或更低'), findsOneWidget);
+  });
+
+  testWidgets('a special track ADDS to the curtain, it does not replace it', (
+    tester,
+  ) async {
+    // A16. The curtain rate covers the fabric and standard hardware; an S-Track
+    // is an extra RM80/ft on top. 12ft x RM46 = RM552, plus 12ft x RM80 = RM960,
+    // giving RM1,512 — not RM960.
+    await pumpApp(tester);
+    await addWindow(
+      tester,
+      room: '客厅',
+      category: '窗帘',
+      product: '夜帘（遮光）',
+      width: "12'",
+      height: "9'",
+      upgrades: ['S 轨道（夜帘）'],
+    );
+
+    expect(find.text('RM 552.00'), findsOneWidget, reason: 'the curtain');
+    expect(find.text('RM 960.00'), findsOneWidget, reason: 'the S-Track');
+    expect(find.text('RM 1,512.00'), findsOneWidget, reason: 'the total');
+  });
+
+  testWidgets('a curtain with no upgrade costs the fabric rate alone', (
+    tester,
+  ) async {
+    // §4.1, corrected. The normal track is already in the price, so nothing is
+    // added unless asked for. Auto-adding a track here would put RM108 on this
+    // window.
+    await pumpApp(tester);
+    await addWindow(
+      tester,
+      room: '客厅',
+      category: '窗帘',
+      product: '夜帘（遮光）',
+      width: "12'",
+      height: "9'",
+    );
+    expect(find.text('RM 552.00'), findsWidgets);
+    expect(find.text('RM 660.00'), findsNothing, reason: 'no Doso track added');
+    expect(
+      find.text('RM 672.00'),
+      findsNothing,
+      reason: 'no Meyer track added',
+    );
+  });
+
+  testWidgets('deleting a curtain takes its upgrade with it', (tester) async {
+    // An orphaned RM960 track line left on the quote would be wrong and nearly
+    // invisible to a part-timer.
+    await pumpApp(tester);
+    await addWindow(
+      tester,
+      room: '客厅',
+      category: '窗帘',
+      product: '夜帘（遮光）',
+      width: "12'",
+      height: "9'",
+      upgrades: ['S 轨道（夜帘）'],
+    );
+    expect(find.text('RM 1,512.00'), findsOneWidget);
+
+    // The parent card's delete button is the first one.
+    await tester.tap(find.byIcon(Icons.close).first);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 750));
+
+    expect(find.text('RM 960.00'), findsNothing, reason: 'the track went too');
+    expect(find.text('RM 552.00'), findsNothing);
+
+    // And undo brings both back.
+    await tester.tap(find.text('还原'));
+    await tester.pumpAndSettle();
+    expect(find.text('RM 1,512.00'), findsOneWidget);
   });
 
   testWidgets('a quote survives a force-quit and reopens with its lines', (

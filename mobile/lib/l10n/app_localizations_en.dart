@@ -51,6 +51,26 @@ class LEn extends L {
   String get stepSizes => 'Sizes';
 
   @override
+  String get stepUpgrade => 'Add anything?';
+
+  @override
+  String get upgradeNone => 'No, that is all';
+
+  @override
+  String get upgradeIncluded =>
+      'A normal track is already included. These are upgrades.';
+
+  @override
+  String upgradeAdded(String name) {
+    return 'Added $name';
+  }
+
+  @override
+  String upgradeOf(String parent) {
+    return 'with $parent';
+  }
+
+  @override
   String get stepFamily => 'Which category?';
 
   @override

@@ -494,6 +494,37 @@ class RateCard {
     return out;
   }
 
+  /// Upgrades that may be added on top of [variant].
+  ///
+  /// A16: everything adds on. The curtain rate covers the fabric and standard
+  /// hardware; a special track, rod, motor or box is an extra line. So this
+  /// offers the track family to curtains, and any add-on whose `attaches_to`
+  /// admits the variant.
+  ///
+  /// **Never called to add something automatically.** §4.1 — the wizard offers,
+  /// the customer chooses. Auto-adding a track would put RM9–10/ft on every
+  /// curtain that already includes one.
+  List<PricingRule> upgradesFor(PricingRule parent) {
+    final seen = <String>{};
+    final out = <PricingRule>[];
+    final sorted = [...rules]
+      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+
+    for (final r in sorted) {
+      if (r.variant == parent.variant) continue;
+
+      final isTrackForCurtain =
+          r.family == Family.track && parent.family == Family.curtain;
+      final isAddonForThis =
+          r.isAddon &&
+          (r.attachesTo == null || r.attachesTo!.contains(parent.variant));
+
+      if (!isTrackForCurtain && !isAddonForThis) continue;
+      if (seen.add(r.variant)) out.add(r);
+    }
+    return out;
+  }
+
   /// The material keys offered for [variant], excluding the null that means
   /// "this product has no material choice".
   List<String> materialsFor(String variant) {

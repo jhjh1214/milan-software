@@ -51,6 +51,25 @@ class LZh extends L {
   String get stepSizes => '尺寸';
 
   @override
+  String get stepUpgrade => '要加什么吗？';
+
+  @override
+  String get upgradeNone => '不用，就这样';
+
+  @override
+  String get upgradeIncluded => '普通轨道已包在价格里，以下是升级选项';
+
+  @override
+  String upgradeAdded(String name) {
+    return '已加 $name';
+  }
+
+  @override
+  String upgradeOf(String parent) {
+    return '配 $parent';
+  }
+
+  @override
   String get stepFamily => '哪一类？';
 
   @override

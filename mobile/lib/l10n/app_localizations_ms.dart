@@ -51,6 +51,26 @@ class LMs extends L {
   String get stepSizes => 'Ukuran';
 
   @override
+  String get stepUpgrade => 'Tambah apa-apa?';
+
+  @override
+  String get upgradeNone => 'Tidak, itu sahaja';
+
+  @override
+  String get upgradeIncluded =>
+      'Trek biasa sudah termasuk. Ini adalah naik taraf.';
+
+  @override
+  String upgradeAdded(String name) {
+    return '$name ditambah';
+  }
+
+  @override
+  String upgradeOf(String parent) {
+    return 'dengan $parent';
+  }
+
+  @override
   String get stepFamily => 'Kategori yang mana?';
 
   @override

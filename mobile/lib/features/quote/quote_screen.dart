@@ -55,10 +55,16 @@ class QuoteScreen extends ConsumerWidget {
                         Space.xxl,
                       ),
                       children: [
+                        // Upgrades sit indented under the line they add to, so
+                        // a customer reading the quote sees a curtain with a
+                        // track rather than two unrelated charges.
                         for (final p in priced.lines)
                           Padding(
                             key: ValueKey(p.line.id),
-                            padding: const EdgeInsets.only(bottom: Space.md),
+                            padding: EdgeInsets.only(
+                              bottom: Space.md,
+                              left: p.line.isUpgrade ? Space.xl : 0,
+                            ),
                             child: _LineCard(priced: p),
                           ),
                         if (priced.totals.anyFloorApplied)
@@ -246,8 +252,10 @@ class _LineCard extends ConsumerWidget {
     // ProviderScope and outlives the card. The messenger is captured for the
     // same reason: it is looked up before the await, not after.
     final notifier = ref.read(quoteProvider.notifier);
+    // Deleting a curtain takes its special track with it, so `removed` may
+    // hold several rows. Undo puts them all back.
     final removed = await notifier.removeLine(id);
-    if (removed == null) return;
+    if (removed.isEmpty) return;
 
     // §8.1: undo, not confirm. A modal gets tapped through blindly.
     messenger
@@ -258,9 +266,9 @@ class _LineCard extends ConsumerWidget {
           duration: Motion.undoWindow,
           action: SnackBarAction(
             label: l.undo,
-            // The stored row carries its own sort order, so undo puts the line
-            // back where it was rather than on the end.
-            onPressed: () => notifier.restoreLine(removed),
+            // The stored rows carry their own sort order, so undo puts the
+            // line and its upgrades back where they were, not on the end.
+            onPressed: () => notifier.restoreLines(removed),
           ),
         ),
       );

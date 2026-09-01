@@ -142,8 +142,8 @@ buying track **without** a curtain. The rods, S-Track, Multi Track and Motor
 Track are upgrades on the standard included track.
 
 **A track line is an upgrade the customer chooses, never a line the system adds
-on their behalf.** See §13 A16 for whether an upgrade adds to the curtain rate
-or replaces it.
+on their behalf.** And an upgrade **adds** to the curtain rate rather than
+replacing it (A16): S-Track on a night curtain is RM46 + RM80 = RM126/ft.
 
 ### Composite variants exist
 `Wooden Rod With Sgp Pleat RM56/ft` is not RM18 plus something. It is its own
@@ -1286,16 +1286,16 @@ orders, supplier management and costing come later.
   been 140 sqft per RM800, which billed a 20ft x 10ft wall at RM1,600 where the
   right answer is RM800 — double. Erring high kept the §8.5 promise intact while
   the question was open, but it was still wrong, and it is fixed.
-- `[BLOCKING P2]` **A16.** **Does a special track ADD to the curtain rate, or
-  REPLACE it?** The normal track is included (§4.1), so a customer upgrading to
-  S-Track on a night curtain either pays RM46 + RM80 = RM126/ft, or RM80/ft as a
-  complete S-fold system. On a 12ft window that is **RM1,512 against RM960**.
-  Same question for the rod-with-pleat and rod-with-eyelet composites, which
-  §4.1 already calls complete variants at their own rate.
+- ~~**A16.**~~ **ANSWERED — everything ADDS ON.** The curtain rate covers the
+  fabric and all standard hardware. A special track, a rod, a motor, a remote,
+  a box: each is an extra line on top, never a replacement.
 
-  One printed hint, not enough to decide on: `Motor Track: RM40/ft (Track Only)`
-  carries the note **"Add Curtain Othes Charges"**, which reads as additive —
-  and no other row carries it, which might mean the others are complete. Might.
+  So S-Track on a 12ft night curtain is RM46 + RM80 = RM126/ft, RM1,512 in
+  total. The `Motor Track … Add Curtain Othes Charges` note turns out to state
+  the general rule rather than an exception to it.
+
+  An upgrade is a **child line** carrying its parent's dimensions, so the quote
+  shows what the customer is actually buying rather than one opaque rate.
 - **A15.** **Do the banded tracks and rods band on the curtain's height?**
   S-track, multi-track and the rod-with-pleat and rod-with-eyelet composites all
   print two prices under the same 10ft header as the curtains. Implemented as a

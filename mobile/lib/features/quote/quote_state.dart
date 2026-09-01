@@ -64,6 +64,11 @@ class QuoteLine {
   final String rawWidth;
   final String rawHeight;
 
+  /// The line this is an upgrade to, if any — a special track on a curtain, a
+  /// motor on a blind. Upgrades add to their parent rather than replacing it
+  /// (A16).
+  final String? parentLineId;
+
   const QuoteLine({
     required this.id,
     required this.room,
@@ -75,7 +80,10 @@ class QuoteLine {
     required this.quantity,
     required this.rawWidth,
     required this.rawHeight,
+    this.parentLineId,
   });
+
+  bool get isUpgrade => parentLineId != null;
 
   factory QuoteLine.fromRow(QuoteLineRow row) => QuoteLine(
     id: row.id,
@@ -88,6 +96,7 @@ class QuoteLine {
     quantity: row.quantity,
     rawWidth: row.rawWidth,
     rawHeight: row.rawHeight,
+    parentLineId: row.parentLineId,
   );
 }
 
@@ -137,7 +146,8 @@ class QuoteNotifier extends AsyncNotifier<QuoteState> {
     state = AsyncData(await _load(current.quoteId, current.tier.name));
   }
 
-  Future<void> addLine({
+  /// Adds a line and returns its id, so an upgrade can attach to it.
+  Future<String?> addLine({
     required String room,
     required String variant,
     required String? materialKey,
@@ -147,10 +157,11 @@ class QuoteNotifier extends AsyncNotifier<QuoteState> {
     required String rawWidth,
     required String rawHeight,
     int quantity = 1,
+    String? parentLineId,
   }) async {
     final current = state.valueOrNull;
-    if (current == null) return;
-    await _repo.addLine(
+    if (current == null) return null;
+    final id = await _repo.addLine(
       quoteId: current.quoteId,
       room: room,
       variant: variant,
@@ -161,25 +172,27 @@ class QuoteNotifier extends AsyncNotifier<QuoteState> {
       rawWidth: rawWidth,
       rawHeight: rawHeight,
       quantity: quantity,
+      parentLineId: parentLineId,
     );
     await _refresh();
+    return id;
   }
 
-  /// Removes a line and returns the stored row, so an undo can put it back
-  /// exactly where it was rather than on the end of the list.
-  Future<QuoteLineRow?> removeLine(String id) async {
+  /// Removes a line **and its upgrades**, returning the rows so an undo can put
+  /// them all back exactly where they were.
+  ///
+  /// Deleting a curtain must take its special track with it. An orphaned
+  /// RM80/ft track line left on the quote is both wrong and nearly invisible.
+  Future<List<QuoteLineRow>> removeLine(String id) async {
     final current = state.valueOrNull;
-    if (current == null) return null;
-    final rows = await _repo.lines(current.quoteId);
-    final row = rows.where((r) => r.id == id).firstOrNull;
-    if (row == null) return null;
-    await _repo.deleteLine(id);
+    if (current == null) return const [];
+    final removed = await _repo.deleteLineWithChildren(id);
     await _refresh();
-    return row;
+    return removed;
   }
 
-  Future<void> restoreLine(QuoteLineRow row) async {
-    await _repo.restoreLine(row);
+  Future<void> restoreLines(List<QuoteLineRow> rows) async {
+    await _repo.restoreLines(rows);
     await _refresh();
   }
 

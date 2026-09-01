@@ -29,7 +29,7 @@ class WizardScreen extends ConsumerStatefulWidget {
 /// The real price list carries 77 rows across seven families. A single flat
 /// product list would be a 60-item scroll, which is hostile to the four-minute
 /// quote §8.4 asks for, so the category comes first and every list stays short.
-enum _Step { room, family, product, sizes }
+enum _Step { room, family, product, sizes, upgrade }
 
 enum _Field { width, height }
 
@@ -43,6 +43,12 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
   /// True when the chosen variant offers more than one material and the
   /// customer will pick at measurement rather than at the fair.
   bool _deferMaterial = false;
+
+  /// The line the sizes step created, which upgrades attach to.
+  String? _parentLineId;
+
+  /// Upgrade variant -> the line id it created, so a second tap removes it.
+  final Map<String, String> _addedUpgrades = {};
 
   String _rawWidth = '';
   String _rawHeight = '';
@@ -83,6 +89,7 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
             _Step.family => l.stepFamily,
             _Step.product => l.stepProduct,
             _Step.sizes => l.stepSizes,
+            _Step.upgrade => l.stepUpgrade,
           }),
         ),
         body: cardAsync.when(
@@ -119,6 +126,13 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
               }),
             ),
             _Step.sizes => _sizesStep(card),
+            _Step.upgrade => _UpgradeStep(
+              card: card,
+              parent: _product!,
+              added: _addedUpgrades,
+              onToggle: _toggleUpgrade,
+              onDone: () => Navigator.of(context).pop(),
+            ),
           },
         ),
       ),
@@ -287,7 +301,7 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
             child: Padding(
               padding: const EdgeInsets.all(Space.lg),
               child: FilledButton(
-                onPressed: canAdd ? _add : null,
+                onPressed: canAdd ? () => _add(card) : null,
                 child: Text(l.done),
               ),
             ),
@@ -354,10 +368,10 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
     });
   }
 
-  void _add() {
+  Future<void> _add(RateCard card) async {
     final width = parseLength(_rawWidth, _widthUnit)!;
     final height = parseLength(_rawHeight, _heightUnit)!;
-    ref
+    final id = await ref
         .read(quoteProvider.notifier)
         .addLine(
           room: _room!,
@@ -369,7 +383,53 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
           rawWidth: width.raw,
           rawHeight: height.raw,
         );
-    Navigator.of(context).pop();
+    if (!mounted) return;
+
+    _parentLineId = id;
+
+    // Offer upgrades only where the card actually has some. A step that says
+    // "nothing to add" is a tap the part-timer pays for on every window.
+    final upgrades = card.upgradesFor(_product!);
+    if (id == null || upgrades.isEmpty) {
+      Navigator.of(context).pop();
+      return;
+    }
+    setState(() => _step = _Step.upgrade);
+  }
+
+  /// Adds or removes one upgrade line.
+  ///
+  /// The upgrade carries a copy of the parent's dimensions, so a per-foot track
+  /// bills the curtain's width. Instantiated, not referenced — editing the
+  /// parent later must not silently reprice a line already agreed.
+  Future<void> _toggleUpgrade(RateCard card, PricingRule upgrade) async {
+    final notifier = ref.read(quoteProvider.notifier);
+    final existing = _addedUpgrades[upgrade.variant];
+
+    if (existing != null) {
+      await notifier.removeLine(existing);
+      if (!mounted) return;
+      setState(() => _addedUpgrades.remove(upgrade.variant));
+      return;
+    }
+
+    final width = parseLength(_rawWidth, _widthUnit)!;
+    final height = parseLength(_rawHeight, _heightUnit)!;
+    final id = await notifier.addLine(
+      room: _room!,
+      variant: upgrade.variant,
+      materialKey: card.materialsFor(upgrade.variant).length > 1
+          ? null
+          : upgrade.materialKey,
+      layer: upgrade.layer,
+      width: width.length,
+      height: height.length,
+      rawWidth: width.raw,
+      rawHeight: height.raw,
+      parentLineId: _parentLineId,
+    );
+    if (!mounted || id == null) return;
+    setState(() => _addedUpgrades[upgrade.variant] = id);
   }
 }
 
@@ -400,6 +460,145 @@ class _RoomStep extends StatelessWidget {
             child: _BigChoice(label: room, onTap: () => onPick(room)),
           ),
       ],
+    );
+  }
+}
+
+/// Offers the upgrades that may be added on top of a line.
+///
+/// A16: everything adds on, so this is where a special track, a motor or a box
+/// gets charged. §4.1 is emphatic that the system never adds one on the
+/// customer's behalf — the normal track is already in the curtain rate, and
+/// auto-adding would put RM9–10/ft on every window.
+///
+/// Declining is the default: the primary button says "no, that is all", and
+/// nothing is selected when the step opens.
+class _UpgradeStep extends ConsumerWidget {
+  final RateCard card;
+  final PricingRule parent;
+  final Map<String, String> added;
+  final Future<void> Function(RateCard, PricingRule) onToggle;
+  final VoidCallback onDone;
+
+  const _UpgradeStep({
+    required this.card,
+    required this.parent,
+    required this.added,
+    required this.onToggle,
+    required this.onDone,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = L.of(context);
+    final language = ref.watch(languageProvider);
+    final upgrades = card.upgradesFor(parent);
+
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          color: AppColors.muted,
+          padding: const EdgeInsets.symmetric(
+            horizontal: Space.lg,
+            vertical: Space.md,
+          ),
+          child: Text(l.upgradeIncluded, style: AppText.caption),
+        ),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.all(Space.lg),
+            children: [
+              for (final rule in upgrades)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: Space.md),
+                  child: _UpgradeChoice(
+                    label: rule.labels(language),
+                    subtitle: card.materialsFor(rule.variant).length > 1
+                        ? l.materialLater
+                        : null,
+                    selected: added.containsKey(rule.variant),
+                    onTap: () => onToggle(card, rule),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        Container(
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            border: Border(top: BorderSide(color: AppColors.border)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.all(Space.lg),
+              child: FilledButton(
+                onPressed: onDone,
+                child: Text(added.isEmpty ? l.upgradeNone : l.done),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _UpgradeChoice extends StatelessWidget {
+  final String label;
+  final String? subtitle;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _UpgradeChoice({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? AppColors.muted : AppColors.surface,
+      borderRadius: BorderRadius.circular(Radii.lg),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(Radii.lg),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: Touch.primary),
+          padding: const EdgeInsets.all(Space.lg),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(Radii.lg),
+            border: Border.all(
+              color: selected ? AppColors.accent : AppColors.border,
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                selected ? Icons.check_circle : Icons.add_circle_outline,
+                color: selected ? AppColors.accent : AppColors.mutedForeground,
+              ),
+              const SizedBox(width: Space.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: AppText.title),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: Space.xs),
+                      Text(subtitle!, style: AppText.caption),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -183,6 +183,36 @@ abstract class L {
   /// **'尺寸'**
   String get stepSizes;
 
+  /// No description provided for @stepUpgrade.
+  ///
+  /// In zh, this message translates to:
+  /// **'要加什么吗？'**
+  String get stepUpgrade;
+
+  /// No description provided for @upgradeNone.
+  ///
+  /// In zh, this message translates to:
+  /// **'不用，就这样'**
+  String get upgradeNone;
+
+  /// No description provided for @upgradeIncluded.
+  ///
+  /// In zh, this message translates to:
+  /// **'普通轨道已包在价格里，以下是升级选项'**
+  String get upgradeIncluded;
+
+  /// No description provided for @upgradeAdded.
+  ///
+  /// In zh, this message translates to:
+  /// **'已加 {name}'**
+  String upgradeAdded(String name);
+
+  /// No description provided for @upgradeOf.
+  ///
+  /// In zh, this message translates to:
+  /// **'配 {parent}'**
+  String upgradeOf(String parent);
+
   /// No description provided for @stepFamily.
   ///
   /// In zh, this message translates to:

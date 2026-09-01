@@ -67,6 +67,7 @@ class QuoteRepository {
     required String rawWidth,
     required String rawHeight,
     int quantity = 1,
+    String? parentLineId,
   }) async {
     final existing = await _db.linesFor(quoteId);
     final id = newId();
@@ -79,6 +80,7 @@ class QuoteRepository {
         variant: variant,
         materialKey: Value(materialKey),
         layer: layer,
+        parentLineId: Value(parentLineId),
         widthTmm: widthTmm,
         heightTmm: Value(heightTmm),
         rawWidth: rawWidth,
@@ -89,6 +91,29 @@ class QuoteRepository {
       quoteId,
     );
     return id;
+  }
+
+  /// Removes a line and every upgrade hanging off it.
+  ///
+  /// Deleting a curtain has to take its special track with it. Leaving an
+  /// orphaned RM80/ft track line on the quote would be both wrong and very hard
+  /// for a part-timer to notice.
+  Future<List<QuoteLineRow>> deleteLineWithChildren(String lineId) async {
+    final all = await _db.linesFor((await _db.lineById(lineId))?.quoteId ?? '');
+    final doomed = all
+        .where((l) => l.id == lineId || l.parentLineId == lineId)
+        .toList(growable: false);
+    for (final line in doomed) {
+      await _db.deleteLine(line.id);
+    }
+    return doomed;
+  }
+
+  /// Puts back a line and its upgrades, in their original positions.
+  Future<void> restoreLines(List<QuoteLineRow> lines) async {
+    for (final line in lines) {
+      await restoreLine(line);
+    }
   }
 
   /// Restores a deleted line in its original position.

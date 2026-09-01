@@ -74,6 +74,15 @@ class QuoteLines extends Table {
 
   TextColumn get layer => text()();
 
+  /// The line this one is an upgrade to, if any.
+  ///
+  /// A special track, a motor or a box is an extra charge **on top of** the
+  /// curtain or blind it belongs to (A16), so it is a child line rather than a
+  /// separate window. It carries a copy of its parent's dimensions — instantiate
+  /// rather than reference, so editing the parent later cannot silently
+  /// reprice a line the customer already agreed.
+  TextColumn get parentLineId => text().nullable()();
+
   /// Tenths of a millimetre. Never millimetres.
   IntColumn get widthTmm => integer()();
   IntColumn get heightTmm => integer().nullable()();
@@ -108,10 +117,19 @@ class AppDatabase extends _$AppDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (m, from, to) async {
+      // v2 adds upgrade lines: a special track or motor charged on top of the
+      // curtain it belongs to (A16). Written as a real migration rather than a
+      // wipe, because by the time this ships a part-timer may already have an
+      // unsynced quote on their phone.
+      if (from < 2) {
+        await m.addColumn(quoteLines, quoteLines.parentLineId);
+      }
+    },
     beforeOpen: (details) async {
       // Drift does not enable foreign keys by default, and without this a line
       // can outlive the quote it belongs to.
@@ -152,6 +170,9 @@ class AppDatabase extends _$AppDatabase {
           QuotesCompanion(updatedAt: Value(DateTime.now())),
         );
       });
+
+  Future<QuoteLineRow?> lineById(String lineId) =>
+      (select(quoteLines)..where((l) => l.id.equals(lineId))).getSingleOrNull();
 
   Future<void> deleteLine(String lineId) =>
       (delete(quoteLines)..where((l) => l.id.equals(lineId))).go();
