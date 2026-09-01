@@ -12,18 +12,24 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 
 ## Current state
 
-**Phase 1 complete. Phase 2 in progress.** Flutter only, no server yet.
+**Phase 1 complete. Phase 2 functionally complete.** Flutter only, no server yet.
 
 Built and green: `Length`, `Money`, `Rational`, the unit parser, the soft
 warnings, the pricing engine over the real 77-row fair card, the custom keypad,
-the quote wizard in zh / en / ms, **local persistence** (a quote survives a
-force-quit), **special-track and add-on upgrades**, the **delivery zone charge**,
-customer details, and the **on-device trilingual PDF**.
+the quote wizard in zh / en / ms, local persistence (a quote survives a
+force-quit), special-track and add-on upgrades, whole-order product rules, the
+delivery zone charge, customer details, a photo per window, the on-device
+trilingual PDF, and **admin price editing by CSV with a diff preview**.
 
-239 tests; 100% coverage on `Length`, `Money` and `Rational`. Release APK 23.9MB
+282 tests; 100% coverage on `Length`, `Money` and `Rational`. Release APK 25.0MB
 against the 30MB target.
 
-Phase 2 still to do: photo per window, and the admin CSV import for the card.
+**The two Phase 2 criteria still open need a stopwatch, not a test:** a
+six-window house quoted in under four minutes, and an untrained person producing
+a correct quote within thirty. Run both before the client meeting.
+
+Next: Phase 3, the FastAPI backend and sync, where the Python engine must match
+`shared/pricing-fixtures.json` case for case.
 
 **The real price list is in.** `shared/rate-card-fair-2026-08.json` carries the
 MITC Aug 2026 fair list in full — 77 rows, two delivery zones, three product

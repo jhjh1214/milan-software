@@ -1001,11 +1001,23 @@ Steps 1–3 have no UI at all. **Resist starting with screens.**
 - [x] Quote PDF reaches WhatsApp with the phone in airplane mode
       — no `INTERNET` permission is even declared, so it cannot phone home
 - [x] Every line prints entered size, billed size, band applied, rate
+- [x] Rate card imported from an admin-prepared CSV, with a diff preview and a
+      two-step confirm (§8.2), and one tap to restore the shipped list
 - [ ] **Six-window house quoted in under 4 minutes, stopwatch-timed**
+      — needs a real person and a real phone. Cannot be asserted in a test.
 - [ ] **Untrained person produces a correct quote within 30 minutes**
+      — same. These two are the acceptance criteria that only a stopwatch and a
+      part-timer can settle, and they are the ones worth running before the
+      client meeting.
 
-The PDF is slower than it looks. Budget the full 40 hours — layout, Chinese font
-embedding and page breaks all take longer than expected.
+The PDF was slower than it looks, as predicted. The font was most of it: the
+screen borrows Android's system CJK face for free, but a PDF carries its own
+glyphs, and the full Noto Sans SC is ~9MB against the 30MB bundle budget. The
+answer was to instance the variable font at Regular and subset it to GB2312
+levels 1 and 2 plus every character in the app's own strings — 7,272 characters
+in 2.2MB. GB2312 rather than only our strings, because a customer name is free
+text and a narrower subset renders an unusual name as tofu on the one document
+they take away.
 
 ---
 

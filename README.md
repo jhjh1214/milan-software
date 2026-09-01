@@ -11,7 +11,7 @@ Curtains, blinds, SPC / vinyl / laminate flooring, wallpaper.
 | `shared/` | The Dart ↔ Python contract. One copy, both suites. |
 | `mobile/` | Flutter app |
 
-## Current state — Phase 1 complete, Phase 2 in progress
+## Current state — Phase 1 complete, Phase 2 functionally complete
 
 Flutter only. No server yet.
 
@@ -22,7 +22,13 @@ customer details; local persistence so a force-quit costs nothing; and an
 on-device PDF the customer can take away over WhatsApp with the phone in
 airplane mode.
 
-**Phase 2 still to do:** photo per window, and admin CSV import for the card.
+**Also working:** a photo per window, one tap from inside the line; and admin
+price editing — export the list to Excel, change a number, import it back with a
+diff preview showing exactly what moves before anything is applied.
+
+**Still open in Phase 2, and only a stopwatch can settle them:** a six-window
+house quoted in under four minutes, and an untrained person producing a correct
+quote within thirty. Worth running before the client meeting.
 
 **The real price list is in.** `shared/rate-card-fair-2026-08.json` carries the
 MITC Mega Home Expo Aug 2026 fair list in full: 77 rows across curtains, blinds,
@@ -44,7 +50,7 @@ price can only stay level or fall.
 cd mobile
 flutter pub get
 dart run build_runner build --delete-conflicting-outputs   # Drift code
-flutter test          # 239 tests
+flutter test          # 282 tests
 flutter run
 ```
 
