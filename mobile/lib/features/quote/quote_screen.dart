@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/date_format.dart';
 import '../../core/money.dart';
 import '../../l10n/app_localizations.dart';
 import '../../pricing/models.dart';
@@ -40,6 +41,8 @@ class QuoteScreen extends ConsumerWidget {
         data: (priced) => Column(
           children: [
             if (priced.provisionalCard) const _ProvisionalBanner(),
+            if (priced.expiredPromo != null)
+              _ExpiredCardBanner(promo: priced.expiredPromo!),
             Expanded(
               child: priced.lines.isEmpty
                   ? const _EmptyState()
@@ -91,6 +94,42 @@ class _ProvisionalBanner extends StatelessWidget {
           Expanded(
             child: Text(
               L.of(context).provisionalCardBanner,
+              style: AppText.bodyStrong.copyWith(color: AppColors.alarm),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shown whenever the loaded card's promotion has already ended.
+///
+/// The MITC card is a four-day fair price. Quoting a November walk-in from it
+/// undercharges on every sale, and nobody would notice from the screen. Until
+/// A3 supplies a standard list, this banner is the only guard.
+class _ExpiredCardBanner extends StatelessWidget {
+  final CardPromo promo;
+
+  const _ExpiredCardBanner({required this.promo});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = L.of(context);
+    return Container(
+      width: double.infinity,
+      color: AppColors.alarmSurface,
+      padding: const EdgeInsets.symmetric(
+        horizontal: Space.lg,
+        vertical: Space.md,
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.event_busy, color: AppColors.alarm),
+          const SizedBox(width: Space.sm),
+          Expanded(
+            child: Text(
+              l.expiredCardBanner(promo.code, formatDate(promo.validTo)),
               style: AppText.bodyStrong.copyWith(color: AppColors.alarm),
             ),
           ),

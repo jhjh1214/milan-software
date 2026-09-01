@@ -34,7 +34,12 @@ void main() {
     );
   });
 
-  Future<void> pumpApp(WidgetTester tester) async {
+  /// A date inside the MITC fair, so the expired-rates banner stays quiet in
+  /// the tests that are not about it. Pinned rather than DateTime.now(), or
+  /// every test would change behaviour depending on the day it runs.
+  final duringFair = DateTime(2026, 8, 29);
+
+  Future<void> pumpApp(WidgetTester tester, {DateTime? today}) async {
     // The card is supplied directly rather than loaded from the asset bundle.
     // The screen shows an indeterminate spinner while the future is pending,
     // and an indeterminate spinner never settles, so pumpAndSettle would time
@@ -42,7 +47,10 @@ void main() {
     // rate_card_asset_test.dart.
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [rateCardProvider.overrideWith((ref) => card)],
+        overrides: [
+          rateCardProvider.overrideWith((ref) => card),
+          todayProvider.overrideWithValue(today ?? duringFair),
+        ],
         child: const MilanQuoteApp(),
       ),
       duration: Duration.zero,
@@ -202,6 +210,21 @@ void main() {
     );
     // SPEC.md §8.5 makes this binding and non-dismissible.
     expect(find.textContaining('价格只会相同或更低'), findsOneWidget);
+  });
+
+  testWidgets('quoting after the fair warns that the rates expired', (
+    tester,
+  ) async {
+    // SPEC.md §13 A3. Until a standard list exists this banner is the only
+    // thing stopping a November walk-in being quoted four-day fair prices.
+    await pumpApp(tester, today: DateTime(2026, 11, 15));
+    expect(find.textContaining('MITC-2026-08'), findsOneWidget);
+    expect(find.textContaining('31 Aug 2026'), findsOneWidget);
+  });
+
+  testWidgets('during the fair there is no expiry warning', (tester) async {
+    await pumpApp(tester, today: DateTime(2026, 8, 29));
+    expect(find.textContaining('MITC-2026-08'), findsNothing);
   });
 
   testWidgets('the real price list shows no provisional banner', (

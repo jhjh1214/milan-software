@@ -379,6 +379,41 @@ class ProductRule {
   );
 }
 
+/// The promotion a card's rates belong to, and how long they are good for.
+///
+/// A fair card is a four-day price. Quoting from it in the showroom in
+/// November undercharges on every sale, so the window is data the app can
+/// check rather than something staff have to remember.
+class CardPromo {
+  final String code;
+  final DateTime validFrom;
+  final DateTime validTo;
+  final String? note;
+
+  const CardPromo({
+    required this.code,
+    required this.validFrom,
+    required this.validTo,
+    this.note,
+  });
+
+  factory CardPromo.fromJson(Map<String, dynamic> json) => CardPromo(
+    code: json['code'] as String,
+    validFrom: DateTime.parse(json['valid_from'] as String),
+    validTo: DateTime.parse(json['valid_to'] as String),
+    note: json['note'] as String?,
+  );
+
+  /// Whether [now] falls inside the promotion. Inclusive of the final day.
+  ///
+  /// [now] is passed in, never read from the system clock — CLAUDE.md keeps the
+  /// engine free of clock reads so a test can pin the date.
+  bool coversDate(DateTime now) {
+    final day = DateTime(now.year, now.month, now.day);
+    return !day.isBefore(validFrom) && !day.isAfter(validTo);
+  }
+}
+
 /// A published, versioned set of rules.
 class RateCard {
   final int version;
@@ -392,6 +427,9 @@ class RateCard {
   final List<DeliveryZone> deliveryZones;
   final List<ProductRule> productRules;
 
+  /// The promotion these rates belong to, if they are promotional at all.
+  final CardPromo? promo;
+
   const RateCard({
     required this.version,
     required this.provisional,
@@ -399,11 +437,23 @@ class RateCard {
     required this.rules,
     this.deliveryZones = const [],
     this.productRules = const [],
+    this.promo,
   });
+
+  /// True when this card's rates are promotional and the promotion has ended.
+  ///
+  /// Quoting from an expired fair card is not a rounding error — it is every
+  /// sale undercharged until someone notices. Until A3 supplies a standard
+  /// list, this is the only thing standing between a fair price and a November
+  /// walk-in.
+  bool isExpiredOn(DateTime now) => promo != null && !promo!.coversDate(now);
 
   factory RateCard.fromJson(Map<String, dynamic> json) => RateCard(
     version: json['version'] as int,
     provisional: json['provisional'] as bool? ?? false,
+    promo: json['promo'] == null
+        ? null
+        : CardPromo.fromJson(json['promo'] as Map<String, dynamic>),
     config: RateCardConfig.fromJson(json['config'] as Map<String, dynamic>),
     rules: (json['rules'] as List<dynamic>)
         .map((e) => PricingRule.fromJson(e as Map<String, dynamic>))

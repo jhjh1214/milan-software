@@ -30,6 +30,53 @@ void main() {
   late RateCard card;
   setUpAll(() => card = _card());
 
+  group('an expired fair card is detected, not silently trusted', () {
+    // SPEC.md §13 A3. The only card in the system is a four-day fair promo.
+    // Quoting a walk-in from it in November undercharges on every sale, and
+    // nothing on screen would say so.
+    test('the card carries its promotion window', () {
+      expect(card.promo, isNotNull);
+      expect(card.promo!.code, 'MITC-2026-08');
+      expect(card.promo!.validFrom, DateTime(2026, 8, 28));
+      expect(card.promo!.validTo, DateTime(2026, 8, 31));
+    });
+
+    test('inside the fair, the card is current', () {
+      for (final day in [
+        DateTime(2026, 8, 28),
+        DateTime(2026, 8, 30),
+        DateTime(2026, 8, 31), // the final day is inclusive
+      ]) {
+        expect(
+          card.isExpiredOn(day),
+          isFalse,
+          reason: '${day.toIso8601String()} is inside the fair',
+        );
+      }
+    });
+
+    test('a day either side of the fair, the card is expired', () {
+      expect(card.isExpiredOn(DateTime(2026, 8, 27)), isTrue);
+      expect(card.isExpiredOn(DateTime(2026, 9, 1)), isTrue);
+      expect(card.isExpiredOn(DateTime(2026, 11, 15)), isTrue);
+    });
+
+    test('the time of day does not affect the last day of the fair', () {
+      // A quote at 9pm on the closing night is still a fair quote.
+      expect(card.isExpiredOn(DateTime(2026, 8, 31, 21, 30)), isFalse);
+    });
+
+    test('a card with no promotion never expires', () {
+      final standing = RateCard(
+        version: 1,
+        provisional: false,
+        config: card.config,
+        rules: card.rules,
+      );
+      expect(standing.isExpiredOn(DateTime(2099, 1, 1)), isFalse);
+    });
+  });
+
   group('the engine is pure', () {
     test('nothing under lib/pricing imports Flutter', () {
       // CLAUDE.md: "The pricing engine is pure. No Flutter imports, no I/O, no

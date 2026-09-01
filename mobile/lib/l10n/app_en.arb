@@ -76,6 +76,7 @@
   "disclaimerBody": "This quotation is rounded up to whole units and is for reference only. After on-site measurement the final price will be the same or lower, never higher.",
 
   "provisionalCardBanner": "Rate card not confirmed. Do not quote a customer.",
+  "expiredCardBanner": "These are {code} fair rates and they expired on {date}. Not valid for everyday quoting.",
 
   "delete": "Delete",
   "deleted": "Deleted",

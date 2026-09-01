@@ -126,12 +126,24 @@ Night Curtain  RM46/ft  |  RM58/ft   (Dimout)
 RM56/ft`), so pleat style looks like a heading bundled with hardware, not a
 standalone fabric product. Confirm.
 
-### A curtain is at least two lines
-Fabric per ft, **plus** track or rod per ft, separately:
-`Doso RM9/ft, Meyer RM10/ft, Wooden Rod 28mm RM18/ft, Iron Rod 19/22/28mm
-RM20/21/22/ft, Motor Track RM40/ft, S Track Day RM60/ft, S Track Night RM80/ft`.
+### A curtain is ONE line. The normal track is already in the price.
 
-The wizard adds the track line automatically. Never leave it to memory.
+> ⚠ **This section previously said the opposite** — "a curtain is at least two
+> lines… the wizard adds the track line automatically". **That is wrong.**
+> Corrected by the client, Sep 2026: the curtain rate already includes a normal
+> track, and every track and rod rate on the list is for a **special** track.
+>
+> Building the automatic track prompt would have added RM9–10/ft to every
+> curtain — roughly **RM108 extra on a single 12ft window**, on every quote,
+> silently. Do not reintroduce it.
+
+`Doso RM9/ft` and `Meyer RM10/ft` are printed "Track Only" — the price for
+buying track **without** a curtain. The rods, S-Track, Multi Track and Motor
+Track are upgrades on the standard included track.
+
+**A track line is an upgrade the customer chooses, never a line the system adds
+on their behalf.** See §13 A16 for whether an upgrade adds to the curtain rate
+or replaces it.
 
 ### Composite variants exist
 `Wooden Rod With Sgp Pleat RM56/ft` is not RM18 plus something. It is its own
@@ -966,7 +978,8 @@ Steps 1–3 have no UI at all. **Resist starting with screens.**
 - Material and series selection where it changes the rate
 - `product_rules` validation: requires, excludes, max dimension
 - Delivery zone charge, asked early, shown before the total
-- Automatic track line prompt when a curtain is added
+- **Optional** special-track upgrade offered after a curtain, never added
+  automatically — the normal track is already in the curtain rate (§4.1)
 - Photo per window
 - Local persistence via Drift, survives force-quit
 - Customer record
@@ -975,7 +988,9 @@ Steps 1–3 have no UI at all. **Resist starting with screens.**
 
 **Acceptance**
 - [ ] Quote survives force-quit, reopens at the exact window
-- [ ] A curtain line prompts for its track; skipping requires a deliberate tap
+- [ ] A curtain line does **not** add a track by itself. The upgrade is offered,
+      declining is the default, and a plain curtain quotes at the fabric rate
+      alone
 - [ ] Herringbone SPC without self levelling is blocked with a clear message
 - [ ] ZIP blind over 20ft width is blocked
 - [ ] Wallpaper rounds up to whole BOGO pairs
@@ -1222,10 +1237,20 @@ orders, supplier management and costing come later.
   rod-with-eyelet composites; for Doso and Meyer it is a colour note, for Zebra
   the material series, and for Fauxwood and Ultra Light Timber a slat size.
   Reading it as a band throughout would have mispriced a dozen rows.
-- `[BLOCKING P2]` **A3.** Are RM46 / RM58 the **promo** rates? If so, is the
-  standard list supplied directly or derived from these?
-  *Retagged from P1: Phase 1 seeds the printed numbers and applies no discount,
-  so the answer changes labelling in Phase 2, not the Phase 1 engine.*
+- `[BLOCKING P2]` **A3.** **The standard, non-fair price list.** The only card
+  in the system is the MITC fair promo, valid 28–31 Aug 2026. §3 says the
+  showroom pays standard with no promo and no lock, so quoting a walk-in from
+  the fair card undercharges on every sale, every day.
+
+  Undecided as of Sep 2026. Until it is answered the app shows a **loud banner
+  whenever it quotes from a card whose promo window has closed**, so nobody
+  mistakes an expired fair rate for today's price. **Nothing daily-operational
+  ships until this exists.**
+
+  Three shapes it could take: a separate standard list; a percentage the fair
+  discounts off; or confirmation that the fair rate simply is the year-round
+  price, in which case the promo and 12-month lock machinery in §3 and §6 is
+  describing something that does not exist and should be removed.
 - `[BLOCKING P2]` **A4.** Is the discount applied to the **unit rate** (discount
   → round → multiply) or the **line total** (multiply → discount → round)?
   Differs by sen per line and real money across a house.
@@ -1261,6 +1286,16 @@ orders, supplier management and costing come later.
   been 140 sqft per RM800, which billed a 20ft x 10ft wall at RM1,600 where the
   right answer is RM800 — double. Erring high kept the §8.5 promise intact while
   the question was open, but it was still wrong, and it is fixed.
+- `[BLOCKING P2]` **A16.** **Does a special track ADD to the curtain rate, or
+  REPLACE it?** The normal track is included (§4.1), so a customer upgrading to
+  S-Track on a night curtain either pays RM46 + RM80 = RM126/ft, or RM80/ft as a
+  complete S-fold system. On a 12ft window that is **RM1,512 against RM960**.
+  Same question for the rod-with-pleat and rod-with-eyelet composites, which
+  §4.1 already calls complete variants at their own rate.
+
+  One printed hint, not enough to decide on: `Motor Track: RM40/ft (Track Only)`
+  carries the note **"Add Curtain Othes Charges"**, which reads as additive —
+  and no other row carries it, which might mean the others are complete. Might.
 - **A15.** **Do the banded tracks and rods band on the curtain's height?**
   S-track, multi-track and the rod-with-pleat and rod-with-eyelet composites all
   print two prices under the same 10ft header as the curtains. Implemented as a
@@ -1335,6 +1370,12 @@ orders, supplier management and costing come later.
 - **G2.** Will there ever be an in-house dev team, Java-shop by policy?
 
 ## Answered
+- **The normal track is included in the curtain rate.** Every track and rod rate
+  on the list is a special-track upgrade, chosen by the customer and never added
+  automatically (§4.1) ✓
+- **SQL Account remains the sole invoicing system.** This system tracks every
+  order and hands the data over so the accounts can be done in one place; it
+  issues nothing itself (§10) ✓
 - **The MITC Aug 2026 fair price list is supplied and transcribed in full** —
   77 rows, two delivery zones, three product rules (A2a, A2b) ✓
 - **Material is always chosen at measurement, never at the fair**, and a

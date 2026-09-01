@@ -227,6 +227,11 @@ class LEn extends L {
       'Rate card not confirmed. Do not quote a customer.';
 
   @override
+  String expiredCardBanner(String code, String date) {
+    return 'These are $code fair rates and they expired on $date. Not valid for everyday quoting.';
+  }
+
+  @override
   String get delete => 'Delete';
 
   @override

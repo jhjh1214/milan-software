@@ -476,6 +476,12 @@ abstract class L {
   /// **'价格表还没确认，不可以给客户报价'**
   String get provisionalCardBanner;
 
+  /// No description provided for @expiredCardBanner.
+  ///
+  /// In zh, this message translates to:
+  /// **'这是 {code} 展会价，{date} 已过期。日常报价不可以用。'**
+  String expiredCardBanner(String code, String date);
+
   /// No description provided for @delete.
   ///
   /// In zh, this message translates to:

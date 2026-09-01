@@ -84,6 +84,13 @@ final rateCardProvider = FutureProvider<RateCard>((ref) async {
 /// Phase 1 has no user record, so this is session state.
 final languageProvider = StateProvider<String>((ref) => 'zh');
 
+/// Today's date, injected rather than read at the point of use.
+///
+/// The pricing engine takes no clock (CLAUDE.md), and overriding this in a test
+/// is what lets the expired-fair-rate warning be pinned to a fixed date instead
+/// of passing until August 2026 and failing quietly afterwards.
+final todayProvider = Provider<DateTime>((ref) => DateTime.now());
+
 final quoteProvider = NotifierProvider<QuoteNotifier, QuoteState>(
   QuoteNotifier.new,
 );
@@ -165,10 +172,17 @@ class PricedQuote {
   final QuoteTotals totals;
   final bool provisionalCard;
 
+  /// The promotion these rates belong to, when it has already ended.
+  ///
+  /// Non-null means the app is quoting expired fair rates, which undercharges
+  /// on every sale until a standard list exists — SPEC.md §13 A3.
+  final CardPromo? expiredPromo;
+
   const PricedQuote({
     required this.lines,
     required this.totals,
     required this.provisionalCard,
+    this.expiredPromo,
   });
 }
 
@@ -180,6 +194,7 @@ class PricedQuote {
 final pricedQuoteProvider = Provider<AsyncValue<PricedQuote>>((ref) {
   final cardAsync = ref.watch(rateCardProvider);
   final quote = ref.watch(quoteProvider);
+  final today = ref.watch(todayProvider);
 
   return cardAsync.whenData((card) {
     final priced = <PricedQuoteLine>[];
@@ -219,6 +234,7 @@ final pricedQuoteProvider = Provider<AsyncValue<PricedQuote>>((ref) {
         stage: PricingStage.estimate,
       ),
       provisionalCard: card.provisional,
+      expiredPromo: card.isExpiredOn(today) ? card.promo : null,
     );
   });
 });

@@ -222,6 +222,11 @@ class LZh extends L {
   String get provisionalCardBanner => '价格表还没确认，不可以给客户报价';
 
   @override
+  String expiredCardBanner(String code, String date) {
+    return '这是 $code 展会价，$date 已过期。日常报价不可以用。';
+  }
+
+  @override
   String get delete => '删除';
 
   @override
