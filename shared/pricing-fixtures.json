@@ -650,6 +650,47 @@
       }
     },
     {
+      "id": "delivery-charge-is-added-outside-the-category-floor",
+      "source": "MITC price list, SPEC.md §4.1",
+      "why": "A RM162 blind floors to the RM300 deposit, and a RM100 transport charge is added on top of that, giving RM400. Travel is not a product, so the per-category floor must not drag it up to RM600.",
+      "stage": "estimate",
+      "delivery_zone_id": "zone-muar",
+      "line_totals_sen": { "curtain": 16200 },
+      "expect": {
+        "category_subtotals_sen": { "curtain": 16200 },
+        "category_floor_uplift_sen": { "curtain": 13800 },
+        "delivery_charge_sen": 10000,
+        "total_sen": 40000
+      }
+    },
+    {
+      "id": "round-trip-zone-charges-rm300",
+      "source": "MITC price list — KL, Seremban, Negeri Sembilan",
+      "why": "The larger of the two zones, on a normal quote.",
+      "stage": "estimate",
+      "delivery_zone_id": "zone-kl",
+      "line_totals_sen": { "curtain": 55200 },
+      "expect": {
+        "category_subtotals_sen": { "curtain": 55200 },
+        "category_floor_uplift_sen": { "curtain": 0 },
+        "delivery_charge_sen": 30000,
+        "total_sen": 85200
+      }
+    },
+    {
+      "id": "melaka-town-carries-no-travel-charge",
+      "source": "SPEC.md §4.1",
+      "why": "Only the two printed outstation zones charge. Everything else is local and free.",
+      "stage": "estimate",
+      "line_totals_sen": { "curtain": 55200 },
+      "expect": {
+        "category_subtotals_sen": { "curtain": 55200 },
+        "category_floor_uplift_sen": { "curtain": 0 },
+        "delivery_charge_sen": 0,
+        "total_sen": 55200
+      }
+    },
+    {
       "id": "floor-does-not-apply-at-final-pricing",
       "source": "SPEC.md §4.3",
       "why": "Final pricing is what it is. A quote of RM300 that measures down to RM240 lands in open question B4, not in a silent floor.",

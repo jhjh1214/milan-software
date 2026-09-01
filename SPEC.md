@@ -986,17 +986,20 @@ Steps 1–3 have no UI at all. **Resist starting with screens.**
 - Quote PDF generated **on device**, shareable offline, bilingual
 - Rate card imported from admin-prepared CSV
 
-**Acceptance**
-- [ ] Quote survives force-quit, reopens at the exact window
-- [ ] A curtain line does **not** add a track by itself. The upgrade is offered,
+**Acceptance** — a box is ticked only when a test covers it, never by inspection.
+- [x] Quote survives force-quit, reopens at the exact window
+- [x] A curtain line does **not** add a track by itself. The upgrade is offered,
       declining is the default, and a plain curtain quotes at the fabric rate
       alone
 - [ ] Herringbone SPC without self levelling is blocked with a clear message
-- [ ] ZIP blind over 20ft width is blocked
-- [ ] Wallpaper rounds up to whole BOGO pairs
-- [ ] Delivery charge appears before the customer sees a total, never after
-- [ ] Quote PDF reaches WhatsApp with the phone in airplane mode
-- [ ] Every line prints entered size, billed size, band applied, rate
+      — `requires` rules need whole-order context, unlike `max_dimension`
+      which is done. Outstanding.
+- [x] ZIP blind over 20ft width is blocked, at 20ft 0in 1/10mm
+- [x] Wallpaper rounds up to whole BOGO pairs
+- [x] Delivery charge appears before the customer sees a total, never after
+- [x] Quote PDF reaches WhatsApp with the phone in airplane mode
+      — no `INTERNET` permission is even declared, so it cannot phone home
+- [x] Every line prints entered size, billed size, band applied, rate
 - [ ] **Six-window house quoted in under 4 minutes, stopwatch-timed**
 - [ ] **Untrained person produces a correct quote within 30 minutes**
 

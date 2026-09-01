@@ -214,6 +214,7 @@ void main() {
           ],
           card: card,
           stage: stage,
+          deliveryZoneId: c['delivery_zone_id'] as String?,
         );
 
         final expected = c['expect'] as Map<String, dynamic>;
@@ -236,6 +237,13 @@ void main() {
             totals.categoryFloorUplift[cat]?.sen,
             e.value,
             reason: 'uplift ${e.key}',
+          );
+        }
+        if (expected.containsKey('delivery_charge_sen')) {
+          expect(
+            totals.deliveryCharge.sen,
+            expected['delivery_charge_sen'],
+            reason: 'delivery charge',
           );
         }
         expect(totals.total.sen, expected['total_sen'], reason: 'quote total');

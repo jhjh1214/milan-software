@@ -77,6 +77,106 @@ void main() {
     });
   });
 
+  group('constraints that are not prices', () {
+    // SPEC.md §4.1 lists these as rules rather than rates. A 25ft ZIP blind is
+    // not a wrong price — it is an order that cannot be fulfilled, and finding
+    // that out at installation costs far more than finding it out here.
+    test('an outdoor ZIP blind wider than 20ft is refused', () {
+      expect(
+        () => priceLine(
+          request: LineRequest(
+            variant: 'outdoor_zip_manual',
+            width: ft(21),
+            height: ft(8),
+          ),
+          card: card,
+          stage: PricingStage.estimate,
+        ),
+        throwsA(isA<ProductRuleViolation>()),
+      );
+    });
+
+    test('exactly 20ft is allowed — the limit is a maximum, not a barrier', () {
+      final result = priceLine(
+        request: LineRequest(
+          variant: 'outdoor_zip_manual',
+          width: ft(20),
+          height: ft(8),
+        ),
+        card: card,
+        stage: PricingStage.estimate,
+      );
+      expect(result.billedQty, Rational.fromInt(160));
+    });
+
+    test('one tenth of a millimetre over the limit is refused', () {
+      expect(
+        () => priceLine(
+          request: LineRequest(
+            variant: 'outdoor_zip_manual',
+            width: Length.tenths(60961),
+            height: ft(8),
+          ),
+          card: card,
+          stage: PricingStage.estimate,
+        ),
+        throwsA(isA<ProductRuleViolation>()),
+      );
+    });
+
+    test('the motorised ZIP carries the same width limit', () {
+      expect(
+        () => priceLine(
+          request: LineRequest(
+            variant: 'outdoor_zip_motor',
+            width: ft(25),
+            height: ft(8),
+          ),
+          card: card,
+          stage: PricingStage.estimate,
+        ),
+        throwsA(isA<ProductRuleViolation>()),
+      );
+    });
+
+    test('the violation carries its message in all three languages', () {
+      // The UI must be able to say what is wrong in the reader's language
+      // rather than showing an English string baked into the engine.
+      try {
+        priceLine(
+          request: LineRequest(
+            variant: 'outdoor_zip_manual',
+            width: ft(25),
+            height: ft(8),
+          ),
+          card: card,
+          stage: PricingStage.estimate,
+        );
+        fail('should have raised');
+      } on ProductRuleViolation catch (e) {
+        expect(e.rule.messages('zh'), contains('20'));
+        expect(e.rule.messages('en').toLowerCase(), contains('20ft'));
+        expect(e.rule.messages('ms').toLowerCase(), contains('20'));
+        expect(e.actual.tmm, greaterThan(e.rule.valueTmm!));
+      }
+    });
+
+    test('a curtain is not constrained by a blind rule', () {
+      // The rules are keyed by variant. A 25ft curtain is unusual but legal.
+      final result = priceLine(
+        request: LineRequest(
+          variant: 'night_curtain',
+          layer: Layer.night,
+          width: ft(25),
+          height: ft(9),
+        ),
+        card: card,
+        stage: PricingStage.estimate,
+      );
+      expect(result.billedQty, Rational.fromInt(25));
+    });
+  });
+
   group('the engine is pure', () {
     test('nothing under lib/pricing imports Flutter', () {
       // CLAUDE.md: "The pricing engine is pure. No Flutter imports, no I/O, no
