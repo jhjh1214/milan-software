@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Launcher label. Android picks by DEVICE locale; the in-app language
+         is per user (SPEC.md 8.3) and is chosen separately inside the app. -->
+    <string name="app_name">Milan Quote</string>
+</resources>

@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../pricing/models.dart';
 import '../../ui/theme.dart';
 import '../../ui/unit_labels.dart';
+import 'line_photo.dart';
 import 'quote_state.dart';
 import 'share_quote.dart';
 import 'wizard_screen.dart';
@@ -214,6 +215,13 @@ class _LineCard extends ConsumerWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // §8.1: one tap from inside the line. Only on the window itself —
+              // an upgrade is a charge on the same window, not a second thing
+              // to photograph.
+              if (!line.isUpgrade) ...[
+                LinePhoto(lineId: line.id, path: line.photoPath),
+                const SizedBox(width: Space.md),
+              ],
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

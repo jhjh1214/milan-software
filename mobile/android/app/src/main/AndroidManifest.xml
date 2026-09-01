@@ -1,6 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Photo per window, SPEC.md §8.1. Declared as not required so the app
+         still installs on a device without a usable camera. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <!-- No INTERNET permission is declared. Phase 2 is offline by construction:
+         the rate card is a bundled asset, the database is local, and the PDF is
+         rendered on device. Sync arrives in Phase 3 and adds it then. Until
+         then, the absence of this line is the strongest possible proof of
+         SPEC.md §9: the app cannot phone home even by accident. -->
+
     <application
-        android:label="milan_quote"
+        android:label="@string/app_name"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

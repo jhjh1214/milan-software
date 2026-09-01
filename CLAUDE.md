@@ -12,12 +12,18 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 
 ## Current state
 
-**Phase 1 — Quotation Proof.** Flutter only, no server, no persistence.
+**Phase 1 complete. Phase 2 in progress.** Flutter only, no server yet.
 
 Built and green: `Length`, `Money`, `Rational`, the unit parser, the soft
-warnings, the pricing engine, the custom keypad, and the quote wizard in zh / en
-/ ms. 204 tests; 100% coverage on `Length`, `Money` and `Rational`. Release APK
-15.5MB against the 30MB target.
+warnings, the pricing engine over the real 77-row fair card, the custom keypad,
+the quote wizard in zh / en / ms, **local persistence** (a quote survives a
+force-quit), **special-track and add-on upgrades**, the **delivery zone charge**,
+customer details, and the **on-device trilingual PDF**.
+
+239 tests; 100% coverage on `Length`, `Money` and `Rational`. Release APK 23.9MB
+against the 30MB target.
+
+Phase 2 still to do: photo per window, and the admin CSV import for the card.
 
 **The real price list is in.** `shared/rate-card-fair-2026-08.json` carries the
 MITC Aug 2026 fair list in full — 77 rows, two delivery zones, three product

@@ -146,6 +146,54 @@ void main() {
       expect(lines.map((l) => l.room), ['A', 'B', 'C', 'D']);
     });
 
+    test('undo restores an upgrade as a child, not as its own window', () async {
+      // The total is identical either way, which is exactly why this needs its
+      // own assertion: a track restored as a top-level line still adds up, but
+      // the quote then reads as two unrelated charges and the customer sees a
+      // stray RM960 line with no curtain attached.
+      final id = await draft();
+      final parent = await addNightCurtain(id);
+      await repo.addLine(
+        quoteId: id,
+        room: '客厅',
+        variant: 's_track_night',
+        materialKey: null,
+        layer: 'single',
+        widthTmm: 36576,
+        heightTmm: 27432,
+        rawWidth: "12'",
+        rawHeight: "9'",
+        parentLineId: parent,
+      );
+
+      final removed = await repo.deleteLineWithChildren(parent);
+      expect(removed, hasLength(2));
+      expect(await repo.lines(id), isEmpty);
+
+      await repo.restoreLines(removed);
+      final restored = await repo.lines(id);
+      expect(restored, hasLength(2));
+      expect(restored[0].parentLineId, isNull, reason: 'the curtain');
+      expect(
+        restored[1].parentLineId,
+        parent,
+        reason: 'the track must still hang off its curtain',
+      );
+    });
+
+    test('undo restores the photo with the line', () async {
+      final id = await draft();
+      final lineId = await addNightCurtain(id);
+      await repo.setLinePhoto(lineId, '/tmp/window.jpg');
+
+      final removed = await repo.deleteLineWithChildren(lineId);
+      await repo.restoreLines(removed);
+
+      // Losing it would send the part-timer back to the window for a photo
+      // they already took.
+      expect((await repo.lines(id)).single.photoPath, '/tmp/window.jpg');
+    });
+
     test('undo puts a line back where it was, not on the end', () async {
       // §8.1 offers undo so a mis-tap costs nothing. A line that reappears in
       // the wrong place still costs the user their place.

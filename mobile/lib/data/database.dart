@@ -101,6 +101,13 @@ class QuoteLines extends Table {
 
   IntColumn get quantity => integer().withDefault(const Constant(1))();
 
+  /// On-device path to the photo of this window.
+  ///
+  /// The path only, not the bytes: a 3MB JPEG in a SQLite row bloats every
+  /// query that touches the line. §7 keeps `local_path` until upload and
+  /// `remote_key` after, and the upload half arrives with sync in Phase 3.
+  TextColumn get photoPath => text().nullable()();
+
   DateTimeColumn get createdAt => dateTime()();
 
   @override
@@ -124,7 +131,7 @@ class AppDatabase extends _$AppDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -141,6 +148,10 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 3) {
         await m.addColumn(quotes, quotes.deliveryZoneId);
+      }
+      // v4: a photo per window (§8.1).
+      if (from < 4) {
+        await m.addColumn(quoteLines, quoteLines.photoPath);
       }
     },
     beforeOpen: (details) async {

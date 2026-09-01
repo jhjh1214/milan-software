@@ -138,6 +138,10 @@ class QuoteRepository {
       rawWidth: line.rawWidth,
       rawHeight: line.rawHeight,
       quantity: Value(line.quantity),
+      // The photo comes back with the line. Undoing a mis-tap must not cost
+      // the part-timer a walk back to the window.
+      photoPath: Value(line.photoPath),
+      parentLineId: Value(line.parentLineId),
       createdAt: line.createdAt,
     ),
     line.quoteId,
@@ -148,6 +152,15 @@ class QuoteRepository {
   Future<void> setTier(String quoteId, String tier) =>
       (_db.update(_db.quotes)..where((q) => q.id.equals(quoteId))).write(
         QuotesCompanion(tier: Value(tier), updatedAt: Value(DateTime.now())),
+      );
+
+  /// Attaches a photo to a line, or clears it.
+  ///
+  /// Stores the path, never the bytes — a 3MB JPEG in the row would bloat every
+  /// query that touches the line.
+  Future<void> setLinePhoto(String lineId, String? path) =>
+      (_db.update(_db.quoteLines)..where((l) => l.id.equals(lineId))).write(
+        QuoteLinesCompanion(photoPath: Value(path)),
       );
 
   Future<void> setDeliveryZone(String quoteId, String? zoneId) =>

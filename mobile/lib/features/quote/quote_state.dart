@@ -69,6 +69,9 @@ class QuoteLine {
   /// (A16).
   final String? parentLineId;
 
+  /// On-device path to this window's photo, if one was taken.
+  final String? photoPath;
+
   const QuoteLine({
     required this.id,
     required this.room,
@@ -81,6 +84,7 @@ class QuoteLine {
     required this.rawWidth,
     required this.rawHeight,
     this.parentLineId,
+    this.photoPath,
   });
 
   bool get isUpgrade => parentLineId != null;
@@ -97,6 +101,7 @@ class QuoteLine {
     rawWidth: row.rawWidth,
     rawHeight: row.rawHeight,
     parentLineId: row.parentLineId,
+    photoPath: row.photoPath,
   );
 }
 
@@ -227,6 +232,12 @@ class QuoteNotifier extends AsyncNotifier<QuoteState> {
     final current = state.valueOrNull;
     if (current == null) return;
     await _repo.setDeliveryZone(current.quoteId, zoneId);
+    await _refresh();
+  }
+
+  /// Attaches or clears a window's photo.
+  Future<void> setLinePhoto(String lineId, String? path) async {
+    await _repo.setLinePhoto(lineId, path);
     await _refresh();
   }
 

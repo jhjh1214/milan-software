@@ -11,13 +11,18 @@ Curtains, blinds, SPC / vinyl / laminate flooring, wallpaper.
 | `shared/` | The Dart ↔ Python contract. One copy, both suites. |
 | `mobile/` | Flutter app |
 
-## Current state — Phase 1, Quotation Proof
+## Current state — Phase 1 complete, Phase 2 in progress
 
-Flutter only. No server, no persistence between launches.
+Flutter only. No server yet.
 
-**Working:** `Length`, `Money`, exact rational arithmetic, the unit parser,
-the pricing engine, the custom keypad, the quote wizard in three languages, and
-local persistence — a quote survives a force-quit and reopens with its lines.
+**Working end to end:** quote a house in Chinese, English or Malay; the real
+77-row MITC fair card driving every price; the custom keypad; special-track and
+add-on upgrades charged on top; the delivery zone asked before the total;
+customer details; local persistence so a force-quit costs nothing; and an
+on-device PDF the customer can take away over WhatsApp with the phone in
+airplane mode.
+
+**Phase 2 still to do:** photo per window, and admin CSV import for the card.
 
 **The real price list is in.** `shared/rate-card-fair-2026-08.json` carries the
 MITC Mega Home Expo Aug 2026 fair list in full: 77 rows across curtains, blinds,
@@ -39,7 +44,7 @@ price can only stay level or fall.
 cd mobile
 flutter pub get
 dart run build_runner build --delete-conflicting-outputs   # Drift code
-flutter test          # 227 tests
+flutter test          # 239 tests
 flutter run
 ```
 

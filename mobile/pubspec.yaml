@@ -36,6 +36,10 @@ dependencies:
   printing: 5.14.2
   share_plus: 10.1.4
 
+  # Photo per window. §8.1 wants one tap from inside the line — no gallery
+  # round-trip, no crop step.
+  image_picker: 1.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
