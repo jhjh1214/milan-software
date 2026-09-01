@@ -75,6 +75,8 @@ class QuoteScreen extends ConsumerWidget {
                         // total, never sprung on the customer after they have
                         // agreed a number.
                         const _DeliveryRow(),
+                        const SizedBox(height: Space.md),
+                        const _CustomerRow(),
                         const SizedBox(height: Space.lg),
                         const _Disclaimer(),
                       ],
@@ -397,6 +399,139 @@ class _FloorRow extends StatelessWidget {
           const SizedBox(height: Space.xs),
           Text(l.depositFloorExplain, style: AppText.caption),
         ],
+      ),
+    );
+  }
+}
+
+/// Who the quote is for.
+///
+/// Optional, and deliberately so: at a fair the job is to lock the deposit, and
+/// a required name field is one more thing standing between a part-timer and a
+/// four-minute quote. A full customer record with TIN and address arrives in
+/// Phase 4, where the RM10,000 threshold makes some of it mandatory.
+class _CustomerRow extends ConsumerWidget {
+  const _CustomerRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = L.of(context);
+    final quote = ref.watch(quoteProvider).valueOrNull;
+    if (quote == null) return const SizedBox.shrink();
+
+    final name = quote.customerName;
+    final phone = quote.customerPhone;
+    final filled =
+        (name != null && name.isNotEmpty) ||
+        (phone != null && phone.isNotEmpty);
+
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(Radii.lg),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(Radii.lg),
+        onTap: () => _edit(context, ref, name, phone),
+        child: Container(
+          padding: const EdgeInsets.all(Space.lg),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(Radii.lg),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.person_outline,
+                color: AppColors.mutedForeground,
+              ),
+              const SizedBox(width: Space.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l.customerTitle, style: AppText.label),
+                    const SizedBox(height: 2),
+                    Text(
+                      filled
+                          ? [
+                              if (name != null && name.isNotEmpty) name,
+                              if (phone != null && phone.isNotEmpty) phone,
+                            ].join('  ·  ')
+                          : l.customerOptional,
+                      style: AppText.caption,
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: AppColors.mutedForeground),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _edit(BuildContext context, WidgetRef ref, String? name, String? phone) {
+    final l = L.of(context);
+    final notifier = ref.read(quoteProvider.notifier);
+    final nameController = TextEditingController(text: name ?? '');
+    final phoneController = TextEditingController(text: phone ?? '');
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      builder: (sheet) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(sheet).viewInsets.bottom,
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(Space.lg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l.customerTitle, style: AppText.title),
+                const SizedBox(height: Space.lg),
+                TextField(
+                  controller: nameController,
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: InputDecoration(
+                    labelText: l.customerName,
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: Space.md),
+                TextField(
+                  controller: phoneController,
+                  // The one place the system keyboard is right: a phone number
+                  // is not a dimension, and the phone pad is what people know.
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: l.customerPhone,
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: Space.lg),
+                FilledButton(
+                  onPressed: () {
+                    notifier.setCustomer(
+                      name: nameController.text.trim().isEmpty
+                          ? null
+                          : nameController.text.trim(),
+                      phone: phoneController.text.trim().isEmpty
+                          ? null
+                          : phoneController.text.trim(),
+                    );
+                    Navigator.of(sheet).pop();
+                  },
+                  child: Text(l.save),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -370,6 +370,38 @@ void main() {
     expect(find.text('RM 400.00'), findsOneWidget);
   });
 
+  testWidgets('the customer name is optional and survives a restart', (
+    tester,
+  ) async {
+    // Optional on purpose: a required name field stands between a part-timer
+    // and the four-minute quote §8.4 asks for.
+    await pumpApp(tester);
+    await addWindow(
+      tester,
+      room: '客厅',
+      category: '窗帘',
+      product: '夜帘（遮光）',
+      width: "12'",
+      height: "9'",
+    );
+    expect(find.text('可以不填，之后再补'), findsOneWidget);
+
+    await tester.tap(find.text('可以不填，之后再补'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '陈大文');
+    await tester.enterText(find.byType(TextField).last, '012-3456789');
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('陈大文'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    await pumpApp(tester);
+    expect(find.textContaining('陈大文'), findsOneWidget);
+    expect(find.textContaining('012-3456789'), findsOneWidget);
+  });
+
   testWidgets('a quote survives a force-quit and reopens with its lines', (
     tester,
   ) async {
