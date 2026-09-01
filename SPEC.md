@@ -217,7 +217,7 @@ pricing_rules
   layer              enum(single, day, night)
   material_key       text NULL           -- series / openness / slat that moves rate
   fulfilment         enum(supply_install, supply_only)
-  label_zh, label_en text
+  labels             jsonb               -- {zh, en, ms} — a MAP, never columns
   basis              enum(per_ft_width, per_sqft, per_m_length,
                           per_piece, per_set, per_roll)
   band_field         enum(height, width, none)
@@ -232,7 +232,7 @@ pricing_rules
   wastage_pct        numeric(5,2) DEFAULT 0
   is_addon           bool DEFAULT false
   attaches_to        text[] NULL         -- variants this add-on is offered on
-  warranty_note_zh, warranty_note_en text NULL
+  warranty_notes     jsonb NULL          -- {zh, en, ms}
   sort_order         int
   superseded_at      timestamptz NULL
 
@@ -242,7 +242,7 @@ product_rules
   target      text NULL                  -- required/excluded variant
   dimension   enum(width, height) NULL
   value_mm    int NULL
-  message_zh, message_en
+  messages    jsonb                      -- {zh, en, ms}
 
 delivery_zones
   id, name, area_labels text[], charge_sen,
@@ -298,6 +298,24 @@ priceLine(family, variant, layer, material_key, fulfilment,
 8. total = roundHalfUp(billedQty * rate) * qty
 9. if min_charge_sen: total = max(total, min_charge_sen * qty)
 ```
+
+**Then, once per deposit category, at the order level — not per line:**
+
+```
+categorySubtotal = sum(line.total for lines in that deposit category)
+if stage == estimate:
+    categorySubtotal = max(categorySubtotal, MIN_DEPOSIT_SEN)   # 30000 = RM300
+```
+
+A customer quoted RM250 who then pays a RM300 deposit has overpaid, and will
+argue about it at measurement. The floor removes that conversation. It applies to
+the **quotation only** — final pricing is what it is, and §13 B4 still owes an
+answer on what happens when a *final* lands under the deposit already taken.
+
+`MIN_DEPOSIT_SEN` is config, per hard rule 1. **The uplift is shown, never
+silent:** the lines display their real totals and the floor appears as its own
+labelled row. Quietly inflating lines to reach RM300 would be the exact dishonesty
+the reference-price disclaimer in §8.5 exists to prevent.
 
 **Height selects the band. Height never multiplies.** For `per_ft_width` only
 width is charged. Single most likely thing to get wrong.
@@ -567,7 +585,7 @@ users
   name, phone, email NULL
   role            enum(admin, staff, parttime)
   pin_hash        text NULL       -- INDIVIDUAL, never shared
-  language        enum(zh, en) DEFAULT 'zh'
+  language        enum(zh, en, ms) DEFAULT 'zh'
   is_active       bool DEFAULT true
   created_at, deactivated_at NULL
 
@@ -687,10 +705,30 @@ autosaves. This does not.
 
 ## 8.3 Both
 
-- Chinese and English throughout, switchable **per user**, not per device
+- **Three languages — Chinese, English, Malay** (`zh`, `en`, `ms`), switchable
+  **per user**, not per device. Default `zh`. Staff and part-timers differ in
+  what they read; a worker who reads only Malay must be able to quote unaided.
 - Money always two decimals with RM prefix, never bare numbers
 - Dates as `12 Mar 2027`, never `12/03/27`
 - Dimensions show entered and billed together
+
+## 8.5 The reference-price disclaimer — binding
+
+Every quote screen and every printed quote carries, in the reader's language:
+
+> 此报价按整数进位计算，仅供参考。现场实际丈量后，价格只会**相同或更低**，不会更高。
+>
+> This quotation is rounded up to whole units and is for reference only. After
+> on-site measurement the final price will be the **same or lower**, never higher.
+>
+> Sebut harga ini dibundarkan ke atas dan untuk rujukan sahaja. Selepas
+> pengukuran di tapak, harga akhir adalah **sama atau lebih rendah**, tidak akan
+> lebih tinggi.
+
+This is not boilerplate. §4.3 rounds every quoted quantity up and bills the exact
+measurement later, so an unexplained quote reads as a bait price. Stating the
+asymmetry is what turns it into a reason to trust the number. **Do not collapse
+it into a footnote, and do not make it dismissible.**
 
 ## 8.4 Staffing targets — acceptance criteria, not marketing
 
@@ -1122,7 +1160,7 @@ Software cannot supply that discipline. Get the name before quoting.
   whole boxes when allocating.
 
 ```sql
-materials      id, family, variant_compat text[], code, name_zh, name_en,
+materials      id, family, variant_compat text[], code, names jsonb,
                uom enum(metre, sqft, box, piece, roll),
                coverage_per_unit numeric, reorder_level, is_active
 stock_lots     id, material_id, lot_ref, qty_on_hand, location,
@@ -1204,7 +1242,17 @@ orders, supplier management and costing come later.
 - `[BLOCKING P4]` **B2.** 12 months elapse, house still not ready. Extend,
   reprice, or case by case?
 - **B3.** Cancel after deposit: forfeit, partial, or credit?
-- **B4.** Final lands under RM300: refund or credit?
+- `[BLOCKING P4]` **B4.** Final lands under RM300: refund or credit? Partly
+  pre-empted — a **quotation** now floors at RM300 per category (§4.3), so the
+  customer is never quoted less than they deposit. But a quote of RM300 that
+  measures down to RM240 still lands here, because final pricing is exact and has
+  no floor. Refund the RM60, credit it, or keep it?
+- **B8.** Is the RM300 quotation floor **per deposit category** or per order?
+  Implemented per category, since RM300 buys one category. Phase 1 carries only
+  curtain and blind lines, which share one category, so the two readings are
+  identical there. **The distinction becomes real in Phase 2** when flooring
+  arrives: curtain RM250 + flooring RM200 quotes as RM600 under per-category and
+  RM450 under per-order.
 - **B5.** One customer, two properties: one lock or two?
 - **B6.** Always flat RM300, or higher on large orders?
 - **B7.** Which products can defer material choice past deposit? Zebra J/BL vs
@@ -1239,6 +1287,12 @@ orders, supplier management and costing come later.
 - **G2.** Will there ever be an in-house dev team, Java-shop by policy?
 
 ## Answered
+- **Three languages: Chinese, English, Malay**, per user, default `zh`. Data
+  labels are `{zh, en, ms}` maps, never parallel columns ✓
+- **A quotation never shows less than RM300 per deposit category**, and the
+  uplift is shown as its own labelled row, never folded into the lines ✓
+- **The quote states plainly that the final will be the same or lower**, never
+  higher. §8.5, binding ✓
 - **Exactly 10ft is the LOWER band, RM46.** `band_max_mm = 3049` (A1) ✓
 - **On a quotation, billed quantity rounds UP to a whole unit**, every basis,
   once, after `min_qty` (A10) ✓

@@ -15,12 +15,16 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 **Phase 1 — Quotation Proof.** Flutter only, no server, no persistence.
 Building `Length`, `Money`, the unit parser and rounding first.
 
-**Blocked:** `SPEC.md` §13 **A2a** only — the curtain and blind rate rows.
-**Do not build the pricing engine until that seed card exists as data.**
+**Awaiting A2a** — the real curtain and blind rate rows. Until they arrive the
+seed card in `shared/rate-card-seed.json` is built **only** from the numbers
+already published in `SPEC.md` §4.4, and is marked `"provisional": true`. It is
+enough to run the golden tests and the demo script; it is not the price list.
+**Do not quote a real customer from it.** Replacing it must not require a code
+change — that is the test of whether hard rule 1 was actually obeyed.
 
 A1 answered: exactly 10ft is the **lower** band, `band_max_mm = 3049`.
-A10 answered: round up. A3 and A4 retagged `BLOCKING P2` — Phase 1 applies no
-discount, so they cannot block it. Everything else in Phase 1 is unblocked.
+A10 answered: quotation rounds up. A11: final pricing is exact.
+A3 and A4 retagged `BLOCKING P2` — Phase 1 applies no discount.
 
 ---
 
@@ -52,6 +56,19 @@ currency is forbidden. Python: `int` sen, `Decimal` at boundaries only, never
 ft→mm→sqft cannot be exact in binary, and `96.0000000001` ceils to 97 and
 overcharges by a whole sqft. Integer numerator over integer denominator; divide
 last. This is what keeps the Dart and Python engines bit-identical.
+
+**A quotation is a reference price, and it is a promise that the final will not
+exceed it.** The quote rounds every quantity up; the bill uses the exact tape.
+That asymmetry is the product, not an artefact. Every quote screen and every
+printed quote states it plainly, in the reader's language: *after site
+measurement the price will be the same or lower, never higher.* Removing that
+line turns an honest over-estimate into something that looks like a bait price.
+
+**A quotation never shows less than the deposit.** RM300 per deposit category is
+the floor on a quoted category subtotal, because a customer who is quoted RM250
+and pays a RM300 deposit has overpaid and will argue. The uplift is shown, never
+silent — the customer sees the line total and sees the floor applied. The RM300
+is config, not a literal in code.
 
 **Version pinning.** A rate lock pins **both** `held_rate_card_version` **and**
 `held_discount_pct`. Pinning only the version silently reprices held orders when
@@ -144,7 +161,12 @@ shared/
 - Timestamps `timestamptz`, stored UTC, displayed `Asia/Kuala_Lumpur`.
 - Postgres enums server-side, Dart enums client-side, kept in step by a
   **generated** file, never by hand.
-- Chinese and English throughout, switchable **per user**, not per device.
+- **Three languages: Chinese, English, Malay** (`zh`, `en`, `ms`), switchable
+  **per user**, not per device. Default `zh`. Workers differ; a part-timer who
+  reads only Malay must be able to quote. No string is ever hardcoded in a
+  widget — every user-visible string comes from the ARB files.
+- **Labels on data are a map, not parallel columns.** `{zh, en, ms}` in the seed
+  JSON, JSONB server-side. Adding a language must never be a migration per table.
 - Money displays with two decimals and the RM prefix. Dates as `12 Mar 2027`.
 - Dimensions display entered **and** billed: `12尺 4寸 → 按 13 尺计`.
 - Pin all dependencies. Lockfiles committed.
