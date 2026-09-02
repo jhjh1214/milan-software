@@ -392,7 +392,7 @@ class LZh extends L {
 
   @override
   String get listStandardProvisional =>
-      '平时价是暂定的：窗帘加 20%，百叶加 50%。轨道、地板、壁纸、配件还是展会价。';
+      '平时价暂定：窗帘加 20%，百叶加 50%。其他（轨道、地板、壁纸、配件）全年同价。';
 
   @override
   String expiredCardBanner(String code, String date) {

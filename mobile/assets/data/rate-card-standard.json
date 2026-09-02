@@ -1,7 +1,7 @@
 {
   "_source": "DERIVED from rate-card-fair-2026-08.json, not a printed price list.",
   "_derivation": "Client instruction, Sep 2026, explicitly provisional: curtains +20%, blinds +50% over the fair rate. MVP keeps its flat differential rather than being marked up, because section 4.1 requires MVP to be a constant sen off rather than a percentage.",
-  "_warning": "NO MARKUP WAS SPECIFIED for addon, flooring, service, track, wallpaper. Those 45 rows therefore sell at FAIR price in the showroom, including all 22 track rows -- and a track is often dearer than the curtain it carries. See SPEC.md section 13, A3a.",
+  "_warning": "BY DESIGN, no markup applies to addon, flooring, service, track, wallpaper. Those 45 rows cost the same all year -- confirmed by the client (SPEC.md section 13, A3a). Only curtains and blinds differ between the fair and standard lists.",
   "_replace_me": "Delete this file and drop in the real standard list as soon as one exists. Regenerate with tool/build_standard_card.py.",
   "provisional": true,
   "version": 101,

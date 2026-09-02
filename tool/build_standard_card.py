@@ -18,8 +18,10 @@ Two decisions this makes, both flagged in section 13:
    MVP a percentage. So the standard rate moves and the gap stays: night curtain
    RM55.20 with MVP RM49.20.
 
-2. **Families with no markup keep the fair rate**, because inventing one would
-   be inventing a price. That is 45 of the 77 rows, including every track.
+2. **Families with no markup keep the fair rate.** Confirmed by the client
+   (A3a, "other prices are same"): tracks, flooring, wallpaper, add-ons and
+   services cost the same all year. Only curtains and blinds move between the
+   two lists.
 """
 import json
 import pathlib
@@ -76,10 +78,10 @@ def main() -> None:
             "a constant sen off rather than a percentage."
         ),
         "_warning": (
-            "NO MARKUP WAS SPECIFIED for " + ", ".join(unmarked_families) + ". "
-            f"Those {untouched} rows therefore sell at FAIR price in the showroom, "
-            "including all 22 track rows -- and a track is often dearer than the "
-            "curtain it carries. See SPEC.md section 13, A3a."
+            "BY DESIGN, no markup applies to " + ", ".join(unmarked_families) + ". "
+            f"Those {untouched} rows cost the same all year -- confirmed by the "
+            "client (SPEC.md section 13, A3a). Only curtains and blinds differ "
+            "between the fair and standard lists."
         ),
         "_replace_me": (
             "Delete this file and drop in the real standard list as soon as one "

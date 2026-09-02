@@ -398,7 +398,7 @@ class LMs extends L {
 
   @override
   String get listStandardProvisional =>
-      'Harga biasa adalah sementara: langsir +20%, bidai +50%. Trek, lantai, kertas dinding dan tambahan masih pada harga pesta.';
+      'Harga biasa adalah sementara: langsir +20%, bidai +50%. Yang lain sama harga sepanjang tahun.';
 
   @override
   String expiredCardBanner(String code, String date) {

@@ -773,7 +773,7 @@ abstract class L {
   /// No description provided for @listStandardProvisional.
   ///
   /// In zh, this message translates to:
-  /// **'平时价是暂定的：窗帘加 20%，百叶加 50%。轨道、地板、壁纸、配件还是展会价。'**
+  /// **'平时价暂定：窗帘加 20%，百叶加 50%。其他（轨道、地板、壁纸、配件）全年同价。'**
   String get listStandardProvisional;
 
   /// No description provided for @expiredCardBanner.

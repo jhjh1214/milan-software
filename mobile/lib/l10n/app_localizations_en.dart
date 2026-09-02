@@ -400,7 +400,7 @@ class LEn extends L {
 
   @override
   String get listStandardProvisional =>
-      'Standard prices are provisional: curtains +20%, blinds +50%. Tracks, flooring, wallpaper and add-ons are still at fair price.';
+      'Standard prices are provisional: curtains +20%, blinds +50%. Everything else costs the same all year.';
 
   @override
   String expiredCardBanner(String code, String date) {

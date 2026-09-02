@@ -1318,18 +1318,13 @@ orders, supplier management and costing come later.
   MVP to be a constant sen off, and marking RM40 up 20% would turn RM6 off into
   RM7.20 off and quietly make it a percentage. So standard night curtain is
   RM55.20 with MVP RM49.20 — still RM6.
-- `[BLOCKING P3]` **A3a.** **45 of the 77 rows have no markup.** The client named
-  curtains and blinds. Tracks (22 rows), flooring (10), add-ons (9), services
-  (3) and wallpaper (1) therefore sell at **fair price in the showroom, all year**.
+- ~~**A3a.**~~ **ANSWERED — the other 45 rows are the same price at both.**
+  Client, Sep 2026: *"other prices are same."* Tracks, flooring, wallpaper,
+  add-ons and services carry **no markup by design**, so the fair price is the
+  year-round price for them.
 
-  That is not a rounding matter. An S-Track is RM80/ft against a night curtain's
-  RM46, so on a 12ft window the showroom currently charges RM662.40 for the
-  curtain and RM960 for the track it hangs on — the dearer half of the sale at
-  promotional price. Flooring is the same shape: a 200sqft SPC floor is RM960 at
-  either price.
-
-  Nothing was invented, because inventing a markup is inventing a price. Ask for
-  these five families when asking for the real standard list.
+  Only curtains and blinds move between the two lists. That is deliberate and
+  the derivation now records it as a decision rather than a gap.
 - `[BLOCKING P2]` **A4.** Is the discount applied to the **unit rate** (discount
   → round → multiply) or the **line total** (multiply → discount → round)?
   Differs by sen per line and real money across a house.

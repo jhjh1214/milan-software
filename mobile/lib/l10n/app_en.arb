@@ -125,7 +125,7 @@
   "provisionalCardBanner": "Rate card not confirmed. Do not quote a customer.",
   "listFair": "Fair prices {code}",
   "listStandard": "Standard prices (not a fair)",
-  "listStandardProvisional": "Standard prices are provisional: curtains +20%, blinds +50%. Tracks, flooring, wallpaper and add-ons are still at fair price.",
+  "listStandardProvisional": "Standard prices are provisional: curtains +20%, blinds +50%. Everything else costs the same all year.",
   "expiredCardBanner": "These are {code} fair rates and they expired on {date}. Not valid for everyday quoting.",
 
   "delete": "Delete",
