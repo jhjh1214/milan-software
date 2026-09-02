@@ -155,6 +155,92 @@ jobs:
       - name: Format
         run: python -m ruff format --check .
 
+  deploy:
+    name: The stack comes up, and the backup restores
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Shell scripts
+        run: shellcheck deploy/*.sh
+
+      - name: Compose file and Caddyfile are valid
+        working-directory: deploy
+        run: |
+          cp .env.example .env
+          docker compose config --quiet
+          docker run --rm -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            -e MILAN_DOMAIN=ci.example.com -e MILAN_ACME_EMAIL=ci@example.com \
+            caddy:2.8-alpine caddy validate --config /etc/caddy/Caddyfile
+
+      # Caddy is left out: it would try to get a real certificate for a domain
+      # that does not resolve. Everything below it runs for real.
+      - name: Bring up the database and the API
+        working-directory: deploy
+        run: |
+          sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 16)/" .env
+          docker compose up -d --build db api
+          for i in $(seq 1 60); do
+            if [ "$(docker inspect -f '{{.State.Health.Status}}' milan-api-1)" = healthy ]; then
+              echo "healthy after ${i}s"; exit 0
+            fi
+            sleep 1
+          done
+          docker compose logs
+          echo "::error::the API never became healthy"; exit 1
+
+      # Proves the container really did migrate on boot, not just start.
+      - name: The schema is at the migration head
+        working-directory: deploy
+        run: |
+          set -a; . ./.env; set +a
+          docker compose exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tA \
+            -c "SELECT version_num FROM alembic_version;" | grep -q 0001
+
+      - name: Publish a rate card, the way the runbook says to
+        working-directory: deploy
+        run: |
+          docker compose cp ../shared/rate-card-fair-2026-08.json api:/tmp/card.json
+          docker compose exec -T api python -c "
+          import json
+          from app.db import session_scope
+          from app.services.ingest import publish_card
+          with session_scope() as s:
+              publish_card(s, list_id='fair', payload=json.load(open('/tmp/card.json')))
+          "
+
+      # The point of the whole job. A backup nobody has restored is a guess,
+      # and this is the only machine in the loop that can prove otherwise.
+      - name: Back up, and restore the backup
+        working-directory: deploy
+        env:
+          MILAN_BACKUP_DIR: /tmp/milan-backups
+        run: ./backup.sh
+
+      - name: A backup of an empty database must fail the drill
+        working-directory: deploy
+        env:
+          MILAN_BACKUP_DIR: /tmp/milan-backups-empty
+        run: |
+          set -a; . ./.env; set +a
+          docker compose exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -q \
+            -c "DELETE FROM rate_cards;"
+          if ./backup.sh; then
+            echo "::error::the restore drill passed on a database with no rate cards, so it proves nothing"
+            exit 1
+          fi
+          echo "ok — the drill fails when it should"
+
+      - name: Logs, if anything above failed
+        if: failure()
+        working-directory: deploy
+        run: docker compose logs --no-color
+
+      - name: Tear down
+        if: always()
+        working-directory: deploy
+        run: docker compose down -v
+
   fixtures:
     name: Shared files are well formed and in step
     runs-on: ubuntu-latest

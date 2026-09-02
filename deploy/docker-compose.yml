@@ -1,0 +1,67 @@
+# One node, restorable in under an hour. CLAUDE.md: no Kubernetes, no
+# microservices -- that is the right shape for one developer supporting one
+# client, and it is also the shape a person can reason about at 2am.
+#
+#   cd deploy && cp .env.example .env && $EDITOR .env && docker compose up -d
+name: milan
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # Deterministic collation. Left to the host locale, a restore onto a
+      # differently configured machine can fail on index rebuild.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+      TZ: Asia/Kuala_Lumpur
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    # No `ports:`. The database is reachable on the compose network and
+    # nowhere else; publishing 5432 on a VPS is how these get found.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  api:
+    build:
+      context: ../backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      TZ: Asia/Kuala_Lumpur
+    depends_on:
+      db:
+        condition: service_healthy
+    # Also unpublished: Caddy is the only way in, so TLS cannot be bypassed.
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      MILAN_DOMAIN: ${MILAN_DOMAIN}
+      MILAN_ACME_EMAIL: ${MILAN_ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates live in a volume. Losing them means re-issuing, and Let's
+      # Encrypt rate-limits that hard enough to matter during a fair.
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - api
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:

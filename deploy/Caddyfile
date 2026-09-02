@@ -1,0 +1,35 @@
+# Caddy issues and renews the certificate itself. That is most of why it is
+# here: nobody wants a manual renewal step on a machine one person maintains.
+
+{
+	email {$MILAN_ACME_EMAIL}
+}
+
+{$MILAN_DOMAIN} {
+	encode zstd gzip
+
+	# The API. Everything the phones and the dashboard talk to.
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+
+	handle {
+		respond "Milan Software" 200
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		# Caddy's default advertises the version.
+		-Server
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 20MiB
+			roll_keep 10
+		}
+	}
+}
