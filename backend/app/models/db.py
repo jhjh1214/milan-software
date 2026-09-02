@@ -77,6 +77,106 @@ class RateCardVersion(Base):
     )
 
 
+class User(Base):
+    """A person. §7.
+
+    ``pin_hash`` is **individual, never shared**. SPEC.md §6.5 is blunt about
+    why: one shared admin password reaches every part-timer within a month, and
+    then the audit log names nobody. The gate is not the control; the log is,
+    and the log is worthless if it cannot name a person.
+    """
+
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    name: Mapped[str] = mapped_column(String(120))
+    #: How someone identifies themselves at login. Unique where present.
+    phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    #: admin | staff | parttime. §3: same wizard for all three, only rate
+    #: visibility differs.
+    role: Mapped[str] = mapped_column(String(16), default="parttime")
+    pin_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+    language: Mapped[str] = mapped_column(String(4), default="zh")
+    #: Leavers are deactivated, never deleted -- their quotes and payments have
+    #: to keep naming them.
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    deactivated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (Index("ix_users_phone", "phone", unique=True),)
+
+
+class DeviceSession(Base):
+    """One handset, logged in as one person.
+
+    **No expiry.** SPEC.md §12: "Indefinite. No token expiry that locks a user
+    out." A token that expires does so at the worst possible moment -- mid-fair,
+    with no signal, holding a customer's deposit. Revocation is the control
+    instead, and it is a server-side act on a named session.
+
+    Only the token's SHA-256 is stored, so a leaked database dump does not hand
+    over live sessions.
+    """
+
+    __tablename__ = "device_sessions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
+    #: The device's own id, client-generated like every other id here.
+    device_id: Mapped[str] = mapped_column(String(36))
+    device_label: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    token_hash: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    last_seen_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    revoked_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    user: Mapped[User] = relationship()
+
+    __table_args__ = (
+        Index("ix_device_sessions_token", "token_hash", unique=True),
+        Index("ix_device_sessions_user", "user_id"),
+    )
+
+
+class LoginAttempt(Base):
+    """Every login try, successful or not. APPEND ONLY.
+
+    Two jobs. It is the record of who signed in on which handset, and it is what
+    the throttle counts: scrypt makes an offline attack expensive, but nothing
+    in the hash slows down someone guessing a four-digit PIN over HTTP.
+
+    Deliberately **not** a lockout. A locked account at a fair is a person who
+    cannot take deposits, which costs more than the attack does.
+    """
+
+    __tablename__ = "login_attempts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    #: What was typed in the identifier box. Kept even when no such user
+    #: exists -- that pattern is itself the signal.
+    phone: Mapped[str] = mapped_column(String(40))
+    user_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    device_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    succeeded: Mapped[bool] = mapped_column(Boolean)
+    at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (Index("ix_login_attempts_phone_at", "phone", "at"),)
+
+
 class Quote(Base):
     """A quotation pushed up from a device."""
 
@@ -102,6 +202,11 @@ class Quote(Base):
         DateTime(timezone=True), server_default=func.now()
     )
     device_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    #: Taken from the session that pushed it, never from the request body: a
+    #: device must not be able to claim it was someone else.
+    taken_by_user_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=True
+    )
 
     lines: Mapped[list[QuoteLine]] = relationship(
         back_populates="quote", cascade="all, delete-orphan"

@@ -28,6 +28,7 @@ from ..models.db import (
     Quote,
     QuoteLine,
     RateCardVersion,
+    User,
 )
 from ..pricing.engine import (
     LineRequest,
@@ -53,7 +54,14 @@ class UnknownRateCardVersion(Exception):
     """
 
 
-def push_quote(session: Session, payload: QuoteIn) -> PushResult:
+def push_quote(
+    session: Session, payload: QuoteIn, *, taken_by: User | None = None
+) -> PushResult:
+    """Accepts one quote.
+
+    ``taken_by`` comes from the session that pushed it, never from the request
+    body: a handset must not be able to claim the quote was someone else's.
+    """
     existing = session.get(Quote, payload.id)
     if existing is not None:
         # Already accepted. Report the stored figures rather than re-running,
@@ -85,6 +93,7 @@ def push_quote(session: Session, payload: QuoteIn) -> PushResult:
         created_at=payload.created_at,
         updated_at=payload.updated_at,
         device_id=payload.device_id,
+        taken_by_user_id=None if taken_by is None else taken_by.id,
     )
     session.add(quote)
 

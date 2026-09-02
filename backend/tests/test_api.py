@@ -1,8 +1,9 @@
-"""The HTTP surface. §9.1 and §9.2, over the wire this time.
+"""The HTTP surface. §9.1, §9.2 and the authorisation rules, over the wire.
 
 The routes are thin, so these tests check the things only HTTP can get wrong:
-status codes, the up-to-date short circuit, and that a retry is a 200 rather
-than an error the device would keep retrying forever.
+status codes, the up-to-date short circuit, that a retry is a 200 rather than an
+error the device would keep retrying forever, and — since Phase 3 makes prices
+server-owned — that nothing but an admin can move a price.
 """
 
 from __future__ import annotations
@@ -15,13 +16,14 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app import db as db_module
+from app.core.security import hash_pin
 from app.main import app, get_session
-from app.models.db import Base
+from app.models.db import Base, Quote, User
 from app.services.ingest import publish_card
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -31,6 +33,9 @@ FAIR = json.loads(
 STANDARD = json.loads(
     (ROOT / "shared" / "rate-card-standard.json").read_text(encoding="utf-8")
 )
+
+PINS = {"admin": "1357", "staff": "2468", "parttime": "4821"}
+PHONES = {"admin": "0110000001", "staff": "0110000002", "parttime": "0110000003"}
 
 
 @pytest.fixture
@@ -49,6 +54,16 @@ def client() -> Iterator[TestClient]:
     with Session(engine) as setup:
         publish_card(setup, list_id="fair", payload=FAIR)
         publish_card(setup, list_id="standard", payload=STANDARD)
+        for role, phone in PHONES.items():
+            setup.add(
+                User(
+                    id=str(uuid.uuid4()),
+                    name=role.title(),
+                    phone=phone,
+                    role=role,
+                    pin_hash=hash_pin(PINS[role]),
+                )
+            )
         setup.commit()
 
     def override() -> Iterator[Session]:
@@ -64,9 +79,28 @@ def client() -> Iterator[TestClient]:
 
     app.dependency_overrides[get_session] = override
     with TestClient(app) as c:
+        c.sessions = factory  # type: ignore[attr-defined]
         yield c
     app.dependency_overrides.clear()
     db_module.configure(db_module.DATABASE_URL)
+
+
+def sign_in(client: TestClient, role: str = "parttime") -> str:
+    r = client.post(
+        "/api/auth/login",
+        json={
+            "phone": PHONES[role],
+            "pin": PINS[role],
+            "device_id": str(uuid.uuid4()),
+            "device_label": f"{role} handset",
+        },
+    )
+    assert r.status_code == 200, r.text
+    return r.json()["token"]
+
+
+def auth(token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {token}"}
 
 
 def a_quote(*, quote_id: str | None = None, total: int = 55200) -> dict:
@@ -99,9 +133,103 @@ def a_quote(*, quote_id: str | None = None, total: int = 55200) -> dict:
     }
 
 
+class TestSigningIn:
+    def test_a_correct_pin_returns_a_token_and_the_role(
+        self, client: TestClient
+    ) -> None:
+        r = client.post(
+            "/api/auth/login",
+            json={
+                "phone": PHONES["staff"],
+                "pin": PINS["staff"],
+                "device_id": str(uuid.uuid4()),
+            },
+        )
+        assert r.status_code == 200
+        assert r.json()["token"]
+        assert r.json()["user"]["role"] == "staff"
+
+    def test_a_wrong_pin_is_401(self, client: TestClient) -> None:
+        r = client.post(
+            "/api/auth/login",
+            json={
+                "phone": PHONES["staff"],
+                "pin": "9999",
+                "device_id": str(uuid.uuid4()),
+            },
+        )
+        assert r.status_code == 401
+
+    def test_an_unknown_phone_answers_identically(self, client: TestClient) -> None:
+        # Same status and same body as a wrong PIN. Anything else is a way to
+        # enumerate which numbers belong to staff.
+        wrong_pin = client.post(
+            "/api/auth/login",
+            json={
+                "phone": PHONES["staff"],
+                "pin": "9999",
+                "device_id": str(uuid.uuid4()),
+            },
+        )
+        unknown = client.post(
+            "/api/auth/login",
+            json={
+                "phone": "0100000000",
+                "pin": "9999",
+                "device_id": str(uuid.uuid4()),
+            },
+        )
+        assert unknown.status_code == wrong_pin.status_code
+        assert unknown.json() == wrong_pin.json()
+
+    def test_me_names_the_signed_in_user(self, client: TestClient) -> None:
+        token = sign_in(client, "admin")
+        r = client.get("/api/auth/me", headers=auth(token))
+        assert r.status_code == 200
+        assert r.json()["role"] == "admin"
+
+    def test_signing_out_ends_the_session(self, client: TestClient) -> None:
+        token = sign_in(client)
+        assert client.post("/api/auth/logout", headers=auth(token)).status_code == 204
+        assert client.get("/api/auth/me", headers=auth(token)).status_code == 401
+
+
+class TestEverythingNeedsASession:
+    @pytest.mark.parametrize(
+        ("method", "path"),
+        [
+            ("get", "/api/bundle"),
+            ("get", "/api/auth/me"),
+            ("post", "/api/quotes"),
+            ("post", "/api/rate-cards"),
+        ],
+    )
+    def test_no_token_is_401(self, client: TestClient, method: str, path: str) -> None:
+        # A body is sent even on the GETs so that a route which validated the
+        # body before checking the session would still be caught here.
+        r = client.request(method.upper(), path, json={})
+        assert r.status_code == 401
+        assert r.headers.get("WWW-Authenticate") == "Bearer"
+
+    def test_a_made_up_token_is_401(self, client: TestClient) -> None:
+        assert client.get("/api/bundle", headers=auth("nonsense")).status_code == 401
+
+    def test_a_token_without_the_bearer_scheme_is_401(self, client: TestClient) -> None:
+        token = sign_in(client)
+        r = client.get("/api/bundle", headers={"Authorization": token})
+        assert r.status_code == 401
+
+    def test_health_needs_nothing(self, client: TestClient) -> None:
+        # The container health check and Caddy call it, and it says nothing
+        # about the data.
+        assert client.get("/api/health").json() == {"status": "ok"}
+
+
 class TestBundle:
     def test_it_serves_the_active_fair_card(self, client: TestClient) -> None:
-        r = client.get("/api/bundle", params={"list_id": "fair"})
+        r = client.get(
+            "/api/bundle", params={"list_id": "fair"}, headers=auth(sign_in(client))
+        )
         assert r.status_code == 200
         body = r.json()
         assert body["rate_card_version"] == 1
@@ -109,33 +237,146 @@ class TestBundle:
         assert len(body["payload"]["rules"]) == 77
 
     def test_it_serves_the_standard_card_separately(self, client: TestClient) -> None:
-        r = client.get("/api/bundle", params={"list_id": "standard"})
+        r = client.get(
+            "/api/bundle",
+            params={"list_id": "standard"},
+            headers=auth(sign_in(client)),
+        )
         assert r.json()["rate_card_version"] == 101
 
     def test_a_current_device_gets_no_payload(self, client: TestClient) -> None:
         # §9.1. A fair's connection should not be spent re-downloading a card
         # the phone already has.
-        r = client.get("/api/bundle", params={"list_id": "fair", "since_version": 1})
+        r = client.get(
+            "/api/bundle",
+            params={"list_id": "fair", "since_version": 1},
+            headers=auth(sign_in(client)),
+        )
         body = r.json()
         assert body["up_to_date"] is True
         assert body["payload"] is None
 
     def test_a_stale_device_gets_the_whole_card(self, client: TestClient) -> None:
         # Replaced wholesale, never diffed.
-        r = client.get("/api/bundle", params={"list_id": "fair", "since_version": 0})
+        r = client.get(
+            "/api/bundle",
+            params={"list_id": "fair", "since_version": 0},
+            headers=auth(sign_in(client)),
+        )
         body = r.json()
         assert body["up_to_date"] is False
         assert body["payload"] is not None
 
+    def test_a_parttimer_may_still_pull_the_card(self, client: TestClient) -> None:
+        # Rule 8 — "part-timers never see a rate" — is about what the screen
+        # shows. The device still needs the card to price a line, and blocking
+        # it here would mean no quoting at a fair.
+        r = client.get("/api/bundle", headers=auth(sign_in(client, "parttime")))
+        assert r.status_code == 200
+
     def test_an_unknown_list_is_rejected_by_validation(
         self, client: TestClient
     ) -> None:
-        assert client.get("/api/bundle", params={"list_id": "nope"}).status_code == 422
+        r = client.get(
+            "/api/bundle", params={"list_id": "nope"}, headers=auth(sign_in(client))
+        )
+        assert r.status_code == 422
+
+
+class TestPublishing:
+    def bumped(self, version: int = 2) -> dict:
+        return {"list_id": "fair", "payload": {**FAIR, "version": version}}
+
+    def test_an_admin_can_publish(self, client: TestClient) -> None:
+        r = client.post(
+            "/api/rate-cards",
+            json=self.bumped(),
+            headers=auth(sign_in(client, "admin")),
+        )
+        assert r.status_code == 200
+        assert r.json()["version"] == 2
+
+    def test_staff_cannot_publish(self, client: TestClient) -> None:
+        # §3: staff see rates and cannot edit them.
+        r = client.post(
+            "/api/rate-cards",
+            json=self.bumped(),
+            headers=auth(sign_in(client, "staff")),
+        )
+        assert r.status_code == 403
+
+    def test_a_parttimer_cannot_publish(self, client: TestClient) -> None:
+        r = client.post(
+            "/api/rate-cards",
+            json=self.bumped(),
+            headers=auth(sign_in(client, "parttime")),
+        )
+        assert r.status_code == 403
+
+    def test_a_refused_publish_changes_nothing(self, client: TestClient) -> None:
+        client.post(
+            "/api/rate-cards",
+            json=self.bumped(),
+            headers=auth(sign_in(client, "staff")),
+        )
+        still = client.get("/api/bundle", headers=auth(sign_in(client)))
+        assert still.json()["rate_card_version"] == 1
+
+    def test_every_device_sees_the_new_card_on_its_next_pull(
+        self, client: TestClient
+    ) -> None:
+        # The Phase 3 acceptance criterion: publish a rate change, every device
+        # picks it up on next connect.
+        handset = sign_in(client, "parttime")
+        before = client.get(
+            "/api/bundle", params={"since_version": 1}, headers=auth(handset)
+        )
+        assert before.json()["up_to_date"] is True
+
+        client.post(
+            "/api/rate-cards",
+            json=self.bumped(),
+            headers=auth(sign_in(client, "admin")),
+        )
+
+        after = client.get(
+            "/api/bundle", params={"since_version": 1}, headers=auth(handset)
+        )
+        assert after.json()["up_to_date"] is False
+        assert after.json()["rate_card_version"] == 2
+        assert after.json()["payload"] is not None
+
+    def test_a_version_that_is_not_newer_is_refused(self, client: TestClient) -> None:
+        # Two different cards answering to one version means a quote recording
+        # that version could mean either of them.
+        r = client.post(
+            "/api/rate-cards",
+            json=self.bumped(version=1),
+            headers=auth(sign_in(client, "admin")),
+        )
+        assert r.status_code == 409
+
+    def test_a_card_with_no_version_is_refused(self, client: TestClient) -> None:
+        payload = {k: v for k, v in FAIR.items() if k != "version"}
+        r = client.post(
+            "/api/rate-cards",
+            json={"list_id": "fair", "payload": payload},
+            headers=auth(sign_in(client, "admin")),
+        )
+        assert r.status_code == 422
+
+    def test_the_publisher_is_recorded(self, client: TestClient) -> None:
+        r = client.post(
+            "/api/rate-cards",
+            json=self.bumped(),
+            headers=auth(sign_in(client, "admin")),
+        )
+        assert r.json()["published_by"] is not None
 
 
 class TestPush:
     def test_a_quote_is_accepted_and_repriced(self, client: TestClient) -> None:
-        r = client.post("/api/quotes", json=a_quote())
+        r = client.post("/api/quotes", json=a_quote(), headers=auth(sign_in(client)))
         assert r.status_code == 200
         body = r.json()
         assert body["duplicate"] is False
@@ -145,9 +386,10 @@ class TestPush:
     def test_a_retry_is_a_success_not_an_error(self, client: TestClient) -> None:
         # §9.2. Treating a retry as a failure would have the outbox retry
         # forever, and the row would never drain.
+        token = auth(sign_in(client))
         payload = a_quote()
-        first = client.post("/api/quotes", json=payload)
-        second = client.post("/api/quotes", json=payload)
+        first = client.post("/api/quotes", json=payload, headers=token)
+        second = client.post("/api/quotes", json=payload, headers=token)
 
         assert first.status_code == 200
         assert second.status_code == 200
@@ -158,29 +400,46 @@ class TestPush:
     def test_a_disagreement_still_returns_200(self, client: TestClient) -> None:
         # §9.4: accept the order, log the discrepancy. A 4xx here would lose a
         # sale the customer has already put a deposit on.
-        r = client.post("/api/quotes", json=a_quote(total=55100))
+        r = client.post(
+            "/api/quotes", json=a_quote(total=55100), headers=auth(sign_in(client))
+        )
         assert r.status_code == 200
         body = r.json()
         assert len(body["discrepancies"]) == 1
         assert body["discrepancies"][0]["server_total_sen"] == 55200
         assert body["discrepancies"][0]["device_total_sen"] == 55100
 
+    def test_the_quote_records_who_took_it(self, client: TestClient) -> None:
+        # From the session, never from the body: a handset must not be able to
+        # claim the sale was someone else's.
+        token = sign_in(client, "staff")
+        payload = a_quote()
+        client.post("/api/quotes", json=payload, headers=auth(token))
+
+        with client.sessions() as s:  # type: ignore[attr-defined]
+            quote = s.get(Quote, payload["id"])
+            staff = s.scalars(select(User).where(User.phone == PHONES["staff"])).one()
+            assert quote.taken_by_user_id == staff.id
+
     def test_an_unknown_rate_card_version_is_a_conflict(
         self, client: TestClient
     ) -> None:
         payload = a_quote()
         payload["rate_card_version"] = 999
-        assert client.post("/api/quotes", json=payload).status_code == 409
+        r = client.post("/api/quotes", json=payload, headers=auth(sign_in(client)))
+        assert r.status_code == 409
 
     def test_a_malformed_push_is_rejected_at_the_door(self, client: TestClient) -> None:
         payload = a_quote()
         del payload["lines"][0]["width_tmm"]
-        assert client.post("/api/quotes", json=payload).status_code == 422
+        r = client.post("/api/quotes", json=payload, headers=auth(sign_in(client)))
+        assert r.status_code == 422
 
     def test_a_negative_dimension_is_rejected(self, client: TestClient) -> None:
         payload = a_quote()
         payload["lines"][0]["width_tmm"] = -1
-        assert client.post("/api/quotes", json=payload).status_code == 422
+        r = client.post("/api/quotes", json=payload, headers=auth(sign_in(client)))
+        assert r.status_code == 422
 
 
 def test_health(client: TestClient) -> None:

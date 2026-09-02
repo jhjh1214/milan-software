@@ -197,17 +197,57 @@ jobs:
           docker compose exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tA \
             -c "SELECT version_num FROM alembic_version;" | grep -q 0001
 
-      - name: Publish a rate card, the way the runbook says to
+      # The first-boot sequence from deploy/README.md, run exactly as written.
+      # The PIN goes in on stdin, never as an argument: an argument lands in
+      # shell history and in ps output.
+      - name: Create the first admin and publish a card
         working-directory: deploy
         run: |
+          echo '4821' | docker compose exec -T api \
+            python -m app.cli users add --name "CI Admin" --phone 0123456789 --role admin
           docker compose cp ../shared/rate-card-fair-2026-08.json api:/tmp/card.json
-          docker compose exec -T api python -c "
-          import json
-          from app.db import session_scope
-          from app.services.ingest import publish_card
-          with session_scope() as s:
-              publish_card(s, list_id='fair', payload=json.load(open('/tmp/card.json')))
-          "
+          docker compose exec -T api \
+            python -m app.cli cards publish /tmp/card.json --list-id fair
+
+      # Over real HTTP, through the real container. Proves the parts fit
+      # together, which no unit test can.
+      - name: Sign in and pull the card over HTTP
+        working-directory: deploy
+        run: |
+          docker compose exec -T api python - <<'PY'
+          import json, urllib.request
+          def call(path, body=None, token=None):
+              req = urllib.request.Request(f"http://127.0.0.1:8000{path}")
+              if token:
+                  req.add_header("Authorization", f"Bearer {token}")
+              if body is not None:
+                  req.add_header("Content-Type", "application/json")
+                  req.data = json.dumps(body).encode()
+              return json.load(urllib.request.urlopen(req))
+
+          session = call("/api/auth/login", {
+              "phone": "0123456789", "pin": "4821", "device_id": "ci-device",
+          })
+          assert session["user"]["role"] == "admin", session
+          bundle = call("/api/bundle?list_id=fair", token=session["token"])
+          assert bundle["rate_card_version"] == 1, bundle
+          assert len(bundle["payload"]["rules"]) == 77, len(bundle["payload"]["rules"])
+          print("signed in and pulled", len(bundle["payload"]["rules"]), "rules")
+          PY
+
+      - name: An unauthenticated pull is refused
+        working-directory: deploy
+        run: |
+          docker compose exec -T api python - <<'PY'
+          import urllib.error, urllib.request
+          try:
+              urllib.request.urlopen("http://127.0.0.1:8000/api/bundle")
+          except urllib.error.HTTPError as exc:
+              assert exc.code == 401, exc.code
+              print("ok - 401 without a token")
+          else:
+              raise SystemExit("the bundle served a card to nobody")
+          PY
 
       # The point of the whole job. A backup nobody has restored is a guess,
       # and this is the only machine in the loop that can prove otherwise.

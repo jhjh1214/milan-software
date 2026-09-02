@@ -25,21 +25,61 @@ curl -fsS https://$MILAN_DOMAIN/api/health     # {"status":"ok"}
 docker compose ps                              # all healthy
 ```
 
+## The first admin
+
+There is no register endpoint and no bootstrap password in the image. Creating a
+user needs shell access to this box, which is the right bar for it.
+
+```sh
+docker compose exec api python -m app.cli users add \
+    --name "Boss" --phone 0123456789 --role admin
+```
+
+It prompts for the PIN. **Never pass a PIN as an argument** — it would land in
+shell history and in `ps` output for every process on the machine. In a script,
+pipe it instead: `echo 4821 | docker compose exec -T api python -m app.cli ...`.
+
+Roles are `admin` (everything), `staff` (quotes, sees rates, cannot edit) and
+`parttime` (quotes and deposits, never sees a rate). `--role` defaults to
+`parttime`.
+
+Day to day:
+
+```sh
+docker compose exec api python -m app.cli users list
+docker compose exec api python -m app.cli users pin --phone 0123456789
+docker compose exec api python -m app.cli users deactivate --phone 0123456789
+```
+
+`deactivate` keeps the row — their quotes and payments still name them — and
+revokes every live session they hold.
+
+## Lost or stolen handsets
+
+Sessions never expire. SPEC.md §12: a token that expires does so mid-fair, with
+no signal, holding a customer's deposit. Revocation is the control instead.
+
+```sh
+docker compose exec api python -m app.cli sessions list
+docker compose exec api python -m app.cli sessions revoke <id> --reason "phone lost"
+```
+
+The handset is signed out the next time it reaches the server. Until then it
+keeps working offline, which is the trade this design makes on purpose.
+
 ## Publishing a rate card
 
 Rate cards are data, never code (CLAUDE.md hard rule 1). A price change
 publishes a *new version*; the old rows stay, marked superseded, so a quote
-taken at the fair can still be explained months later.
+taken at the fair can still be explained months later. Versions only go up — a
+re-used number would leave two different cards answering to one version.
+
+Normally an admin publishes from the app or the dashboard. For the first card on
+a new box, before anyone has an admin handset:
 
 ```sh
-docker compose exec -T api python -c "
-from app.db import session_scope
-from app.services.ingest import publish_card
-import json, sys
-payload = json.load(open('/srv/card.json'))
-with session_scope() as s:
-    publish_card(s, list_id='fair', payload=payload)
-"
+docker compose cp ../shared/rate-card-fair-2026-08.json api:/tmp/card.json
+docker compose exec api python -m app.cli cards publish /tmp/card.json --list-id fair
 ```
 
 ## Backups
