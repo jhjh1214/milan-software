@@ -383,6 +383,18 @@ class LZh extends L {
   String get provisionalCardBanner => '价格表还没确认，不可以给客户报价';
 
   @override
+  String listFair(String code) {
+    return '展会价 $code';
+  }
+
+  @override
+  String get listStandard => '平时价（非展会）';
+
+  @override
+  String get listStandardProvisional =>
+      '平时价是暂定的：窗帘加 20%，百叶加 50%。轨道、地板、壁纸、配件还是展会价。';
+
+  @override
   String expiredCardBanner(String code, String date) {
     return '这是 $code 展会价，$date 已过期。日常报价不可以用。';
   }

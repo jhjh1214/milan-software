@@ -758,6 +758,24 @@ abstract class L {
   /// **'价格表还没确认，不可以给客户报价'**
   String get provisionalCardBanner;
 
+  /// No description provided for @listFair.
+  ///
+  /// In zh, this message translates to:
+  /// **'展会价 {code}'**
+  String listFair(String code);
+
+  /// No description provided for @listStandard.
+  ///
+  /// In zh, this message translates to:
+  /// **'平时价（非展会）'**
+  String get listStandard;
+
+  /// No description provided for @listStandardProvisional.
+  ///
+  /// In zh, this message translates to:
+  /// **'平时价是暂定的：窗帘加 20%，百叶加 50%。轨道、地板、壁纸、配件还是展会价。'**
+  String get listStandardProvisional;
+
   /// No description provided for @expiredCardBanner.
   ///
   /// In zh, this message translates to:

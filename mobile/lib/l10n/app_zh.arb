@@ -179,6 +179,10 @@
   "disclaimerBody": "此报价按整数进位计算，仅供参考。现场实际丈量后，价格只会相同或更低，不会更高。",
 
   "provisionalCardBanner": "价格表还没确认，不可以给客户报价",
+  "listFair": "展会价 {code}",
+  "@listFair": { "placeholders": { "code": { "type": "String" } } },
+  "listStandard": "平时价（非展会）",
+  "listStandardProvisional": "平时价是暂定的：窗帘加 20%，百叶加 50%。轨道、地板、壁纸、配件还是展会价。",
   "expiredCardBanner": "这是 {code} 展会价，{date} 已过期。日常报价不可以用。",
   "@expiredCardBanner": { "placeholders": { "code": { "type": "String" }, "date": { "type": "String" } } },
 

@@ -391,6 +391,18 @@ class LEn extends L {
       'Rate card not confirmed. Do not quote a customer.';
 
   @override
+  String listFair(String code) {
+    return 'Fair prices $code';
+  }
+
+  @override
+  String get listStandard => 'Standard prices (not a fair)';
+
+  @override
+  String get listStandardProvisional =>
+      'Standard prices are provisional: curtains +20%, blinds +50%. Tracks, flooring, wallpaper and add-ons are still at fair price.';
+
+  @override
   String expiredCardBanner(String code, String date) {
     return 'These are $code fair rates and they expired on $date. Not valid for everyday quoting.';
   }

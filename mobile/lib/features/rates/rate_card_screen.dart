@@ -182,9 +182,15 @@ class _RateCardScreenState extends ConsumerState<RateCardScreen> {
     final store = ref.read(rateCardStoreProvider);
     setState(() => _busy = true);
     try {
-      final json = applyRateCardImportToJson(await store.loadJson(), import);
-      await store.save(json);
-      ref.invalidate(rateCardProvider);
+      // Applied to the list actually in force, so a fair-price edit cannot
+      // quietly move showroom prices.
+      final list = (await ref.read(activeRateCardProvider.future)).list;
+      final json = applyRateCardImportToJson(
+        await store.loadJson(list),
+        import,
+      );
+      await store.save(list, json);
+      ref.invalidate(activeRateCardProvider);
       if (!mounted) return;
       setState(() => _pending = null);
       messenger.showSnackBar(
@@ -196,8 +202,9 @@ class _RateCardScreenState extends ConsumerState<RateCardScreen> {
   }
 
   Future<void> _restore() async {
-    await ref.read(rateCardStoreProvider).restoreBundled();
-    ref.invalidate(rateCardProvider);
+    final list = (await ref.read(activeRateCardProvider.future)).list;
+    await ref.read(rateCardStoreProvider).restoreBundled(list);
+    ref.invalidate(activeRateCardProvider);
     if (mounted) setState(() => _pending = null);
   }
 }

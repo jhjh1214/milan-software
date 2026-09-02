@@ -123,6 +123,9 @@
   "disclaimerBody": "Sebut harga ini dibundarkan ke atas dan untuk rujukan sahaja. Selepas pengukuran di tapak, harga akhir adalah sama atau lebih rendah, tidak akan lebih tinggi.",
 
   "provisionalCardBanner": "Senarai harga belum disahkan. Jangan beri sebut harga kepada pelanggan.",
+  "listFair": "Harga pesta {code}",
+  "listStandard": "Harga biasa (bukan pesta)",
+  "listStandardProvisional": "Harga biasa adalah sementara: langsir +20%, bidai +50%. Trek, lantai, kertas dinding dan tambahan masih pada harga pesta.",
   "expiredCardBanner": "Ini kadar pesta {code} dan telah tamat pada {date}. Tidak sah untuk sebut harga harian.",
 
   "delete": "Padam",

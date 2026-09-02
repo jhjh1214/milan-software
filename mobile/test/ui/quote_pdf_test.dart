@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:milan_quote/core/length.dart';
 import 'package:milan_quote/data/database.dart';
+import 'package:milan_quote/data/rate_card_store.dart';
 import 'package:milan_quote/features/quote/quote_pdf.dart';
 import 'package:milan_quote/features/quote/quote_state.dart';
 import 'package:milan_quote/l10n/app_localizations.dart';
@@ -57,7 +58,9 @@ void main() {
       ProviderScope(
         overrides: [
           databaseProvider.overrideWithValue(db),
-          rateCardProvider.overrideWith((ref) => card),
+          activeRateCardProvider.overrideWith(
+            (ref) async => ActiveRateCard(card: card, list: PriceList.fair),
+          ),
           todayProvider.overrideWithValue(DateTime(2026, 8, 29)),
         ],
         child: MaterialApp(
@@ -244,7 +247,9 @@ void main() {
       ProviderScope(
         overrides: [
           databaseProvider.overrideWithValue(db),
-          rateCardProvider.overrideWith((ref) => card),
+          activeRateCardProvider.overrideWith(
+            (ref) async => ActiveRateCard(card: card, list: PriceList.fair),
+          ),
           todayProvider.overrideWithValue(DateTime(2026, 8, 29)),
         ],
         child: MaterialApp(

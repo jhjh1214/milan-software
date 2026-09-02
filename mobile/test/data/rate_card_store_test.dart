@@ -24,8 +24,8 @@ void main() {
   tearDown(() => temp.deleteSync(recursive: true));
 
   test('with no override, the bundled list is what loads', () async {
-    expect(await store.hasOverride(), isFalse);
-    final card = await store.load();
+    expect(await store.hasOverride(PriceList.fair), isFalse);
+    final card = await store.load(PriceList.fair);
     expect(card.version, 1);
     expect(
       card.rules.firstWhere((r) => r.id == 'night-curtain-lo').rateSen,
@@ -34,7 +34,7 @@ void main() {
   });
 
   test('an applied change survives a restart', () async {
-    final original = await store.loadJson();
+    final original = await store.loadJson(PriceList.fair);
     final card = RateCard.fromJson(original);
 
     final import = readRateCardCsv(
@@ -42,13 +42,16 @@ void main() {
       'night-curtain-lo,Night Curtain,Up to 10ft,ft,50.00,44.00,',
       card,
     );
-    await store.save(applyRateCardImportToJson(original, import));
+    await store.save(
+      PriceList.fair,
+      applyRateCardImportToJson(original, import),
+    );
 
     // A completely fresh store over the same storage: the app restarting.
     final reopened = RateCardStore(directory: () async => temp);
-    expect(await reopened.hasOverride(), isTrue);
+    expect(await reopened.hasOverride(PriceList.fair), isTrue);
 
-    final loaded = await reopened.load();
+    final loaded = await reopened.load(PriceList.fair);
     expect(loaded.version, 2);
     final rule = loaded.rules.firstWhere((r) => r.id == 'night-curtain-lo');
     expect(rule.rateSen, 5000);
@@ -58,7 +61,7 @@ void main() {
   test('everything the CSV cannot express survives the round trip', () async {
     // The import edits the card's own JSON rather than serialising a RateCard
     // back out, precisely so nothing gets quietly dropped.
-    final original = await store.loadJson();
+    final original = await store.loadJson(PriceList.fair);
     final before = RateCard.fromJson(original);
 
     final import = readRateCardCsv(
@@ -66,8 +69,11 @@ void main() {
       'night-curtain-lo,a,b,ft,50.00,,',
       before,
     );
-    await store.save(applyRateCardImportToJson(original, import));
-    final after = await store.load();
+    await store.save(
+      PriceList.fair,
+      applyRateCardImportToJson(original, import),
+    );
+    final after = await store.load(PriceList.fair);
 
     expect(after.rules, hasLength(before.rules.length));
     expect(after.deliveryZones, hasLength(before.deliveryZones.length));
@@ -89,15 +95,20 @@ void main() {
   });
 
   test('the new price is what the engine charges after a restart', () async {
-    final original = await store.loadJson();
+    final original = await store.loadJson(PriceList.fair);
     final import = readRateCardCsv(
       'id,product,band,unit,rate_rm,mvp_rate_rm,min_qty\n'
       'night-curtain-lo,a,b,ft,50.00,,',
       RateCard.fromJson(original),
     );
-    await store.save(applyRateCardImportToJson(original, import));
+    await store.save(
+      PriceList.fair,
+      applyRateCardImportToJson(original, import),
+    );
 
-    final card = await RateCardStore(directory: () async => temp).load();
+    final card = await RateCardStore(
+      directory: () async => temp,
+    ).load(PriceList.fair);
     final priced = priceLine(
       request: LineRequest(
         variant: 'night_curtain',
@@ -115,8 +126,9 @@ void main() {
   test(
     'restoring throws the edit away and brings back the shipped list',
     () async {
-      final original = await store.loadJson();
+      final original = await store.loadJson(PriceList.fair);
       await store.save(
+        PriceList.fair,
         applyRateCardImportToJson(
           original,
           readRateCardCsv(
@@ -126,13 +138,13 @@ void main() {
           ),
         ),
       );
-      expect((await store.load()).version, 2);
+      expect((await store.load(PriceList.fair)).version, 2);
 
-      await store.restoreBundled();
+      await store.restoreBundled(PriceList.fair);
 
       // A mistaken import at 9am must not cost the whole fair day.
-      expect(await store.hasOverride(), isFalse);
-      final card = await store.load();
+      expect(await store.hasOverride(PriceList.fair), isFalse);
+      final card = await store.load(PriceList.fair);
       expect(card.version, 1);
       expect(
         card.rules.firstWhere((r) => r.id == 'night-curtain-lo').rateSen,
@@ -143,11 +155,11 @@ void main() {
 
   test('a corrupt override falls back rather than bricking the app', () async {
     // Mid-fair, an unreadable file must not stop someone quoting.
-    File('${temp.path}/rate-card-current.json').writeAsStringSync('{ not json');
-    final card = await store.load();
+    File('${temp.path}/rate-card-fair.json').writeAsStringSync('{ not json');
+    final card = await store.load(PriceList.fair);
     expect(card.version, 1);
     expect(
-      await store.hasOverride(),
+      await store.hasOverride(PriceList.fair),
       isFalse,
       reason: 'the bad file is cleared so it cannot fail twice',
     );
@@ -159,7 +171,7 @@ void main() {
       File(
         '${temp.path}/rate-card-current.json',
       ).writeAsStringSync(jsonEncode({'hello': 'world'}));
-      expect((await store.load()).version, 1);
+      expect((await store.load(PriceList.fair)).version, 1);
     },
   );
 }

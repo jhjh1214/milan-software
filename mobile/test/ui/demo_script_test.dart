@@ -60,7 +60,9 @@ void main() {
       ProviderScope(
         overrides: [
           databaseProvider.overrideWithValue(db),
-          rateCardProvider.overrideWith((ref) => card),
+          activeRateCardProvider.overrideWith(
+            (ref) async => ActiveRateCard(card: card, list: PriceList.fair),
+          ),
           todayProvider.overrideWithValue(today ?? duringFair),
         ],
         child: const MilanQuoteApp(),
@@ -238,7 +240,13 @@ void main() {
       width: "12'",
       height: "9'",
     );
-    // SPEC.md §8.5 makes this binding and non-dismissible.
+    // SPEC.md §8.5 makes this binding and non-dismissible. It sits at the foot
+    // of the quote, so the list is scrolled to reach it.
+    await tester.scrollUntilVisible(
+      find.textContaining('价格只会相同或更低'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.textContaining('价格只会相同或更低'), findsOneWidget);
   });
 
@@ -411,7 +419,7 @@ void main() {
     // complete and this whole flow could not be tested.
     final store = RateCardStore(
       storage: InMemoryRateCardStorage(),
-      bundled: () async => cardJson,
+      bundled: (list) async => cardJson,
     );
 
     Future<void> pumpWithStore(WidgetTester tester) async {
@@ -542,19 +550,63 @@ void main() {
     expect(find.text('RM 552.00'), findsNothing);
   });
 
-  testWidgets('quoting after the fair warns that the rates expired', (
+  testWidgets('a November walk-in is quoted standard prices, not fair', (
     tester,
   ) async {
-    // SPEC.md §13 A3. Until a standard list exists this banner is the only
-    // thing stopping a November walk-in being quoted four-day fair prices.
-    await pumpApp(tester, today: DateTime(2026, 11, 15));
-    expect(find.textContaining('MITC-2026-08'), findsOneWidget);
-    expect(find.textContaining('31 Aug 2026'), findsOneWidget);
+    // §3: the showroom pays standard, no promo, no lock. The date decides,
+    // not a switch someone has to remember. RM46 becomes RM55.20, so the same
+    // 12ft curtain is RM662.40 rather than RM552.
+    var dir = Directory.current;
+    while (!File('${dir.path}/shared/rate-card-standard.json').existsSync()) {
+      dir = dir.parent;
+    }
+    final standardJson = File(
+      '${dir.path}/shared/rate-card-standard.json',
+    ).readAsStringSync();
+
+    final store = RateCardStore(
+      storage: InMemoryRateCardStorage(),
+      bundled: (list) async => list == PriceList.fair ? cardJson : standardJson,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+          rateCardStoreProvider.overrideWithValue(store),
+          todayProvider.overrideWithValue(DateTime(2026, 11, 15)),
+        ],
+        child: const MilanQuoteApp(),
+      ),
+      duration: Duration.zero,
+    );
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+      if (find.byType(CircularProgressIndicator).evaluate().isEmpty) break;
+    }
+    await tester.pumpAndSettle();
+
+    expect(find.text('平时价（非展会）'), findsOneWidget);
+    expect(find.textContaining('MITC-2026-08'), findsNothing);
+
+    await addWindow(
+      tester,
+      room: '客厅',
+      category: '窗帘',
+      product: '夜帘（遮光）',
+      width: "12'",
+      height: "9'",
+    );
+    expect(find.text('RM 662.40'), findsWidgets);
+    expect(find.text('RM 552.00'), findsNothing);
   });
 
-  testWidgets('during the fair there is no expiry warning', (tester) async {
+  testWidgets('the fair banner names the promo and its dates', (tester) async {
+    // Always on screen, so whoever is holding the phone knows which list they
+    // are showing the customer. The difference is 20% on curtains.
     await pumpApp(tester, today: DateTime(2026, 8, 29));
-    expect(find.textContaining('MITC-2026-08'), findsNothing);
+    expect(find.textContaining('MITC-2026-08'), findsOneWidget);
+    expect(find.textContaining('31 Aug 2026'), findsOneWidget);
   });
 
   testWidgets('the real price list shows no provisional banner', (
@@ -580,7 +632,9 @@ void main() {
       ProviderScope(
         overrides: [
           databaseProvider.overrideWithValue(db),
-          rateCardProvider.overrideWith((ref) => standIn),
+          activeRateCardProvider.overrideWith(
+            (ref) async => ActiveRateCard(card: standIn, list: PriceList.fair),
+          ),
           todayProvider.overrideWithValue(duringFair),
         ],
         child: const MilanQuoteApp(),
@@ -662,6 +716,11 @@ void main() {
 
     expect(find.text('Sebut Harga'), findsOneWidget);
     expect(find.text('RM 552.00'), findsWidgets);
+    await tester.scrollUntilVisible(
+      find.textContaining('sama atau lebih rendah'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.textContaining('sama atau lebih rendah'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.language));
@@ -670,6 +729,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Quotation'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.textContaining('same or lower'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.textContaining('same or lower'), findsOneWidget);
   });
 

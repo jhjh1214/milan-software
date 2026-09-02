@@ -28,19 +28,28 @@ final quoteRepositoryProvider = Provider<QuoteRepository>(
 /// Where the price list lives. Overridden in tests.
 final rateCardStoreProvider = Provider<RateCardStore>((ref) => RateCardStore());
 
-/// The price list in force: the admin's imported edit if there is one,
-/// otherwise the list the app shipped with.
+/// The price list in force today, and which one it is.
 ///
-/// The card is data, never code. Changing a price must not require a rebuild of
-/// anything but this file — CLAUDE.md hard rule 1.
+/// Fair rates inside the fair's own window; standard rates every other day of
+/// the year (§3: the showroom pays standard, no promo, no lock). The date
+/// decides rather than a salesperson remembering to switch.
+final activeRateCardProvider = FutureProvider<ActiveRateCard>(
+  (ref) =>
+      ref.watch(rateCardStoreProvider).loadActive(ref.watch(todayProvider)),
+);
+
+/// The card in force. The card is data, never code — CLAUDE.md hard rule 1.
 final rateCardProvider = FutureProvider<RateCard>(
-  (ref) => ref.watch(rateCardStoreProvider).load(),
+  (ref) async => (await ref.watch(activeRateCardProvider.future)).card,
 );
 
 /// The user's chosen language. Per user, not per device — SPEC.md §8.3.
 final languageProvider = StateProvider<String>((ref) => 'zh');
 
 /// Today's date, injected rather than read at the point of use.
+///
+/// It decides which price list applies, so a test can quote a November walk-in
+/// without waiting for November.
 ///
 /// The pricing engine takes no clock (CLAUDE.md), and overriding this in a test
 /// is what lets the expired-fair-rate warning be pinned to a fixed date instead
@@ -275,18 +284,22 @@ class PricedQuote {
   /// refuse the quote: refusing loses the sale, staying silent loses the floor.
   final List<OrderRuleViolation> orderIssues;
 
-  /// The promotion these rates belong to, when it has already ended.
+  /// Which price list produced these numbers, and its promo if it is the fair
+  /// one.
   ///
-  /// Non-null means the app is quoting expired fair rates, which undercharges
-  /// on every sale until a standard list exists — SPEC.md §13 A3.
-  final CardPromo? expiredPromo;
+  /// Always shown. A quote is either a fair price or a standard price, and the
+  /// salesperson holding the phone has to know which — §3 makes the difference
+  /// a 20% one on curtains.
+  final PriceList priceList;
+  final CardPromo? promo;
 
   const PricedQuote({
     required this.lines,
     required this.totals,
     required this.provisionalCard,
+    required this.priceList,
     this.orderIssues = const [],
-    this.expiredPromo,
+    this.promo,
   });
 }
 
@@ -296,21 +309,21 @@ class PricedQuote {
 /// its own error and the rest still totals. A part-timer mid-fair needs the
 /// other five windows to keep working.
 final pricedQuoteProvider = Provider<AsyncValue<PricedQuote>>((ref) {
-  final cardAsync = ref.watch(rateCardProvider);
+  final activeAsync = ref.watch(activeRateCardProvider);
   final quoteAsync = ref.watch(quoteProvider);
-  final today = ref.watch(todayProvider);
 
-  if (cardAsync.isLoading || quoteAsync.isLoading) {
+  if (activeAsync.isLoading || quoteAsync.isLoading) {
     return const AsyncValue.loading();
   }
-  final card = cardAsync.valueOrNull;
+  final active = activeAsync.valueOrNull;
   final quote = quoteAsync.valueOrNull;
-  if (card == null || quote == null) {
+  if (active == null || quote == null) {
     return AsyncValue.error(
-      cardAsync.error ?? quoteAsync.error ?? 'rate card unavailable',
+      activeAsync.error ?? quoteAsync.error ?? 'rate card unavailable',
       StackTrace.current,
     );
   }
+  final card = active.card;
 
   final priced = <PricedQuoteLine>[];
   for (final line in quote.lines) {
@@ -358,7 +371,8 @@ final pricedQuoteProvider = Provider<AsyncValue<PricedQuote>>((ref) {
         card: card,
       ),
       provisionalCard: card.provisional,
-      expiredPromo: card.isExpiredOn(today) ? card.promo : null,
+      priceList: active.list,
+      promo: card.promo,
     ),
   );
 });

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/date_format.dart';
 import '../../core/money.dart';
+import '../../data/rate_card_store.dart';
 import '../../l10n/app_localizations.dart';
 import '../../pricing/engine.dart';
 import '../../pricing/models.dart';
@@ -53,8 +54,7 @@ class QuoteScreen extends ConsumerWidget {
         data: (priced) => Column(
           children: [
             if (priced.provisionalCard) const _ProvisionalBanner(),
-            if (priced.expiredPromo != null)
-              _ExpiredCardBanner(promo: priced.expiredPromo!),
+            _PriceListBanner(priced: priced),
             Expanded(
               child: priced.lines.isEmpty
                   ? const _EmptyState()
@@ -139,34 +139,62 @@ class _ProvisionalBanner extends StatelessWidget {
   }
 }
 
-/// Shown whenever the loaded card's promotion has already ended.
+/// Which price list produced these numbers.
 ///
-/// The MITC card is a four-day fair price. Quoting a November walk-in from it
-/// undercharges on every sale, and nobody would notice from the screen. Until
-/// A3 supplies a standard list, this banner is the only guard.
-class _ExpiredCardBanner extends StatelessWidget {
-  final CardPromo promo;
+/// Always on screen. A quote is either a fair price or a standard price, and
+/// the difference is 20% on curtains and 50% on blinds — the salesperson
+/// holding the phone has to know which they are showing the customer.
+///
+/// The list is chosen by the date (§3), not by a switch someone can forget.
+class _PriceListBanner extends StatelessWidget {
+  final PricedQuote priced;
 
-  const _ExpiredCardBanner({required this.promo});
+  const _PriceListBanner({required this.priced});
 
   @override
   Widget build(BuildContext context) {
     final l = L.of(context);
+    final isFair = priced.priceList == PriceList.fair;
+    final promo = priced.promo;
+
     return Container(
       width: double.infinity,
-      color: AppColors.alarmSurface,
+      color: isFair ? AppColors.muted : AppColors.warningSurface,
       padding: const EdgeInsets.symmetric(
         horizontal: Space.lg,
         vertical: Space.md,
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.event_busy, color: AppColors.alarm),
+          Icon(
+            isFair ? Icons.celebration_outlined : Icons.storefront_outlined,
+            size: 20,
+            color: isFair ? AppColors.primary : AppColors.warning,
+          ),
           const SizedBox(width: Space.sm),
           Expanded(
-            child: Text(
-              l.expiredCardBanner(promo.code, formatDate(promo.validTo)),
-              style: AppText.bodyStrong.copyWith(color: AppColors.alarm),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isFair && promo != null
+                      ? '${l.listFair(promo.code)} · ${formatDate(promo.validFrom)} – ${formatDate(promo.validTo)}'
+                      : l.listStandard,
+                  style: AppText.bodyStrong.copyWith(
+                    color: isFair ? AppColors.primary : AppColors.warning,
+                  ),
+                ),
+                // The standard list is derived, not printed. Say so until a
+                // real one exists — §13 A3.
+                if (!isFair) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    l.listStandardProvisional,
+                    style: AppText.caption.copyWith(color: AppColors.warning),
+                  ),
+                ],
+              ],
             ),
           ),
         ],

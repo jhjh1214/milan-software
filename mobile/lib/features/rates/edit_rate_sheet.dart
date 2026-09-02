@@ -230,10 +230,13 @@ class _EditRateSheetState extends ConsumerState<_EditRateSheet> {
       return;
     }
 
+    // Edited against the list actually in force, so changing fair prices in
+    // August cannot quietly move showroom prices in November.
     final store = ref.read(rateCardStoreProvider);
-    final json = applyRateCardImportToJson(await store.loadJson(), import);
-    await store.save(json);
-    ref.invalidate(rateCardProvider);
+    final list = (await ref.read(activeRateCardProvider.future)).list;
+    final json = applyRateCardImportToJson(await store.loadJson(list), import);
+    await store.save(list, json);
+    ref.invalidate(activeRateCardProvider);
     if (mounted) Navigator.of(context).pop(true);
   }
 }

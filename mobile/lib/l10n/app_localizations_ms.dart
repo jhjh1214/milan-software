@@ -389,6 +389,18 @@ class LMs extends L {
       'Senarai harga belum disahkan. Jangan beri sebut harga kepada pelanggan.';
 
   @override
+  String listFair(String code) {
+    return 'Harga pesta $code';
+  }
+
+  @override
+  String get listStandard => 'Harga biasa (bukan pesta)';
+
+  @override
+  String get listStandardProvisional =>
+      'Harga biasa adalah sementara: langsir +20%, bidai +50%. Trek, lantai, kertas dinding dan tambahan masih pada harga pesta.';
+
+  @override
   String expiredCardBanner(String code, String date) {
     return 'Ini kadar pesta $code dan telah tamat pada $date. Tidak sah untuk sebut harga harian.';
   }

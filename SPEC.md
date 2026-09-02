@@ -989,8 +989,13 @@ Steps 1–3 have no UI at all. **Resist starting with screens.**
   - tap a product and change its rate directly, for the one-off adjustment
   - export to CSV, edit in Excel, import back, for a whole-list revision
 
-  The web dashboard editor is Phase 5; this is what stands in until then, and it
-  is what makes hard rule 1 true rather than aspirational.
+  > ⚠ **This is a Phase 2 stand-in and Phase 3 replaces it.** A price edited on
+  > one phone stays on that phone, which is exactly wrong for a business where
+  > six people quote from six handsets. From Phase 3 the price list is published
+  > centrally and pulled by every device (§9.1), and **editing on the device
+  > becomes read-only.** Do not let this local override survive into Phase 3 as
+  > a second, divergent source of prices — one till showing RM46 while the next
+  > shows RM50 is worse than either number being wrong.
 
 **Acceptance** — a box is ticked only when a test covers it, never by inspection.
 - [x] Quote survives force-quit, reopens at the exact window
@@ -1035,6 +1040,10 @@ First phase with running costs, so maintenance billing starts here.
 **In**
 - FastAPI, Postgres, Alembic
 - Python pricing engine mirroring Dart, sharing `shared/pricing-fixtures.json`
+- **Prices become server-owned.** The rate card is published once and pulled by
+  every device; the on-device editing built in Phase 2 turns **read-only**, and
+  the local override file is removed on first successful pull. Six handsets
+  quoting six different prices is the failure this prevents.
 - Auth: users, roles, offline-tolerant sessions
 - `GET /api/bundle` versioned gzipped pull
 - Outbox push, idempotent on client UUID
@@ -1292,20 +1301,35 @@ orders, supplier management and costing come later.
   rod-with-eyelet composites; for Doso and Meyer it is a colour note, for Zebra
   the material series, and for Fauxwood and Ultra Light Timber a slat size.
   Reading it as a band throughout would have mispriced a dozen rows.
-- `[BLOCKING P2]` **A3.** **The standard, non-fair price list.** The only card
-  in the system is the MITC fair promo, valid 28–31 Aug 2026. §3 says the
-  showroom pays standard with no promo and no lock, so quoting a walk-in from
-  the fair card undercharges on every sale, every day.
+- **A3.** **ANSWERED PROVISIONALLY — curtains +20%, blinds +50% over the fair
+  rate.** Client, Sep 2026, given explicitly as a placeholder: *"will revise
+  back after, just put it first."*
 
-  Undecided as of Sep 2026. Until it is answered the app shows a **loud banner
-  whenever it quotes from a card whose promo window has closed**, so nobody
-  mistakes an expired fair rate for today's price. **Nothing daily-operational
-  ships until this exists.**
+  `shared/rate-card-standard.json` is derived from the fair card by
+  `tool/build_standard_card.py` and flagged `provisional`. Both markups are
+  exact — 20% and 50% of whole-ringgit prices land on whole sen, so nothing
+  rounds. Night curtain RM46 → **RM55.20**; roller blackout RM9 → **RM13.50**.
 
-  Three shapes it could take: a separate standard list; a percentage the fair
-  discounts off; or confirmation that the fair rate simply is the year-round
-  price, in which case the promo and 12-month lock machinery in §3 and §6 is
-  describing something that does not exist and should be removed.
+  **The date picks the list.** Fair rates inside the fair's own window, standard
+  every other day (§3). Nobody has to remember to switch, and the quote screen
+  always says which list it is using.
+
+  **MVP keeps its flat differential** rather than being marked up: §4.1 requires
+  MVP to be a constant sen off, and marking RM40 up 20% would turn RM6 off into
+  RM7.20 off and quietly make it a percentage. So standard night curtain is
+  RM55.20 with MVP RM49.20 — still RM6.
+- `[BLOCKING P3]` **A3a.** **45 of the 77 rows have no markup.** The client named
+  curtains and blinds. Tracks (22 rows), flooring (10), add-ons (9), services
+  (3) and wallpaper (1) therefore sell at **fair price in the showroom, all year**.
+
+  That is not a rounding matter. An S-Track is RM80/ft against a night curtain's
+  RM46, so on a 12ft window the showroom currently charges RM662.40 for the
+  curtain and RM960 for the track it hangs on — the dearer half of the sale at
+  promotional price. Flooring is the same shape: a 200sqft SPC floor is RM960 at
+  either price.
+
+  Nothing was invented, because inventing a markup is inventing a price. Ask for
+  these five families when asking for the real standard list.
 - `[BLOCKING P2]` **A4.** Is the discount applied to the **unit rate** (discount
   → round → multiply) or the **line total** (multiply → discount → round)?
   Differs by sen per line and real money across a house.
@@ -1425,6 +1449,10 @@ orders, supplier management and costing come later.
 - **G2.** Will there ever be an in-house dev team, Java-shop by policy?
 
 ## Answered
+- **Standard prices are the fair price plus 20% on curtains and 50% on blinds**,
+  provisionally, until a real list arrives (A3). The date picks the list ✓
+- **Prices become server-owned in Phase 3.** On-device editing is a Phase 2
+  stand-in and turns read-only once the backend publishes ✓
 - **The normal track is included in the curtain rate.** Every track and rod rate
   on the list is a special-track upgrade, chosen by the customer and never added
   automatically (§4.1) ✓

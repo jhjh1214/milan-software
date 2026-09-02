@@ -123,6 +123,9 @@
   "disclaimerBody": "This quotation is rounded up to whole units and is for reference only. After on-site measurement the final price will be the same or lower, never higher.",
 
   "provisionalCardBanner": "Rate card not confirmed. Do not quote a customer.",
+  "listFair": "Fair prices {code}",
+  "listStandard": "Standard prices (not a fair)",
+  "listStandardProvisional": "Standard prices are provisional: curtains +20%, blinds +50%. Tracks, flooring, wallpaper and add-ons are still at fair price.",
   "expiredCardBanner": "These are {code} fair rates and they expired on {date}. Not valid for everyday quoting.",
 
   "delete": "Delete",
