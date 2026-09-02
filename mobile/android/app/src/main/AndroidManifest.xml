@@ -3,11 +3,16 @@
          still installs on a device without a usable camera. -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
-    <!-- No INTERNET permission is declared. Phase 2 is offline by construction:
-         the rate card is a bundled asset, the database is local, and the PDF is
-         rendered on device. Sync arrives in Phase 3 and adds it then. Until
-         then, the absence of this line is the strongest possible proof of
-         SPEC.md §9: the app cannot phone home even by accident. -->
+    <!-- Phase 3 adds sync, so INTERNET is now declared. Nothing else is: no
+         location, no contacts, no background service. The app talks to exactly
+         one host and only when someone asks it to.
+
+         ACCESS_NETWORK_STATE is for checking whether there is any signal
+         before attempting a pull, so a fair's dead connection costs a quick
+         "not now" rather than an eight-second timeout. It is never used to
+         BLOCK anything: offline is the default, not a fallback (CLAUDE.md 9). -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:label="@string/app_name"

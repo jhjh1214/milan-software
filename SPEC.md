@@ -1010,7 +1010,12 @@ Steps 1–3 have no UI at all. **Resist starting with screens.**
 - [x] Wallpaper rounds up to whole BOGO pairs
 - [x] Delivery charge appears before the customer sees a total, never after
 - [x] Quote PDF reaches WhatsApp with the phone in airplane mode
-      — no `INTERNET` permission is even declared, so it cannot phone home
+      — the document is rendered on device by `quote_pdf.dart` and shared
+      through the OS sheet; no code path in that flow touches the network.
+      Through Phase 2 the proof was stronger still: no `INTERNET` permission
+      was declared at all. Phase 3 adds sync and with it the permission, so
+      the guarantee now rests on `test/ui/quote_pdf_test.dart` rather than on
+      the manifest.
 - [x] Every line prints entered size, billed size, band applied, rate
 - [x] Rate card imported from an admin-prepared CSV, with a diff preview and a
       two-step confirm (§8.2), and one tap to restore the shipped list

@@ -40,6 +40,19 @@ dependencies:
   # round-trip, no crop step.
   image_picker: 1.1.2
 
+  # Talking to the backend. Phase 3 makes prices server-owned: the card is
+  # published once and pulled by every device, rather than each handset holding
+  # its own edited copy.
+  http: 1.6.0
+
+  # The session token, in the Android Keystore rather than a plain file. It
+  # never expires (SPEC.md 12), so a handset left on a table is the threat.
+  flutter_secure_storage: 11.0.0
+
+  # Whether there is any signal at all, so sync can be attempted rather than
+  # timing out. Never used to BLOCK the UI -- offline is the default.
+  connectivity_plus: 7.3.1
+
   # Picking the edited price list back off the device. Without it the admin has
   # to get a file into the app's private folder by hand, which is not a thing
   # anyone does.
