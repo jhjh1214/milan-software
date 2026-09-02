@@ -201,4 +201,8 @@ class IdempotencyRecord(Base):
         DateTime(timezone=True), server_default=func.now()
     )
 
-    __table_args__ = (UniqueConstraint("entity_type", "entity_id"),)
+    # Named explicitly: an anonymous constraint gets a dialect-invented name,
+    # and a later migration that needs to drop it would have nothing to name.
+    __table_args__ = (
+        UniqueConstraint("entity_type", "entity_id", name="uq_idempotency_entity"),
+    )

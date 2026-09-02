@@ -109,6 +109,24 @@ jobs:
       run:
         working-directory: backend
 
+    # Production is Postgres. The JSONB column and the two partial indexes have
+    # no equivalent on SQLite, so a suite that only ever ran in memory would
+    # first meet them on the VPS.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: milan
+          POSTGRES_PASSWORD: milan
+          POSTGRES_DB: milan_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U milan"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
 
@@ -124,6 +142,12 @@ jobs:
       # is told one number and invoiced another.
       - name: Test
         run: python -m pytest -q
+
+      # The same schema tests again, against the real thing.
+      - name: Schema, on Postgres
+        env:
+          TEST_DATABASE_URL: postgresql+psycopg://milan:milan@localhost:5432/milan_test
+        run: python -m pytest tests/test_migrations.py -q
 
       - name: Lint
         run: python -m ruff check .
