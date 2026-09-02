@@ -102,21 +102,61 @@ jobs:
           sys.exit(1 if failed else 0)
           PY
 
+  backend:
+    name: Python — the same fixtures, the same numbers
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      # The whole point of the Phase 3 pricing work. If the two engines drift,
+      # §9.4 has the server re-pricing every line the app sends and the customer
+      # is told one number and invoiced another.
+      - name: Test
+        run: python -m pytest -q
+
+      - name: Lint
+        run: python -m ruff check .
+
   fixtures:
-    name: Shared fixtures are well formed
+    name: Shared files are well formed and in step
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      # From Phase 3 the Python engine loads these same files, and this job
-      # grows a pytest run beside the Dart one.
       - name: Validate JSON
         run: |
-          python3 -c "import json; json.load(open('shared/pricing-fixtures.json'))"
-          python3 -c "import json; json.load(open('shared/rate-card-seed.json'))"
+          for f in shared/*.json; do
+            python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$f"
+            echo "ok $f"
+          done
 
-      - name: The bundled rate card matches shared/
-        run: diff -u shared/rate-card-seed.json mobile/assets/data/rate-card-seed.json
+      - name: The bundled rate cards match shared/
+        run: |
+          diff -u shared/rate-card-fair-2026-08.json \
+                  mobile/assets/data/rate-card-fair-2026-08.json
+          diff -u shared/rate-card-standard.json \
+                  mobile/assets/data/rate-card-standard.json
+
+      # The standard list is derived, so it must be exactly what the generator
+      # produces. A hand-edit here would be silently overwritten next time
+      # anyone regenerates, taking the price change with it.
+      - name: The standard list matches its derivation
+        run: |
+          cp shared/rate-card-standard.json /tmp/before.json
+          python3 tool/build_standard_card.py
+          diff -u /tmp/before.json shared/rate-card-standard.json \
+            || { echo "::error::rate-card-standard.json is not what tool/build_standard_card.py produces. Edit the fair card or the generator, not the derived file."; exit 1; }
 
       - name: No printed document may claim to be a tax invoice
         # CLAUDE.md hard rule 7 is a legal constraint, not a labelling

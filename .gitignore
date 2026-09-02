@@ -42,3 +42,8 @@ dashboard/.angular/
 !.vscode/settings.json
 .DS_Store
 Thumbs.db
+
+# Python
+backend/.venv/
+backend/.pytest_cache/
+backend/.ruff_cache/

@@ -1,0 +1,350 @@
+"""Rate card data model. Mirrors `mobile/lib/pricing/models.dart`.
+
+PURE. No FastAPI, no SQLAlchemy, no I/O. Loading the JSON is the caller's job;
+this module only knows how to read a decoded dict.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from datetime import date
+from enum import Enum
+from fractions import Fraction
+from typing import Any
+
+from ..core.length import Length
+
+
+class PricingStage(Enum):
+    """Which stage of the sale is being priced.
+
+    The two round quantity by different rules and that is deliberate -- A10 and
+    A11.
+    """
+
+    ESTIMATE = "estimate"
+    FINAL = "final"
+
+
+class Family(Enum):
+    CURTAIN = "curtain"
+    BLIND = "blind"
+    TRACK = "track"
+    FLOORING = "flooring"
+    WALLPAPER = "wallpaper"
+    ADDON = "addon"
+    SERVICE = "service"
+
+
+class DepositCategory(Enum):
+    CURTAIN = "curtain"
+    FLOORING = "flooring"
+    WALLPAPER = "wallpaper"
+
+
+def deposit_category_of(family: Family) -> DepositCategory:
+    """Maps a product family to the deposit category that covers it.
+
+    **Kept in one function on purpose.** §6.1: silently applying a curtain lock
+    to a flooring line is the expensive bug in this design.
+    """
+    if family in (Family.CURTAIN, Family.BLIND, Family.TRACK):
+        return DepositCategory.CURTAIN
+    if family is Family.FLOORING:
+        return DepositCategory.FLOORING
+    if family is Family.WALLPAPER:
+        return DepositCategory.WALLPAPER
+    # Add-ons and services inherit their parent line's category. An unparented
+    # one is a data error, not something to file silently under curtains.
+    return DepositCategory.CURTAIN
+
+
+class PriceBasis(Enum):
+    PER_FT_WIDTH = ("per_ft_width", "ft")
+    PER_SQFT = ("per_sqft", "sqft")
+    PER_M_LENGTH = ("per_m_length", "m")
+    PER_PIECE = ("per_piece", "pc")
+    PER_SET = ("per_set", "set")
+    PER_ROLL = ("per_roll", "roll")
+
+    def __init__(self, wire: str, unit: str) -> None:
+        self.wire = wire
+        self.unit = unit
+
+    @classmethod
+    def from_wire(cls, value: str) -> PriceBasis:
+        for member in cls:
+            if member.wire == value:
+                return member
+        raise ValueError(f"unknown price basis: {value}")
+
+
+class BandField(Enum):
+    HEIGHT = "height"
+    WIDTH = "width"
+    NONE = "none"
+
+
+class Layer(Enum):
+    SINGLE = "single"
+    DAY = "day"
+    NIGHT = "night"
+
+
+class Fulfilment(Enum):
+    SUPPLY_INSTALL = "supply_install"
+    SUPPLY_ONLY = "supply_only"
+
+
+class CustomerTier(Enum):
+    STANDARD = "standard"
+    MVP = "mvp"
+
+
+@dataclass(frozen=True)
+class Localised:
+    """A string in each supported language.
+
+    A map rather than parallel fields, so a fourth language is a data change and
+    not a migration in every table.
+    """
+
+    by_language: dict[str, str]
+
+    def __call__(self, language: str) -> str:
+        """Never returns None: a missing label must not blank out a product
+        name in front of a customer."""
+        return (
+            self.by_language.get(language)
+            or self.by_language.get("zh")
+            or self.by_language.get("en")
+            or next(iter(self.by_language.values()), "")
+        )
+
+
+@dataclass(frozen=True)
+class PricingRule:
+    id: str
+    family: Family
+    variant: str
+    layer: Layer
+    material_key: str | None
+    fulfilment: Fulfilment
+    labels: Localised
+    basis: PriceBasis
+    band_field: BandField
+    #: Inclusive lower bound, tenths of a millimetre.
+    band_min_tmm: int | None
+    #: **Exclusive** upper bound. A 10ft cutoff is 30481, not 30480: exactly
+    #: 10ft must fall in the lower band (A1).
+    band_max_tmm: int | None
+    band_labels: Localised | None
+    rate_sen: int
+    #: The flat MVP rate, if this product has one. Never a percentage.
+    mvp_rate_sen: int | None
+    #: Minimum **billed quantity**, applied before the rate multiplies.
+    min_qty: Fraction | None
+    sort_order: int
+    coverage_sqft: Fraction | None = None
+    bundle_qty: int = 1
+    deposit_category_override: DepositCategory | None = None
+    is_addon: bool = False
+    attaches_to: tuple[str, ...] | None = None
+    note: str | None = None
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any]) -> PricingRule:
+        raw_min = data.get("min_qty")
+        if raw_min is not None and not isinstance(raw_min, int):
+            # A fractional minimum would need exact handling; none exists on the
+            # real price list, so reject rather than quietly accept a float.
+            raise ValueError(f"min_qty must be an integer or null: {data['id']}")
+        coverage = data.get("coverage_sqft")
+        deposit = data.get("deposit_category")
+        attaches = data.get("attaches_to")
+        return cls(
+            id=data["id"],
+            family=Family(data["family"]),
+            variant=data["variant"],
+            layer=Layer(data["layer"]),
+            material_key=data.get("material_key"),
+            fulfilment=Fulfilment(data["fulfilment"]),
+            labels=Localised(dict(data["labels"])),
+            basis=PriceBasis.from_wire(data["basis"]),
+            band_field=BandField(data["band_field"]),
+            band_min_tmm=data.get("band_min_tmm"),
+            band_max_tmm=data.get("band_max_tmm"),
+            band_labels=(
+                Localised(dict(data["band_labels"]))
+                if data.get("band_labels")
+                else None
+            ),
+            rate_sen=data["rate_sen"],
+            mvp_rate_sen=data.get("mvp_rate_sen"),
+            min_qty=None if raw_min is None else Fraction(raw_min),
+            sort_order=data["sort_order"],
+            coverage_sqft=None if coverage is None else Fraction(coverage),
+            bundle_qty=data.get("bundle_qty", 1),
+            deposit_category_override=(
+                DepositCategory(deposit) if deposit else None
+            ),
+            is_addon=data.get("is_addon", False),
+            attaches_to=tuple(attaches) if attaches else None,
+            note=data.get("note"),
+        )
+
+    @property
+    def deposit_category(self) -> DepositCategory:
+        return self.deposit_category_override or deposit_category_of(self.family)
+
+    def band_contains(self, value: Length) -> bool:
+        """Lower bound inclusive, upper bound exclusive.
+
+        The fencepost that decides whether exactly 10ft costs RM46 or RM58.
+        """
+        # Written out rather than collapsed into one negated expression: this
+        # is the RM144 fencepost, it mirrors the Dart line for line, and the
+        # two bounds are deliberately asymmetric. Clarity wins over brevity.
+        if self.band_field is BandField.NONE:
+            return True
+        if self.band_min_tmm is not None and value.tmm < self.band_min_tmm:
+            return False
+        if self.band_max_tmm is not None and value.tmm >= self.band_max_tmm:  # noqa: SIM103
+            return False
+        return True
+
+    def rate_for_tier(self, tier: CustomerTier) -> int:
+        """MVP is a flat substitute, not a discount sum."""
+        if tier is CustomerTier.MVP and self.mvp_rate_sen is not None:
+            return self.mvp_rate_sen
+        return self.rate_sen
+
+
+@dataclass(frozen=True)
+class DeliveryZone:
+    id: str
+    charge_sen: int
+    charge_kind: str
+    area_labels: tuple[str, ...]
+    labels: Localised
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any]) -> DeliveryZone:
+        return cls(
+            id=data["id"],
+            charge_sen=data["charge_sen"],
+            charge_kind=data["charge_kind"],
+            area_labels=tuple(data["area_labels"]),
+            labels=Localised(dict(data["labels"])),
+        )
+
+
+@dataclass(frozen=True)
+class ProductRule:
+    """A constraint rather than a price."""
+
+    id: str
+    variant: str
+    kind: str
+    messages: Localised
+    target: str | None = None
+    dimension: str | None = None
+    value_tmm: int | None = None
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any]) -> ProductRule:
+        return cls(
+            id=data["id"],
+            variant=data["variant"],
+            kind=data["kind"],
+            messages=Localised(dict(data["messages"])),
+            target=data.get("target"),
+            dimension=data.get("dimension"),
+            value_tmm=data.get("value_tmm"),
+        )
+
+
+@dataclass(frozen=True)
+class RateCardConfig:
+    min_deposit_sen: int
+    band_edge_warn_tmm: int
+    default_unit_width: str = "ft"
+    default_unit_height: str = "ft"
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any]) -> RateCardConfig:
+        return cls(
+            min_deposit_sen=data["min_deposit_sen"],
+            band_edge_warn_tmm=data["band_edge_warn_tmm"],
+            default_unit_width=data.get("default_unit_width", "ft"),
+            default_unit_height=data.get("default_unit_height", "ft"),
+        )
+
+
+@dataclass(frozen=True)
+class CardPromo:
+    code: str
+    valid_from: date
+    valid_to: date
+    note: str | None = None
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any]) -> CardPromo:
+        return cls(
+            code=data["code"],
+            valid_from=date.fromisoformat(data["valid_from"]),
+            valid_to=date.fromisoformat(data["valid_to"]),
+            note=data.get("note"),
+        )
+
+    def covers(self, day: date) -> bool:
+        """Inclusive of the final day: a quote at 9pm on closing night counts."""
+        return self.valid_from <= day <= self.valid_to
+
+
+@dataclass(frozen=True)
+class RateCard:
+    version: int
+    provisional: bool
+    config: RateCardConfig
+    rules: tuple[PricingRule, ...]
+    delivery_zones: tuple[DeliveryZone, ...] = ()
+    product_rules: tuple[ProductRule, ...] = ()
+    promo: CardPromo | None = None
+    _by_id: dict[str, PricingRule] = field(default_factory=dict, repr=False)
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any]) -> RateCard:
+        rules = tuple(PricingRule.from_json(r) for r in data["rules"])
+        return cls(
+            version=data["version"],
+            provisional=data.get("provisional", False),
+            config=RateCardConfig.from_json(data["config"]),
+            rules=rules,
+            delivery_zones=tuple(
+                DeliveryZone.from_json(z) for z in data.get("delivery_zones", [])
+            ),
+            product_rules=tuple(
+                ProductRule.from_json(p) for p in data.get("product_rules", [])
+            ),
+            promo=(
+                CardPromo.from_json(data["promo"]) if data.get("promo") else None
+            ),
+            _by_id={r.id: r for r in rules},
+        )
+
+    def rule(self, rule_id: str) -> PricingRule:
+        return self._by_id[rule_id]
+
+    def is_expired_on(self, day: date) -> bool:
+        """True when these rates are promotional and the promotion has ended."""
+        return self.promo is not None and not self.promo.covers(day)
+
+    def materials_for(self, variant: str) -> list[str]:
+        return sorted(
+            {
+                r.material_key
+                for r in self.rules
+                if r.variant == variant and r.material_key
+            }
+        )

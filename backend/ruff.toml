@@ -1,0 +1,11 @@
+# The pricing engine mirrors Dart line for line, so readability there matters
+# more than brevity.
+line-length = 88
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[lint.per-file-ignores]
+# Tests build deliberately awkward inputs and assert on them.
+"tests/*" = ["E501"]
