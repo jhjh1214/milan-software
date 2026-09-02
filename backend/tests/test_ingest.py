@@ -144,9 +144,7 @@ class TestDoubleSubmit:
 
 
 class TestServerRepricing:
-    def test_an_agreeing_quote_records_no_discrepancy(
-        self, session: Session
-    ) -> None:
+    def test_an_agreeing_quote_records_no_discrepancy(self, session: Session) -> None:
         result = push_quote(session, a_quote(line_total_sen=55200))
         session.commit()
 
@@ -207,9 +205,7 @@ class TestServerRepricing:
         with pytest.raises(UnknownRateCardVersion):
             push_quote(session, a_quote(version=999))
 
-    def test_a_line_the_server_cannot_price_still_lands(
-        self, session: Session
-    ) -> None:
+    def test_a_line_the_server_cannot_price_still_lands(self, session: Session) -> None:
         # A quote the server cannot price is a data problem to review, not a
         # reason to reject a confirmed sale.
         payload = a_quote()

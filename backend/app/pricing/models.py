@@ -185,9 +185,7 @@ class PricingRule:
             sort_order=data["sort_order"],
             coverage_sqft=None if coverage is None else Fraction(coverage),
             bundle_qty=data.get("bundle_qty", 1),
-            deposit_category_override=(
-                DepositCategory(deposit) if deposit else None
-            ),
+            deposit_category_override=(DepositCategory(deposit) if deposit else None),
             is_addon=data.get("is_addon", False),
             attaches_to=tuple(attaches) if attaches else None,
             note=data.get("note"),
@@ -327,9 +325,7 @@ class RateCard:
             product_rules=tuple(
                 ProductRule.from_json(p) for p in data.get("product_rules", [])
             ),
-            promo=(
-                CardPromo.from_json(data["promo"]) if data.get("promo") else None
-            ),
+            promo=(CardPromo.from_json(data["promo"]) if data.get("promo") else None),
             _by_id={r.id: r for r in rules},
         )
 

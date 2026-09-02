@@ -52,7 +52,11 @@ TIERS = {"standard": CustomerTier.STANDARD, "mvp": CustomerTier.MVP}
 
 def _fraction_str(value: Fraction) -> str:
     """Formats exactly as Dart's ``Rational.toString`` does."""
-    return str(value.numerator) if value.denominator == 1 else f"{value.numerator}/{value.denominator}"
+    return (
+        str(value.numerator)
+        if value.denominator == 1
+        else f"{value.numerator}/{value.denominator}"
+    )
 
 
 @pytest.mark.parametrize(

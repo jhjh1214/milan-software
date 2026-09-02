@@ -88,9 +88,7 @@ def push_quote(session: Session, payload: QuoteIn) -> PushResult:
     )
     session.add(quote)
 
-    tier = (
-        CustomerTier.MVP if payload.tier == "mvp" else CustomerTier.STANDARD
-    )
+    tier = CustomerTier.MVP if payload.tier == "mvp" else CustomerTier.STANDARD
     priced_lines = []
     results: list[LineResult] = []
 

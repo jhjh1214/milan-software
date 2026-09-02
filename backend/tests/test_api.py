@@ -108,27 +108,21 @@ class TestBundle:
         assert body["up_to_date"] is False
         assert len(body["payload"]["rules"]) == 77
 
-    def test_it_serves_the_standard_card_separately(
-        self, client: TestClient
-    ) -> None:
+    def test_it_serves_the_standard_card_separately(self, client: TestClient) -> None:
         r = client.get("/api/bundle", params={"list_id": "standard"})
         assert r.json()["rate_card_version"] == 101
 
     def test_a_current_device_gets_no_payload(self, client: TestClient) -> None:
         # §9.1. A fair's connection should not be spent re-downloading a card
         # the phone already has.
-        r = client.get(
-            "/api/bundle", params={"list_id": "fair", "since_version": 1}
-        )
+        r = client.get("/api/bundle", params={"list_id": "fair", "since_version": 1})
         body = r.json()
         assert body["up_to_date"] is True
         assert body["payload"] is None
 
     def test_a_stale_device_gets_the_whole_card(self, client: TestClient) -> None:
         # Replaced wholesale, never diffed.
-        r = client.get(
-            "/api/bundle", params={"list_id": "fair", "since_version": 0}
-        )
+        r = client.get("/api/bundle", params={"list_id": "fair", "since_version": 0})
         body = r.json()
         assert body["up_to_date"] is False
         assert body["payload"] is not None
@@ -178,9 +172,7 @@ class TestPush:
         payload["rate_card_version"] = 999
         assert client.post("/api/quotes", json=payload).status_code == 409
 
-    def test_a_malformed_push_is_rejected_at_the_door(
-        self, client: TestClient
-    ) -> None:
+    def test_a_malformed_push_is_rejected_at_the_door(self, client: TestClient) -> None:
         payload = a_quote()
         del payload["lines"][0]["width_tmm"]
         assert client.post("/api/quotes", json=payload).status_code == 422

@@ -237,8 +237,7 @@ def _select_band_candidates(
             material_key=request.material_key,
             band_value=value,
             detail=(
-                f"no band covers {value.mm}mm -- a gap in the rate card, "
-                "not a price"
+                f"no band covers {value.mm}mm -- a gap in the rate card, not a price"
             ),
         )
     return matches
@@ -332,9 +331,8 @@ def _check_product_rules(card: RateCard, request: LineRequest) -> None:
         value = request.width if rule.dimension == "width" else request.height
         if value is None:
             continue
-        breached = (
-            (rule.kind == "max_dimension" and value.tmm > rule.value_tmm)
-            or (rule.kind == "min_dimension" and value.tmm < rule.value_tmm)
+        breached = (rule.kind == "max_dimension" and value.tmm > rule.value_tmm) or (
+            rule.kind == "min_dimension" and value.tmm < rule.value_tmm
         )
         if breached:
             raise ProductRuleViolation(rule=rule, actual=value)
@@ -365,9 +363,8 @@ def check_order_rules(
     for rule in card.product_rules:
         if rule.variant not in present or rule.target is None:
             continue
-        breached = (
-            (rule.kind == "requires" and rule.target not in present)
-            or (rule.kind == "excludes" and rule.target in present)
+        breached = (rule.kind == "requires" and rule.target not in present) or (
+            rule.kind == "excludes" and rule.target in present
         )
         if breached:
             out.append(OrderRuleViolation(rule=rule, variant=rule.variant))
@@ -416,9 +413,7 @@ def total_quote(
 
     # Travel is order-level and sits outside the deposit categories: it is not
     # a product, so a category floor must not drag it upward.
-    zone = next(
-        (z for z in card.delivery_zones if z.id == delivery_zone_id), None
-    )
+    zone = next((z for z in card.delivery_zones if z.id == delivery_zone_id), None)
     delivery = ZERO if zone is None else Money(zone.charge_sen)
 
     return QuoteTotals(
