@@ -524,6 +524,54 @@ abstract class L {
   /// **'价格表'**
   String get ratesTitle;
 
+  /// No description provided for @ratesEditOne.
+  ///
+  /// In zh, this message translates to:
+  /// **'改单项价格'**
+  String get ratesEditOne;
+
+  /// No description provided for @ratesSearch.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索产品'**
+  String get ratesSearch;
+
+  /// No description provided for @ratesNewRate.
+  ///
+  /// In zh, this message translates to:
+  /// **'新价格 (RM)'**
+  String get ratesNewRate;
+
+  /// No description provided for @ratesNewMvp.
+  ///
+  /// In zh, this message translates to:
+  /// **'MVP 价格 (RM)'**
+  String get ratesNewMvp;
+
+  /// No description provided for @ratesCurrent.
+  ///
+  /// In zh, this message translates to:
+  /// **'现价 {rate}'**
+  String ratesCurrent(String rate);
+
+  /// No description provided for @ratesInvalid.
+  ///
+  /// In zh, this message translates to:
+  /// **'价格填错了'**
+  String get ratesInvalid;
+
+  /// No description provided for @ratesMvpTooHigh.
+  ///
+  /// In zh, this message translates to:
+  /// **'MVP 价不可以高过普通价'**
+  String get ratesMvpTooHigh;
+
+  /// No description provided for @ratesNoMatch.
+  ///
+  /// In zh, this message translates to:
+  /// **'找不到产品'**
+  String get ratesNoMatch;
+
   /// No description provided for @ratesVersion.
   ///
   /// In zh, this message translates to:

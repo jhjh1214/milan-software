@@ -252,6 +252,32 @@ class LMs extends L {
   String get ratesTitle => 'Senarai harga';
 
   @override
+  String get ratesEditOne => 'Tukar satu harga';
+
+  @override
+  String get ratesSearch => 'Cari produk';
+
+  @override
+  String get ratesNewRate => 'Kadar baharu (RM)';
+
+  @override
+  String get ratesNewMvp => 'Kadar MVP (RM)';
+
+  @override
+  String ratesCurrent(String rate) {
+    return 'Sekarang $rate';
+  }
+
+  @override
+  String get ratesInvalid => 'Itu bukan harga';
+
+  @override
+  String get ratesMvpTooHigh => 'Kadar MVP tidak boleh melebihi kadar biasa';
+
+  @override
+  String get ratesNoMatch => 'Produk tidak dijumpai';
+
+  @override
   String ratesVersion(int version, int count) {
     return 'Versi $version · $count produk';
   }

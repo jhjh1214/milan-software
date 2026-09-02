@@ -191,6 +191,91 @@ void main() {
     });
   });
 
+  group('editing one price in the app', () {
+    PricingRule rule(String id) => card.rules.firstWhere((r) => r.id == id);
+
+    test('goes through the same validation as the CSV route', () {
+      // One set of rules about what a price may be, not two that drift apart.
+      final result = editSingleRate(
+        rule: rule('night-curtain-lo'),
+        rateText: '50.00',
+        mvpText: '44.00',
+      );
+      expect(result.errors, isEmpty);
+      final change = result.actualChanges.single;
+      expect(change.newRateSen, 5000);
+      expect(change.newMvpRateSen, 4400);
+      expect(change.deltaSen, 400);
+    });
+
+    test('a blank MVP field clears the MVP rate', () {
+      final result = editSingleRate(
+        rule: rule('night-curtain-lo'),
+        rateText: '46.00',
+        mvpText: '',
+      );
+      expect(result.actualChanges.single.newMvpRateSen, isNull);
+    });
+
+    test('an unreadable rate is rejected', () {
+      expect(
+        editSingleRate(
+          rule: rule('night-curtain-lo'),
+          rateText: 'abc',
+          mvpText: '',
+        ).errors,
+        contains('rate'),
+      );
+    });
+
+    test('a zero rate is rejected', () {
+      expect(
+        editSingleRate(
+          rule: rule('night-curtain-lo'),
+          rateText: '0',
+          mvpText: '',
+        ).errors,
+        contains('rate'),
+      );
+    });
+
+    test('an MVP rate above the standard rate is rejected', () {
+      expect(
+        editSingleRate(
+          rule: rule('night-curtain-lo'),
+          rateText: '46.00',
+          mvpText: '50.00',
+        ).errors,
+        contains('mvp_above_rate'),
+      );
+    });
+
+    test('typing the same price back is not a change', () {
+      final result = editSingleRate(
+        rule: rule('night-curtain-lo'),
+        rateText: '46.00',
+        mvpText: '40.00',
+      );
+      expect(result.errors, isEmpty);
+      expect(
+        result.actualChanges,
+        isEmpty,
+        reason: 'no version bump for a no-op',
+      );
+    });
+
+    test('decimals stay exact', () {
+      expect(
+        editSingleRate(
+          rule: rule('spc-4mm'),
+          rateText: '4.85',
+          mvpText: '',
+        ).actualChanges.single.newRateSen,
+        485,
+      );
+    });
+  });
+
   group('applying', () {
     test('publishes a new version rather than editing in place', () {
       // CLAUDE.md: rate card rows are never updated in place, so a quote

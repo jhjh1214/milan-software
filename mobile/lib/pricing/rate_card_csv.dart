@@ -193,6 +193,54 @@ RateCardImport readRateCardCsv(String csv, RateCard card) {
   return RateCardImport(changes: changes, errors: errors);
 }
 
+/// Builds a one-product change from what the admin typed on screen.
+///
+/// Goes through the same [RateCardImport] the CSV route produces, so a direct
+/// edit gets the identical validation and the identical diff preview. Two paths
+/// to the same place; one set of rules about what a price may be.
+RateCardImport editSingleRate({
+  required PricingRule rule,
+  required String rateText,
+  required String mvpText,
+}) {
+  final errors = <String>[];
+
+  final rateSen = _money(rateText);
+  if (rateSen == null) {
+    errors.add('rate');
+  } else if (rateSen <= 0) {
+    errors.add('rate');
+  }
+
+  int? mvpSen;
+  if (mvpText.trim().isNotEmpty) {
+    mvpSen = _money(mvpText);
+    if (mvpSen == null) {
+      errors.add('mvp');
+    } else if (rateSen != null && mvpSen > rateSen) {
+      errors.add('mvp_above_rate');
+    }
+  }
+
+  if (errors.isNotEmpty || rateSen == null) {
+    return RateCardImport(changes: const [], errors: errors);
+  }
+
+  return RateCardImport(
+    changes: [
+      RateChange(
+        ruleId: rule.id,
+        label: rule.id,
+        oldRateSen: rule.rateSen,
+        newRateSen: rateSen,
+        oldMvpRateSen: rule.mvpRateSen,
+        newMvpRateSen: mvpSen,
+      ),
+    ],
+    errors: const [],
+  );
+}
+
 /// Applies an import to the card's own JSON, returning the new JSON.
 ///
 /// Works on the source map rather than serialising a [RateCard] back out. A

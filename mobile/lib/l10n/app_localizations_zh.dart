@@ -250,6 +250,32 @@ class LZh extends L {
   String get ratesTitle => '价格表';
 
   @override
+  String get ratesEditOne => '改单项价格';
+
+  @override
+  String get ratesSearch => '搜索产品';
+
+  @override
+  String get ratesNewRate => '新价格 (RM)';
+
+  @override
+  String get ratesNewMvp => 'MVP 价格 (RM)';
+
+  @override
+  String ratesCurrent(String rate) {
+    return '现价 $rate';
+  }
+
+  @override
+  String get ratesInvalid => '价格填错了';
+
+  @override
+  String get ratesMvpTooHigh => 'MVP 价不可以高过普通价';
+
+  @override
+  String get ratesNoMatch => '找不到产品';
+
+  @override
   String ratesVersion(int version, int count) {
     return '版本 $version · $count 项';
   }

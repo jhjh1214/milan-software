@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:milan_quote/app.dart';
 import 'package:milan_quote/data/database.dart';
+import 'package:milan_quote/data/rate_card_store.dart';
 import 'package:milan_quote/features/quote/quote_state.dart';
 import 'package:milan_quote/pricing/models.dart';
 
@@ -18,6 +19,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late RateCard card;
+  late String cardJson;
 
   setUpAll(() {
     var dir = Directory.current;
@@ -26,14 +28,10 @@ void main() {
     ).existsSync()) {
       dir = dir.parent;
     }
-    card = RateCard.fromJson(
-      jsonDecode(
-            File(
-              '${dir.path}/shared/rate-card-fair-2026-08.json',
-            ).readAsStringSync(),
-          )
-          as Map<String, dynamic>,
-    );
+    cardJson = File(
+      '${dir.path}/shared/rate-card-fair-2026-08.json',
+    ).readAsStringSync();
+    card = RateCard.fromJson(jsonDecode(cardJson) as Map<String, dynamic>);
   });
 
   /// A date inside the MITC fair, so the expired-rates banner stays quiet in
@@ -400,6 +398,82 @@ void main() {
     await pumpApp(tester);
     expect(find.textContaining('陈大文'), findsOneWidget);
     expect(find.textContaining('012-3456789'), findsOneWidget);
+  });
+
+  testWidgets('a price changed in the app is what the next quote charges', (
+    tester,
+  ) async {
+    // Hard rule 1, end to end and through the real UI: the admin changes a
+    // price on the phone, and the next quote uses it. No code change, no
+    // rebuild, no release.
+    // In-memory storage and an injected bundle. Real file I/O and rootBundle
+    // both hang inside flutter test's fake-async zone, so the save would never
+    // complete and this whole flow could not be tested.
+    final store = RateCardStore(
+      storage: InMemoryRateCardStorage(),
+      bundled: () async => cardJson,
+    );
+
+    Future<void> pumpWithStore(WidgetTester tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            rateCardStoreProvider.overrideWithValue(store),
+            todayProvider.overrideWithValue(duringFair),
+          ],
+          child: const MilanQuoteApp(),
+        ),
+        duration: Duration.zero,
+      );
+      // The store reads the bundled asset, so the screen shows an indeterminate
+      // spinner for a frame or two. pumpAndSettle would wait for that spinner
+      // forever, so pump a bounded number of frames until it is gone instead.
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+        if (find.byType(CircularProgressIndicator).evaluate().isEmpty) break;
+      }
+      await tester.pumpAndSettle();
+    }
+
+    await pumpWithStore(tester);
+    await addWindow(
+      tester,
+      room: '客厅',
+      category: '窗帘',
+      product: '夜帘（遮光）',
+      width: "12'",
+      height: "9'",
+    );
+    expect(find.text('RM 552.00'), findsWidgets);
+
+    // Open the price list and change the night curtain from RM46 to RM50.
+    await tester.tap(find.byIcon(Icons.price_change_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('改单项价格'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, '夜帘');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('夜帘（遮光）').first);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, '50.00');
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    // Back to the quote: 12ft x RM50. The Material back button, not
+    // pageBack(), which looks for the Cupertino one.
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('RM 600.00'), findsWidgets);
+    expect(find.text('RM 552.00'), findsNothing);
+
+    // And it survives a restart, because it is stored, not held in memory.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    await pumpWithStore(tester);
+    expect(find.text('RM 600.00'), findsWidgets);
   });
 
   testWidgets('a quote survives a force-quit and reopens with its lines', (

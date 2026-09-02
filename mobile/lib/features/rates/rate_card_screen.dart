@@ -24,6 +24,7 @@ import '../../pricing/models.dart';
 import '../../pricing/rate_card_csv.dart';
 import '../../ui/theme.dart';
 import '../quote/quote_state.dart';
+import 'edit_rate_sheet.dart';
 
 class RateCardScreen extends ConsumerStatefulWidget {
   const RateCardScreen({super.key});
@@ -69,6 +70,16 @@ class _RateCardScreenState extends ConsumerState<RateCardScreen> {
             ],
             const SizedBox(height: Space.xl),
 
+            // The one-off adjustment. Exporting a spreadsheet to change a
+            // single number would be absurd, so this is the direct path.
+            FilledButton.icon(
+              onPressed: _busy ? null : () => _editOne(card),
+              icon: const Icon(Icons.edit_outlined),
+              label: Text(l.ratesEditOne),
+            ),
+            const SizedBox(height: Space.xl),
+
+            // The whole-list revision.
             OutlinedButton.icon(
               onPressed: _busy ? null : () => _export(card),
               icon: const Icon(Icons.table_view_outlined),
@@ -103,6 +114,18 @@ class _RateCardScreenState extends ConsumerState<RateCardScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _editOne(RateCard card) async {
+    final l = L.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final changed = await showEditRateSheet(context, ref, card);
+    if (!changed || !mounted) return;
+
+    final updated = await ref.read(rateCardProvider.future);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(l.ratesApplied(updated.version))));
   }
 
   Future<void> _export(RateCard card) async {

@@ -253,6 +253,33 @@ class LEn extends L {
   String get ratesTitle => 'Price list';
 
   @override
+  String get ratesEditOne => 'Change one price';
+
+  @override
+  String get ratesSearch => 'Search products';
+
+  @override
+  String get ratesNewRate => 'New rate (RM)';
+
+  @override
+  String get ratesNewMvp => 'MVP rate (RM)';
+
+  @override
+  String ratesCurrent(String rate) {
+    return 'Now $rate';
+  }
+
+  @override
+  String get ratesInvalid => 'That is not a price';
+
+  @override
+  String get ratesMvpTooHigh =>
+      'The MVP rate cannot be above the standard rate';
+
+  @override
+  String get ratesNoMatch => 'No product found';
+
+  @override
   String ratesVersion(int version, int count) {
     return 'Version $version · $count products';
   }

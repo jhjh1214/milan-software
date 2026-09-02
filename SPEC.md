@@ -984,7 +984,13 @@ Steps 1–3 have no UI at all. **Resist starting with screens.**
 - Local persistence via Drift, survives force-quit
 - Customer record
 - Quote PDF generated **on device**, shareable offline, bilingual
-- Rate card imported from admin-prepared CSV
+- **Price editing in the app**, two ways, both with the §8.2 discipline of a
+  diff preview and a deliberate confirm:
+  - tap a product and change its rate directly, for the one-off adjustment
+  - export to CSV, edit in Excel, import back, for a whole-list revision
+
+  The web dashboard editor is Phase 5; this is what stands in until then, and it
+  is what makes hard rule 1 true rather than aspirational.
 
 **Acceptance** — a box is ticked only when a test covers it, never by inspection.
 - [x] Quote survives force-quit, reopens at the exact window
@@ -1159,6 +1165,32 @@ real dimensions from the developer's schedule. Digitised once per unit type,
 reused for every customer in that project. Slow for customer one, very fast from
 customer two.
 
+### What the client asked for, Sep 2026, and how it maps
+
+Confirmed as already in scope here — no new phase needed:
+
+1. **"Store existing measurements of homes we have already done, so next time
+   you enter the area it suggests them."** This is exactly the project library.
+   `projects.area` and `unit_types` are the lookup; entering the area or
+   development name offers the unit types already digitised, and the openings
+   come with them.
+2. **"Store all floor plans in the app so it can auto-calculate a full SPC
+   flooring quote."** This works, via `rooms.nominal_area_mm2` and
+   `skirting_run_tmm`. A whole-house flooring quote is then one tap: every room
+   area is already known, and the engine prices it like any other `per_sqft`
+   line.
+
+**But the auto-calculation comes from the stored room areas, not from reading
+the image.** The plan is a backdrop for tapping and a reference for the
+salesperson; the numbers come from the developer's schedule, typed once by an
+admin who can check them. That distinction is the whole of the warning above:
+measuring off a scanned plan produces a number that looks authoritative and is
+silently wrong, and a wrong flooring area is a five-figure mistake on a full
+house.
+
+So the promise to make is **"we digitise your repeat projects once and quote
+them in seconds after that"**, never "upload a plan and get a price".
+
 ```sql
 projects      id, name, developer, area, version int, updated_at
 unit_types    id, project_id, name, floor_count
@@ -1174,6 +1206,13 @@ project later must not mutate an issued order.
 Any plan-sourced line is `is_site_measured = false` and prints
 `参考尺寸，未现场丈量`. **Never let a plan-derived dimension reach production
 without a site measurement.** Enforce in the state machine.
+
+**Sequencing.** This stays Stage 2, after Phase 5 has run live two months, and
+that ordering is not arbitrary: a project library is only worth building once
+the order board shows which developments actually repeat. Digitising twenty unit
+types nobody quotes again is twenty wasted afternoons. Bringing it forward is a
+commercial decision, not a technical one — say so rather than quietly reordering
+the phases.
 
 ---
 
