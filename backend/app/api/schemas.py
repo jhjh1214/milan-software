@@ -1,0 +1,78 @@
+"""What crosses the wire. Pydantic, so a malformed push is rejected at the door.
+
+Field names match the device's column names exactly (``*_tmm``, ``*_sen``), so
+there is no translation layer to get wrong.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime
+
+from pydantic import BaseModel, Field
+
+
+class QuoteLineIn(BaseModel):
+    id: str = Field(min_length=36, max_length=36)
+    sort_order: int
+    room: str
+    variant: str
+    material_key: str | None = None
+    layer: str
+    parent_line_id: str | None = None
+    #: Tenths of a millimetre. Never millimetres.
+    width_tmm: int = Field(ge=0)
+    height_tmm: int | None = Field(default=None, ge=0)
+    raw_width: str
+    raw_height: str
+    quantity: int = Field(default=1, ge=1)
+    #: What the device charged. Compared against the server's own figure, never
+    #: trusted in place of it (§9.4).
+    device_total_sen: int | None = None
+
+
+class QuoteIn(BaseModel):
+    id: str = Field(min_length=36, max_length=36)
+    rate_card_version: int
+    tier: str = "standard"
+    language: str = "zh"
+    customer_name: str | None = None
+    customer_phone: str | None = None
+    delivery_zone_id: str | None = None
+    device_total_sen: int | None = None
+    created_at: datetime
+    updated_at: datetime
+    device_id: str | None = None
+    lines: list[QuoteLineIn] = []
+
+
+class LineResult(BaseModel):
+    line_id: str
+    server_total_sen: int | None
+    device_total_sen: int | None
+    agreed: bool
+    detail: str | None = None
+
+
+class PushResult(BaseModel):
+    quote_id: str
+    #: True when this exact quote had already been accepted. A retry is a
+    #: success, not an error: the device cannot know whether the first attempt
+    #: landed before the signal dropped.
+    duplicate: bool
+    server_total_sen: int | None
+    device_total_sen: int | None
+    #: Non-empty means the two engines disagreed. The order is still accepted —
+    #: §9.4 never loses a sale over a rounding dispute — and each disagreement
+    #: is recorded for an admin to review.
+    discrepancies: list[LineResult] = []
+
+
+class BundleOut(BaseModel):
+    """The reference-data pull. §9.1: replace wholesale, never diff."""
+
+    rate_card_version: int
+    list_id: str
+    #: Null when the device is already current, so a fair's connection is not
+    #: spent re-downloading a card it already has.
+    payload: dict | None = None
+    up_to_date: bool
