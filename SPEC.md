@@ -138,16 +138,43 @@ standalone fabric product. Confirm.
 > silently. Do not reintroduce it.
 
 `Doso RM9/ft` and `Meyer RM10/ft` are printed "Track Only" — the price for
-buying track **without** a curtain. The rods, S-Track, Multi Track and Motor
-Track are upgrades on the standard included track.
+buying track **without** a curtain.
 
 **A track line is an upgrade the customer chooses, never a line the system adds
-on their behalf.** And an upgrade **adds** to the curtain rate rather than
-replacing it (A16): S-Track on a night curtain is RM46 + RM80 = RM126/ft.
+on their behalf.** And a genuine upgrade **adds** to the curtain rate rather
+than replacing it (A16): a motor track on a night curtain is RM46 + RM40 =
+RM86/ft.
+
+### Half the "track" rows were never track — they are curtain STYLES
+Client, Sep 2026, on being shown that every banded track row carries the same
++RM12 drop step as the curtains:
+
+> The S track is actually S fold, as opposed to sgp pleat, different style of
+> curtain so different rates, it includes the same railing everything. so all
+> other special tracks are direct add on.
+
+So `S Track (Night Curtain) RM80/ft` is **a whole night curtain in S-Fold, with
+its railing**, not RM80 of hardware. The same for the four rod composites: a
+made-up curtain in that heading style, on that rod.
+
+Twelve rows moved from `family: track` to `family: curtain`, which is all it
+took — the engine offers track rows as upgrades and curtain rows as products,
+so the family decides everything. They are relabelled to say so, because
+"S Track (Night Curtain)" reads like something you add to a night curtain and
+`Night Curtain (S-Fold)` cannot.
+
+**This was a 58% overcharge.** A 12ft × 9ft S-Fold window quoted RM1,512
+(RM552 + RM960) where the answer is RM960 — RM552 too much, on every S-Fold and
+every rod composite, and it was in the demo script.
+
+The tell was in the data all along: the banded rows step +RM12 between bands
+exactly as the curtains do (46→58, 80→92, 36→48, 60→72), which no hardware
+add-on would; and real track hardware in this card is RM9–RM40/ft.
 
 ### Composite variants exist
 `Wooden Rod With Sgp Pleat RM56/ft` is not RM18 plus something. It is its own
-variant at its own rate. **Do not compute bundles from components.**
+variant at its own rate, and that rate is the whole curtain. **Do not compute
+bundles from components.**
 
 ### MVP tier is a FLAT discount, not a percentage
 ```
@@ -1380,26 +1407,64 @@ orders, supplier management and costing come later.
   been 140 sqft per RM800, which billed a 20ft x 10ft wall at RM1,600 where the
   right answer is RM800 — double. Erring high kept the §8.5 promise intact while
   the question was open, but it was still wrong, and it is fixed.
-- ~~**A16.**~~ **ANSWERED — everything ADDS ON.** The curtain rate covers the
-  fabric and all standard hardware. A special track, a rod, a motor, a remote,
-  a box: each is an extra line on top, never a replacement.
+- ~~**A16.**~~ **ANSWERED, then CORRECTED.** A genuine upgrade adds on: a motor,
+  a remote, a box, a plain rod, each an extra line on top of the curtain, never
+  a replacement. A motor track on a 12ft night curtain is RM46 + RM40 = RM86/ft.
 
-  So S-Track on a 12ft night curtain is RM46 + RM80 = RM126/ft, RM1,512 in
-  total. The `Motor Track … Add Curtain Othes Charges` note turns out to state
-  the general rule rather than an exception to it.
+  **But half the "track" rows were never upgrades.** Client, Sep 2026: *"The S
+  track is actually S fold, as opposed to sgp pleat, different style of curtain
+  so different rates, it includes the same railing everything. so all other
+  special tracks are direct add on."*
+
+  The first reading of A16 applied "everything adds on" to those rows too, and
+  quoted a 12ft S-Fold window at RM1,512 instead of RM960 — 58% over, on every
+  S-Fold and every rod composite. Twelve rows now carry `family: curtain`; see
+  §4.1. **Never treat a rate that already includes the curtain as an add-on.**
 
   An upgrade is a **child line** carrying its parent's dimensions, so the quote
   shows what the customer is actually buying rather than one opaque rate.
-- **A15.** **Do the banded tracks and rods band on the curtain's height?**
-  S-track, multi-track and the rod-with-pleat and rod-with-eyelet composites all
-  print two prices under the same 10ft header as the curtains. Implemented as a
-  height band on the line's own height, which for a track line is the curtain
-  drop. Plain rods and the Doso/Meyer tracks are unbanded, as printed.
+- ~~**A15.**~~ **ANSWERED by A16's correction — they band on the curtain drop,
+  because they ARE curtains.** S-Fold and the four rod composites print two
+  prices under the same 10ft header as the curtains for the obvious reason: the
+  rate is a made-up curtain, so the drop bands it exactly as a plain curtain's
+  does. Plain rods and the Doso/Meyer tracks are unbanded, as printed.
+- `[BLOCKING P4]` **A19. Is Multi Track RM68/RM75 a curtain or hardware?**
+  It is the one row the client's answer does not settle. It bands on the drop
+  with a +RM7 step and costs RM68/ft, which is far above real hardware in this
+  card (RM9–RM40) and reads like a composite — but it is named after a track,
+  not a heading style, and *"all other special tracks are direct add on"* points
+  the other way.
+
+  **Left as an add-on for now**, which quotes RM46 + RM68 = RM114/ft. That is
+  the conservative direction while the question is open: §8.5 promises the final
+  will never exceed the quote, so over-quoting keeps the promise and
+  under-quoting breaks it. Confirm against the printed page before anyone quotes
+  a multi-track window.
+- **A20. Should Doso and Meyer be offered as upgrades at all?**
+  §4.1 reads them as "Track Only" — the price of track bought *without* a
+  curtain. The app currently offers them as upgrades on a curtain whose rate
+  already includes a railing, which charges for a second track: about RM108 on a
+  12ft window. Either they are standalone products, or "Track Only" means
+  something else. Not urgent — nobody has to pick them — but it is a real
+  RM9–10/ft that can be added by mistake.
 
 ## B. Deposits and locks
-- `[BLOCKING P4]` **B1.** Curtain RM300 paid at a fair, customer returns six
-  months later wanting flooring. Does the second RM300 buy **promo** or
-  **standard**?
+- `[BLOCKING P4]` **B1. PARTLY ANSWERED.** Client, Sep 2026:
+
+  > a rm300 locks for one category only, so they lock for curtain then during
+  > measurement they can only choose to do curtains or blinds at max. if want
+  > flooring they shouldve deposited another additional separate rm300 for
+  > flooring itself, making it rm600 for both
+
+  So: **one RM300, one category**, and a curtain deposit covers curtains *and*
+  blinds — which confirms the family-to-category map in §6.1 and the resolver
+  that reads it. Two categories cost RM600, paid at the fair.
+
+  **Still open:** what a second RM300 buys when it is paid *later*, in the
+  showroom rather than at the fair. §3 says promo and the 12-month lock are
+  fair-only, which would make it a standard-price hold — but that is an
+  inference, not the client's words, and it decides real money. Ask before
+  Phase 4 ships the category prompt.
 - `[BLOCKING P4]` **B2.** 12 months elapse, house still not ready. Extend,
   reprice, or case by case?
 - **B3.** Cancel after deposit: forfeit, partial, or credit?
@@ -1408,12 +1473,11 @@ orders, supplier management and costing come later.
   customer is never quoted less than they deposit. But a quote of RM300 that
   measures down to RM240 still lands here, because final pricing is exact and has
   no floor. Refund the RM60, credit it, or keep it?
-- **B8.** Is the RM300 quotation floor **per deposit category** or per order?
-  Implemented per category, since RM300 buys one category. Phase 1 carries only
-  curtain and blind lines, which share one category, so the two readings are
-  identical there. **The distinction becomes real in Phase 2** when flooring
-  arrives: curtain RM250 + flooring RM200 quotes as RM600 under per-category and
-  RM450 under per-order.
+- ~~**B8.**~~ **ANSWERED — per deposit category.** Client, Sep 2026, answering
+  B1: *"making it rm600 for both"*. Curtain RM250 + flooring RM200 quotes as
+  RM600, not RM450, because the customer will be asked for two deposits and must
+  never be quoted less than they are about to pay. Already implemented that way;
+  the answer confirms it rather than changing it.
 - **B5.** One customer, two properties: one lock or two?
 - **B6.** Always flat RM300, or higher on large orders?
 - ~~**B7.**~~ **ANSWERED — every product defers material to measurement.** At a

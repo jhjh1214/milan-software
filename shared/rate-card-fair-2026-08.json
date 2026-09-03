@@ -312,15 +312,15 @@
     },
     {
       "id": "s-track-night-lo",
-      "family": "track",
+      "family": "curtain",
       "variant": "s_track_night",
       "layer": "single",
       "material_key": null,
       "fulfilment": "supply_install",
       "labels": {
-        "zh": "S 轨道（夜帘）",
-        "en": "S Track (Night Curtain)",
-        "ms": "Trek S (Langsir Malam)"
+        "zh": "夜帘（S 折）",
+        "en": "Night Curtain (S-Fold)",
+        "ms": "Langsir Malam (Lipatan S)"
       },
       "basis": "per_ft_width",
       "band_field": "height",
@@ -344,15 +344,15 @@
     },
     {
       "id": "s-track-night-hi",
-      "family": "track",
+      "family": "curtain",
       "variant": "s_track_night",
       "layer": "single",
       "material_key": null,
       "fulfilment": "supply_install",
       "labels": {
-        "zh": "S 轨道（夜帘）",
-        "en": "S Track (Night Curtain)",
-        "ms": "Trek S (Langsir Malam)"
+        "zh": "夜帘（S 折）",
+        "en": "Night Curtain (S-Fold)",
+        "ms": "Langsir Malam (Lipatan S)"
       },
       "basis": "per_ft_width",
       "band_field": "height",
@@ -376,15 +376,15 @@
     },
     {
       "id": "s-track-day-lo",
-      "family": "track",
+      "family": "curtain",
       "variant": "s_track_day",
       "layer": "single",
       "material_key": null,
       "fulfilment": "supply_install",
       "labels": {
-        "zh": "S 轨道（日帘）",
-        "en": "S Track (Day Curtain)",
-        "ms": "Trek S (Langsir Siang)"
+        "zh": "日帘（S 折）",
+        "en": "Day Curtain (S-Fold)",
+        "ms": "Langsir Siang (Lipatan S)"
       },
       "basis": "per_ft_width",
       "band_field": "height",
@@ -408,15 +408,15 @@
     },
     {
       "id": "s-track-day-hi",
-      "family": "track",
+      "family": "curtain",
       "variant": "s_track_day",
       "layer": "single",
       "material_key": null,
       "fulfilment": "supply_install",
       "labels": {
-        "zh": "S 轨道（日帘）",
-        "en": "S Track (Day Curtain)",
-        "ms": "Trek S (Langsir Siang)"
+        "zh": "日帘（S 折）",
+        "en": "Day Curtain (S-Fold)",
+        "ms": "Langsir Siang (Lipatan S)"
       },
       "basis": "per_ft_width",
       "band_field": "height",
@@ -616,15 +616,15 @@
     },
     {
       "id": "iron-rod-sgp-lo",
-      "family": "track",
+      "family": "curtain",
       "variant": "iron_rod_sgp_pleat",
       "layer": "single",
       "material_key": null,
       "fulfilment": "supply_install",
       "labels": {
-        "zh": "铁杆 + 韩式褶",
-        "en": "Iron Rod With Sgp Pleat",
-        "ms": "Rod Besi + Lipatan Sgp"
+        "zh": "韩式褶帘（铁杆）",
+        "en": "Curtain, Sgp Pleat on Iron Rod",
+        "ms": "Langsir Lipatan Sgp (Rod Besi)"
       },
       "basis": "per_ft_width",
       "band_field": "height",
@@ -648,15 +648,15 @@
     },
     {
       "id": "iron-rod-sgp-hi",
-      "family": "track",
+      "family": "curtain",
       "variant": "iron_rod_sgp_pleat",
       "layer": "single",
       "material_key": null,
       "fulfilment": "supply_install",
       "labels": {
-        "zh": "铁杆 + 韩式褶",
-        "en": "Iron Rod With Sgp Pleat",
-        "ms": "Rod Besi + Lipatan Sgp"
+        "zh": "韩式褶帘（铁杆）",
+        "en": "Curtain, Sgp Pleat on Iron Rod",
+        "ms": "Langsir Lipatan Sgp (Rod Besi)"
       },
       "basis": "per_ft_width",
       "band_field": "height",
@@ -680,15 +680,15 @@
     },
     {
       "id": "iron-rod-eyelet-lo",
-      "family": "track",
+      "family": "curtain",
       "variant": "iron_rod_eyelet",
       "layer": "single",
       "material_key": null,
       "fulfilment": "supply_install",
       "labels": {
-        "zh": "铁杆 + 打孔",
-        "en": "Iron Rod With Eyelet",
-        "ms": "Rod Besi + Eyelet"
+        "zh": "打孔帘（铁杆）",
+        "en": "Curtain, Eyelet on Iron Rod",
+        "ms": "Langsir Eyelet (Rod Besi)"
       },
       "basis": "per_ft_width",
       "band_field": "height",
@@ -712,15 +712,15 @@
     },
     {
       "id": "iron-rod-eyelet-hi",
-      "family": "track",
+      "family": "curtain",
       "variant": "iron_rod_eyelet",
       "layer": "single",
       "material_key": null,
       "fulfilment": "supply_install",
       "labels": {
-        "zh": "铁杆 + 打孔",
-        "en": "Iron Rod With Eyelet",
-        "ms": "Rod Besi + Eyelet"
+        "zh": "打孔帘（铁杆）",
+        "en": "Curtain, Eyelet on Iron Rod",
+        "ms": "Langsir Eyelet (Rod Besi)"
       },
       "basis": "per_ft_width",
       "band_field": "height",
@@ -744,15 +744,15 @@
     },
     {
       "id": "wooden-rod-sgp-lo",
-      "family": "track",
+      "family": "curtain",
       "variant": "wooden_rod_sgp_pleat",
       "layer": "single",
       "material_key": null,
       "fulfilment": "supply_install",
       "labels": {
-        "zh": "木杆 + 韩式褶",
-        "en": "Wooden Rod With Sgp Pleat",
-        "ms": "Rod Kayu + Lipatan Sgp"
+        "zh": "韩式褶帘（木杆）",
+        "en": "Curtain, Sgp Pleat on Wooden Rod",
+        "ms": "Langsir Lipatan Sgp (Rod Kayu)"
       },
       "basis": "per_ft_width",
       "band_field": "height",
@@ -776,15 +776,15 @@
     },
     {
       "id": "wooden-rod-sgp-hi",
-      "family": "track",
+      "family": "curtain",
       "variant": "wooden_rod_sgp_pleat",
       "layer": "single",
       "material_key": null,
       "fulfilment": "supply_install",
       "labels": {
-        "zh": "木杆 + 韩式褶",
-        "en": "Wooden Rod With Sgp Pleat",
-        "ms": "Rod Kayu + Lipatan Sgp"
+        "zh": "韩式褶帘（木杆）",
+        "en": "Curtain, Sgp Pleat on Wooden Rod",
+        "ms": "Langsir Lipatan Sgp (Rod Kayu)"
       },
       "basis": "per_ft_width",
       "band_field": "height",
@@ -808,15 +808,15 @@
     },
     {
       "id": "wooden-rod-eyelet-lo",
-      "family": "track",
+      "family": "curtain",
       "variant": "wooden_rod_eyelet",
       "layer": "single",
       "material_key": null,
       "fulfilment": "supply_install",
       "labels": {
-        "zh": "木杆 + 打孔",
-        "en": "Wooden Rod With Eyelet",
-        "ms": "Rod Kayu + Eyelet"
+        "zh": "打孔帘（木杆）",
+        "en": "Curtain, Eyelet on Wooden Rod",
+        "ms": "Langsir Eyelet (Rod Kayu)"
       },
       "basis": "per_ft_width",
       "band_field": "height",
@@ -840,15 +840,15 @@
     },
     {
       "id": "wooden-rod-eyelet-hi",
-      "family": "track",
+      "family": "curtain",
       "variant": "wooden_rod_eyelet",
       "layer": "single",
       "material_key": null,
       "fulfilment": "supply_install",
       "labels": {
-        "zh": "木杆 + 打孔",
-        "en": "Wooden Rod With Eyelet",
-        "ms": "Rod Kayu + Eyelet"
+        "zh": "打孔帘（木杆）",
+        "en": "Curtain, Eyelet on Wooden Rod",
+        "ms": "Langsir Eyelet (Rod Kayu)"
       },
       "basis": "per_ft_width",
       "band_field": "height",

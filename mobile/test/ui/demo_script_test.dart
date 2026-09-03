@@ -250,12 +250,12 @@ void main() {
     expect(find.textContaining('价格只会相同或更低'), findsOneWidget);
   });
 
-  testWidgets('a special track ADDS to the curtain, it does not replace it', (
+  testWidgets('a motorised track ADDS to the curtain, it does not replace it', (
     tester,
   ) async {
-    // A16. The curtain rate covers the fabric and standard hardware; an S-Track
-    // is an extra RM80/ft on top. 12ft x RM46 = RM552, plus 12ft x RM80 = RM960,
-    // giving RM1,512 — not RM960.
+    // A16. The curtain rate covers the fabric and the standard railing; a motor
+    // track is an extra RM40/ft on top. 12ft x RM46 = RM552, plus 12ft x RM40 =
+    // RM480, giving RM1,032 — not RM480.
     await pumpApp(tester);
     await addWindow(
       tester,
@@ -264,12 +264,36 @@ void main() {
       product: '夜帘（遮光）',
       width: "12'",
       height: "9'",
-      upgrades: ['S 轨道（夜帘）'],
+      upgrades: ['电动轨道'],
     );
 
     expect(find.text('RM 552.00'), findsOneWidget, reason: 'the curtain');
-    expect(find.text('RM 960.00'), findsOneWidget, reason: 'the S-Track');
-    expect(find.text('RM 1,512.00'), findsOneWidget, reason: 'the total');
+    expect(find.text('RM 480.00'), findsOneWidget, reason: 'the motor track');
+    expect(find.text('RM 1,032.00'), findsOneWidget, reason: 'the total');
+  });
+
+  testWidgets('an S-Fold curtain is a product, not something added on', (
+    tester,
+  ) async {
+    // Client, Sep 2026: "The S track is actually S fold, as opposed to sgp
+    // pleat, different style of curtain so different rates, it includes the
+    // same railing everything."
+    //
+    // So RM80/ft is the whole curtain. Charging it on top of the RM46 plain
+    // curtain quoted RM1,512 where the right answer is RM960 — RM552 too much
+    // on one window, and the same mistake on every rod composite.
+    await pumpApp(tester);
+    await addWindow(
+      tester,
+      room: '客厅',
+      category: '窗帘',
+      product: '夜帘（S 折）',
+      width: "12'",
+      height: "9'",
+    );
+
+    expect(find.text('RM 960.00'), findsWidgets, reason: '12ft x RM80');
+    expect(find.text('RM 1,512.00'), findsNothing);
   });
 
   testWidgets('a curtain with no upgrade costs the fabric rate alone', (
@@ -297,7 +321,7 @@ void main() {
   });
 
   testWidgets('deleting a curtain takes its upgrade with it', (tester) async {
-    // An orphaned RM960 track line left on the quote would be wrong and nearly
+    // An orphaned RM480 motor line left on the quote would be wrong and nearly
     // invisible to a part-timer.
     await pumpApp(tester);
     await addWindow(
@@ -307,22 +331,22 @@ void main() {
       product: '夜帘（遮光）',
       width: "12'",
       height: "9'",
-      upgrades: ['S 轨道（夜帘）'],
+      upgrades: ['电动轨道'],
     );
-    expect(find.text('RM 1,512.00'), findsOneWidget);
+    expect(find.text('RM 1,032.00'), findsOneWidget);
 
     // The parent card's delete button is the first one.
     await tester.tap(find.byIcon(Icons.close).first);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 750));
 
-    expect(find.text('RM 960.00'), findsNothing, reason: 'the track went too');
+    expect(find.text('RM 480.00'), findsNothing, reason: 'the motor went too');
     expect(find.text('RM 552.00'), findsNothing);
 
     // And undo brings both back.
     await tester.tap(find.text('还原'));
     await tester.pumpAndSettle();
-    expect(find.text('RM 1,512.00'), findsOneWidget);
+    expect(find.text('RM 1,032.00'), findsOneWidget);
   });
 
   testWidgets('the delivery charge appears before the total, not after', (

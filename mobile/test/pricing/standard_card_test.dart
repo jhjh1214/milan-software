@@ -101,14 +101,23 @@ void main() {
         expect(rule.rateSen, ruleOf(fair, rule.id).rateSen, reason: rule.id);
         count++;
       }
-      expect(count, 45, reason: '45 of 77 rows carry no markup');
+      expect(count, 33, reason: '33 of 77 rows carry no markup');
     });
 
-    test('an S-Track still costs fair price on a standard-price curtain', () {
-      // The concrete shape of the gap: the curtain rises 20% and the track it
-      // hangs on does not, and a track is often dearer than the curtain.
-      expect(ruleOf(standard, 's-track-night-lo').rateSen, 8000);
+    test('an S-Fold curtain is marked up like any other curtain', () {
+      // It is a curtain, not hardware: the rate is the whole made-up curtain
+      // in that heading style, railing included. Leaving it at fair price
+      // would have sold an S-Fold window at a fair discount all year.
+      expect(ruleOf(standard, 's-track-night-lo').rateSen, 9600);
       expect(ruleOf(standard, 'night-curtain-lo').rateSen, 5520);
+    });
+
+    test('real track hardware is still unchanged', () {
+      // The rods and tracks sold on their own or added to a curtain. The
+      // client named curtains and blinds; nothing else moves.
+      expect(ruleOf(standard, 'motor-track').rateSen, 4000);
+      expect(ruleOf(standard, 'doso-track').rateSen, 900);
+      expect(ruleOf(standard, 'iron-rod-19').rateSen, 2000);
     });
   });
 
