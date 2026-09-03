@@ -24,7 +24,7 @@ trilingual PDF.
 
 Built and green on the server: the Python engine passing the same fixtures, the
 sync endpoints, Alembic migrations with a test that they match the models, users
-and roles, and rate card publishing. **405 Dart tests, 198 Python tests.** 100%
+and roles, and rate card publishing. **443 Dart tests, 217 Python tests.** 100%
 coverage on `Length`, `Money` and `Rational`.
 
 **Prices are server-owned now.** One card is published and pulled by every
@@ -62,9 +62,14 @@ prompt asks for each category's RM300 once, logs whichever button was pressed,
 and never appears away from a fair. Fair mode is a toggle bounded by the card's
 promo window, so it cannot quote promo rates after the fair ends.
 
-Next in Phase 4: payments and receipts, quote to order conversion, the order
-status pipeline, the daily cash-up screen, and price override with its audit
-row.
+Payments are recorded, tied to the hold they bought, and pushed through the same
+outbox as quotes. The **receipt number is server-issued** -- the one identifier a
+device may not invent, because it goes on paper a customer keeps. Until it
+arrives the app shows `pending sync`. The daily cash-up totals by method and
+refuses to call a day balanced when nobody counted.
+
+Next in Phase 4: quote to order conversion, the order status pipeline, and price
+override with its audit row.
 
 **The real price list is in.** `shared/rate-card-fair-2026-08.json` carries the
 MITC Aug 2026 fair list in full — 77 rows, two delivery zones, three product
