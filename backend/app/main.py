@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 
 from .api.schemas import (
     BundleOut,
+    CardDiffOut,
     CategoryLockIn,
     CategoryLockOut,
     DepositPromptIn,
@@ -41,10 +42,12 @@ from .api.schemas import (
     OverridesOut,
     PaymentIn,
     PaymentResult,
+    PreviewIn,
     PublishIn,
     PublishOut,
     PushResult,
     QuoteIn,
+    RateChangeOut,
     SessionOut,
     StatusChangeIn,
     StatusChangeResult,
@@ -60,6 +63,7 @@ from .services.auth import (
     resolve_token,
     revoke_session,
 )
+from .services.card_diff import diff_cards
 from .services.ingest import (
     UnknownRateCardVersion,
     active_card,
@@ -494,6 +498,51 @@ def prompts_route(
     """
     _ = admin
     return DepositPromptsOut(prompts=prompts_between(session, start=start, end=end))
+
+
+@app.post("/api/rate-cards/preview", response_model=CardDiffOut)
+def preview_card_route(
+    payload: PreviewIn, session: SessionDep, admin: AdminDep
+) -> CardDiffOut:
+    """What publishing this card would change. SPEC.md 11 Phase 5.
+
+    The acceptance criterion is that publishing shows exactly which products
+    move and by how much *before* commit. Nobody publishes 77 rows and hopes.
+
+    Computed here rather than in the dashboard, because the server is the
+    authority on pricing: a diff worked out in the browser would be a different
+    implementation from the one that decides what actually lands, and a preview
+    people learn not to trust is worse than none.
+
+    Changes nothing. Admin only, like publishing itself.
+    """
+    _ = admin
+    live = active_card(session, payload.list_id)
+    diff = diff_cards(
+        None if live is None else live.payload,
+        payload.payload,
+        language=payload.language,
+    )
+
+    def out(change) -> RateChangeOut:
+        return RateChangeOut(
+            rule_id=change.rule_id,
+            label=change.label,
+            old_rate_sen=change.old_rate_sen,
+            new_rate_sen=change.new_rate_sen,
+            old_mvp_rate_sen=change.old_mvp_rate_sen,
+            new_mvp_rate_sen=change.new_mvp_rate_sen,
+            delta_sen=change.delta_sen,
+        )
+
+    return CardDiffOut(
+        changed=[out(c) for c in diff.changed],
+        added=[out(c) for c in diff.added],
+        removed=[out(c) for c in diff.removed],
+        unchanged=diff.unchanged,
+        is_empty=diff.is_empty,
+        total_delta_sen=diff.total_delta_sen,
+    )
 
 
 @app.post("/api/quotes", response_model=PushResult)

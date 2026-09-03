@@ -1606,6 +1606,16 @@ orders, supplier management and costing come later.
 - **C4.** Who books the measurement visit?
 - **C5.** Which payment methods in the dropdown?
 - **C6.** Does the terminal slip carry a reference staff can realistically type?
+- **C9.** **Does the web dashboard need Chinese and Malay?** The handset is
+  trilingual because §8 makes it one: a part-timer who reads only Malay has to
+  be able to quote, and no string is ever hardcoded in a widget. The dashboard
+  is built in English only so far, on the assumption that the office is a
+  smaller and more consistent group than the fair staff.
+
+  That is an assumption, not an answer. If whoever works the order board reads
+  Chinese first, English-only is the same barrier §8 exists to remove — and
+  retrofitting three languages across a dozen screens costs far more than
+  starting with them. Worth asking before the dashboard grows.
 - **C7.** May an order with nothing to measure skip the measurement steps?
   Every product defers material to measurement (B7), so in practice every order
   has a visit — but a supply-only flooring job might not. The pipeline currently

@@ -504,3 +504,45 @@ class DepositPromptsOut(BaseModel):
     """The declined-deposit report. §6.2."""
 
     prompts: list[DepositPromptOut] = []
+
+
+class RateChangeOut(BaseModel):
+    """One rule whose price would move."""
+
+    rule_id: str
+    label: str
+    old_rate_sen: int | None
+    new_rate_sen: int | None
+    old_mvp_rate_sen: int | None
+    new_mvp_rate_sen: int | None
+    #: None for an added or removed rule -- "moved by RM46" is a sentence about
+    #: a rule that existed before and still does.
+    delta_sen: int | None
+
+
+class CardDiffOut(BaseModel):
+    """Everything a publish would do, before it does any of it. §11 Phase 5."""
+
+    changed: list[RateChangeOut] = []
+    added: list[RateChangeOut] = []
+    #: A product that stops being quotable is at least as big a change as one
+    #: that gets dearer, and it is the one nobody would notice.
+    removed: list[RateChangeOut] = []
+    #: Counted, not listed. A preview is only readable if it shows what moves.
+    unchanged: int = 0
+    #: True when publishing would create a version nobody can tell apart from
+    #: the live one.
+    is_empty: bool = True
+    #: What the changed rules move by, added up. Forty rows each a ringgit
+    #: dearer is a price rise nobody described that way.
+    total_delta_sen: int = 0
+
+
+class PreviewIn(BaseModel):
+    """A card an admin is about to publish, and has not yet."""
+
+    list_id: str = Field(pattern="^(fair|standard)$")
+    payload: dict
+    #: Which language to name the products in. The ids are stable; the labels
+    #: are what an admin reads.
+    language: str = Field(default="zh", pattern="^(zh|en|ms)$")
