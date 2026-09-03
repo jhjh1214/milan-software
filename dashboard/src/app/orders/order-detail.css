@@ -1,0 +1,210 @@
+:host {
+  display: block;
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.back a {
+  color: #2563eb;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.back a:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.head {
+  padding: 16px;
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  margin-bottom: 24px;
+}
+
+/* The same one thing colour means everywhere on this dashboard: how soon a
+   rate hold runs out. Nothing else on any screen is coloured. */
+.head[data-urgency='soon'] {
+  border-left-color: #d97706;
+}
+
+.head[data-urgency='urgent'] {
+  border-left-color: #b91c1c;
+}
+
+.head[data-urgency='gone'] {
+  border-left-color: #7f1d1d;
+  background: #fef2f2;
+}
+
+h1 {
+  margin: 0;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+
+h1.pending {
+  font-size: 16px;
+  font-weight: 400;
+  font-style: italic;
+  color: #56637a;
+}
+
+h2 {
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #56637a;
+  margin: 0 0 8px;
+}
+
+.who {
+  margin: 4px 0 0;
+  font-size: 16px;
+}
+
+.stage {
+  margin: 2px 0 12px;
+  font-size: 13px;
+  color: #56637a;
+  text-transform: capitalize;
+}
+
+.money {
+  display: flex;
+  gap: 32px;
+  margin: 0;
+}
+
+.money dt {
+  font-size: 12px;
+  color: #56637a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.money dd {
+  margin: 2px 0 0;
+  font-size: 20px;
+  font-weight: 600;
+  /* Tabular, so two amounts under each other line up on the decimal. */
+  font-variant-numeric: tabular-nums;
+}
+
+.note {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: #56637a;
+}
+
+.hold {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #92400e;
+}
+
+section {
+  margin-bottom: 24px;
+}
+
+.lines,
+.audit,
+.history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lines li,
+.audit li,
+.history li {
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.line-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.room {
+  font-size: 16px;
+}
+
+.line-total {
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.size,
+.basis,
+.when {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #56637a;
+}
+
+.basis {
+  font-variant-numeric: tabular-nums;
+}
+
+.flag {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #92400e;
+}
+
+.flag.overridden {
+  font-weight: 600;
+}
+
+.move {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.reason {
+  margin: 4px 0 0;
+  font-size: 14px;
+}
+
+.event {
+  text-transform: capitalize;
+  font-weight: 600;
+}
+
+.history .when {
+  display: inline;
+  margin-left: 8px;
+}
+
+.muted {
+  color: #56637a;
+}
+
+.failure {
+  padding: 16px;
+  border: 1px solid #b91c1c;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+.failure button {
+  margin-left: 12px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #7f1d1d;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  cursor: pointer;
+}

@@ -1,0 +1,102 @@
+<p class="back"><a routerLink="/orders">&larr; Orders</a></p>
+
+@if (loading()) {
+  <p class="muted" role="status">Loading…</p>
+} @else if (failure(); as message) {
+  <p class="failure" role="alert">
+    {{ message }}
+    <button type="button" (click)="retry()">Try again</button>
+  </p>
+} @else if (detail(); as d) {
+  <header class="head" [attr.data-urgency]="urgency()">
+    <h1 [class.pending]="d.order.order_no === null">
+      {{ d.order.order_no ?? 'Order number pending sync' }}
+    </h1>
+    <p class="who">{{ d.order.customer_name || 'No name' }}</p>
+    <p class="stage">{{ d.order.status.replaceAll('_', ' ') }}</p>
+
+    <dl class="money">
+      <div>
+        <dt>Estimate</dt>
+        <dd>{{ money(d.order.estimate_total_sen) }}</dd>
+      </div>
+      <div>
+        <dt>Taken</dt>
+        <dd>{{ money(d.order.deposit_paid_sen) }}</dd>
+      </div>
+    </dl>
+
+    <!-- No balance. Client, Sep 2026: the deposit buys a held rate, not a
+         part-paid bill, and a figure worked out from an estimate is one the
+         customer remembers and the tape contradicts. -->
+    <p class="note">
+      An estimate. After measuring the price is the same or lower, never higher.
+    </p>
+
+    @if (d.order.held_until) {
+      <p class="hold">Rate held to {{ date(d.order.held_until) }}</p>
+    }
+  </header>
+
+  <section>
+    <h2>What was ordered</h2>
+    <ul class="lines">
+      @for (line of d.lines; track line.id) {
+        <li>
+          <div class="line-head">
+            <span class="room">{{ line.room }}</span>
+            <span class="line-total">{{ money(line.line_total_sen) }}</span>
+          </div>
+          <p class="size">{{ size(line) }}</p>
+
+          <!-- The snapshot. A year later the card may have been superseded
+               twice, and the answer to "why did this cost that" has to be here
+               rather than reconstructed. -->
+          <p class="basis">{{ basis(line) }}</p>
+
+          @if (line.material_deferred && !line.material_key) {
+            <p class="flag">Material still to choose — quoted at the dearest</p>
+          }
+          @if (line.is_overridden) {
+            <p class="flag overridden">Price changed by hand</p>
+          }
+        </li>
+      }
+    </ul>
+  </section>
+
+  @if (d.overrides.length > 0) {
+    <section>
+      <h2>Prices changed by hand</h2>
+      <ul class="audit">
+        @for (o of d.overrides; track o.id) {
+          <li>
+            <p class="move">
+              {{ money(o.before_sen) }} to {{ money(o.after_sen) }},
+              by {{ o.admin_user_id }}
+            </p>
+            <p class="reason">{{ o.reason }}</p>
+            <p class="when">{{ date(o.at) }}</p>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  <section>
+    <h2>What has happened</h2>
+    <!-- Oldest first, which is the order somebody reads a story in. Append
+         only: a correction is a new row, never an edit to an old one. -->
+    <ol class="history">
+      @for (e of d.events; track e.id) {
+        <li>
+          <span class="event">{{ e.event.replaceAll('_', ' ') }}</span>
+          <span class="when">{{ date(e.at) }}</span>
+          @if (e.note) {
+            <p class="reason">{{ e.note }}</p>
+          }
+        </li>
+      }
+    </ol>
+  </section>
+}

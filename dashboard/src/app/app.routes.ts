@@ -24,4 +24,14 @@ export const routes: Routes = [
       import('./orders/order-board').then((m) => m.OrderBoard),
     title: 'Orders',
   },
+  {
+    // `:id` binds straight to the component's `id` input, through
+    // withComponentInputBinding. One less thing to wire, and one less place
+    // for the route and the component to disagree about a parameter name.
+    path: 'orders/:id',
+    canActivate: [signedIn],
+    loadComponent: () =>
+      import('./orders/order-detail').then((m) => m.OrderDetail),
+    title: 'Order',
+  },
 ];
