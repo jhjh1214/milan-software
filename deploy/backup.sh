@@ -18,8 +18,12 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$HERE"
 
+set -a
+# The directive has to sit directly above the source itself: shellcheck
+# attaches it to the next command, and on a one-liner that was `set -a`.
 # shellcheck source=/dev/null
-set -a; . ./.env; set +a
+. ./.env
+set +a
 
 BACKUP_DIR="${MILAN_BACKUP_DIR:-/var/backups/milan}"
 KEEP_DAYS="${MILAN_BACKUP_KEEP_DAYS:-30}"

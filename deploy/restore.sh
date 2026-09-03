@@ -17,8 +17,12 @@ if [ -z "$DUMP" ] || [ ! -f "$DUMP" ]; then
 	exit 2
 fi
 
+set -a
+# The directive has to sit directly above the source itself: shellcheck
+# attaches it to the next command, and on a one-liner that was `set -a`.
 # shellcheck source=/dev/null
-set -a; . ./.env; set +a
+. ./.env
+set +a
 
 echo "About to REPLACE database '${POSTGRES_DB}' with:"
 echo "  ${DUMP}  ($(du -h "$DUMP" | cut -f1), $(date -r "$DUMP" -u +%Y-%m-%dT%H:%M:%SZ))"

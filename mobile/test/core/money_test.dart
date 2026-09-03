@@ -160,4 +160,82 @@ void main() {
       expect(const Money.sen(55200).toString(), 'RM 552.00');
     });
   });
+
+  group('tryParse', () {
+    // Two callers: a rate-card CSV cell and the counted-cash field at cash up.
+    // Both are places where "unparseable" has to stay distinguishable from
+    // "zero" -- a cell that quietly becomes RM0.00 is a wrong price, and a
+    // till that quietly counts nothing reads as a RM0 variance rather than as
+    // a blank nobody filled in.
+    test('reads what an admin actually types', () {
+      expect(Money.tryParse('46.50'), const Money.rm(46, 50));
+      expect(Money.tryParse('RM46.50'), const Money.rm(46, 50));
+      expect(Money.tryParse(' RM 1,234.05 '), const Money.rm(1234, 5));
+      expect(Money.tryParse('9'), const Money.rm(9));
+    });
+
+    test('a third decimal rounds half up, once', () {
+      expect(Money.tryParse('0.005'), const Money.sen(1));
+      expect(Money.tryParse('12.344'), const Money.sen(1234));
+      expect(Money.tryParse('12.345'), const Money.sen(1235));
+    });
+
+    test('nothing at all is null, not zero', () {
+      expect(Money.tryParse(''), isNull);
+      expect(Money.tryParse('   '), isNull);
+      // Stripping leaves an empty string behind, which must not become RM0.
+      expect(Money.tryParse('RM'), isNull);
+      expect(Money.tryParse('RM ,'), isNull);
+    });
+
+    test('rubbish is null, not zero', () {
+      expect(Money.tryParse('abc'), isNull);
+      expect(Money.tryParse('4.5.6'), isNull);
+      expect(Money.tryParse('46.50x'), isNull);
+      expect(Money.tryParse('-'), isNull);
+    });
+
+    test('round trips the formatted form it prints', () {
+      for (final sen in [0, 5, 900, 4650, 55200, 123405]) {
+        expect(Money.tryParse(Money.sen(sen).toString()), Money.sen(sen));
+      }
+    });
+  });
+
+  group('toPlainString — the CSV form', () {
+    // format() groups thousands with a comma, which is right on a quote and
+    // fatal in a CSV cell: the comma splits the field and the row silently
+    // loses a column, shifting every rate one place left.
+    test('never groups, however large', () {
+      expect(const Money.sen(150000).toPlainString(), '1500.00');
+      expect(const Money.sen(123456789).toPlainString(), '1234567.89');
+      expect(const Money.sen(150000).toPlainString(), isNot(contains(',')));
+    });
+
+    test('always two decimals, and no symbol', () {
+      expect(Money.zero.toPlainString(), '0.00');
+      expect(const Money.sen(5).toPlainString(), '0.05');
+      expect(const Money.sen(900).toPlainString(), '9.00');
+      expect(const Money.sen(4650).toPlainString(), isNot(contains('RM')));
+    });
+
+    test('a negative keeps its sign ahead of the number', () {
+      expect(const Money.sen(-4650).toPlainString(), '-46.50');
+      expect(const Money.sen(-5).toPlainString(), '-0.05');
+      expect(const Money.sen(-150000).toPlainString(), '-1500.00');
+    });
+
+    test('tryParse reads back what it wrote, and refuses a negative', () {
+      for (final sen in [0, 5, 900, 4650, 123456789]) {
+        expect(Money.tryParse(Money.sen(sen).toPlainString()), Money.sen(sen));
+      }
+
+      // Deliberately not symmetric. Both callers of tryParse read an amount
+      // that cannot be negative -- a rate card cell and counted cash -- and
+      // the CSV importer relies on the refusal being loud: a null is reported
+      // as "not a price" and the row is rejected, rather than a minus sign
+      // quietly becoming a credit.
+      expect(Money.tryParse(const Money.sen(-4650).toPlainString()), isNull);
+    });
+  });
 }

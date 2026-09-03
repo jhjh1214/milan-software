@@ -24,6 +24,12 @@ class Money implements Comparable<Money> {
   /// Returns null rather than zero when the text is not a number: zero is a
   /// real amount somebody might mean, and silently reading "abc" as RM0.00
   /// would balance a cash-up that should not balance.
+  ///
+  /// A negative is refused too, so this does not round-trip
+  /// [toPlainString] for one. Both callers read an amount that cannot be
+  /// negative -- a rate card cell and counted cash -- and the CSV importer
+  /// depends on the refusal being loud, reporting "not a price" and rejecting
+  /// the row rather than letting a minus sign become a credit.
   static Money? tryParse(String text) {
     final cleaned = text.trim().replaceAll(',', '').replaceAll('RM', '').trim();
     if (cleaned.isEmpty) return null;

@@ -1,3 +1,11 @@
+# Install these into a venv, not into the system Python. CI installs exactly
+# this file, so a globally-installed ruff of a different version will disagree
+# with CI about formatting and the local check becomes meaningless -- 0.8.4 and
+# 0.16 wrap a long `assert ..., "message"` differently, which is enough to fail
+# the build after a clean local run.
+#
+#   python -m venv .venv && .venv/Scripts/pip install -r requirements-dev.txt
+#
 -r requirements.txt
 pytest==8.3.4
 httpx==0.28.1

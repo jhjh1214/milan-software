@@ -86,18 +86,18 @@ def test_line_case(case: dict) -> None:
     assert result.billed_unit == expected["billed_unit"]
     assert result.min_qty_applied == expected["min_qty_applied"]
     assert result.rate_sen == expected["rate_sen"], "wrong rate"
-    assert result.total.sen == expected["total_sen"], (
-        f"expected {Money(expected['total_sen'])}, got {result.total}"
-    )
+    assert (
+        result.total.sen == expected["total_sen"]
+    ), f"expected {Money(expected['total_sen'])}, got {result.total}"
 
     if "material_deferred" in expected:
         assert result.material_deferred == expected["material_deferred"]
     if "material_options" in expected:
         assert list(result.material_options) == expected["material_options"]
     if "deposit_category" in expected:
-        assert result.deposit_category.value == expected["deposit_category"], (
-            "deposit category -- a lock on the wrong category misprices"
-        )
+        assert (
+            result.deposit_category.value == expected["deposit_category"]
+        ), "deposit category -- a lock on the wrong category misprices"
 
 
 def _stub_line(*, category: DepositCategory, total_sen: int) -> PricedLine:
