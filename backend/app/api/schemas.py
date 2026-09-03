@@ -301,3 +301,75 @@ class StatusChangeResult(BaseModel):
     #: rather than raised: the device is offline-first and may be hours ahead,
     #: and it needs to know which move was rejected, not lose the batch.
     refused_because: str | None = None
+
+
+class CategoryLockIn(BaseModel):
+    """A hold opened on a handset. §6.1.
+
+    The device decides whether one may exist -- ``open_category_lock`` refuses
+    outside a fair and below the minimum -- and the server re-checks nothing
+    about that here, because the deposit has already been taken and refusing
+    the hold would leave the customer having paid for nothing.
+    """
+
+    id: str = Field(min_length=36, max_length=36)
+    #: A normalised phone, or `quote:<id>`. See app.pricing.customer_key.
+    customer_key: str = Field(min_length=1, max_length=64)
+    category: str = Field(pattern="^(curtain|flooring|wallpaper)$")
+    deposit_payment_id: str | None = None
+
+    held_rate_card_version: int
+    #: An exact rational as a string -- "0", "1/10". Never a float.
+    held_discount_pct: str = "0"
+    held_until: datetime
+    # `superseded` is accepted although only the server produces it: a handset
+    # that pulled one down and pushed it back should not be refused.
+    status: str = Field(
+        default="active",
+        pattern="^(active|expired|cancelled|refunded|superseded)$",
+    )
+
+    opened_at: datetime
+    device_id: str | None = None
+
+
+class CategoryLockOut(BaseModel):
+    """A hold as a handset reads it back."""
+
+    id: str
+    customer_key: str
+    category: str
+    held_rate_card_version: int
+    held_discount_pct: str
+    held_until: datetime
+    status: str
+
+
+class LockPushResult(BaseModel):
+    lock_id: str
+    #: True when this hold had already been accepted. A retry is a success --
+    #: the RM300 was taken once and this is the same hold it bought.
+    duplicate: bool
+    #: Set when the server already holds a *different* active lock for this
+    #: customer and category. The push is still accepted and stored as
+    #: superseded rather than dropped: two handsets each taking a deposit for
+    #: one category is a real thing that happens, and the money is real either
+    #: way. It needs a human, not a silent discard.
+    conflicts_with: str | None = None
+
+
+class DepositPromptIn(BaseModel):
+    """Whichever button was pressed when the RM300 was asked for. §6.2."""
+
+    id: str = Field(min_length=36, max_length=36)
+    quote_id: str = Field(min_length=36, max_length=36)
+    category: str = Field(pattern="^(curtain|flooring|wallpaper)$")
+    choice: str = Field(pattern="^(collected|declined|lines_removed|dismissed)$")
+    category_subtotal_sen: int = Field(default=0, ge=0)
+    at: datetime
+    device_id: str | None = None
+
+
+class DepositPromptResult(BaseModel):
+    prompt_id: str
+    duplicate: bool

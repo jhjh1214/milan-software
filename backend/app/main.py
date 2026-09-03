@@ -25,6 +25,11 @@ from sqlalchemy.orm import Session
 
 from .api.schemas import (
     BundleOut,
+    CategoryLockIn,
+    CategoryLockOut,
+    DepositPromptIn,
+    DepositPromptResult,
+    LockPushResult,
     LoginIn,
     OrderIn,
     OrderResult,
@@ -53,7 +58,10 @@ from .services.ingest import (
     UnknownRateCardVersion,
     active_card,
     advance_order_status,
+    locks_for_customer,
     publish_card,
+    push_category_lock,
+    push_deposit_prompt,
     push_order,
     push_payment,
     push_quote,
@@ -332,6 +340,67 @@ def advance_status_route(
     """
     user, _ = who
     return advance_order_status(session, payload, by=user)
+
+
+@app.post("/api/locks", response_model=LockPushResult)
+def push_lock_route(
+    payload: CategoryLockIn, session: SessionDep, who: CurrentDep
+) -> LockPushResult:
+    """Accepts a hold opened on a handset. SPEC.md 6.1.
+
+    Idempotent on the device's own lock id: the RM300 was taken before this row
+    existed, so a retry must not produce a second hold for one deposit.
+
+    Nothing here re-decides whether the hold was allowed. The device already
+    refused outside a fair and below the minimum, at the moment the money
+    changed hands, and refusing it now would leave a customer who has paid
+    RM300 holding nothing.
+    """
+    user, _ = who
+    return push_category_lock(session, payload, opened_by=user)
+
+
+@app.get("/api/locks", response_model=list[CategoryLockOut])
+def locks_route(
+    customer_key: str, session: SessionDep, who: CurrentDep
+) -> list[CategoryLockOut]:
+    """Every hold this customer still has. SPEC.md 6.1.
+
+    The lookup a handset makes when it learns a phone number. Without it a hold
+    is one handset's secret: six phones work a fair, the customer deposits on
+    phone 3, and walks into the showroom in March where phone 1 is used.
+
+    Expiry is not filtered server-side. The resolver decides whether a hold is
+    still good against the date it is pricing on, and a handset that has been
+    offline for a week needs the row to make that judgement itself.
+    """
+    _ = who
+    return [
+        CategoryLockOut(
+            id=lock.id,
+            customer_key=lock.customer_key,
+            category=lock.category,
+            held_rate_card_version=lock.held_rate_card_version,
+            held_discount_pct=lock.held_discount_pct,
+            held_until=lock.held_until,
+            status=lock.status,
+        )
+        for lock in locks_for_customer(session, customer_key)
+    ]
+
+
+@app.post("/api/deposit-prompts", response_model=DepositPromptResult)
+def push_prompt_route(
+    payload: DepositPromptIn, session: SessionDep, who: CurrentDep
+) -> DepositPromptResult:
+    """Accepts one answer to the category prompt. SPEC.md 6.2.
+
+    Append-only and idempotent. The declined-deposit report only tells the boss
+    what fairs are leaving on the table if a decline reaches the server as
+    reliably as a sale does.
+    """
+    user, _ = who
+    return push_deposit_prompt(session, payload, by=user)
 
 
 @app.post("/api/quotes", response_model=PushResult)

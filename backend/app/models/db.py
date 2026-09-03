@@ -588,3 +588,104 @@ class OrderCounter(Base):
     #: second branch does not renumber the first.
     key: Mapped[str] = mapped_column(String(32), primary_key=True)
     next_value: Mapped[int] = mapped_column(Integer, default=1)
+
+
+class CategoryLock(Base):
+    """One RM300, holding one category's prices for twelve months. §6.1.
+
+    Held on the server as well as on the device, because the device half only
+    answers for the handset that took the deposit. Six phones work a fair; the
+    customer deposits on phone 3 and walks into the showroom in March where
+    phone 1 is used. Without this table that customer is quoted the standard
+    rate -- more than the hold they paid for.
+
+    ``customer_key`` is what ``app.pricing.customer_key`` produces: a
+    normalised phone where there is one, and ``quote:<id>`` where there is not.
+    §13 B9 is where the proper customer record gets decided; until then this is
+    the durable thing a hold can hang on.
+
+    Rows are never edited into existence. ``open_category_lock`` in
+    ``app.pricing.rate_lock`` is the only thing that builds one, and it refuses
+    outside a fair and below the minimum.
+    """
+
+    __tablename__ = "category_locks"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    customer_key: Mapped[str] = mapped_column(String(64))
+    category: Mapped[str] = mapped_column(String(16))
+
+    #: The payment that bought it, so a refund can find the lock it cancels.
+    deposit_payment_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+
+    #: Pinned **both**, at deposit time. Pinning only the version silently
+    #: reprices this customer when the promo percentage moves.
+    held_rate_card_version: Mapped[int] = mapped_column(Integer)
+    #: An exact rational as a string -- "0", "1/10". Never a float: a
+    #: percentage of a price is money.
+    held_discount_pct: Mapped[str] = mapped_column(String(24), default="0")
+
+    #: The last day the hold is good for, inclusive.
+    held_until: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    status: Mapped[str] = mapped_column(String(16), default="active")
+
+    opened_by_user_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    device_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    received_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        # The lookup every handset makes: whose locks are these.
+        Index("ix_category_locks_customer", "customer_key", "status"),
+        # §6.1: UNIQUE(customer_id, category) WHERE status = 'active'. Two
+        # active holds on one category would make "which rate did the RM300
+        # buy" a question with two answers.
+        Index(
+            "ix_category_locks_one_active",
+            "customer_key",
+            "category",
+            unique=True,
+            postgresql_where=(status == "active"),
+            sqlite_where=(status == "active"),
+        ),
+    )
+
+
+class DepositPrompt(Base):
+    """Whichever button was pressed when the RM300 was asked for. §6.2.
+
+    **APPEND ONLY.** The declined-deposit report is the point: it tells the
+    boss what fairs are leaving on the table, and it only exists if a decline
+    is recorded as carefully as a sale.
+
+    ``dismissed`` is kept distinct from ``declined``. "They said no" and
+    "nobody asked properly" are different problems, and only one of them is the
+    customer's.
+    """
+
+    __tablename__ = "deposit_prompts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    quote_id: Mapped[str] = mapped_column(String(36))
+    category: Mapped[str] = mapped_column(String(16))
+    choice: Mapped[str] = mapped_column(String(16))
+
+    #: What the quote was worth in this category when the question was asked,
+    #: so the report can say what was left on the table rather than only how
+    #: often somebody said no.
+    category_subtotal_sen: Mapped[int] = mapped_column(BigInteger, default=0)
+
+    by_user_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    device_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    received_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        Index("ix_deposit_prompts_at", "at"),
+        Index("ix_deposit_prompts_quote", "quote_id"),
+    )

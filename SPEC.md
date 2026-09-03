@@ -1561,6 +1561,23 @@ orders, supplier management and costing come later.
   Still to confirm: is a shared household phone one customer or two? Should a
   proper customer record be created at deposit time instead? And what happens
   when a phone is corrected after a deposit — does the hold follow it?
+- `[BLOCKING P4]` **B10.** **Two handsets, one category, two RM300s.** At a
+  busy fair two part-timers can each take a curtain deposit from the same
+  customer before either syncs. Both payments are real money.
+
+  §6.1 allows only one active lock per customer and category, and §9.3 says
+  transactions are "client wins, server appends". Those pull apart here: the
+  server cannot make both active without breaking §6.1, and cannot drop either
+  without losing a payment nobody could then find.
+
+  The conservative reading is in force. Both rows are stored, the **first** hold
+  keeps pricing, and the second is marked `superseded` and reported back to the
+  handset that sent it. Nothing is refunded automatically — that is a person's
+  decision and it is not one this system should make quietly.
+
+  To confirm: should the second RM300 be refunded, credited against the same
+  order, or treated as a deposit on the *next* category? And should the
+  customer be told at the stall, which would need the handset to be online?
 - **B5.** One customer, two properties: one lock or two?
 - **B6.** Always flat RM300, or higher on large orders?
 - ~~**B7.**~~ **ANSWERED — every product defers material to measurement.** At a

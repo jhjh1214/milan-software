@@ -21,7 +21,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..api.schemas import (
+    CategoryLockIn,
+    DepositPromptIn,
+    DepositPromptResult,
     LineResult,
+    LockPushResult,
     OrderIn,
     OrderResult,
     PaymentIn,
@@ -33,6 +37,8 @@ from ..api.schemas import (
 )
 from ..core.length import Length
 from ..models.db import (
+    CategoryLock,
+    DepositPrompt,
     IdempotencyRecord,
     Order,
     OrderEvent,
@@ -591,6 +597,127 @@ def advance_order_status(
     session.flush()
 
     return StatusChangeResult(order_id=order.id, duplicate=False, status=order.status)
+
+
+def push_category_lock(
+    session: Session, payload: CategoryLockIn, *, opened_by: User | None = None
+) -> LockPushResult:
+    """Accepts a hold opened on a handset. §6.1, §9.2.
+
+    **Idempotent on the device's own lock id.** The RM300 was taken before this
+    row existed, so a retry after a dropped connection must not produce a
+    second hold for one deposit.
+
+    Nothing here re-decides whether the hold was allowed. ``open_category_lock``
+    already refused outside a fair and below the minimum, on the device, at the
+    moment the money changed hands -- and refusing it now would leave a customer
+    who has paid RM300 holding nothing.
+
+    A **conflict** is stored rather than dropped. If the server already has a
+    different active lock for this customer and category, two handsets have each
+    taken a deposit for the same thing, which is a real afternoon at a busy
+    fair. Both are real money. The newer arrival is recorded as ``superseded``
+    so the older hold keeps pricing, and the result names the clash so somebody
+    can refund one -- silently discarding either would lose a payment nobody
+    could then find.
+    """
+    existing = session.get(CategoryLock, payload.id)
+    if existing is not None:
+        return LockPushResult(lock_id=existing.id, duplicate=True)
+
+    conflict = None
+    if payload.status == "active":
+        conflict = session.scalars(
+            select(CategoryLock).where(
+                CategoryLock.customer_key == payload.customer_key,
+                CategoryLock.category == payload.category,
+                CategoryLock.status == "active",
+            )
+        ).first()
+
+    session.add(
+        CategoryLock(
+            id=payload.id,
+            customer_key=payload.customer_key,
+            category=payload.category,
+            deposit_payment_id=payload.deposit_payment_id,
+            held_rate_card_version=payload.held_rate_card_version,
+            held_discount_pct=payload.held_discount_pct,
+            held_until=payload.held_until,
+            # The first hold keeps pricing. Whichever RM300 arrived second is
+            # the one to refund, and that is a decision for a person.
+            status="superseded" if conflict is not None else payload.status,
+            opened_by_user_id=None if opened_by is None else opened_by.id,
+            opened_at=payload.opened_at,
+            device_id=payload.device_id,
+        )
+    )
+    session.add(
+        IdempotencyRecord(
+            key=f"lock:{payload.id}",
+            entity_type="category_lock",
+            entity_id=payload.id,
+        )
+    )
+    session.flush()
+
+    return LockPushResult(
+        lock_id=payload.id,
+        duplicate=False,
+        conflicts_with=None if conflict is None else conflict.id,
+    )
+
+
+def push_deposit_prompt(
+    session: Session, payload: DepositPromptIn, *, by: User | None = None
+) -> DepositPromptResult:
+    """Accepts one answer to the category prompt. §6.2.
+
+    Append-only and idempotent on the device's id. The declined-deposit report
+    is the reason this exists: it only tells the boss what fairs are leaving on
+    the table if a decline reaches the server as reliably as a sale does.
+    """
+    existing = session.get(DepositPrompt, payload.id)
+    if existing is not None:
+        return DepositPromptResult(prompt_id=existing.id, duplicate=True)
+
+    session.add(
+        DepositPrompt(
+            id=payload.id,
+            quote_id=payload.quote_id,
+            category=payload.category,
+            choice=payload.choice,
+            category_subtotal_sen=payload.category_subtotal_sen,
+            by_user_id=None if by is None else by.id,
+            at=payload.at,
+            device_id=payload.device_id,
+        )
+    )
+    session.flush()
+    return DepositPromptResult(prompt_id=payload.id, duplicate=False)
+
+
+def locks_for_customer(session: Session, customer_key: str) -> list[CategoryLock]:
+    """Every hold this customer still has, newest first.
+
+    The lookup a handset makes when it learns a phone number. Without it a hold
+    is one handset's secret: six phones work a fair, the customer deposits on
+    phone 3, and walks into the showroom in March where phone 1 is used.
+
+    Expiry is not filtered here. ``resolve_rate_basis`` decides whether a hold
+    is still good against the date it is pricing on, and a handset that has not
+    synced today needs the row to make that judgement itself.
+    """
+    return list(
+        session.scalars(
+            select(CategoryLock)
+            .where(
+                CategoryLock.customer_key == customer_key,
+                CategoryLock.status == "active",
+            )
+            .order_by(CategoryLock.opened_at.desc())
+        )
+    )
 
 
 def active_card(session: Session, list_id: str) -> RateCardVersion | None:

@@ -92,7 +92,17 @@ enum LockStatus {
   active('active'),
   expired('expired'),
   cancelled('cancelled'),
-  refunded('refunded');
+  refunded('refunded'),
+
+  /// A second RM300 arrived for a category this customer already held.
+  ///
+  /// Two handsets at one busy fair, each taking a deposit for the same thing.
+  /// Both payments are real. The first hold keeps pricing and this one is
+  /// parked, because §6.1 allows only one active lock per customer and
+  /// category -- and dropping the row instead would lose a payment nobody
+  /// could then find. Which RM300 gets refunded is §13 B10, and is a person's
+  /// decision.
+  superseded('superseded');
 
   const LockStatus(this.wire);
 
