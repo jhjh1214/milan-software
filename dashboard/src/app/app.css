@@ -1,0 +1,67 @@
+/* A thin bar, and nothing that competes with the screen below it. */
+
+.chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 24px;
+  border-bottom: 1px solid #cbd5e1;
+  background: #fff;
+}
+
+nav {
+  display: flex;
+  gap: 4px;
+}
+
+nav a {
+  display: block;
+  /* 44px of height, so it is a real target rather than only a mouse one. */
+  padding: 14px 12px;
+  color: #56637a;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  border-bottom: 3px solid transparent;
+}
+
+nav a:hover {
+  color: #0f172a;
+}
+
+/* Where you are, marked by more than colour — the underline carries it for
+   anybody who cannot separate the two greys. */
+nav a.on {
+  color: #1e3a5f;
+  border-bottom-color: #1e3a5f;
+}
+
+nav a:focus-visible,
+.who button:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: -3px;
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: #56637a;
+}
+
+.who button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.who button:hover {
+  border-color: #94a3b8;
+}

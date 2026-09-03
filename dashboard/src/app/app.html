@@ -1,1 +1,21 @@
+@if (session.signedIn()) {
+  <header class="chrome">
+    <nav aria-label="Main">
+      <a routerLink="/orders" routerLinkActive="on">Orders</a>
+
+      <!-- Admin only, and the server enforces it. Hidden rather than shown and
+           refused: offering somebody a screen that answers 403 wastes their
+           time and teaches them the app is unreliable. -->
+      @if (session.isAdmin()) {
+        <a routerLink="/overrides" routerLinkActive="on">Price changes</a>
+      }
+    </nav>
+
+    <div class="who">
+      <span>{{ session.user()?.name }}</span>
+      <button type="button" (click)="signOut()">Sign out</button>
+    </div>
+  </header>
+}
+
 <router-outlet />
