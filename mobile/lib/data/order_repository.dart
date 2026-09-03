@@ -10,6 +10,7 @@ import 'package:drift/drift.dart';
 
 import '../core/money.dart';
 import '../pricing/conversion.dart';
+import '../pricing/order_status.dart';
 import 'database.dart';
 import 'quote_repository.dart' show newId;
 
@@ -150,6 +151,76 @@ class OrderRepository {
             at: at,
           ),
         );
+  });
+
+  /// Moves an order along the pipeline, or says why it cannot. SPEC.md §6.3.
+  ///
+  /// The decision belongs to `pricing/order_status.dart` and is taken there,
+  /// against the line state this reads out of the database. Nothing about which
+  /// transitions are legal lives in this file, and nothing about SQLite lives
+  /// in that one.
+  ///
+  /// The status write and its `order_events` row go in **one** transaction. A
+  /// status that moved with no event behind it is a job whose history has a
+  /// hole exactly where somebody will later look.
+  Future<StatusChange> advanceStatus({
+    required String orderId,
+    required OrderStatus to,
+    required DateTime at,
+    String? byUserId,
+    String? reason,
+  }) => _db.transaction(() async {
+    final order = await (_db.select(
+      _db.orders,
+    )..where((o) => o.id.equals(orderId))).getSingle();
+
+    final lines = await linesOf(orderId);
+
+    final decision = advanceOrder(
+      from: OrderStatus.fromWire(order.status),
+      to: to,
+      reason: reason,
+      lines: [
+        for (final l in lines)
+          OrderLineState(
+            // The same rule as `OrderLineDraft.needsMeasuring`, and it is the
+            // only rule: everything needs a tape taking to it. §8.5 promises
+            // the final will be the same or lower, and that promise is kept by
+            // measuring. Phase 6 is where per-line exceptions would earn a
+            // home; inventing one here would put a second, quieter answer
+            // beside the first.
+            needsMeasuring: true,
+            hasFinalDimensions: l.isSiteMeasured,
+            materialDeferred: l.materialDeferred,
+            materialChosen: l.materialKey != null,
+          ),
+      ],
+    );
+
+    if (!decision.isAllowed) return decision;
+
+    await (_db.update(_db.orders)..where((o) => o.id.equals(orderId))).write(
+      OrdersCompanion(status: Value(decision.to!.wire)),
+    );
+
+    await _db
+        .into(_db.orderEvents)
+        .insert(
+          OrderEventsCompanion.insert(
+            id: newId(),
+            orderId: orderId,
+            event: decision.to!.wire,
+            // The cancellation reason is the row §13 B3 will be settled from,
+            // so it is stored as given rather than summarised.
+            note: Value(
+              reason?.trim().isNotEmpty == true ? reason!.trim() : null,
+            ),
+            byUserId: Value(byUserId),
+            at: at,
+          ),
+        );
+
+    return decision;
   });
 
   /// Writes back the order number the server issued.

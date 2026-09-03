@@ -1549,6 +1549,17 @@ orders, supplier management and costing come later.
 - **C4.** Who books the measurement visit?
 - **C5.** Which payment methods in the dropdown?
 - **C6.** Does the terminal slip carry a reference staff can realistically type?
+- **C7.** May an order with nothing to measure skip the measurement steps?
+  Every product defers material to measurement (B7), so in practice every order
+  has a visit — but a supply-only flooring job might not. The pipeline currently
+  refuses `confirmed → material_selected`, which is the conservative reading: a
+  skipped step is a lie in the append-only history. Answering "yes, skip" is a
+  one-line change to the transition table and a fixture; answering it wrongly
+  puts jobs in the wrong column of the measurement schedule.
+- **C8.** Who may move an order along, and who may cancel one? The pipeline
+  enforces *what* can happen, not *who* may do it — no role check is wired to it
+  yet. A part-timer marking a job installed, or cancelling one, is the kind of
+  thing that is obvious to the client and invisible to us.
 
 ## D. Documents
 - `[BLOCKING P2]` **D1.** Two or three existing quote and order samples.

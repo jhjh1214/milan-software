@@ -233,6 +233,245 @@
       }
     }
   ],
+  "_order_status_purpose": "SPEC.md §6.3. The pipeline an order walks after the deposit confirms it, and the guards on each step. Both engines load these cases, because the server re-validates every transition a handset pushes: a status that moved on one device and was refused on the server would leave the two disagreeing about whether a job is in production.",
+  "_order_status_lines": "Each case carries the order's lines in the only four states the guards read: whether the line needs a site measurement, whether it has final dimensions yet, whether its material was deferred at quotation (SPEC.md §13 B7), and whether one has since been chosen.",
+  "order_status_cases": [
+    {
+      "id": "status-confirmed-to-measurement-booked",
+      "source": "SPEC.md §6.3",
+      "why": "The first step of the normal path. Nothing to guard: booking a visit asserts nothing about the job.",
+      "from": "confirmed",
+      "to": "measurement_booked",
+      "lines": [{"needs_measuring": true, "has_final_dimensions": false, "material_deferred": true, "material_chosen": false}],
+      "expect": {"allowed": true}
+    },
+    {
+      "id": "status-measurement-booked-to-measured",
+      "source": "SPEC.md §6.3",
+      "why": "The tape has been out and every line that needed it has final dimensions.",
+      "from": "measurement_booked",
+      "to": "measured",
+      "lines": [
+        {"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": false},
+        {"needs_measuring": false, "has_final_dimensions": false, "material_deferred": false, "material_chosen": false}
+      ],
+      "expect": {"allowed": true}
+    },
+    {
+      "id": "status-measured-refused-while-a-window-is-still-unmeasured",
+      "source": "SPEC.md §6.3",
+      "why": "Five of six windows measured is not a measured order. Marking it so hands final pricing a line with no tape behind it, and quietly breaks the variance report the estimate exists for.",
+      "from": "measurement_booked",
+      "to": "measured",
+      "lines": [
+        {"needs_measuring": true, "has_final_dimensions": true, "material_deferred": false, "material_chosen": true},
+        {"needs_measuring": true, "has_final_dimensions": false, "material_deferred": false, "material_chosen": true}
+      ],
+      "expect": {"allowed": false, "refused_because": "lines_not_measured"}
+    },
+    {
+      "id": "status-measured-to-material-selected",
+      "source": "SPEC.md §13 B7",
+      "why": "Every deferred material has been chosen, so the line can be priced at what the customer actually picked rather than at the dearest option in its group.",
+      "from": "measured",
+      "to": "material_selected",
+      "lines": [
+        {"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true},
+        {"needs_measuring": true, "has_final_dimensions": true, "material_deferred": false, "material_chosen": false}
+      ],
+      "expect": {"allowed": true}
+    },
+    {
+      "id": "status-material-selected-refused-while-one-line-still-defers",
+      "source": "SPEC.md §13 B7",
+      "why": "At final pricing a missing material raises rather than guessing; nobody is invoiced for a material they never picked. The status is the last place that is cheap to catch.",
+      "from": "measured",
+      "to": "material_selected",
+      "lines": [
+        {"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true},
+        {"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": false}
+      ],
+      "expect": {"allowed": false, "refused_because": "material_not_chosen"}
+    },
+    {
+      "id": "status-material-selected-to-in-production",
+      "source": "SPEC.md §6.3",
+      "why": "Cutting starts.",
+      "from": "material_selected",
+      "to": "in_production",
+      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true}],
+      "expect": {"allowed": true}
+    },
+    {
+      "id": "status-in-production-to-ready",
+      "source": "SPEC.md §6.3",
+      "why": "Made, and waiting on an installation slot.",
+      "from": "in_production",
+      "to": "ready",
+      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true}],
+      "expect": {"allowed": true}
+    },
+    {
+      "id": "status-ready-to-installed",
+      "source": "SPEC.md §6.3",
+      "why": "Fitted in the customer's house.",
+      "from": "ready",
+      "to": "installed",
+      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true}],
+      "expect": {"allowed": true}
+    },
+    {
+      "id": "status-installed-to-closed",
+      "source": "SPEC.md §6.3",
+      "why": "Paid up and done. The last transition there is.",
+      "from": "installed",
+      "to": "closed",
+      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true}],
+      "expect": {"allowed": true}
+    },
+    {
+      "id": "status-a-step-may-not-be-skipped",
+      "source": "SPEC.md §6.3",
+      "why": "confirmed straight to in_production would mean cutting material for dimensions nobody took. Each skipped step is also a lie in the append-only history somebody reads a year later.",
+      "from": "confirmed",
+      "to": "in_production",
+      "lines": [{"needs_measuring": true, "has_final_dimensions": false, "material_deferred": true, "material_chosen": false}],
+      "expect": {"allowed": false, "refused_because": "not_a_transition"}
+    },
+    {
+      "id": "status-measurement-may-not-be-skipped-even-when-nothing-needs-measuring",
+      "source": "SPEC.md §6.3",
+      "why": "A supply-only order still passes through the visit steps, because nothing-needs-measuring is a judgement about the lines while the pipeline is a record of what happened. Refusing here is the conservative reading; whether supply-only orders skip ahead is SPEC.md §13 C7, to answer rather than guess.",
+      "from": "confirmed",
+      "to": "material_selected",
+      "lines": [{"needs_measuring": false, "has_final_dimensions": false, "material_deferred": false, "material_chosen": false}],
+      "expect": {"allowed": false, "refused_because": "not_a_transition"}
+    },
+    {
+      "id": "status-does-not-go-backwards",
+      "source": "SPEC.md §6.3",
+      "why": "A remeasure is new dimensions on the same order, not a rewind. Rewinding would let a second visit overwrite the first with no record that either happened.",
+      "from": "measured",
+      "to": "measurement_booked",
+      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": false, "material_chosen": true}],
+      "expect": {"allowed": false, "refused_because": "not_a_transition"}
+    },
+    {
+      "id": "status-in-production-does-not-go-back-to-measured",
+      "source": "SPEC.md §6.3",
+      "why": "The same rule one step further along, where the material has already been cut.",
+      "from": "in_production",
+      "to": "measured",
+      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true}],
+      "expect": {"allowed": false, "refused_because": "not_a_transition"}
+    },
+    {
+      "id": "status-staying-put-is-not-an-error",
+      "source": "SPEC.md §6.3",
+      "why": "Two part-timers tapping the same button on one order, or one tapping twice on a slow handset. It writes nothing, and it is not a failure to show anybody.",
+      "from": "measured",
+      "to": "measured",
+      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": false, "material_chosen": true}],
+      "expect": {"allowed": false, "refused_because": "already_there"}
+    },
+    {
+      "id": "status-tapping-closed-again-is-not-an-error",
+      "source": "SPEC.md §6.3",
+      "why": "Staying put is answered before terminal, so a second tap on a finished order is the same quiet no-op it is anywhere else in the pipeline rather than an error about the order being closed. The distinction only shows up here, which is why it is written down.",
+      "from": "closed",
+      "to": "closed",
+      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true}],
+      "expect": {"allowed": false, "refused_because": "already_there"}
+    },
+    {
+      "id": "status-closed-is-terminal",
+      "source": "SPEC.md §6.3",
+      "why": "Reopening a closed order would put a second ending on a job that already ended.",
+      "from": "closed",
+      "to": "installed",
+      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true}],
+      "expect": {"allowed": false, "refused_because": "terminal"}
+    },
+    {
+      "id": "status-cancelled-is-terminal",
+      "source": "SPEC.md §6.3",
+      "why": "A cancelled order that comes back is a new order. Un-cancelling one would leave the deposit attached to a history that says it was refunded.",
+      "from": "cancelled",
+      "to": "confirmed",
+      "lines": [{"needs_measuring": true, "has_final_dimensions": false, "material_deferred": true, "material_chosen": false}],
+      "expect": {"allowed": false, "refused_because": "terminal"}
+    },
+    {
+      "id": "status-cancel-from-confirmed",
+      "source": "SPEC.md §6.3",
+      "why": "The customer changes their mind the week after the fair. What happens to the RM300 is SPEC.md §13 B3 and unanswered; the status moves either way, and nothing here computes a forfeit or a refund.",
+      "from": "confirmed",
+      "to": "cancelled",
+      "reason": "customer changed their mind",
+      "lines": [{"needs_measuring": true, "has_final_dimensions": false, "material_deferred": true, "material_chosen": false}],
+      "expect": {"allowed": true}
+    },
+    {
+      "id": "status-cancel-from-in-production",
+      "source": "SPEC.md §6.3",
+      "why": "Material is already cut, which is expensive and is exactly why it has to be recorded rather than blocked. The cost is a conversation, not a state machine.",
+      "from": "in_production",
+      "to": "cancelled",
+      "reason": "supplier discontinued the fabric",
+      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true}],
+      "expect": {"allowed": true}
+    },
+    {
+      "id": "status-cancel-needs-a-reason",
+      "source": "SPEC.md §6.5",
+      "why": "Same rule as a price override, for the same reason: a cancelled order with a customer's deposit against it and no stated cause is the one B3 will have to adjudicate from. Four characters minimum, no empty-string bypass.",
+      "from": "confirmed",
+      "to": "cancelled",
+      "reason": "",
+      "lines": [{"needs_measuring": true, "has_final_dimensions": false, "material_deferred": true, "material_chosen": false}],
+      "expect": {"allowed": false, "refused_because": "no_reason"}
+    },
+    {
+      "id": "status-cancel-reason-may-not-be-three-characters",
+      "source": "SPEC.md §6.5",
+      "why": "A three-letter shrug is the empty-string bypass wearing a hat.",
+      "from": "ready",
+      "to": "cancelled",
+      "reason": "n/a",
+      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true}],
+      "expect": {"allowed": false, "refused_because": "no_reason"}
+    },
+    {
+      "id": "status-cancel-reason-of-only-spaces-is-not-a-reason",
+      "source": "SPEC.md §6.5",
+      "why": "Whitespace passes a length check and says nothing.",
+      "from": "confirmed",
+      "to": "cancelled",
+      "reason": "     ",
+      "lines": [{"needs_measuring": true, "has_final_dimensions": false, "material_deferred": true, "material_chosen": false}],
+      "expect": {"allowed": false, "refused_because": "no_reason"}
+    },
+    {
+      "id": "status-an-installed-order-is-not-cancelled",
+      "source": "SPEC.md §6.3",
+      "why": "The curtains are on the customer's wall. Taking them down is a return, which this system does not model, and calling it a cancellation would put a fitted job in the cancelled column of every report.",
+      "from": "installed",
+      "to": "cancelled",
+      "reason": "customer unhappy with the colour",
+      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true}],
+      "expect": {"allowed": false, "refused_because": "not_a_transition"}
+    },
+    {
+      "id": "status-an-order-with-no-lines-still-cancels",
+      "source": "SPEC.md §6.3",
+      "why": "The guards read the lines; cancellation does not. An order that somehow has none must still be closable rather than stuck in confirmed forever.",
+      "from": "confirmed",
+      "to": "cancelled",
+      "reason": "raised in error",
+      "lines": [],
+      "expect": {"allowed": true}
+    }
+  ],
   "_rate_lock_purpose": "SPEC.md §6.1: 'a line whose category has no active lock must not be priced at a held version. Silently applying a curtain lock to a flooring line is the expensive bug in this design. Write that test before the resolver.' These cases were written first, and both engines load them.",
   "_rate_lock_pct": "Discount percentages are exact rationals written as strings, the same as billed_qty. '1/10' is ten percent. Never a float: a percentage of a price is money, and money is never binary floating point.",
   "rate_lock_cases": [
