@@ -188,3 +188,88 @@ RateBasis resolveRateBasis({
     discountPct: Rational.zero,
   );
 }
+
+/// Why an RM300 did not open a lock.
+enum LockRefusal {
+  /// Not taken at a fair. Client, Sep 2026: *"no second rm300 paid later in
+  /// showroom, only depo at fair can lock price."*
+  notAFair('not_a_fair'),
+
+  /// Less than the configured deposit. RM250 is not RM300.
+  belowMinimum('below_minimum');
+
+  const LockRefusal(this.wire);
+
+  final String wire;
+}
+
+/// The outcome of trying to open a lock: the row, or the reason there is none.
+class LockGrant {
+  final CategoryLock? lock;
+  final LockRefusal? refusedBecause;
+
+  const LockGrant.granted(CategoryLock this.lock) : refusedBecause = null;
+  const LockGrant.refused(LockRefusal this.refusedBecause) : lock = null;
+
+  bool get granted => lock != null;
+}
+
+/// Opens a category lock, or explains why it cannot. SPEC.md §6.1, §13 B1.
+///
+/// **The only place a `category_locks` row is created.** Both rules live here
+/// rather than on the screen that collects the money, so a screen that forgets
+/// one cannot bypass it:
+///
+/// - **Only a fair.** A showroom, home-visit, phone or referral deposit
+///   confirms an order and buys nothing else. There is no way to acquire held
+///   prices after the fair has packed up.
+/// - **The full RM300.** Checked here rather than trusted from the caller: a
+///   partial payment must not buy a full twelve-month hold.
+///
+/// [promoPct] is pinned alongside the version, because pinning only the version
+/// silently reprices this customer when the promo moves.
+LockGrant openCategoryLock({
+  required String id,
+  required Channel channel,
+  required DepositCategory category,
+  required DateTime depositDate,
+  required int depositSen,
+  required int minDepositSen,
+  required int rateCardVersion,
+  required Rational promoPct,
+}) {
+  if (channel != Channel.fair) {
+    return const LockGrant.refused(LockRefusal.notAFair);
+  }
+  if (depositSen < minDepositSen) {
+    return const LockGrant.refused(LockRefusal.belowMinimum);
+  }
+
+  return LockGrant.granted(
+    CategoryLock(
+      id: id,
+      category: category,
+      heldRateCardVersion: rateCardVersion,
+      heldDiscountPct: promoPct,
+      heldUntil: twelveMonthsFrom(depositDate),
+      status: LockStatus.active,
+    ),
+  );
+}
+
+/// The last day a hold taken on [depositDate] is good for.
+///
+/// The same day of the month, twelve months on, **clamped to the end of the
+/// month**. 29 February has no anniversary, so a leap-day deposit runs to 28
+/// February — which is what a calendar does with a monthly anniversary and what
+/// a person reading "12 months" would say.
+///
+/// Built by hand rather than with `DateTime(y, m + 12, d)`, because Dart rolls
+/// an out-of-range day forward: `DateTime(2029, 2, 29)` silently becomes 1
+/// March, quietly extending the hold by a day.
+DateTime twelveMonthsFrom(DateTime depositDate) {
+  final year = depositDate.year + 1;
+  final month = depositDate.month;
+  final lastDayOfThatMonth = DateTime(year, month + 1, 0).day;
+  return DateTime(year, month, depositDate.day.clamp(1, lastDayOfThatMonth));
+}

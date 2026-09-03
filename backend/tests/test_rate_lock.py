@@ -28,8 +28,11 @@ from app.pricing.models import (
 from app.pricing.rate_lock import (
     CategoryLock,
     Channel,
+    LockRefusal,
     LockStatus,
+    open_category_lock,
     resolve_rate_basis,
+    twelve_months_from,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -37,6 +40,7 @@ FIXTURES = json.loads(
     (ROOT / "shared" / "pricing-fixtures.json").read_text(encoding="utf-8")
 )
 CASES = FIXTURES["rate_lock_cases"]
+GRANT_CASES = FIXTURES["lock_grant_cases"]
 
 
 def a_lock(raw: dict) -> CategoryLock:
@@ -132,6 +136,101 @@ class TestTheCasesTheFixturesCannotExpress:
             status=LockStatus.CANCELLED,
         )
         assert not cancelled.is_active_on(date(2027, 1, 1))
+
+
+def test_the_contract_carries_grant_cases_too() -> None:
+    assert len(GRANT_CASES) >= 12
+    # Both outcomes, or the file is only testing one branch.
+    assert {c["expect"]["granted"] for c in GRANT_CASES} == {True, False}
+
+
+@pytest.mark.parametrize("case", GRANT_CASES, ids=[c["id"] for c in GRANT_CASES])
+def test_the_fixtures_agree_with_the_grant_rule(case: dict) -> None:
+    expected = case["expect"]
+
+    grant = open_category_lock(
+        id="new-lock",
+        channel=Channel(case["channel"]),
+        category=DepositCategory(case["category"]),
+        deposit_date=date.fromisoformat(case["deposit_date"]),
+        deposit_sen=case["deposit_sen"],
+        min_deposit_sen=case["min_deposit_sen"],
+        rate_card_version=case["rate_card_version"],
+        promo_pct=Fraction(case["promo_pct"]),
+    )
+
+    why = case["why"]
+    assert grant.granted is expected["granted"], why
+    if not expected["granted"]:
+        assert grant.refused_because is LockRefusal(expected["refused_because"]), why
+        return
+
+    lock = grant.lock
+    assert lock is not None
+    assert lock.held_rate_card_version == expected["held_rate_card_version"], why
+    assert str(lock.held_discount_pct) == expected["held_discount_pct"], why
+    assert lock.held_until == date.fromisoformat(expected["held_until"]), why
+
+
+class TestOnlyAFairCanLock:
+    def test_every_other_channel_is_refused(self) -> None:
+        # Named one by one rather than "not fair", so a channel added later
+        # cannot default into locking.
+        for channel in Channel:
+            grant = open_category_lock(
+                id="l",
+                channel=channel,
+                category=DepositCategory.CURTAIN,
+                deposit_date=date(2026, 8, 29),
+                deposit_sen=30000,
+                min_deposit_sen=30000,
+                rate_card_version=1,
+                promo_pct=Fraction(0),
+            )
+            assert grant.granted is (channel is Channel.FAIR), channel
+
+    def test_a_refused_grant_produces_no_row_at_all(self) -> None:
+        # Not a lock with a flag on it. A row that exists can be read by
+        # something that forgets to check the flag.
+        grant = open_category_lock(
+            id="l",
+            channel=Channel.SHOWROOM,
+            category=DepositCategory.CURTAIN,
+            deposit_date=date(2026, 8, 29),
+            deposit_sen=30000,
+            min_deposit_sen=30000,
+            rate_card_version=1,
+            promo_pct=Fraction(0),
+        )
+        assert grant.lock is None
+
+
+class TestTwelveMonths:
+    def test_a_leap_day_clamps_rather_than_rolling_forward(self) -> None:
+        # Rolling forward would quietly extend the hold to 1 March.
+        assert twelve_months_from(date(2028, 2, 29)) == date(2029, 2, 28)
+
+    def test_a_month_end_that_exists_is_left_alone(self) -> None:
+        assert twelve_months_from(date(2026, 8, 31)) == date(2027, 8, 31)
+        assert twelve_months_from(date(2026, 1, 31)) == date(2027, 1, 31)
+
+    def test_every_day_of_a_leap_year_lands_on_a_real_date(self) -> None:
+        # A sweep rather than three examples: the clamp has to hold for all 366.
+        day = date(2028, 1, 1)
+        while day.year == 2028:
+            held = twelve_months_from(day)
+            assert held.year == 2029
+            assert held.month == day.month
+            assert held.day <= day.day
+            day = date.fromordinal(day.toordinal() + 1)
+
+    def test_the_hold_is_never_shortened_by_more_than_a_day(self) -> None:
+        # The clamp exists for 29 February and nothing else. If it ever moved a
+        # date by two days, something in the month lengths is wrong.
+        day = date(2027, 1, 1)
+        while day.year == 2027:
+            assert (day.day - twelve_months_from(day).day) in (0, 1), day
+            day = date.fromordinal(day.toordinal() + 1)
 
 
 class TestPercentagesStayExact:

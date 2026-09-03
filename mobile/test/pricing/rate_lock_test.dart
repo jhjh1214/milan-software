@@ -18,6 +18,7 @@ import 'package:milan_quote/pricing/rate_lock.dart';
 
 void main() {
   late List<dynamic> cases;
+  late List<dynamic> grantCases;
 
   setUpAll(() {
     var dir = Directory.current;
@@ -32,6 +33,7 @@ void main() {
             )
             as Map<String, dynamic>;
     cases = json['rate_lock_cases'] as List<dynamic>;
+    grantCases = json['lock_grant_cases'] as List<dynamic>;
   });
 
   test('the contract carries cases at all', () {
@@ -138,6 +140,134 @@ void main() {
         status: LockStatus.active,
       );
       expect(lock.isActiveOn(DateTime(2027, 8, 29, 16, 30)), isTrue);
+    });
+  });
+
+  group('opening a lock', () {
+    test('the contract carries grant cases too', () {
+      expect(grantCases.length, greaterThanOrEqualTo(12));
+      // Both outcomes, or the file is only testing one branch.
+      final outcomes = grantCases
+          .map((c) => (c as Map<String, dynamic>)['expect']['granted'] as bool)
+          .toSet();
+      expect(outcomes, {true, false});
+    });
+
+    test('the fixtures agree with the grant rule', () {
+      for (final raw in grantCases) {
+        final c = raw as Map<String, dynamic>;
+        final expected = c['expect'] as Map<String, dynamic>;
+        final id = c['id'];
+        final why = c['why'];
+
+        final grant = openCategoryLock(
+          id: 'new-lock',
+          channel: Channel.fromWire(c['channel'] as String),
+          category: DepositCategory.values.byName(c['category'] as String),
+          depositDate: DateTime.parse(c['deposit_date'] as String),
+          depositSen: c['deposit_sen'] as int,
+          minDepositSen: c['min_deposit_sen'] as int,
+          rateCardVersion: c['rate_card_version'] as int,
+          promoPct: Rational.tryParse(c['promo_pct'] as String)!,
+        );
+
+        expect(grant.granted, expected['granted'], reason: '$id — $why');
+        if (expected['granted'] != true) {
+          expect(
+            grant.refusedBecause?.wire,
+            expected['refused_because'],
+            reason: '$id — $why',
+          );
+          continue;
+        }
+
+        final lock = grant.lock!;
+        expect(
+          lock.heldRateCardVersion,
+          expected['held_rate_card_version'],
+          reason: '$id — $why',
+        );
+        expect(
+          lock.heldDiscountPct.toString(),
+          expected['held_discount_pct'],
+          reason: '$id — $why',
+        );
+        expect(
+          lock.heldUntil,
+          DateTime.parse(expected['held_until'] as String),
+          reason: '$id — $why',
+        );
+      }
+    });
+
+    test('every channel but fair is refused', () {
+      // Checked one by one rather than "not fair", so a channel added later
+      // cannot default into locking.
+      for (final channel in Channel.values) {
+        final grant = openCategoryLock(
+          id: 'l',
+          channel: channel,
+          category: DepositCategory.curtain,
+          depositDate: DateTime(2026, 8, 29),
+          depositSen: 30000,
+          minDepositSen: 30000,
+          rateCardVersion: 1,
+          promoPct: Rational.zero,
+        );
+        expect(grant.granted, channel == Channel.fair, reason: channel.wire);
+      }
+    });
+
+    test('a refused grant produces no row at all', () {
+      // Not a lock with a flag on it. A row that exists can be read by
+      // something that forgets to check the flag.
+      final grant = openCategoryLock(
+        id: 'l',
+        channel: Channel.showroom,
+        category: DepositCategory.curtain,
+        depositDate: DateTime(2026, 8, 29),
+        depositSen: 30000,
+        minDepositSen: 30000,
+        rateCardVersion: 1,
+        promoPct: Rational.zero,
+      );
+      expect(grant.lock, isNull);
+    });
+  });
+
+  group('twelve months from a deposit', () {
+    test('a leap day clamps rather than rolling forward', () {
+      // Dart rolls an out-of-range day forward: DateTime(2029, 2, 29) is 1
+      // March, which would quietly extend the hold by a day.
+      expect(twelveMonthsFrom(DateTime(2028, 2, 29)), DateTime(2029, 2, 28));
+    });
+
+    test('a month end that exists is left alone', () {
+      expect(twelveMonthsFrom(DateTime(2026, 8, 31)), DateTime(2027, 8, 31));
+      expect(twelveMonthsFrom(DateTime(2026, 1, 31)), DateTime(2027, 1, 31));
+    });
+
+    test('every day of a leap year lands on a real date', () {
+      // A sweep rather than three examples: the clamp has to hold for all 366.
+      for (var day = DateTime(2028, 1, 1); day.year == 2028;) {
+        final held = twelveMonthsFrom(day);
+        expect(held.year, 2029, reason: '$day');
+        expect(held.month, day.month, reason: '$day');
+        expect(held.day, lessThanOrEqualTo(day.day), reason: '$day');
+        day = day.add(const Duration(days: 1));
+      }
+    });
+
+    test('the hold is never shortened by more than a day', () {
+      // The clamp exists for 29 February and nothing else.
+      for (var day = DateTime(2027, 1, 1); day.year == 2027;) {
+        expect(
+          day.day - twelveMonthsFrom(day).day,
+          anyOf(0, 1),
+          reason: '$day',
+        );
+        day = day.add(const Duration(days: 1));
+      }
     });
   });
 

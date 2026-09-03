@@ -510,6 +510,24 @@ Three cases. Do not collapse them.
 held version. **Silently applying a curtain lock to a flooring line is the
 expensive bug in this design. Write that test before the resolver.**
 
+### Only a fair deposit opens a lock
+
+Client, Sep 2026: *"no second rm300 paid later in showroom, only depo at fair can
+lock price."*
+
+A deposit taken in the showroom, on a home visit, over the phone or through a
+referral confirms an order and buys nothing else. There is no way to acquire
+held prices after the fair has packed up, and no way to top up a category later.
+
+Two consequences:
+
+- `open_category_lock` **refuses** unless the order's channel is `fair`. It is
+  the only place a `category_locks` row is created, so the rule cannot be
+  bypassed by a screen that forgets it.
+- The §6.2 prompt below is **fair-only**. Away from a fair there is no second
+  RM300 to offer, because it would not lock anything, and offering it would be
+  selling something that does not exist.
+
 ## 6.2 The category prompt is a revenue feature
 
 When a line is added in a category with no active lock:
@@ -1449,22 +1467,29 @@ orders, supplier management and costing come later.
   RM9–10/ft that can be added by mistake.
 
 ## B. Deposits and locks
-- `[BLOCKING P4]` **B1. PARTLY ANSWERED.** Client, Sep 2026:
+- ~~**B1.**~~ **ANSWERED.** Client, Sep 2026:
 
   > a rm300 locks for one category only, so they lock for curtain then during
   > measurement they can only choose to do curtains or blinds at max. if want
   > flooring they shouldve deposited another additional separate rm300 for
   > flooring itself, making it rm600 for both
 
-  So: **one RM300, one category**, and a curtain deposit covers curtains *and*
-  blinds — which confirms the family-to-category map in §6.1 and the resolver
-  that reads it. Two categories cost RM600, paid at the fair.
+  and, on what a later deposit buys:
 
-  **Still open:** what a second RM300 buys when it is paid *later*, in the
-  showroom rather than at the fair. §3 says promo and the 12-month lock are
-  fair-only, which would make it a standard-price hold — but that is an
-  inference, not the client's words, and it decides real money. Ask before
-  Phase 4 ships the category prompt.
+  > no second rm300 paid later in showroom, only depo at fair can lock price
+
+  So two rules, both hard:
+
+  1. **One RM300, one category.** A curtain deposit covers curtains *and*
+     blinds — which confirms the family-to-category map in §6.1 and the resolver
+     that reads it. Two categories cost RM600.
+  2. **Only a deposit taken at a fair opens a lock.** A showroom, home-visit,
+     phone or referral deposit confirms an order and buys nothing else. There is
+     no way to acquire held prices after the fair has packed up.
+
+  Rule 2 makes the §6.2 category prompt a **fair-only** feature: away from a
+  fair there is no second RM300 to offer, because it would not lock anything.
+  Offering it there would be selling something that does not exist.
 - `[BLOCKING P4]` **B2.** 12 months elapse, house still not ready. Extend,
   reprice, or case by case?
 - **B3.** Cancel after deposit: forfeit, partial, or credit?

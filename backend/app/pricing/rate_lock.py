@@ -24,6 +24,7 @@ Pure. No clock read, no I/O, no ORM: ``today`` and the locks are passed in.
 
 from __future__ import annotations
 
+from calendar import monthrange
 from dataclasses import dataclass
 from datetime import date
 from enum import Enum
@@ -153,4 +154,83 @@ def resolve_rate_basis(
         source=RateSource.STANDARD_PINNED,
         rate_card_version=order_pinned_rate_card_version,
         discount_pct=Fraction(0),
+    )
+
+
+class LockRefusal(Enum):
+    """Why an RM300 did not open a lock."""
+
+    #: Not taken at a fair. Client, Sep 2026: "no second rm300 paid later in
+    #: showroom, only depo at fair can lock price."
+    NOT_A_FAIR = "not_a_fair"
+    #: Less than the configured deposit. RM250 is not RM300.
+    BELOW_MINIMUM = "below_minimum"
+
+
+@dataclass(frozen=True)
+class LockGrant:
+    """The outcome of trying to open a lock: the row, or why there is none."""
+
+    lock: CategoryLock | None = None
+    refused_because: LockRefusal | None = None
+
+    @property
+    def granted(self) -> bool:
+        return self.lock is not None
+
+
+def twelve_months_from(deposit_date: date) -> date:
+    """The last day a hold taken on ``deposit_date`` is good for.
+
+    The same day of the month, twelve months on, **clamped to the end of the
+    month**. 29 February has no anniversary, so a leap-day deposit runs to 28
+    February -- what a calendar does with a monthly anniversary, and what a
+    person reading "12 months" would say.
+    """
+    year = deposit_date.year + 1
+    month = deposit_date.month
+    last_day = monthrange(year, month)[1]
+    return date(year, month, min(deposit_date.day, last_day))
+
+
+def open_category_lock(
+    *,
+    id: str,
+    channel: Channel,
+    category: DepositCategory,
+    deposit_date: date,
+    deposit_sen: int,
+    min_deposit_sen: int,
+    rate_card_version: int,
+    promo_pct: Fraction,
+) -> LockGrant:
+    """Opens a category lock, or explains why it cannot. SPEC.md §6.1, §13 B1.
+
+    **The only place a ``category_locks`` row is created.** Both rules live here
+    rather than on the screen that collects the money, so a screen that forgets
+    one cannot bypass it:
+
+    - **Only a fair.** A showroom, home-visit, phone or referral deposit
+      confirms an order and buys nothing else. There is no way to acquire held
+      prices after the fair has packed up.
+    - **The full RM300.** Checked here rather than trusted from the caller: a
+      partial payment must not buy a full twelve-month hold.
+
+    ``promo_pct`` is pinned alongside the version, because pinning only the
+    version silently reprices this customer when the promo moves.
+    """
+    if channel is not Channel.FAIR:
+        return LockGrant(refused_because=LockRefusal.NOT_A_FAIR)
+    if deposit_sen < min_deposit_sen:
+        return LockGrant(refused_because=LockRefusal.BELOW_MINIMUM)
+
+    return LockGrant(
+        lock=CategoryLock(
+            id=id,
+            category=category,
+            held_rate_card_version=rate_card_version,
+            held_discount_pct=promo_pct,
+            held_until=twelve_months_from(deposit_date),
+            status=LockStatus.ACTIVE,
+        )
     )

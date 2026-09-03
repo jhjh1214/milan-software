@@ -3,6 +3,236 @@
   "_rate_card": "rate-card-fair-2026-08.json",
   "_units": "Dimensions are in tenths of a millimetre (tmm). Money is in sen. 1ft = 3048 tmm, 1in = 254 tmm.",
   "schema_version": 1,
+  "_lock_grant_purpose": "SPEC.md §6.1 and §13 B1. Client, Sep 2026: 'no second rm300 paid later in showroom, only depo at fair can lock price.' This is the only place a category_locks row is created, so the rule cannot be bypassed by a screen that forgets it. Both engines load these cases.",
+  "lock_grant_cases": [
+    {
+      "id": "grant-a-fair-deposit-opens-a-lock",
+      "source": "SPEC.md §6.1",
+      "why": "The base case. RM300 at the fair buys twelve months of this category's prices.",
+      "channel": "fair",
+      "category": "curtain",
+      "deposit_date": "2026-08-29",
+      "deposit_sen": 30000,
+      "min_deposit_sen": 30000,
+      "rate_card_version": 1,
+      "promo_pct": "0",
+      "expect": {
+        "granted": true,
+        "held_rate_card_version": 1,
+        "held_discount_pct": "0",
+        "held_until": "2027-08-29"
+      }
+    },
+    {
+      "id": "grant-a-showroom-deposit-opens-nothing",
+      "source": "SPEC.md §13 B1",
+      "why": "'no second rm300 paid later in showroom, only depo at fair can lock price.' The money is still taken; it confirms the order and buys nothing else.",
+      "channel": "showroom",
+      "category": "curtain",
+      "deposit_date": "2027-03-12",
+      "deposit_sen": 30000,
+      "min_deposit_sen": 30000,
+      "rate_card_version": 101,
+      "promo_pct": "0",
+      "expect": {"granted": false, "refused_because": "not_a_fair"}
+    },
+    {
+      "id": "grant-a-home-visit-deposit-opens-nothing",
+      "source": "SPEC.md §13 B1",
+      "why": "Same rule. Measuring at the customer's house is not a fair, however much it feels like a sale.",
+      "channel": "home_visit",
+      "category": "flooring",
+      "deposit_date": "2027-03-12",
+      "deposit_sen": 30000,
+      "min_deposit_sen": 30000,
+      "rate_card_version": 101,
+      "promo_pct": "0",
+      "expect": {"granted": false, "refused_because": "not_a_fair"}
+    },
+    {
+      "id": "grant-a-phone-deposit-opens-nothing",
+      "source": "SPEC.md §13 B1",
+      "why": "Four channels are not fairs, and each has to be refused by the same branch rather than by four screens remembering to.",
+      "channel": "phone",
+      "category": "wallpaper",
+      "deposit_date": "2027-03-12",
+      "deposit_sen": 30000,
+      "min_deposit_sen": 30000,
+      "rate_card_version": 101,
+      "promo_pct": "0",
+      "expect": {"granted": false, "refused_because": "not_a_fair"}
+    },
+    {
+      "id": "grant-a-referral-deposit-opens-nothing",
+      "source": "SPEC.md §13 B1",
+      "why": "The fourth. Listed on its own because a channel added later must not default into locking.",
+      "channel": "referral",
+      "category": "curtain",
+      "deposit_date": "2027-03-12",
+      "deposit_sen": 30000,
+      "min_deposit_sen": 30000,
+      "rate_card_version": 101,
+      "promo_pct": "0",
+      "expect": {"granted": false, "refused_because": "not_a_fair"}
+    },
+    {
+      "id": "grant-short-payment-opens-nothing",
+      "source": "SPEC.md §6.1, RM300 per category",
+      "why": "RM250 is not RM300. A partial payment must not buy a full twelve-month hold, and the amount is checked here rather than trusted from the screen that collected it.",
+      "channel": "fair",
+      "category": "curtain",
+      "deposit_date": "2026-08-29",
+      "deposit_sen": 25000,
+      "min_deposit_sen": 30000,
+      "rate_card_version": 1,
+      "promo_pct": "0",
+      "expect": {"granted": false, "refused_because": "below_minimum"}
+    },
+    {
+      "id": "grant-overpayment-still-opens-one-lock",
+      "source": "SPEC.md §6.1",
+      "why": "A customer who hands over RM500 for one category gets the same hold. The extra is money on the order, not a longer or better lock.",
+      "channel": "fair",
+      "category": "curtain",
+      "deposit_date": "2026-08-29",
+      "deposit_sen": 50000,
+      "min_deposit_sen": 30000,
+      "rate_card_version": 1,
+      "promo_pct": "0",
+      "expect": {
+        "granted": true,
+        "held_rate_card_version": 1,
+        "held_discount_pct": "0",
+        "held_until": "2027-08-29"
+      }
+    },
+    {
+      "id": "grant-pins-the-percentage-as-well-as-the-version",
+      "source": "CLAUDE.md, version pinning",
+      "why": "'A rate lock pins BOTH held_rate_card_version AND held_discount_pct. Pinning only the version silently reprices held orders when the promo % moves.'",
+      "channel": "fair",
+      "category": "flooring",
+      "deposit_date": "2026-08-29",
+      "deposit_sen": 30000,
+      "min_deposit_sen": 30000,
+      "rate_card_version": 1,
+      "promo_pct": "1/10",
+      "expect": {
+        "granted": true,
+        "held_rate_card_version": 1,
+        "held_discount_pct": "1/10",
+        "held_until": "2027-08-29"
+      }
+    },
+    {
+      "id": "grant-twelve-months-from-a-leap-day-lands-on-the-28th",
+      "source": "SPEC.md §6.1, held_until",
+      "why": "29 February has no anniversary. Clamped to the last day of the month, which is what every calendar does with a monthly anniversary and what a person reading '12 months' would say.",
+      "channel": "fair",
+      "category": "curtain",
+      "deposit_date": "2028-02-29",
+      "deposit_sen": 30000,
+      "min_deposit_sen": 30000,
+      "rate_card_version": 1,
+      "promo_pct": "0",
+      "expect": {
+        "granted": true,
+        "held_rate_card_version": 1,
+        "held_discount_pct": "0",
+        "held_until": "2029-02-28"
+      }
+    },
+    {
+      "id": "grant-twelve-months-from-a-month-end-keeps-the-month-end",
+      "source": "SPEC.md §6.1, held_until",
+      "why": "31 August exists next year too, so no clamping happens and the hold runs the full year.",
+      "channel": "fair",
+      "category": "curtain",
+      "deposit_date": "2026-08-31",
+      "deposit_sen": 30000,
+      "min_deposit_sen": 30000,
+      "rate_card_version": 1,
+      "promo_pct": "0",
+      "expect": {
+        "granted": true,
+        "held_rate_card_version": 1,
+        "held_discount_pct": "0",
+        "held_until": "2027-08-31"
+      }
+    },
+    {
+      "id": "grant-a-deposit-on-the-day-before-a-leap-day-is-untouched",
+      "source": "SPEC.md §6.1, held_until",
+      "why": "The fencepost next to the clamp. 28 February exists every year, so it must not be dragged anywhere.",
+      "channel": "fair",
+      "category": "curtain",
+      "deposit_date": "2028-02-28",
+      "deposit_sen": 30000,
+      "min_deposit_sen": 30000,
+      "rate_card_version": 1,
+      "promo_pct": "0",
+      "expect": {
+        "granted": true,
+        "held_rate_card_version": 1,
+        "held_discount_pct": "0",
+        "held_until": "2029-02-28"
+      }
+    },
+    {
+      "id": "grant-a-deposit-into-a-leap-year-keeps-the-29th",
+      "source": "SPEC.md §6.1, held_until",
+      "why": "The other direction. A 29 February in the destination year is a real date and the hold should reach it.",
+      "channel": "fair",
+      "category": "curtain",
+      "deposit_date": "2027-02-28",
+      "deposit_sen": 30000,
+      "min_deposit_sen": 30000,
+      "rate_card_version": 1,
+      "promo_pct": "0",
+      "expect": {
+        "granted": true,
+        "held_rate_card_version": 1,
+        "held_discount_pct": "0",
+        "held_until": "2028-02-28"
+      }
+    },
+    {
+      "id": "grant-each-category-gets-its-own-lock",
+      "source": "SPEC.md §13 B1",
+      "why": "'making it rm600 for both'. The second RM300 is a second row, not an extension of the first.",
+      "channel": "fair",
+      "category": "flooring",
+      "deposit_date": "2026-08-29",
+      "deposit_sen": 30000,
+      "min_deposit_sen": 30000,
+      "rate_card_version": 1,
+      "promo_pct": "0",
+      "expect": {
+        "granted": true,
+        "held_rate_card_version": 1,
+        "held_discount_pct": "0",
+        "held_until": "2027-08-29"
+      }
+    },
+    {
+      "id": "grant-wallpaper-is-a-category-of-its-own",
+      "source": "SPEC.md §6.1",
+      "why": "Three categories. Wallpaper needs its own RM300 and gets its own row.",
+      "channel": "fair",
+      "category": "wallpaper",
+      "deposit_date": "2026-08-29",
+      "deposit_sen": 30000,
+      "min_deposit_sen": 30000,
+      "rate_card_version": 1,
+      "promo_pct": "0",
+      "expect": {
+        "granted": true,
+        "held_rate_card_version": 1,
+        "held_discount_pct": "0",
+        "held_until": "2027-08-29"
+      }
+    }
+  ],
   "_rate_lock_purpose": "SPEC.md §6.1: 'a line whose category has no active lock must not be priced at a held version. Silently applying a curtain lock to a flooring line is the expensive bug in this design. Write that test before the resolver.' These cases were written first, and both engines load them.",
   "_rate_lock_pct": "Discount percentages are exact rationals written as strings, the same as billed_qty. '1/10' is ten percent. Never a float: a percentage of a price is money, and money is never binary floating point.",
   "rate_lock_cases": [
