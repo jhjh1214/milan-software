@@ -1,0 +1,102 @@
+<header class="board-head">
+  <h1>Orders</h1>
+
+  <!-- Says what is being shown out of what matches. A board that cannot say
+       "50 of 512" leaves somebody guessing whether their filter did anything. -->
+  <p class="count" role="status">
+    @if (loading()) {
+      Loading…
+    } @else {
+      Showing {{ orders().length }} of {{ total() }}
+    }
+  </p>
+</header>
+
+<nav class="filters" aria-label="Filters">
+  <div class="filter-group">
+    <span class="filter-label" id="status-label">Stage</span>
+    <div role="group" aria-labelledby="status-label">
+      <button
+        type="button"
+        [class.on]="status() === null"
+        (click)="filterBy('status', null)"
+      >
+        All
+      </button>
+      @for (s of statuses; track s) {
+        <button
+          type="button"
+          [class.on]="status() === s"
+          [attr.aria-pressed]="status() === s"
+          (click)="filterBy('status', s)"
+        >
+          {{ s.replaceAll('_', ' ') }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="filter-group">
+    <span class="filter-label" id="channel-label">Where from</span>
+    <div role="group" aria-labelledby="channel-label">
+      <button
+        type="button"
+        [class.on]="channel() === null"
+        (click)="filterBy('channel', null)"
+      >
+        All
+      </button>
+      @for (c of channels; track c) {
+        <button
+          type="button"
+          [class.on]="channel() === c"
+          [attr.aria-pressed]="channel() === c"
+          (click)="filterBy('channel', c)"
+        >
+          {{ c.replaceAll('_', ' ') }}
+        </button>
+      }
+    </div>
+  </div>
+</nav>
+
+@if (failure(); as message) {
+  <!-- Said out loud, with a way back. A board that silently shows nothing is
+       indistinguishable from a quiet week, and somebody would act on that. -->
+  <p class="failure" role="alert">
+    {{ message }}
+    <button type="button" (click)="retry()">Try again</button>
+  </p>
+} @else if (!loading() && orders().length === 0) {
+  <p class="empty">Nothing matches these filters.</p>
+} @else {
+  <ul class="cards">
+    @for (order of orders(); track order.id) {
+      <li class="card" [attr.data-urgency]="urgency(order)">
+        <a [routerLink]="['/orders', order.id]">
+          <div class="card-head">
+            <span class="reference" [class.pending]="order.order_no === null">
+              {{ reference(order) }}
+            </span>
+            <span class="stage">{{ order.status.replaceAll('_', ' ') }}</span>
+          </div>
+
+          <p class="customer">{{ order.customer_name || 'No name' }}</p>
+
+          <p class="total">{{ money(order.estimate_total_sen) }}</p>
+          <p class="deposit">{{ money(order.deposit_paid_sen) }} taken</p>
+
+          @if (order.held_until) {
+            <!-- The reason the board is sorted this way. A hold that runs out
+                 unused is a customer who paid RM300 and got nothing. -->
+            <p class="hold">Rate held to {{ date(order.held_until) }}</p>
+          }
+
+          @if (order.has_unmeasured_lines) {
+            <p class="flag">{{ order.line_count }} still to measure</p>
+          }
+        </a>
+      </li>
+    }
+  </ul>
+}

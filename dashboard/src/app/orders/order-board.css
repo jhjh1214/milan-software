@@ -1,0 +1,213 @@
+/* The board is read across a desk, often standing up. Big enough to scan, and
+   colour used for exactly one thing: how soon a rate hold runs out. */
+
+:host {
+  display: block;
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.board-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+h1 {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+  color: #0f172a;
+}
+
+.count {
+  margin: 0;
+  color: #56637a;
+  font-size: 14px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #56637a;
+}
+
+.filter-group [role='group'] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filters button {
+  /* 44px so it is a real target on a laptop trackpad, not only a mouse. */
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 14px;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.filters button:hover {
+  border-color: #94a3b8;
+}
+
+.filters button:focus-visible {
+  /* Never removed. Somebody working this board with a keyboard has to be able
+     to see where they are. */
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.filters button.on {
+  background: #1e3a5f;
+  border-color: #1e3a5f;
+  color: #fff;
+}
+
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.card a {
+  display: block;
+  padding: 12px 14px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.card a:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: -3px;
+  border-radius: 6px;
+}
+
+/* The one thing colour means here. Amber inside 60 days, red inside 30, and a
+   fourth state once it has gone — an expired hold is not urgent, it is a
+   customer who paid RM300 and got nothing, which is a different conversation. */
+.card[data-urgency='soon'] {
+  border-left-color: #d97706;
+}
+
+.card[data-urgency='urgent'] {
+  border-left-color: #b91c1c;
+}
+
+.card[data-urgency='gone'] {
+  border-left-color: #7f1d1d;
+  background: #fef2f2;
+}
+
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.reference {
+  font-weight: 600;
+  font-size: 14px;
+  /* Tabular figures so a column of order numbers lines up. */
+  font-variant-numeric: tabular-nums;
+}
+
+.reference.pending {
+  font-weight: 400;
+  font-style: italic;
+  color: #56637a;
+}
+
+.stage {
+  font-size: 12px;
+  color: #56637a;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.customer {
+  margin: 6px 0 8px;
+  font-size: 15px;
+}
+
+.total {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.deposit,
+.hold,
+.flag {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: #56637a;
+}
+
+.hold {
+  color: #92400e;
+}
+
+.flag {
+  color: #1e3a5f;
+}
+
+.failure {
+  padding: 16px;
+  border: 1px solid #b91c1c;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+.failure button {
+  margin-left: 12px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #7f1d1d;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.empty {
+  padding: 32px;
+  text-align: center;
+  color: #56637a;
+}

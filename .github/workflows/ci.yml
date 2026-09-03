@@ -459,6 +459,39 @@ jobs:
         working-directory: deploy
         run: docker compose down -v
 
+  dashboard:
+    name: Angular — build and test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      # `ci`, never `install`. It installs exactly the lockfile and fails when
+      # package.json and the lockfile disagree, which is the whole point of
+      # committing one.
+      - run: npm ci
+
+      # CLAUDE.md pins everything and the rest of this repo does it exactly.
+      # The lockfile alone is not enough: `npm install` rewrites it from the
+      # ranges, so the range is what actually decides.
+      - name: Nothing floats
+        run: node tools/check-pins.mjs
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test
+
   fixtures:
     name: Shared files are well formed and in step
     runs-on: ubuntu-latest
