@@ -11,7 +11,11 @@ WORKDIR /srv
 # Dependencies first, so a code change does not reinstall them. Pinned, per
 # CLAUDE.md -- an unpinned rebuild months from now is a different application.
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+# Retries and a longer timeout because PyPI is occasionally slow rather than
+# down, and a read timeout here fails the whole image build over nothing. This
+# does not weaken anything: the versions are still pinned, and a package that
+# genuinely cannot be fetched still fails.
+RUN pip install --no-cache-dir --retries 5 --timeout 60 -r requirements.txt
 
 COPY alembic.ini ./
 COPY migrations ./migrations
