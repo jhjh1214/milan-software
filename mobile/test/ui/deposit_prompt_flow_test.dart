@@ -341,6 +341,49 @@ void main() {
     expect(history.map((e) => e.event), ['confirmed', 'payment_taken']);
   });
 
+  testWidgets('the confirmed order is queued to go up, with the payment', (
+    tester,
+  ) async {
+    // An order nobody queued sits on the handset forever: the office never
+    // learns about the sale, and the order number — which only the server may
+    // issue — never arrives.
+    await pumpApp(tester, channel: Channel.fair);
+    await addACurtain(tester);
+    await tester.tap(find.text('收 RM 300.00'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('现金'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+
+    final quoteId = (await db.latestQuote())!.id;
+    final order = (await OrderRepository(db).forQuote(quoteId))!;
+
+    final queued = await db.pendingOutbox();
+    final kinds = queued.map((r) => r.entityType).toList();
+    expect(kinds, contains('order'));
+    expect(kinds, contains('payment'));
+
+    final row = queued.firstWhere((r) => r.entityType == 'order');
+    expect(row.entityId, order.id);
+
+    final body = jsonDecode(row.payload) as Map<String, dynamic>;
+    expect(body['id'], order.id);
+    expect(body['quote_id'], quoteId);
+    expect(
+      body.containsKey('order_no'),
+      isFalse,
+      reason:
+          'the number is the server\'s to issue, and there is no field '
+          'here for a device to fill in',
+    );
+    expect((body['lines'] as List), hasLength(1));
+    expect(
+      order.orderNo,
+      isNull,
+      reason: 'until it syncs the screen shows "pending sync"',
+    );
+  });
   testWidgets('declining leaves it a quote', (tester) async {
     // No money, no order. Calling it confirmed would put it on the production
     // board with nothing paid against it.

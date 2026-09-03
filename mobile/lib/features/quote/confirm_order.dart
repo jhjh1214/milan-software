@@ -19,6 +19,8 @@ import '../../data/quote_repository.dart' show newId;
 import '../../pricing/conversion.dart';
 import '../../pricing/models.dart';
 import '../../pricing/rate_lock.dart';
+import '../../sync/order_payload.dart';
+import '../../sync/sync_state.dart';
 import '../payment/payment_method_sheet.dart';
 import 'deposit_prompt_sheet.dart' show lockRepositoryProvider;
 import 'quote_state.dart';
@@ -56,6 +58,10 @@ Future<ConversionRefusal?> confirmOrderForDeposit(
       amount: depositJustTaken,
       at: at,
     );
+    // Re-queued so the row waiting to go up carries the money as it now
+    // stands. Without this a second RM300 taken before the first sync would
+    // reach the server as an order that only ever saw one.
+    await _queueOrder(ref, existing.id);
     ref.invalidate(currentOrderProvider);
     return null;
   }
@@ -119,10 +125,47 @@ Future<ConversionRefusal?> confirmOrderForDeposit(
 
   if (result.order case final order?) {
     await orders.store(order);
+    await _queueOrder(ref, order.id);
     ref.invalidate(currentOrderProvider);
     return null;
   }
   return result.refusedBecause;
+}
+
+/// Puts the order in the outbox, or refreshes the row already waiting there.
+///
+/// Queued rather than sent: §9 makes offline the default, and the deposit was
+/// already recorded before this ran. What comes back is the order number, which
+/// is the one thing on the order the device may not invent — until it arrives
+/// the screen shows "pending sync".
+///
+/// Called again after a second deposit so the queued payload carries the money
+/// as it now stands. `_enqueue` keeps the row's place in the queue, so a
+/// refreshed order does not overtake one confirmed before it.
+Future<void> _queueOrder(WidgetRef ref, String orderId) async {
+  final orders = ref.read(orderRepositoryProvider);
+  final order =
+      await (ref
+              .read(databaseProvider)
+              .select(ref.read(databaseProvider).orders)
+            ..where((o) => o.id.equals(orderId)))
+          .getSingle();
+
+  await ref
+      .read(outboxerProvider)
+      .enqueueOrder(
+        orderId,
+        orderPayload(
+          order: order,
+          lines: await orders.linesOf(orderId),
+          events: await orders.historyOf(orderId),
+          overrides: await orders.overridesOn(orderId),
+          // Best effort. Money and orders must not depend on anything that can
+          // fail, and reading the device id goes through the Keystore.
+          deviceId: ref.read(deviceIdProvider).valueOrNull,
+        ),
+      );
+  ref.invalidate(outboxDepthProvider);
 }
 
 /// The family of the line an add-on hangs off, so it takes its parent's
