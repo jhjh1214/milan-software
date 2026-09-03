@@ -126,9 +126,20 @@ in ways that meant it could never actually apply.
    category_lock_id` pointed at a row the server had never seen. Migration 0005
    and `GET /api/locks` fix the server half.
 
-**Still to do on that:** the **device half of the lock sync**. The server
-accepts and serves locks; nothing on the handset pushes or pulls them yet, so
-the cross-handset hold is not yet fixed end to end. That is the next slice.
+**The lock sync is complete end to end.** A hold and every prompt answer go up
+through the same outbox as quotes, payments and orders, and a handset pulls a
+customer's holds when a phone number is saved — the only moment a returning
+customer becomes identifiable. The pull only ever *adds*: a server copy never
+overwrites a deposit taken on this handset and not yet pushed, because that
+local row is the one somebody watched the money change hands for. With no
+signal it adds nothing and raises nothing, which leaves the quote higher than
+it needs to be — permitted by §8.5, and corrected on the next connection.
+
+**Next, and the reason both lock bugs surfaced:** the dashboard has nothing to
+read. Every endpoint is a push. Phase 5's order board needs `GET /api/orders`
+with filters, one order with its lines and history, and the two review queries
+that already exist on the device. That is the prerequisite for any Angular
+work, and it is testable backend work.
 
 **Two new blocking questions**, both about money, both built the conservative
 way rather than guessed: §13 **B9** (what identifies a returning customer —
