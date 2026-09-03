@@ -77,6 +77,36 @@ jobs:
           pip install --quiet pypdf
           python3 ../tool/check_pdf_text.py
 
+      # A migration that has never run against an older database is the same
+      # shape of risk as a backup that has never been restored. Snapshots are
+      # what make the next one verifiable, so a version bump without one fails
+      # here rather than on somebody's phone.
+      #
+      # sed rather than `grep -oP`: PCRE is not available in every grep, and
+      # the first draft of this silently passed when the extraction returned
+      # nothing -- a check that goes green because it could not read its own
+      # input is worse than no check.
+      - name: Every schema version has a captured snapshot
+        run: |
+          version=$(sed -n 's/.*int get schemaVersion => \([0-9]\+\);.*/\1/p' \
+            lib/data/database.dart | head -1)
+          if [ -z "$version" ]; then
+            echo "::error::could not read schemaVersion from lib/data/database.dart"
+            exit 1
+          fi
+          echo "schemaVersion is $version"
+
+          missing=0
+          v=10
+          while [ "$v" -le "$version" ]; do
+            if [ ! -f "drift_schemas/drift_schema_v$v.json" ]; then
+              echo "::error::no drift_schemas/drift_schema_v$v.json — run: dart run drift_dev schema dump lib/data/database.dart drift_schemas/"
+              missing=1
+            fi
+            v=$((v + 1))
+          done
+          exit $missing
+
       # SPEC.md Phase 1 acceptance: 100% coverage on Length and Money. Asserted
       # rather than eyeballed, because a coverage number nobody checks is not a
       # criterion.
