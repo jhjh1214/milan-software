@@ -10,6 +10,7 @@ import '../../pricing/models.dart';
 import '../../sync/sync_state.dart';
 import '../../ui/theme.dart';
 import '../order/order_screen.dart';
+import '../order/overrides_review_screen.dart';
 import '../../ui/unit_labels.dart';
 import '../rates/rate_card_screen.dart';
 import '../sync/sync_screen.dart';
@@ -45,6 +46,7 @@ class QuoteScreen extends ConsumerWidget {
               MaterialPageRoute<void>(builder: (_) => const RateCardScreen()),
             ),
           ),
+          const _OverridesButton(),
           const _SyncButton(),
           const SizedBox(width: Space.sm),
         ],
@@ -1026,6 +1028,32 @@ class _TotalBar extends ConsumerWidget {
 /// The badge is the whole point of putting it here. A part-timer who can see
 /// "3 waiting" understands a dead connection; one who cannot assumes the orders
 /// vanished, and starts writing them on paper as well.
+/// The way into the weekly override review. Admin only, and hidden otherwise.
+///
+/// §6.5 puts the entire control on this screen being read: *"without it the log
+/// is never read and the control does not exist."* Somewhere findable is
+/// therefore part of the control, not a convenience — a review screen three
+/// menus deep is one nobody opens on a Monday morning.
+class _OverridesButton extends ConsumerWidget {
+  const _OverridesButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = L.of(context);
+    final isAdmin =
+        ref.watch(credentialsProvider).valueOrNull?.user.role == 'admin';
+    if (!isAdmin) return const SizedBox.shrink();
+
+    return IconButton(
+      icon: const Icon(Icons.fact_check_outlined),
+      tooltip: l.overridesThisWeek,
+      onPressed: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const OverridesReviewScreen()),
+      ),
+    );
+  }
+}
+
 class _SyncButton extends ConsumerWidget {
   const _SyncButton();
 
