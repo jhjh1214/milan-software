@@ -1167,14 +1167,35 @@ First phase with running costs, so maintenance billing starts here.
 - Daily cash-up screen
 - Price override with mandatory reason and audit row
 
-**Acceptance**
-- [ ] Two category deposits recorded offline; both receipts resolve after sync
-- [ ] A flooring line on a curtain-only lock prices at **standard**, not promo
-- [ ] Adding flooring with no flooring lock triggers the prompt every time
-- [ ] Declined category deposits appear in a report
-- [ ] Changing the promo % afterwards does not move a locked order's price
-- [ ] An override made offline appears in the audit log naming the admin
-- [ ] Cash-up totals reconcile per user per day
+**Acceptance** — every one has a named test behind it.
+- [x] Two category deposits recorded offline; both receipts resolve after sync
+  — `outbox_test.dart`, "two category deposits offline, and both receipts
+  resolve". Queued with the server offline, drained after, two distinct
+  numbers.
+- [x] A flooring line on a curtain-only lock prices at **standard**, not promo
+  — fixture `lock-a-flooring-line-never-rides-a-curtain-lock`, loaded by both
+  engines.
+- [x] Adding flooring with no flooring lock triggers the prompt every time
+  — `deposit_prompt_test.dart`, "adding flooring to a curtain-locked quote
+  asks for flooring".
+- [x] Declined category deposits appear in a report
+  — `DeclinesReportScreen`, with the arithmetic in `summariseDeposits` and
+  `declines_report_test.dart` behind it. The number it exists for is what was
+  quoted in a category and not deposited on, not the count of refusals.
+- [x] Changing the promo % afterwards does not move a locked order's price
+  — fixture `lock-pins-the-percentage-not-only-the-version`: current promo
+  20%, held 10%, and the held one wins.
+- [x] An override made offline appears in the audit log naming the admin
+  — `order_repository_test.dart` writes the row with no server, and
+  `test_order_push.py` carries it up. `admin_user_id` is NOT NULL on both
+  sides, so a row that cannot name somebody cannot exist.
+- [x] Cash-up totals reconcile per user per day
+  — `cash_up_test.dart`, and it refuses to call a day balanced when nobody
+  counted.
+
+**Still open in Phase 4, and neither is a test:** §13 C7 and C8 — whether a
+supply-only order may skip the measurement steps, and **who** may move an order
+along or cancel one. The pipeline enforces what can happen, not who may do it.
 
 ---
 

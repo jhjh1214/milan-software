@@ -359,6 +359,67 @@ void main() {
       expect(await PaymentRepository(db).awaitingReceipt(), isEmpty);
     });
 
+    test('two category deposits offline, and both receipts resolve', () async {
+      // The Phase 4 acceptance criterion, word for word. A curtain RM300 and a
+      // flooring RM300 on one quote is a normal afternoon at one stall, and
+      // both were taken with no signal.
+      const quoteId = 'quote-two-categories';
+      await db
+          .into(db.quotes)
+          .insert(
+            QuotesCompanion.insert(
+              id: quoteId,
+              rateCardVersion: 1,
+              channel: const Value('fair'),
+              createdAt: at,
+              updatedAt: at,
+            ),
+          );
+
+      final repo = PaymentRepository(db);
+      for (final id in ['pay-curtain', 'pay-flooring']) {
+        await repo.record(
+          id: id,
+          quoteId: quoteId,
+          kind: PaymentKind.deposit,
+          method: PaymentMethod.cash,
+          amountSen: 30000,
+          takenAt: at,
+        );
+      }
+
+      server.offline = true;
+      for (final row in await repo.forQuote(quoteId)) {
+        await outboxer.enqueuePayment(row.id, repo.pushBodyFor(row));
+      }
+
+      // Both are money already in the tin, and neither has a number yet.
+      expect((await repo.awaitingReceipt()).length, 2);
+      expect((await outboxer.drain(credentials)).failure, SyncFailure.offline);
+      expect((await repo.awaitingReceipt()).length, 2);
+
+      server.offline = false;
+      final report = await outboxer.drain(credentials);
+
+      expect(report.sent, ['pay-curtain', 'pay-flooring']);
+      expect(
+        await repo.awaitingReceipt(),
+        isEmpty,
+        reason: 'both receipts resolve after sync',
+      );
+
+      final numbers = [
+        for (final row in await repo.forQuote(quoteId)) row.receiptNo,
+      ];
+      expect(numbers, ['R2608-0001', 'R2608-0002']);
+      expect(
+        numbers.toSet().length,
+        2,
+        reason:
+            'two payments, two numbers — one shared number would be one '
+            'receipt for money taken twice',
+      );
+    });
     test('a retry does not take the money twice', () async {
       // The worst failure in the system: charging RM600 because a connection
       // dropped once.
