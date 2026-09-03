@@ -10,10 +10,14 @@ Curtains, blinds, SPC / vinyl / laminate flooring, wallpaper.
 | `design-system/MASTER.md` | Visual and interaction decisions, and why |
 | `shared/` | The Dart ↔ Python contract. One copy, both suites. |
 | `mobile/` | Flutter app |
+| `backend/` | FastAPI server, the mirrored Python engine, migrations |
+| `deploy/` | Compose stack, Caddy, backup and restore |
 
-## Current state — Phase 1 complete, Phase 2 functionally complete
+## Current state — Phases 1 to 3 complete
 
-Flutter only. No server yet.
+The app and the server both run. 479 mobile tests, 218 backend tests, all
+green in CI, and the deploy stack has been brought up, backed up and
+restored for real rather than only described.
 
 **Working end to end:** quote a house in Chinese, English or Malay; the real
 77-row MITC fair card driving every price; the custom keypad; special-track and
@@ -50,7 +54,7 @@ price can only stay level or fall.
 cd mobile
 flutter pub get
 dart run build_runner build --delete-conflicting-outputs   # Drift code
-flutter test          # 282 tests
+flutter test          # 479 tests
 flutter run
 ```
 
@@ -92,13 +96,52 @@ flutter analyze --fatal-infos --fatal-warnings
 dart format --output=none --set-exit-if-changed lib test
 ```
 
+```bash
+cd backend
+python -m venv .venv
+.venv/Scripts/pip install -r requirements-dev.txt   # or bin/pip on Linux
+python -m pytest -q   # 218 tests
+python -m ruff check . && python -m ruff format --check .
+```
+
+Install the dev requirements into a venv rather than relying on whatever is
+already on the machine. CI installs exactly that file, and a globally
+installed ruff of a different version disagrees with it about formatting --
+which makes a clean local run mean nothing.
+
 `shared/pricing-fixtures.json` is the contract between the Dart engine and the
-Python one that arrives in Phase 3. A rule change means editing the fixture
+Python one. Both suites load it. A rule change means editing the fixture
 first, then making both sides pass.
 
-CI additionally enforces 100% coverage on `Length`, `Money` and `Rational`,
-that all three languages are complete, that the bundled rate card has not
-drifted from `shared/`, and that nothing printed claims to be a tax invoice.
+## CI and releases
+
+`.github/workflows/ci.yml` runs on every push to `main` and every pull
+request, in four jobs: the Flutter suite, the Python suite, the shared files,
+and the deploy stack. Beyond the two test suites it enforces
+
+- 100% coverage on `Length`, `Money` and `Rational`, naming the uncovered
+  lines when it fails;
+- that all three languages are complete and the generated localisations are
+  current;
+- that the bundled rate card has not drifted from `shared/`, and that the
+  standard list still matches what its generator produces;
+- that nothing printable claims to be a tax invoice;
+- that the compose stack comes up, the container migrates itself to the
+  alembic head on boot, and `backup.sh` restores the dump it just took.
+
+`.github/workflows/release.yml` is the delivery half. It runs only after CI
+has gone green -- building a release off a red tree would put a wrong price
+in front of a customer with a version number attached -- and publishes a
+server image to GHCR plus split-per-ABI APKs. The image is booted, migrated
+and probed before it is trusted, including that it still refuses an
+anonymous pull; the APK build fails if arm64 exceeds the 30MB target.
+
+Pushing a `v*` tag additionally attaches the APKs to a GitHub release.
+
+Two traps this repo has already hit, both of the same shape: **the tool you
+run locally must be the one CI runs.** A global ruff disagreed with the
+pinned one about formatting, and Windows credits a `const` constructor with
+coverage that Linux -- correctly -- does not.
 
 ## Legal constraint
 
