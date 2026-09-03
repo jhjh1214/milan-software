@@ -238,4 +238,40 @@ void main() {
       expect(Money.tryParse(const Money.sen(-4650).toPlainString()), isNull);
     });
   });
+
+  group('Money.rm', () {
+    // Called with runtime values on purpose. Everywhere else Money.rm is
+    // written as a const literal, so its body is evaluated at compile time and
+    // never executes -- which is why Linux coverage reports the constructor
+    // line as unexecuted while Windows reports it as hit. The arithmetic is
+    // worth asserting at runtime either way.
+    test('combines ringgit and sen', () {
+      for (final case_ in [
+        (46, 50, 4650),
+        (46, 0, 4600),
+        (0, 5, 5),
+        (0, 0, 0),
+        (1500, 99, 150099),
+      ]) {
+        final (ringgit, sen, expected) = case_;
+        expect(Money.rm(ringgit, sen).sen, expected);
+      }
+    });
+
+    test('the sen argument is optional', () {
+      var ringgit = 46;
+      expect(Money.rm(ringgit).sen, 4600);
+      ringgit = 0;
+      expect(Money.rm(ringgit).sen, 0);
+    });
+
+    test('carries past a whole ringgit rather than clamping', () {
+      // 100 sen is not rejected; it is RM1. Nothing depends on this today, but
+      // clamping would silently lose a ringgit if it ever were called that way.
+      var sen = 100;
+      expect(Money.rm(0, sen).sen, 100);
+      sen = 250;
+      expect(Money.rm(1, sen).sen, 350);
+    });
+  });
 }
