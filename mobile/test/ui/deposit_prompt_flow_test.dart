@@ -408,6 +408,68 @@ void main() {
     expect(find.text('标记为已约量尺'), findsOneWidget);
     expect(find.text('取消这张订单'), findsOneWidget);
   });
+
+  testWidgets('the hold and the answer are queued for the office', (
+    tester,
+  ) async {
+    // A hold that never leaves this handset is one the customer paid RM300 for
+    // and cannot use on any other phone — which, in March, is every phone but
+    // this one. And a decline has to reach the office as reliably as a sale,
+    // or the report that says what fairs are leaving on the table is quietly
+    // wrong in the flattering direction.
+    await pumpApp(tester, channel: Channel.fair);
+    await addACurtain(tester);
+    await tester.tap(find.text('收 RM 300.00'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('现金'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+
+    final queued = await db.pendingOutbox();
+    final kinds = queued.map((r) => r.entityType).toSet();
+    expect(kinds, containsAll(['lock', 'deposit_prompt']));
+
+    final lockRow = queued.firstWhere((r) => r.entityType == 'lock');
+    final body = jsonDecode(lockRow.payload) as Map<String, dynamic>;
+    expect(
+      body['customer_key'],
+      startsWith('quote:'),
+      reason: 'no phone was given, so the hold is keyed to this quote',
+    );
+    expect(
+      body['held_discount_pct'],
+      isNotNull,
+      reason:
+          'both numbers are pinned; sending only the version would let the '
+          'server reprice this customer when the promo moves',
+    );
+    expect(body['held_until'], endsWith('Z'));
+  });
+
+  testWidgets('a decline is queued too, not only a sale', (tester) async {
+    await pumpApp(tester, channel: Channel.fair);
+    await addACurtain(tester);
+    await tester.tap(find.text('不锁价，照今天的价'));
+    await tester.pumpAndSettle();
+
+    final queued = await db.pendingOutbox();
+    final prompts = queued.where((r) => r.entityType == 'deposit_prompt');
+    expect(prompts, hasLength(1));
+
+    final body = jsonDecode(prompts.single.payload) as Map<String, dynamic>;
+    expect(body['choice'], 'declined');
+    expect(
+      body['category_subtotal_sen'],
+      55200,
+      reason: 'what it cost, not only that it happened',
+    );
+    expect(
+      queued.any((r) => r.entityType == 'lock'),
+      isFalse,
+      reason: 'nothing was bought, so there is no hold to send',
+    );
+  });
   testWidgets('declining leaves it a quote', (tester) async {
     // No money, no order. Calling it confirmed would put it on the production
     // board with nothing paid against it.

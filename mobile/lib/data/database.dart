@@ -757,6 +757,24 @@ class AppDatabase extends _$AppDatabase {
     OrderEventsCompanion(syncedAt: Value(at)),
   );
 
+  /// Marks a hold as reaching the server.
+  ///
+  /// Only a stamp: the hold itself does not change. What the server decides
+  /// about a clash is reported on the response and handled by the drainer, not
+  /// written over the row that recorded the money.
+  Future<void> settleLock({required String lockId, required DateTime at}) =>
+      (update(categoryLocks)..where((l) => l.id.equals(lockId))).write(
+        CategoryLocksCompanion(syncedAt: Value(at)),
+      );
+
+  /// Marks one prompt answer as reaching the server.
+  Future<void> settleDepositPrompt({
+    required String promptId,
+    required DateTime at,
+  }) => (update(depositPrompts)..where((p) => p.id.equals(promptId))).write(
+    DepositPromptsCompanion(syncedAt: Value(at)),
+  );
+
   /// Removes an outbox row whose work is done and has no `synced_at` of its
   /// own to stamp.
   Future<void> dropOutbox(String outboxId) =>

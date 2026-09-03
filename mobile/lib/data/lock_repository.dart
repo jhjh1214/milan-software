@@ -63,26 +63,48 @@ class LockRepository {
   /// Append only. A different answer later is a second row, because the
   /// declined-deposit report is about what happened, not about the last thing
   /// that happened.
-  Future<void> recordPrompt({
+  ///
+  /// Returns the row's id so the caller can queue it for the server. The
+  /// report is only honest if a decline reaches the office as reliably as a
+  /// sale does.
+  Future<String> recordPrompt({
     required String quoteId,
     required DepositCategory category,
     required DepositChoice choice,
     required int categorySubtotalSen,
     required DateTime at,
     String? byUserId,
-  }) => _db
-      .into(_db.depositPrompts)
-      .insert(
-        DepositPromptsCompanion.insert(
-          id: newId(),
-          quoteId: quoteId,
-          category: category.name,
-          choice: choice.wire,
-          categorySubtotalSen: Value(categorySubtotalSen),
-          byUserId: Value(byUserId),
-          at: at,
-        ),
-      );
+  }) async {
+    final id = newId();
+    await _db
+        .into(_db.depositPrompts)
+        .insert(
+          DepositPromptsCompanion.insert(
+            id: id,
+            quoteId: quoteId,
+            category: category.name,
+            choice: choice.wire,
+            categorySubtotalSen: Value(categorySubtotalSen),
+            byUserId: Value(byUserId),
+            at: at,
+          ),
+        );
+    return id;
+  }
+
+  /// One stored lock, as it sits in the database.
+  ///
+  /// The raw row rather than a [CategoryLock]: the sync layer sends what was
+  /// written, not a rebuilt version of it, so a column added later travels
+  /// without anybody having to remember to map it.
+  Future<CategoryLockRow?> lockRow(String lockId) => (_db.select(
+    _db.categoryLocks,
+  )..where((l) => l.id.equals(lockId))).getSingleOrNull();
+
+  /// One stored prompt answer, as it sits in the database.
+  Future<DepositPromptRow?> promptRow(String promptId) => (_db.select(
+    _db.depositPrompts,
+  )..where((p) => p.id.equals(promptId))).getSingleOrNull();
 
   /// What was asked on one quote, oldest first.
   Future<List<DepositPromptRow>> promptsFor(String quoteId) =>

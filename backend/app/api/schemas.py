@@ -345,6 +345,17 @@ class CategoryLockOut(BaseModel):
     status: str
 
 
+class LocksOut(BaseModel):
+    """Every hold a customer still has.
+
+    An object rather than a bare array: a top-level list has nowhere to put the
+    next thing this endpoint needs to say, and every client would have to be
+    changed on the day it does.
+    """
+
+    locks: list[CategoryLockOut] = []
+
+
 class LockPushResult(BaseModel):
     lock_id: str
     #: True when this hold had already been accepted. A retry is a success --

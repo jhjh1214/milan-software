@@ -30,6 +30,7 @@ from .api.schemas import (
     DepositPromptIn,
     DepositPromptResult,
     LockPushResult,
+    LocksOut,
     LoginIn,
     OrderIn,
     OrderResult,
@@ -360,10 +361,8 @@ def push_lock_route(
     return push_category_lock(session, payload, opened_by=user)
 
 
-@app.get("/api/locks", response_model=list[CategoryLockOut])
-def locks_route(
-    customer_key: str, session: SessionDep, who: CurrentDep
-) -> list[CategoryLockOut]:
+@app.get("/api/locks", response_model=LocksOut)
+def locks_route(customer_key: str, session: SessionDep, who: CurrentDep) -> LocksOut:
     """Every hold this customer still has. SPEC.md 6.1.
 
     The lookup a handset makes when it learns a phone number. Without it a hold
@@ -375,18 +374,20 @@ def locks_route(
     offline for a week needs the row to make that judgement itself.
     """
     _ = who
-    return [
-        CategoryLockOut(
-            id=lock.id,
-            customer_key=lock.customer_key,
-            category=lock.category,
-            held_rate_card_version=lock.held_rate_card_version,
-            held_discount_pct=lock.held_discount_pct,
-            held_until=lock.held_until,
-            status=lock.status,
-        )
-        for lock in locks_for_customer(session, customer_key)
-    ]
+    return LocksOut(
+        locks=[
+            CategoryLockOut(
+                id=lock.id,
+                customer_key=lock.customer_key,
+                category=lock.category,
+                held_rate_card_version=lock.held_rate_card_version,
+                held_discount_pct=lock.held_discount_pct,
+                held_until=lock.held_until,
+                status=lock.status,
+            )
+            for lock in locks_for_customer(session, customer_key)
+        ]
+    )
 
 
 @app.post("/api/deposit-prompts", response_model=DepositPromptResult)

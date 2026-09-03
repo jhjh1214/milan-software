@@ -29,6 +29,7 @@ import '../../pricing/customer_key.dart';
 import '../../pricing/deposit_prompt.dart';
 import '../../pricing/models.dart';
 import '../../pricing/rate_lock.dart';
+import '../../sync/lock_payload.dart';
 import '../../sync/sync_state.dart';
 import '../../ui/theme.dart';
 import '../payment/payment_method_sheet.dart';
@@ -97,6 +98,41 @@ final openDepositGapsProvider = FutureProvider<List<DepositGap>>((ref) async {
 String customerKeyForQuote(QuoteState quote) =>
     customerKeyFor(phone: quote.customerPhone, quoteId: quote.quoteId).value;
 
+/// Queues a hold for the server, best effort.
+///
+/// Queued rather than sent: the RM300 is already recorded and §9 makes offline
+/// the default. Nothing about the deposit waits on a connection.
+Future<void> _queueLock(WidgetRef ref, String lockId) async {
+  final row = await ref.read(lockRepositoryProvider).lockRow(lockId);
+  if (row == null) return;
+  await ref
+      .read(outboxerProvider)
+      .enqueueLock(
+        lockId,
+        lockPayload(
+          lock: row,
+          deviceId: ref.read(deviceIdProvider).valueOrNull,
+        ),
+      );
+  ref.invalidate(outboxDepthProvider);
+}
+
+/// Queues one prompt answer for the server.
+Future<void> _queuePrompt(WidgetRef ref, String promptId) async {
+  final row = await ref.read(lockRepositoryProvider).promptRow(promptId);
+  if (row == null) return;
+  await ref
+      .read(outboxerProvider)
+      .enqueueDepositPrompt(
+        promptId,
+        depositPromptPayload(
+          prompt: row,
+          deviceId: ref.read(deviceIdProvider).valueOrNull,
+        ),
+      );
+  ref.invalidate(outboxDepthProvider);
+}
+
 Family? _parentFamilyOf(QuoteLine line, QuoteState quote, RateCard card) {
   if (line.parentLineId == null) return null;
   for (final other in quote.lines) {
@@ -149,13 +185,14 @@ Future<void> _askFor(
   // Dismissal is an outcome, not an absence of one.
   final decided = choice ?? DepositChoice.dismissed;
 
-  await repo.recordPrompt(
+  final promptId = await repo.recordPrompt(
     quoteId: quote.quoteId,
     category: gap.category,
     choice: decided,
     categorySubtotalSen: _subtotalFor(ref, gap),
     at: now,
   );
+  await _queuePrompt(ref, promptId);
 
   switch (decided) {
     case DepositChoice.collected:
@@ -204,6 +241,10 @@ Future<void> _askFor(
           depositPaymentId: paymentId,
         );
         await payments.linkToLock(paymentId: paymentId, lockId: lock.id);
+        // The hold goes up too. One that never leaves this handset is one the
+        // customer paid RM300 for and cannot use on any other phone — which
+        // is every phone but this one, in March.
+        await _queueLock(ref, lock.id);
         ref.invalidate(openDepositGapsProvider);
         messenger.showSnackBar(
           SnackBar(

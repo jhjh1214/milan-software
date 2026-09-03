@@ -1,4 +1,4 @@
-/// The push side. §9.2.
+/// The push side. Â§9.2.
 ///
 /// A finished quote is written to the outbox and forgotten about. It goes up
 /// when there is signal, which at a fair might be that evening in the car. No
@@ -41,7 +41,7 @@ class DrainReport {
   final List<String> parked;
 
   /// Quotes where the server priced a line differently. The order was still
-  /// accepted (§9.4) — this is a review task, not a failure.
+  /// accepted (Â§9.4) â€” this is a review task, not a failure.
   final List<String> disagreed;
 
   /// Why the drain stopped early, if it did.
@@ -77,24 +77,24 @@ class Outboxer {
   Future<void> enqueueQuote(String quoteId, Map<String, dynamic> payload) =>
       _enqueue('quote', quoteId, payload);
 
-  /// Queues a payment to be sent. §6.4.
+  /// Queues a payment to be sent. Â§6.4.
   ///
   /// Its receipt number comes back on the way out, and is written onto the
   /// payment. Until then the app shows "pending sync" rather than a number it
-  /// made up — the number goes on paper a customer keeps, and two handsets
+  /// made up â€” the number goes on paper a customer keeps, and two handsets
   /// offline at one fair would invent the same one.
   Future<void> enqueuePayment(String paymentId, Map<String, dynamic> payload) =>
       _enqueue('payment', paymentId, payload);
 
-  /// Queues a confirmed order to be sent. §6.3.
+  /// Queues a confirmed order to be sent. Â§6.3.
   ///
   /// Its number comes back on the way out, the same way a receipt number does
   /// and for the same reason. A deposit already changed hands before this row
-  /// existed, so nothing about the sale waits on it — only the number does.
+  /// existed, so nothing about the sale waits on it â€” only the number does.
   Future<void> enqueueOrder(String orderId, Map<String, dynamic> payload) =>
       _enqueue('order', orderId, payload);
 
-  /// Queues one step along the pipeline. §6.3.
+  /// Queues one step along the pipeline. Â§6.3.
   ///
   /// Keyed on the **event id**, not the order. An order walks the pipeline
   /// many times and each move is its own row: keying on the order would have
@@ -104,6 +104,23 @@ class Outboxer {
     String eventId,
     Map<String, dynamic> payload,
   ) => _enqueue('order_status', eventId, payload);
+
+  /// Queues a hold to go up. Â§6.1.
+  ///
+  /// A hold that never leaves the handset that took the deposit is a hold the
+  /// customer paid RM300 for and cannot use anywhere else.
+  Future<void> enqueueLock(String lockId, Map<String, dynamic> payload) =>
+      _enqueue('lock', lockId, payload);
+
+  /// Queues one answer to the category prompt. Â§6.2.
+  ///
+  /// A decline has to reach the server as reliably as a sale, or the report
+  /// that says what fairs are leaving on the table is quietly wrong in the
+  /// flattering direction.
+  Future<void> enqueueDepositPrompt(
+    String promptId,
+    Map<String, dynamic> payload,
+  ) => _enqueue('deposit_prompt', promptId, payload);
 
   Future<void> _enqueue(
     String entityType,
@@ -131,7 +148,7 @@ class Outboxer {
   ///
   /// Stops at the first network failure rather than working through a queue
   /// against a connection that is not there. Whatever went up before it stays
-  /// up — the server has those quotes, and the rows are gone.
+  /// up â€” the server has those quotes, and the rows are gone.
   Future<DrainReport> drain(Credentials credentials) async {
     final sent = <String>[];
     final parked = <String>[];
@@ -140,13 +157,18 @@ class Outboxer {
     for (final row in await db.pendingOutbox()) {
       final body = jsonDecode(row.payload) as Map<String, dynamic>;
 
-      // One queue, four kinds of work. None of them can wait behind another
-      // that is failing — they drain in the order they happened, which is the
+      // One queue, six kinds of work. None of them can wait behind another
+      // that is failing â€” they drain in the order they happened, which is the
       // order they matter in.
       final SyncResult<Object> result = switch (row.entityType) {
         'payment' => await api.pushPayment(credentials.token, body),
         'order' => await api.pushOrder(credentials.token, body),
         'order_status' => await api.pushStatusChange(credentials.token, body),
+        'lock' => await api.pushLock(credentials.token, body),
+        'deposit_prompt' => await api.pushDepositPrompt(
+          credentials.token,
+          body,
+        ),
         _ => await api.pushQuote(credentials.token, body),
       };
 
@@ -154,7 +176,7 @@ class Outboxer {
         case SyncOk(value: final response):
           // `duplicate: true` is a success. It means an earlier attempt landed
           // and the response never made it back, which is exactly what this
-          // design expects to happen and must not treat as an error — a row
+          // design expects to happen and must not treat as an error â€” a row
           // that reports failure on a quote the server already has would be
           // retried forever and never drain.
           if (response is ReceiptIssued) {
@@ -182,6 +204,20 @@ class Outboxer {
               // anywhere else.
               disagreed.add(row.entityId);
             }
+          } else if (response is LockAccepted) {
+            await db.settleLock(lockId: row.entityId, at: clock());
+            await db.dropOutbox(row.id);
+            if (response.clashed) {
+              // Another handset already held this category for this customer.
+              // Both RM300s are real; the first hold keeps pricing and this one
+              // is parked server-side. Surfaced rather than swallowed, because
+              // one of the two payments needs refunding and only a person can
+              // decide which (Â§13 B10).
+              disagreed.add(row.entityId);
+            }
+          } else if (response is PromptRecorded) {
+            await db.settleDepositPrompt(promptId: row.entityId, at: clock());
+            await db.dropOutbox(row.id);
           } else if (response is StatusAccepted) {
             await db.settleOrderEvent(eventId: row.entityId, at: clock());
             await db.dropOutbox(row.id);
@@ -213,7 +249,7 @@ class Outboxer {
 
             case SyncFailure.forbidden:
             case SyncFailure.serverError:
-              // This row is the problem, not the connection — a rejected
+              // This row is the problem, not the connection â€” a rejected
               // payload, or a rate card version this server has never
               // published. Park it once it has had enough tries and carry on,
               // so one bad quote does not hold up the rest of the day's work.
@@ -235,7 +271,7 @@ class Outboxer {
   Future<List<OutboxRow>> parked() =>
       (db.select(db.outbox)..where((o) => o.parkedAt.isNotNull())).get();
 
-  /// Puts a parked row back in the queue — after a fix at the other end.
+  /// Puts a parked row back in the queue â€” after a fix at the other end.
   Future<void> retryParked(String outboxId) =>
       (db.update(db.outbox)..where((o) => o.id.equals(outboxId))).write(
         const OutboxCompanion(

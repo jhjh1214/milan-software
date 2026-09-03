@@ -242,6 +242,63 @@ class StatusAccepted {
   bool get accepted => refusedBecause == null;
 }
 
+/// The server's answer to a pushed hold.
+class LockAccepted {
+  final String lockId;
+
+  /// True when this hold had already been accepted. **A success**: the RM300
+  /// was taken once and this is the same hold it bought.
+  final bool duplicate;
+
+  /// The id of the lock this one clashed with, when the server already held a
+  /// different active one for the same customer and category. Both rows are
+  /// kept and the *first* keeps pricing; this one was stored as `superseded`.
+  ///
+  /// Two handsets each taking a deposit for one category is a real afternoon
+  /// at a busy fair, and both payments are real. What happens to the second
+  /// RM300 is SPEC.md §13 B10 and is a person's decision.
+  final String? conflictsWith;
+
+  const LockAccepted({
+    required this.lockId,
+    required this.duplicate,
+    this.conflictsWith,
+  });
+
+  bool get clashed => conflictsWith != null;
+}
+
+/// A hold as the server holds it, pulled down by customer.
+class HeldRate {
+  final String id;
+  final String customerKey;
+  final String category;
+  final int heldRateCardVersion;
+
+  /// An exact rational as a string — `0`, `1/10`. Never a float.
+  final String heldDiscountPct;
+  final DateTime heldUntil;
+  final String status;
+
+  const HeldRate({
+    required this.id,
+    required this.customerKey,
+    required this.category,
+    required this.heldRateCardVersion,
+    required this.heldDiscountPct,
+    required this.heldUntil,
+    required this.status,
+  });
+}
+
+/// The server's answer to a pushed prompt answer.
+class PromptRecorded {
+  final String promptId;
+  final bool duplicate;
+
+  const PromptRecorded({required this.promptId, required this.duplicate});
+}
+
 class ApiClient {
   final Uri baseUrl;
   final http.Client _http;
@@ -455,6 +512,71 @@ class ApiClient {
       duplicate: json['duplicate'] as bool,
       status: json['status'] as String,
       refusedBecause: json['refused_because'] as String?,
+    ),
+  );
+
+  /// Pushes a hold opened on this handset.
+  ///
+  /// Idempotent on the hold's own id: the RM300 was taken before the row
+  /// existed, so a retry must not turn one deposit into two holds.
+  Future<SyncResult<LockAccepted>> pushLock(
+    String token,
+    Map<String, dynamic> lock,
+  ) => _send(
+    () => _http.post(
+      _url('/api/locks'),
+      headers: _headers(token),
+      body: jsonEncode(lock),
+    ),
+    (json) => LockAccepted(
+      lockId: json['lock_id'] as String,
+      duplicate: json['duplicate'] as bool,
+      conflictsWith: json['conflicts_with'] as String?,
+    ),
+  );
+
+  /// Every hold this customer still has.
+  ///
+  /// The lookup that makes a hold work on a handset other than the one that
+  /// took the deposit. Expiry is not filtered server-side: the resolver judges
+  /// a hold against the date it is pricing on, and a device that has been
+  /// offline for a week needs the row to make that call itself.
+  Future<SyncResult<List<HeldRate>>> locksFor(
+    String token,
+    String customerKey,
+  ) => _send(
+    () => _http.get(
+      _url('/api/locks', {'customer_key': customerKey}),
+      headers: _headers(token),
+    ),
+    (json) => [
+      for (final raw in (json['locks'] as List<dynamic>? ?? const []))
+        if (raw is Map<String, dynamic>)
+          HeldRate(
+            id: raw['id'] as String,
+            customerKey: raw['customer_key'] as String,
+            category: raw['category'] as String,
+            heldRateCardVersion: raw['held_rate_card_version'] as int,
+            heldDiscountPct: raw['held_discount_pct'] as String,
+            heldUntil: DateTime.parse(raw['held_until'] as String),
+            status: raw['status'] as String,
+          ),
+    ],
+  );
+
+  /// Pushes one answer to the category prompt.
+  Future<SyncResult<PromptRecorded>> pushDepositPrompt(
+    String token,
+    Map<String, dynamic> prompt,
+  ) => _send(
+    () => _http.post(
+      _url('/api/deposit-prompts'),
+      headers: _headers(token),
+      body: jsonEncode(prompt),
+    ),
+    (json) => PromptRecorded(
+      promptId: json['prompt_id'] as String,
+      duplicate: json['duplicate'] as bool,
     ),
   );
 
