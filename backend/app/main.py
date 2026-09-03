@@ -26,6 +26,8 @@ from sqlalchemy.orm import Session
 from .api.schemas import (
     BundleOut,
     LoginIn,
+    OrderIn,
+    OrderResult,
     PaymentIn,
     PaymentResult,
     PublishIn,
@@ -33,6 +35,8 @@ from .api.schemas import (
     PushResult,
     QuoteIn,
     SessionOut,
+    StatusChangeIn,
+    StatusChangeResult,
     UserOut,
 )
 from .db import session_scope
@@ -48,7 +52,9 @@ from .services.auth import (
 from .services.ingest import (
     UnknownRateCardVersion,
     active_card,
+    advance_order_status,
     publish_card,
+    push_order,
     push_payment,
     push_quote,
 )
@@ -286,6 +292,46 @@ def push_payment_route(
     """
     user, _ = who
     return push_payment(session, payload, taken_by=user)
+
+
+@app.post("/api/orders", response_model=OrderResult)
+def push_order_route(
+    payload: OrderIn, session: SessionDep, who: CurrentDep
+) -> OrderResult:
+    """Accepts a confirmed order and issues its number. §6.3.
+
+    **Idempotent on the device's own order id**, and a retry gets the *same*
+    order number back. A deposit is what confirms an order, so an order
+    arriving here is money already taken — two orders for one RM300, or two
+    numbers for one order, are both worse than a slow sync.
+
+    Nothing here rejects an order outright. Refusing the push would lose the
+    sale and leave the only record of it on one handset, so a status or an
+    override the server would not have allowed is simply not applied, and the
+    result names what was left out.
+    """
+    user, _ = who
+    return push_order(session, payload, confirmed_by=user)
+
+
+@app.post("/api/orders/status", response_model=StatusChangeResult)
+def advance_status_route(
+    payload: StatusChangeIn, session: SessionDep, who: CurrentDep
+) -> StatusChangeResult:
+    """Moves an order along the pipeline. SPEC.md 6.3.
+
+    The device has already made the move locally; this re-validates it against
+    the same rules, from the same shared fixtures, and applies it.
+
+    **Idempotent on the event id**, not on the order -- an order walks the
+    pipeline many times, so what must not happen twice is one particular move.
+
+    A refusal comes back 200 with `refused_because` set, not as an error. The
+    device is offline-first and may be hours ahead of the server; it needs to
+    know which move was rejected and why, rather than lose a batch to a 400.
+    """
+    user, _ = who
+    return advance_order_status(session, payload, by=user)
 
 
 @app.post("/api/quotes", response_model=PushResult)

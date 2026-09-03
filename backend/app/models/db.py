@@ -372,3 +372,219 @@ class IdempotencyRecord(Base):
     __table_args__ = (
         UniqueConstraint("entity_type", "entity_id", name="uq_idempotency_entity"),
     )
+
+
+class Order(Base):
+    """A confirmed sale pushed up from a device. §6.3.
+
+    A deposit is what confirms it, so an order arriving here is money already
+    taken. That shapes two things about this table.
+
+    The ``id`` is the device's own UUID and the push is idempotent on it, so a
+    fair's dropped connection cannot produce two orders for one deposit.
+
+    The ``order_no`` is **issued here, never on a device** -- the same rule as a
+    receipt number, for the same reason. ``{branch}-{yymm}-{seq}`` has no
+    per-device component, so two part-timers offline at one fair would both mint
+    the same one, and it goes on a document the customer takes away. The device
+    shows "pending sync" until this comes back.
+
+    The quote is referenced, never consumed. ``quote_id`` points back at the
+    estimate the measurement team reads and the variance report compares
+    against, and the lines here are **copies** -- editing an old quote must not
+    change a confirmed order.
+    """
+
+    __tablename__ = "orders"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    quote_id: Mapped[str] = mapped_column(String(36))
+
+    #: Null until issued. Never fabricated on a device.
+    order_no: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
+    channel: Mapped[str] = mapped_column(String(16))
+    pinned_rate_card_version: Mapped[int] = mapped_column(Integer)
+
+    customer_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    customer_phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    delivery_zone_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    delivery_charge_sen: Mapped[int] = mapped_column(BigInteger, default=0)
+
+    status: Mapped[str] = mapped_column(String(24), default="confirmed")
+
+    #: Both are kept. §6.3: the variance report by salesperson is what tells the
+    #: boss who is guessing badly and needs retraining.
+    estimate_total_sen: Mapped[int] = mapped_column(BigInteger)
+    final_total_sen: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+
+    deposit_paid_sen: Mapped[int] = mapped_column(BigInteger, default=0)
+    has_unmeasured_lines: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    confirmed_by_user_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=True
+    )
+    confirmed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    device_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    received_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    lines: Mapped[list[OrderLine]] = relationship(
+        back_populates="order", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        Index("ix_orders_received", "received_at"),
+        Index("ix_orders_status", "status"),
+        Index("ix_orders_quote", "quote_id"),
+        # An order number identifies one order or it identifies nothing.
+        Index("ix_orders_order_no", "order_no", unique=True),
+    )
+
+
+class OrderLine(Base):
+    """One line of a confirmed order. §6.3.
+
+    A **copy** of the quote line, not a reference to it, carrying a snapshot of
+    the rule, band, rate, card version and discount that priced it. A year later
+    a customer asks why a curtain cost RM552, and the answer has to be available
+    without reconstructing which card was in force that afternoon -- by then it
+    may have been superseded twice.
+    """
+
+    __tablename__ = "order_lines"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    order_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("orders.id", ondelete="CASCADE")
+    )
+    #: The trail back to the estimate this was copied from.
+    quote_line_id: Mapped[str] = mapped_column(String(36))
+    sort_order: Mapped[int] = mapped_column(Integer)
+
+    room: Mapped[str] = mapped_column(String(80))
+    variant: Mapped[str] = mapped_column(String(64))
+    material_key: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    layer: Mapped[str] = mapped_column(String(16))
+    parent_line_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+
+    #: Estimated at the fair, and kept for good. The final ones sit beside them
+    #: rather than on top, so the variance report has both to compare.
+    est_width_tmm: Mapped[int] = mapped_column(Integer)
+    est_height_tmm: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    final_width_tmm: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    final_height_tmm: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    is_site_measured: Mapped[bool] = mapped_column(Boolean, default=False)
+    measured_by_user_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    measured_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    quantity: Mapped[int] = mapped_column(Integer, default=1)
+
+    #: Which lock priced this line, null when none did. §6.1: applying a curtain
+    #: lock to a flooring line is the expensive bug in this design.
+    category_lock_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+
+    applied_rule_id: Mapped[str] = mapped_column(String(64))
+    applied_band_label: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    applied_rate_card_version: Mapped[int] = mapped_column(Integer)
+    #: An exact rational written as a string -- "0", "1/10". Never a float: a
+    #: percentage of a price is money.
+    applied_discount_pct: Mapped[str] = mapped_column(String(24), default="0")
+
+    standard_rate_sen: Mapped[int] = mapped_column(BigInteger)
+    rate_sen: Mapped[int] = mapped_column(BigInteger)
+    billed_qty: Mapped[str] = mapped_column(String(32))
+    billed_unit: Mapped[str] = mapped_column(String(16))
+    line_total_sen: Mapped[int] = mapped_column(BigInteger)
+
+    #: Quoted at the dearest option in its group, pending a choice. §13 B7.
+    material_deferred: Mapped[bool] = mapped_column(Boolean, default=False)
+    #: Somebody moved this total by hand. Never cleared. §6.5.
+    is_overridden: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    order: Mapped[Order] = relationship(back_populates="lines")
+
+    __table_args__ = (Index("ix_order_lines_order", "order_id", "sort_order"),)
+
+
+class OrderEvent(Base):
+    """One thing that happened to an order. §6.3.
+
+    **APPEND ONLY.** This is the history somebody reads a year later to answer
+    what happened to a job, so a correction is a new row rather than an edit to
+    an old one.
+    """
+
+    __tablename__ = "order_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    order_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("orders.id", ondelete="CASCADE")
+    )
+    event: Mapped[str] = mapped_column(String(32))
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    by_user_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    received_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (Index("ix_order_events_order", "order_id", "at"),)
+
+
+class PriceOverride(Base):
+    """Every price an admin moved by hand. §6.5.
+
+    **APPEND ONLY, and never deletable from the app.** This table *is* the
+    control: an offline PIN is bypassable and one shared admin password reaches
+    every part-timer within a month, so what actually stops abuse is that every
+    move is recorded against a name and read once a week.
+
+    Which is why ``reason`` and ``admin_user_id`` are both NOT NULL. A row that
+    cannot say who or why is not an audit trail; it is a record that a number
+    changed.
+    """
+
+    __tablename__ = "price_overrides"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    order_line_id: Mapped[str] = mapped_column(String(36))
+    #: Denormalised off the line for the "overrides this week" screen, which
+    #: groups by order. §6.5 puts the whole control on that screen being built.
+    order_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("orders.id", ondelete="CASCADE")
+    )
+
+    before_sen: Mapped[int] = mapped_column(BigInteger)
+    after_sen: Mapped[int] = mapped_column(BigInteger)
+    reason: Mapped[str] = mapped_column(Text)
+    admin_user_id: Mapped[str] = mapped_column(String(36))
+    device_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    received_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        Index("ix_price_overrides_at", "at"),
+        Index("ix_price_overrides_order", "order_id"),
+    )
+
+
+class OrderCounter(Base):
+    """The next order number in a period, per branch. §6.3.
+
+    The same mechanism as ``ReceiptCounter`` and for the same reason: the number
+    goes on a document the customer takes away, and ``{branch}-{yymm}-{seq}``
+    has no per-device component to keep two offline handsets apart.
+    """
+
+    __tablename__ = "order_counters"
+
+    #: ``{branch}:{YYYYMM}``. One counter per branch per month, so opening a
+    #: second branch does not renumber the first.
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    next_value: Mapped[int] = mapped_column(Integer, default=1)

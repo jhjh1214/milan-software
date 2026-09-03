@@ -10,6 +10,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from ..pricing.price_override import MIN_REASON_LENGTH
+
 
 class QuoteLineIn(BaseModel):
     id: str = Field(min_length=36, max_length=36)
@@ -153,3 +155,149 @@ class BundleOut(BaseModel):
     #: spent re-downloading a card it already has.
     payload: dict | None = None
     up_to_date: bool
+
+
+class OrderLineIn(BaseModel):
+    """One line of a confirmed order, copied off the quote line that priced it.
+
+    Carries the snapshot -- rule, band, version, discount, rate -- because a
+    year later the answer to "why did this curtain cost RM552" has to be
+    available without reconstructing which card was in force that afternoon.
+    """
+
+    id: str = Field(min_length=36, max_length=36)
+    quote_line_id: str = Field(min_length=36, max_length=36)
+    sort_order: int
+    room: str = Field(max_length=80)
+    variant: str = Field(max_length=64)
+    material_key: str | None = Field(default=None, max_length=64)
+    layer: str = Field(max_length=16)
+    parent_line_id: str | None = None
+
+    est_width_tmm: int = Field(ge=0)
+    est_height_tmm: int | None = Field(default=None, ge=0)
+    final_width_tmm: int | None = Field(default=None, ge=0)
+    final_height_tmm: int | None = Field(default=None, ge=0)
+    is_site_measured: bool = False
+    quantity: int = Field(default=1, ge=1)
+
+    category_lock_id: str | None = None
+    applied_rule_id: str = Field(max_length=64)
+    applied_band_label: str | None = Field(default=None, max_length=64)
+    applied_rate_card_version: int
+    applied_discount_pct: str = "0"
+
+    standard_rate_sen: int = Field(ge=0)
+    rate_sen: int = Field(ge=0)
+    billed_qty: str = Field(max_length=32)
+    billed_unit: str = Field(max_length=16)
+    line_total_sen: int = Field(ge=0)
+
+    material_deferred: bool = False
+    is_overridden: bool = False
+
+
+class OrderEventIn(BaseModel):
+    """One entry of the append-only history. §6.3."""
+
+    id: str = Field(min_length=36, max_length=36)
+    event: str = Field(max_length=32)
+    note: str | None = None
+    at: datetime
+
+
+class PriceOverrideIn(BaseModel):
+    """One audit row. §6.5.
+
+    ``reason`` and ``admin_user_id`` are both required and the reason has a
+    floor, because a row that cannot say who or why is not an audit trail --
+    and this table is the only actual control on overriding.
+    """
+
+    id: str = Field(min_length=36, max_length=36)
+    order_line_id: str = Field(min_length=36, max_length=36)
+    before_sen: int
+    after_sen: int = Field(ge=0)
+    reason: str = Field(min_length=MIN_REASON_LENGTH)
+    admin_user_id: str = Field(min_length=1, max_length=36)
+    device_id: str | None = None
+    at: datetime
+
+
+class OrderIn(BaseModel):
+    """A confirmed order pushed up from a device. §6.3.
+
+    No ``order_no``: like a receipt number it is issued by the server, and a
+    device that sent one would be inventing something that goes on a document
+    the customer takes away.
+    """
+
+    id: str = Field(min_length=36, max_length=36)
+    quote_id: str = Field(min_length=36, max_length=36)
+    channel: str = Field(pattern="^(showroom|home_visit|fair|referral|phone)$")
+    pinned_rate_card_version: int
+
+    customer_name: str | None = Field(default=None, max_length=120)
+    customer_phone: str | None = Field(default=None, max_length=40)
+    delivery_zone_id: str | None = Field(default=None, max_length=64)
+    delivery_charge_sen: int = Field(default=0, ge=0)
+
+    status: str = "confirmed"
+    estimate_total_sen: int = Field(ge=0)
+    deposit_paid_sen: int = Field(default=0, ge=0)
+    has_unmeasured_lines: bool = True
+
+    confirmed_at: datetime
+    device_id: str | None = None
+
+    lines: list[OrderLineIn] = []
+    events: list[OrderEventIn] = []
+    overrides: list[PriceOverrideIn] = []
+
+
+class OrderResult(BaseModel):
+    order_id: str
+    #: True when this exact order had already been accepted. A retry is a
+    #: success -- the device cannot know whether the first attempt landed, and
+    #: two orders for one deposit is the failure this prevents.
+    duplicate: bool
+    #: The number the server issued, first time and every time after. A retry
+    #: gets the **same** one back, so a reprinted document matches the first.
+    order_no: str
+    #: Set when the device pushed a status the server would not have allowed
+    #: from the one it already holds. The order is still accepted -- the money
+    #: is taken and refusing it would lose the sale -- but the status stays
+    #: where the server had it and this says why.
+    status_refused_because: str | None = None
+    #: Overrides the server would not have allowed, by id. Accepted rows are
+    #: stored; refused ones are not, and the line keeps the total it came with.
+    overrides_refused: dict[str, str] = {}
+
+
+class StatusChangeIn(BaseModel):
+    """One step along the pipeline, pushed up after the device took it. §6.3.
+
+    Carries the device's own ``event_id``: an order walks the pipeline many
+    times, so the thing that must not be applied twice is one particular move,
+    not the order.
+    """
+
+    order_id: str = Field(min_length=36, max_length=36)
+    #: The append-only history row this move writes. Idempotency hangs on it.
+    event_id: str = Field(min_length=36, max_length=36)
+    to: str = Field(max_length=24)
+    #: Required only when cancelling, and measured after trimming.
+    reason: str | None = None
+    at: datetime
+
+
+class StatusChangeResult(BaseModel):
+    order_id: str
+    #: True when this exact move had already been applied. A retry is a success.
+    duplicate: bool
+    #: Where the order actually is now — which is where it was, if refused.
+    status: str
+    #: Why the server would not make the move, null when it did. Reported
+    #: rather than raised: the device is offline-first and may be hours ahead,
+    #: and it needs to know which move was rejected, not lose the batch.
+    refused_because: str | None = None
