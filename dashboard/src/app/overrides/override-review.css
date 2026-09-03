@@ -1,0 +1,142 @@
+/* Deliberately plain. §6.5 puts the whole control on this being read, and a
+   screen with more on it is one that gets skimmed. */
+
+:host {
+  display: block;
+  padding: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.week {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.week button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.week button:focus-visible,
+.failure button:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.range {
+  font-size: 14px;
+  color: #56637a;
+  font-variant-numeric: tabular-nums;
+}
+
+.net {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+}
+
+/* Money coming off is the ordinary case and is marked, not alarmed about.
+   The alarm on this screen is the size of the total, not its direction. */
+.net.down {
+  color: #92400e;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th {
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #56637a;
+  padding: 0 12px 8px 0;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+td {
+  padding: 10px 12px 10px 0;
+  border-bottom: 1px solid #f1f3f5;
+  vertical-align: top;
+}
+
+/* Right-aligned and tabular, so a column of money lines up on the decimal and
+   an outlier is visible without reading any of them. */
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.num.down {
+  color: #92400e;
+}
+
+.why {
+  max-width: 34ch;
+}
+
+.empty,
+.muted {
+  padding: 32px 0;
+  color: #56637a;
+}
+
+.failure {
+  padding: 16px;
+  border: 1px solid #b91c1c;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+.failure button {
+  margin-left: 12px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #7f1d1d;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Present for a screen reader, absent for everybody else. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

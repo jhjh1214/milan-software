@@ -34,4 +34,15 @@ export const routes: Routes = [
       import('./orders/order-detail').then((m) => m.OrderDetail),
     title: 'Order',
   },
+  {
+    // Admin only, and the server enforces that. The guard here only keeps
+    // somebody signed out from landing on an unexplained empty screen; a
+    // non-admin who reaches it is told plainly rather than shown a blank week,
+    // which would read as "nobody changed anything".
+    path: 'overrides',
+    canActivate: [signedIn],
+    loadComponent: () =>
+      import('./overrides/override-review').then((m) => m.OverrideReview),
+    title: 'Prices changed by hand',
+  },
 ];
