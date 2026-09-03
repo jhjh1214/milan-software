@@ -370,5 +370,22 @@
   "overridesThisWeek": "这个星期改过的价钱",
   "overridesNone": "这个星期没有人改过价钱。",
   "overrideRow": "{before} 改成 {after}，{name}",
-  "@overrideRow": { "placeholders": { "before": { "type": "String" }, "after": { "type": "String" }, "name": { "type": "String" } } }
+  "@overrideRow": { "placeholders": { "before": { "type": "String" }, "after": { "type": "String" }, "name": { "type": "String" } } },
+
+  "declinesTitle": "问过的订金",
+  "declinesNone": "这段时间没有人被问过订金。",
+  "declinesAsked": "问了 {count} 次",
+  "@declinesAsked": { "placeholders": { "count": { "type": "int" } } },
+  "declinesTook": "收到 {count} 单",
+  "@declinesTook": { "placeholders": { "count": { "type": "int" } } },
+  "declinesSaidNo": "{count} 单说不要",
+  "@declinesSaidNo": { "placeholders": { "count": { "type": "int" } } },
+  "declinesDismissed": "{count} 单没答复",
+  "@declinesDismissed": { "placeholders": { "count": { "type": "int" } } },
+  "declinesRemoved": "{count} 单把项目删掉",
+  "@declinesRemoved": { "placeholders": { "count": { "type": "int" } } },
+  "declinesLeftOnTable": "报了 {amount}，没收订金",
+  "@declinesLeftOnTable": { "placeholders": { "amount": { "type": "String" } } },
+  "declinesTakeRate": "有答复的当中 {percent}% 付了钱",
+  "@declinesTakeRate": { "placeholders": { "percent": { "type": "int" } } }
 }

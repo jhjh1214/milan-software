@@ -91,6 +91,23 @@ class LockRepository {
             ..orderBy([(p) => OrderingTerm.asc(p.at)]))
           .get();
 
+  /// Every prompt put in a period, oldest first. SPEC.md §11 Phase 4:
+  /// *"Declined category deposits appear in a report."*
+  ///
+  /// [from] is inclusive and [to] exclusive, so one prompt lands in exactly one
+  /// period rather than in two or in neither.
+  Future<List<DepositPromptRow>> promptsBetween({
+    required DateTime from,
+    required DateTime to,
+  }) =>
+      (_db.select(_db.depositPrompts)
+            ..where(
+              (p) =>
+                  p.at.isBiggerOrEqualValue(from) & p.at.isSmallerThanValue(to),
+            )
+            ..orderBy([(p) => OrderingTerm.asc(p.at)]))
+          .get();
+
   /// Which categories have already been answered on this quote, so the prompt
   /// does not reappear on every line the customer adds.
   ///

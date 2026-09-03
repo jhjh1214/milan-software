@@ -9,6 +9,7 @@ import '../../pricing/engine.dart';
 import '../../pricing/models.dart';
 import '../../sync/sync_state.dart';
 import '../../ui/theme.dart';
+import '../order/declines_report_screen.dart';
 import '../order/order_screen.dart';
 import '../order/overrides_review_screen.dart';
 import '../../ui/unit_labels.dart';
@@ -1044,11 +1045,19 @@ class _OverridesButton extends ConsumerWidget {
         ref.watch(credentialsProvider).valueOrNull?.user.role == 'admin';
     if (!isAdmin) return const SizedBox.shrink();
 
-    return IconButton(
+    return PopupMenuButton<int>(
       icon: const Icon(Icons.fact_check_outlined),
       tooltip: l.overridesThisWeek,
-      onPressed: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const OverridesReviewScreen()),
+      itemBuilder: (context) => [
+        PopupMenuItem(value: 0, child: Text(l.overridesThisWeek)),
+        PopupMenuItem(value: 1, child: Text(l.declinesTitle)),
+      ],
+      onSelected: (which) => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => which == 0
+              ? const OverridesReviewScreen()
+              : const DeclinesReportScreen(),
+        ),
       ),
     );
   }

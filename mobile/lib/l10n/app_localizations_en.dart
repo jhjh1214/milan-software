@@ -916,4 +916,45 @@ class LEn extends L {
   String overrideRow(String before, String after, String name) {
     return '$before to $after, by $name';
   }
+
+  @override
+  String get declinesTitle => 'Deposits asked for';
+
+  @override
+  String get declinesNone => 'Nobody was asked for a deposit in this period.';
+
+  @override
+  String declinesAsked(int count) {
+    return 'Asked $count times';
+  }
+
+  @override
+  String declinesTook(int count) {
+    return 'Took $count';
+  }
+
+  @override
+  String declinesSaidNo(int count) {
+    return '$count said no';
+  }
+
+  @override
+  String declinesDismissed(int count) {
+    return '$count never answered';
+  }
+
+  @override
+  String declinesRemoved(int count) {
+    return '$count took the lines off';
+  }
+
+  @override
+  String declinesLeftOnTable(String amount) {
+    return '$amount quoted and not deposited on';
+  }
+
+  @override
+  String declinesTakeRate(int percent) {
+    return '$percent% of the answers were money';
+  }
 }

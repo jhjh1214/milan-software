@@ -883,4 +883,45 @@ class LZh extends L {
   String overrideRow(String before, String after, String name) {
     return '$before 改成 $after，$name';
   }
+
+  @override
+  String get declinesTitle => '问过的订金';
+
+  @override
+  String get declinesNone => '这段时间没有人被问过订金。';
+
+  @override
+  String declinesAsked(int count) {
+    return '问了 $count 次';
+  }
+
+  @override
+  String declinesTook(int count) {
+    return '收到 $count 单';
+  }
+
+  @override
+  String declinesSaidNo(int count) {
+    return '$count 单说不要';
+  }
+
+  @override
+  String declinesDismissed(int count) {
+    return '$count 单没答复';
+  }
+
+  @override
+  String declinesRemoved(int count) {
+    return '$count 单把项目删掉';
+  }
+
+  @override
+  String declinesLeftOnTable(String amount) {
+    return '报了 $amount，没收订金';
+  }
+
+  @override
+  String declinesTakeRate(int percent) {
+    return '有答复的当中 $percent% 付了钱';
+  }
 }

@@ -284,5 +284,15 @@
   "overrideRefusedOrderFinished": "Pesanan ini sudah selesai. Harganya tidak boleh diubah lagi.",
   "overridesThisWeek": "Harga yang diubah minggu ini",
   "overridesNone": "Tiada sesiapa mengubah harga minggu ini.",
-  "overrideRow": "{before} kepada {after}, oleh {name}"
+  "overrideRow": "{before} kepada {after}, oleh {name}",
+
+  "declinesTitle": "Deposit yang diminta",
+  "declinesNone": "Tiada sesiapa diminta deposit dalam tempoh ini.",
+  "declinesAsked": "Ditanya {count} kali",
+  "declinesTook": "Dapat {count}",
+  "declinesSaidNo": "{count} kata tidak",
+  "declinesDismissed": "{count} tidak menjawab",
+  "declinesRemoved": "{count} membuang barisnya",
+  "declinesLeftOnTable": "{amount} disebut harga, tiada deposit",
+  "declinesTakeRate": "{percent}% daripada jawapan adalah wang"
 }

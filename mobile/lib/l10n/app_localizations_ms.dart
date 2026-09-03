@@ -914,4 +914,45 @@ class LMs extends L {
   String overrideRow(String before, String after, String name) {
     return '$before kepada $after, oleh $name';
   }
+
+  @override
+  String get declinesTitle => 'Deposit yang diminta';
+
+  @override
+  String get declinesNone => 'Tiada sesiapa diminta deposit dalam tempoh ini.';
+
+  @override
+  String declinesAsked(int count) {
+    return 'Ditanya $count kali';
+  }
+
+  @override
+  String declinesTook(int count) {
+    return 'Dapat $count';
+  }
+
+  @override
+  String declinesSaidNo(int count) {
+    return '$count kata tidak';
+  }
+
+  @override
+  String declinesDismissed(int count) {
+    return '$count tidak menjawab';
+  }
+
+  @override
+  String declinesRemoved(int count) {
+    return '$count membuang barisnya';
+  }
+
+  @override
+  String declinesLeftOnTable(String amount) {
+    return '$amount disebut harga, tiada deposit';
+  }
+
+  @override
+  String declinesTakeRate(int percent) {
+    return '$percent% daripada jawapan adalah wang';
+  }
 }

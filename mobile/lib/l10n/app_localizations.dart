@@ -1639,6 +1639,60 @@ abstract class L {
   /// In zh, this message translates to:
   /// **'{before} 改成 {after}，{name}'**
   String overrideRow(String before, String after, String name);
+
+  /// No description provided for @declinesTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'问过的订金'**
+  String get declinesTitle;
+
+  /// No description provided for @declinesNone.
+  ///
+  /// In zh, this message translates to:
+  /// **'这段时间没有人被问过订金。'**
+  String get declinesNone;
+
+  /// No description provided for @declinesAsked.
+  ///
+  /// In zh, this message translates to:
+  /// **'问了 {count} 次'**
+  String declinesAsked(int count);
+
+  /// No description provided for @declinesTook.
+  ///
+  /// In zh, this message translates to:
+  /// **'收到 {count} 单'**
+  String declinesTook(int count);
+
+  /// No description provided for @declinesSaidNo.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 单说不要'**
+  String declinesSaidNo(int count);
+
+  /// No description provided for @declinesDismissed.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 单没答复'**
+  String declinesDismissed(int count);
+
+  /// No description provided for @declinesRemoved.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 单把项目删掉'**
+  String declinesRemoved(int count);
+
+  /// No description provided for @declinesLeftOnTable.
+  ///
+  /// In zh, this message translates to:
+  /// **'报了 {amount}，没收订金'**
+  String declinesLeftOnTable(String amount);
+
+  /// No description provided for @declinesTakeRate.
+  ///
+  /// In zh, this message translates to:
+  /// **'有答复的当中 {percent}% 付了钱'**
+  String declinesTakeRate(int percent);
 }
 
 class _LDelegate extends LocalizationsDelegate<L> {

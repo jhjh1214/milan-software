@@ -284,5 +284,15 @@
   "overrideRefusedOrderFinished": "This order is finished. Its prices no longer move.",
   "overridesThisWeek": "Prices changed this week",
   "overridesNone": "Nobody changed a price this week.",
-  "overrideRow": "{before} to {after}, by {name}"
+  "overrideRow": "{before} to {after}, by {name}",
+
+  "declinesTitle": "Deposits asked for",
+  "declinesNone": "Nobody was asked for a deposit in this period.",
+  "declinesAsked": "Asked {count} times",
+  "declinesTook": "Took {count}",
+  "declinesSaidNo": "{count} said no",
+  "declinesDismissed": "{count} never answered",
+  "declinesRemoved": "{count} took the lines off",
+  "declinesLeftOnTable": "{amount} quoted and not deposited on",
+  "declinesTakeRate": "{percent}% of the answers were money"
 }
