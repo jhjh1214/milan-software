@@ -451,4 +451,172 @@ class LEn extends L {
 
   @override
   String get tierStandard => 'Standard rate';
+
+  @override
+  String get roleAdmin => 'Admin';
+
+  @override
+  String get roleStaff => 'Staff';
+
+  @override
+  String get roleParttime => 'Part-timer';
+
+  @override
+  String get syncTitle => 'Sync';
+
+  @override
+  String get signInTitle => 'Sign in';
+
+  @override
+  String get signInPhone => 'Phone number';
+
+  @override
+  String get signInPin => 'PIN';
+
+  @override
+  String get signInAction => 'Sign in';
+
+  @override
+  String get signInFailed => 'Phone or PIN is wrong';
+
+  @override
+  String get signInOffline => 'No connection. Try again when you have signal.';
+
+  @override
+  String signInBusy(int seconds) {
+    return 'Too many tries. Wait $seconds seconds.';
+  }
+
+  @override
+  String get signInWhy =>
+      'Sign in once before the fair. The app keeps working offline afterwards.';
+
+  @override
+  String signedInAs(String name, String role) {
+    return 'Signed in as $name ($role)';
+  }
+
+  @override
+  String get signOut => 'Sign out';
+
+  @override
+  String get notSignedIn =>
+      'Not signed in. Quoting still works; nothing is sent to the office.';
+
+  @override
+  String get serverAddress => 'Server address';
+
+  @override
+  String get serverAddressInvalid =>
+      'Enter an https address, for example milan.example.com';
+
+  @override
+  String get serverAddressChanged => 'Server changed. Sign in again.';
+
+  @override
+  String get syncNow => 'Sync now';
+
+  @override
+  String get syncRunning => 'Syncing';
+
+  @override
+  String get syncNever => 'Not synced yet';
+
+  @override
+  String syncLastAt(String time) {
+    return 'Last synced $time';
+  }
+
+  @override
+  String get syncOffline =>
+      'No connection. Everything still works; this will catch up later.';
+
+  @override
+  String get syncSignedOut =>
+      'This handset was signed out. Sign in again to send quotes.';
+
+  @override
+  String syncPricesUpdated(int version) {
+    return 'Prices updated to version $version';
+  }
+
+  @override
+  String get syncPricesCurrent => 'Prices are up to date';
+
+  @override
+  String syncQueued(int count) {
+    return '$count quotes waiting to send';
+  }
+
+  @override
+  String syncSent(int count) {
+    return '$count quotes sent';
+  }
+
+  @override
+  String syncParked(int count) {
+    return '$count quotes need attention';
+  }
+
+  @override
+  String syncDisagreed(int count) {
+    return '$count quotes were priced differently by the office. They were accepted and flagged for review.';
+  }
+
+  @override
+  String get syncLocalEditDropped =>
+      'The prices edited on this phone were replaced by the office list.';
+
+  @override
+  String pricesFromServer(String time) {
+    return 'Prices from the office, as of $time';
+  }
+
+  @override
+  String get pricesBundled =>
+      'Prices as shipped with the app. Sign in to get the office list.';
+
+  @override
+  String get pricesLocal =>
+      'Prices edited on this phone. They will be replaced on the next sync.';
+
+  @override
+  String get ratesServerOwned =>
+      'Prices come from the office so every handset quotes the same. A change made here is published to everyone.';
+
+  @override
+  String get ratesPublish => 'Publish to everyone';
+
+  @override
+  String ratesPublished(int version) {
+    return 'Published version $version. Every handset picks it up on its next sync.';
+  }
+
+  @override
+  String get ratesPublishOffline =>
+      'Publishing needs a connection, so that every handset gets the same list.';
+
+  @override
+  String get ratesReadOnly => 'Only the office can change prices.';
+
+  @override
+  String get ratesCheckUpdates => 'Check for updates';
+
+  @override
+  String get fairModeTitle => 'Fair mode';
+
+  @override
+  String get fairModePrepare => 'Get ready for a fair';
+
+  @override
+  String get fairModeWhy =>
+      'Downloads both price lists and empties the queue, so the phone works for days with no signal.';
+
+  @override
+  String get fairModeReady =>
+      'Ready. Both price lists are current and nothing is waiting to send.';
+
+  @override
+  String get fairModeNotReady =>
+      'Not ready yet. Connect and try again before you leave.';
 }

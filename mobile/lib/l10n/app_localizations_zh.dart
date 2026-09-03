@@ -443,4 +443,159 @@ class LZh extends L {
 
   @override
   String get tierStandard => '普通价';
+
+  @override
+  String get roleAdmin => '管理员';
+
+  @override
+  String get roleStaff => '员工';
+
+  @override
+  String get roleParttime => '临时员工';
+
+  @override
+  String get syncTitle => '同步';
+
+  @override
+  String get signInTitle => '登入';
+
+  @override
+  String get signInPhone => '手机号码';
+
+  @override
+  String get signInPin => '密码 PIN';
+
+  @override
+  String get signInAction => '登入';
+
+  @override
+  String get signInFailed => '号码或密码不对';
+
+  @override
+  String get signInOffline => '没有网络。有信号时再试。';
+
+  @override
+  String signInBusy(int seconds) {
+    return '试太多次了。请等 $seconds 秒。';
+  }
+
+  @override
+  String get signInWhy => '出展前登入一次就好。之后没有网络也照样用。';
+
+  @override
+  String signedInAs(String name, String role) {
+    return '已登入：$name（$role）';
+  }
+
+  @override
+  String get signOut => '登出';
+
+  @override
+  String get notSignedIn => '还没登入。报价照常，只是不会传回公司。';
+
+  @override
+  String get serverAddress => '服务器地址';
+
+  @override
+  String get serverAddressInvalid => '请输入 https 地址，例如 milan.example.com';
+
+  @override
+  String get serverAddressChanged => '服务器已更改，请重新登入。';
+
+  @override
+  String get syncNow => '立即同步';
+
+  @override
+  String get syncRunning => '同步中';
+
+  @override
+  String get syncNever => '还没同步过';
+
+  @override
+  String syncLastAt(String time) {
+    return '上次同步：$time';
+  }
+
+  @override
+  String get syncOffline => '没有网络。一切照常，稍后自动补上。';
+
+  @override
+  String get syncSignedOut => '这台手机已被登出。请重新登入才能上传报价。';
+
+  @override
+  String syncPricesUpdated(int version) {
+    return '价格已更新到第 $version 版';
+  }
+
+  @override
+  String get syncPricesCurrent => '价格已是最新';
+
+  @override
+  String syncQueued(int count) {
+    return '有 $count 张报价等着上传';
+  }
+
+  @override
+  String syncSent(int count) {
+    return '已上传 $count 张报价';
+  }
+
+  @override
+  String syncParked(int count) {
+    return '有 $count 张报价需要处理';
+  }
+
+  @override
+  String syncDisagreed(int count) {
+    return '有 $count 张报价公司算出的价格不一样。订单照收，已标记待查。';
+  }
+
+  @override
+  String get syncLocalEditDropped => '这台手机改过的价格已被公司的价格表取代。';
+
+  @override
+  String pricesFromServer(String time) {
+    return '价格来自公司，$time 更新';
+  }
+
+  @override
+  String get pricesBundled => '这是随程序附带的价格。登入后会取得公司的价格表。';
+
+  @override
+  String get pricesLocal => '这是在这台手机上改过的价格，下次同步会被取代。';
+
+  @override
+  String get ratesServerOwned => '价格由公司统一发布，每台手机报价一致。在这里的更改会发布给所有人。';
+
+  @override
+  String get ratesPublish => '发布给所有人';
+
+  @override
+  String ratesPublished(int version) {
+    return '已发布第 $version 版。每台手机下次同步就会收到。';
+  }
+
+  @override
+  String get ratesPublishOffline => '发布需要网络，这样每台手机才拿到同一份价格表。';
+
+  @override
+  String get ratesReadOnly => '只有公司可以更改价格。';
+
+  @override
+  String get ratesCheckUpdates => '检查更新';
+
+  @override
+  String get fairModeTitle => '展销模式';
+
+  @override
+  String get fairModePrepare => '出展前准备';
+
+  @override
+  String get fairModeWhy => '下载两份价格表并清空上传队列，手机就能连续几天没网络也照用。';
+
+  @override
+  String get fairModeReady => '准备好了。两份价格表都是最新，也没有待上传的报价。';
+
+  @override
+  String get fairModeNotReady => '还没准备好。出发前请连上网络再试一次。';
 }

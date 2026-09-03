@@ -871,6 +871,276 @@ abstract class L {
   /// In zh, this message translates to:
   /// **'普通价'**
   String get tierStandard;
+
+  /// No description provided for @roleAdmin.
+  ///
+  /// In zh, this message translates to:
+  /// **'管理员'**
+  String get roleAdmin;
+
+  /// No description provided for @roleStaff.
+  ///
+  /// In zh, this message translates to:
+  /// **'员工'**
+  String get roleStaff;
+
+  /// No description provided for @roleParttime.
+  ///
+  /// In zh, this message translates to:
+  /// **'临时员工'**
+  String get roleParttime;
+
+  /// No description provided for @syncTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步'**
+  String get syncTitle;
+
+  /// No description provided for @signInTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'登入'**
+  String get signInTitle;
+
+  /// No description provided for @signInPhone.
+  ///
+  /// In zh, this message translates to:
+  /// **'手机号码'**
+  String get signInPhone;
+
+  /// No description provided for @signInPin.
+  ///
+  /// In zh, this message translates to:
+  /// **'密码 PIN'**
+  String get signInPin;
+
+  /// No description provided for @signInAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'登入'**
+  String get signInAction;
+
+  /// No description provided for @signInFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'号码或密码不对'**
+  String get signInFailed;
+
+  /// No description provided for @signInOffline.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有网络。有信号时再试。'**
+  String get signInOffline;
+
+  /// No description provided for @signInBusy.
+  ///
+  /// In zh, this message translates to:
+  /// **'试太多次了。请等 {seconds} 秒。'**
+  String signInBusy(int seconds);
+
+  /// No description provided for @signInWhy.
+  ///
+  /// In zh, this message translates to:
+  /// **'出展前登入一次就好。之后没有网络也照样用。'**
+  String get signInWhy;
+
+  /// No description provided for @signedInAs.
+  ///
+  /// In zh, this message translates to:
+  /// **'已登入：{name}（{role}）'**
+  String signedInAs(String name, String role);
+
+  /// No description provided for @signOut.
+  ///
+  /// In zh, this message translates to:
+  /// **'登出'**
+  String get signOut;
+
+  /// No description provided for @notSignedIn.
+  ///
+  /// In zh, this message translates to:
+  /// **'还没登入。报价照常，只是不会传回公司。'**
+  String get notSignedIn;
+
+  /// No description provided for @serverAddress.
+  ///
+  /// In zh, this message translates to:
+  /// **'服务器地址'**
+  String get serverAddress;
+
+  /// No description provided for @serverAddressInvalid.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入 https 地址，例如 milan.example.com'**
+  String get serverAddressInvalid;
+
+  /// No description provided for @serverAddressChanged.
+  ///
+  /// In zh, this message translates to:
+  /// **'服务器已更改，请重新登入。'**
+  String get serverAddressChanged;
+
+  /// No description provided for @syncNow.
+  ///
+  /// In zh, this message translates to:
+  /// **'立即同步'**
+  String get syncNow;
+
+  /// No description provided for @syncRunning.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步中'**
+  String get syncRunning;
+
+  /// No description provided for @syncNever.
+  ///
+  /// In zh, this message translates to:
+  /// **'还没同步过'**
+  String get syncNever;
+
+  /// No description provided for @syncLastAt.
+  ///
+  /// In zh, this message translates to:
+  /// **'上次同步：{time}'**
+  String syncLastAt(String time);
+
+  /// No description provided for @syncOffline.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有网络。一切照常，稍后自动补上。'**
+  String get syncOffline;
+
+  /// No description provided for @syncSignedOut.
+  ///
+  /// In zh, this message translates to:
+  /// **'这台手机已被登出。请重新登入才能上传报价。'**
+  String get syncSignedOut;
+
+  /// No description provided for @syncPricesUpdated.
+  ///
+  /// In zh, this message translates to:
+  /// **'价格已更新到第 {version} 版'**
+  String syncPricesUpdated(int version);
+
+  /// No description provided for @syncPricesCurrent.
+  ///
+  /// In zh, this message translates to:
+  /// **'价格已是最新'**
+  String get syncPricesCurrent;
+
+  /// No description provided for @syncQueued.
+  ///
+  /// In zh, this message translates to:
+  /// **'有 {count} 张报价等着上传'**
+  String syncQueued(int count);
+
+  /// No description provided for @syncSent.
+  ///
+  /// In zh, this message translates to:
+  /// **'已上传 {count} 张报价'**
+  String syncSent(int count);
+
+  /// No description provided for @syncParked.
+  ///
+  /// In zh, this message translates to:
+  /// **'有 {count} 张报价需要处理'**
+  String syncParked(int count);
+
+  /// No description provided for @syncDisagreed.
+  ///
+  /// In zh, this message translates to:
+  /// **'有 {count} 张报价公司算出的价格不一样。订单照收，已标记待查。'**
+  String syncDisagreed(int count);
+
+  /// No description provided for @syncLocalEditDropped.
+  ///
+  /// In zh, this message translates to:
+  /// **'这台手机改过的价格已被公司的价格表取代。'**
+  String get syncLocalEditDropped;
+
+  /// No description provided for @pricesFromServer.
+  ///
+  /// In zh, this message translates to:
+  /// **'价格来自公司，{time} 更新'**
+  String pricesFromServer(String time);
+
+  /// No description provided for @pricesBundled.
+  ///
+  /// In zh, this message translates to:
+  /// **'这是随程序附带的价格。登入后会取得公司的价格表。'**
+  String get pricesBundled;
+
+  /// No description provided for @pricesLocal.
+  ///
+  /// In zh, this message translates to:
+  /// **'这是在这台手机上改过的价格，下次同步会被取代。'**
+  String get pricesLocal;
+
+  /// No description provided for @ratesServerOwned.
+  ///
+  /// In zh, this message translates to:
+  /// **'价格由公司统一发布，每台手机报价一致。在这里的更改会发布给所有人。'**
+  String get ratesServerOwned;
+
+  /// No description provided for @ratesPublish.
+  ///
+  /// In zh, this message translates to:
+  /// **'发布给所有人'**
+  String get ratesPublish;
+
+  /// No description provided for @ratesPublished.
+  ///
+  /// In zh, this message translates to:
+  /// **'已发布第 {version} 版。每台手机下次同步就会收到。'**
+  String ratesPublished(int version);
+
+  /// No description provided for @ratesPublishOffline.
+  ///
+  /// In zh, this message translates to:
+  /// **'发布需要网络，这样每台手机才拿到同一份价格表。'**
+  String get ratesPublishOffline;
+
+  /// No description provided for @ratesReadOnly.
+  ///
+  /// In zh, this message translates to:
+  /// **'只有公司可以更改价格。'**
+  String get ratesReadOnly;
+
+  /// No description provided for @ratesCheckUpdates.
+  ///
+  /// In zh, this message translates to:
+  /// **'检查更新'**
+  String get ratesCheckUpdates;
+
+  /// No description provided for @fairModeTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'展销模式'**
+  String get fairModeTitle;
+
+  /// No description provided for @fairModePrepare.
+  ///
+  /// In zh, this message translates to:
+  /// **'出展前准备'**
+  String get fairModePrepare;
+
+  /// No description provided for @fairModeWhy.
+  ///
+  /// In zh, this message translates to:
+  /// **'下载两份价格表并清空上传队列，手机就能连续几天没网络也照用。'**
+  String get fairModeWhy;
+
+  /// No description provided for @fairModeReady.
+  ///
+  /// In zh, this message translates to:
+  /// **'准备好了。两份价格表都是最新，也没有待上传的报价。'**
+  String get fairModeReady;
+
+  /// No description provided for @fairModeNotReady.
+  ///
+  /// In zh, this message translates to:
+  /// **'还没准备好。出发前请连上网络再试一次。'**
+  String get fairModeNotReady;
 }
 
 class _LDelegate extends LocalizationsDelegate<L> {

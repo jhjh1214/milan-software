@@ -15,6 +15,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../ui/unit_labels.dart';
+import 'finish_quote.dart';
 import 'quote_pdf.dart';
 import 'quote_state.dart';
 
@@ -57,6 +58,11 @@ Future<void> shareQuotePdf(BuildContext context, WidgetRef ref) async {
         subject: l.pdfTitle,
       ),
     );
+
+    // The customer now holds a number, so the office needs to know the quote
+    // exists. Queued, never sent from here: sharing a PDF must work in
+    // airplane mode, and waiting on a network call would break that.
+    await queueQuoteForOffice(ref);
   } catch (e) {
     // A failed share must not take the quote down with it. The part-timer can
     // keep working and try again.

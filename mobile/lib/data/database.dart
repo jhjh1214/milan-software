@@ -272,15 +272,21 @@ class AppDatabase extends _$AppDatabase {
             ..limit(limit))
           .get();
 
-  /// Watches the queue depth, so the UI can show "3 waiting to send" without
-  /// polling — and without ever blocking on it.
-  Stream<int> watchOutboxDepth() {
+  /// How many quotes are waiting to send, for the badge in the app bar.
+  ///
+  /// A one-shot count rather than a live stream. The depth only moves when
+  /// this app enqueues or drains, and both are our own code paths, so watching
+  /// buys nothing — while a live query holds a subscription for the life of the
+  /// screen and leaves drift's teardown timer pending when the tree is
+  /// unmounted, which every widget test then trips over.
+  Future<int> outboxDepth() async {
     final count = outbox.id.count();
-    return (selectOnly(outbox)
-          ..addColumns([count])
-          ..where(outbox.parkedAt.isNull()))
-        .map((row) => row.read(count) ?? 0)
-        .watchSingle();
+    final row =
+        await (selectOnly(outbox)
+              ..addColumns([count])
+              ..where(outbox.parkedAt.isNull()))
+            .getSingle();
+    return row.read(count) ?? 0;
   }
 
   Future<void> enqueueOutbox(OutboxCompanion row) =>

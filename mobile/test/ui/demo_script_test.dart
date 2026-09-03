@@ -408,43 +408,47 @@ void main() {
     expect(find.textContaining('012-3456789'), findsOneWidget);
   });
 
-  testWidgets('a price changed in the app is what the next quote charges', (
+  /// A store over memory with an injected bundle.
+  ///
+  /// Real file I/O and `rootBundle` both hang inside `flutter test`'s
+  /// fake-async zone, so without these seams none of this flow is testable.
+  RateCardStore memoryStore(InMemoryRateCardStorage storage) =>
+      RateCardStore(storage: storage, bundled: (list) async => cardJson);
+
+  Future<void> pumpWithStore(WidgetTester tester, RateCardStore store) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+          rateCardStoreProvider.overrideWithValue(store),
+          todayProvider.overrideWithValue(duringFair),
+        ],
+        child: const MilanQuoteApp(),
+      ),
+      duration: Duration.zero,
+    );
+    // The store reads the bundled asset, so the screen shows an indeterminate
+    // spinner for a frame or two. pumpAndSettle would wait for that spinner
+    // forever, so pump a bounded number of frames until it is gone instead.
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+      if (find.byType(CircularProgressIndicator).evaluate().isEmpty) break;
+    }
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('a price published by the office is what the next quote charges', (
     tester,
   ) async {
-    // Hard rule 1, end to end and through the real UI: the admin changes a
-    // price on the phone, and the next quote uses it. No code change, no
-    // rebuild, no release.
-    // In-memory storage and an injected bundle. Real file I/O and rootBundle
-    // both hang inside flutter test's fake-async zone, so the save would never
-    // complete and this whole flow could not be tested.
-    final store = RateCardStore(
-      storage: InMemoryRateCardStorage(),
-      bundled: (list) async => cardJson,
-    );
+    // Hard rule 1, end to end and through the real UI: the price moves and no
+    // code does. Since Phase 3 the move happens at the office and arrives by
+    // sync, rather than being typed into this handset — that is the whole
+    // point, because six handsets each holding their own edited list is six
+    // handsets quoting six different prices at one fair.
+    final storage = InMemoryRateCardStorage();
+    final store = memoryStore(storage);
 
-    Future<void> pumpWithStore(WidgetTester tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            databaseProvider.overrideWithValue(db),
-            rateCardStoreProvider.overrideWithValue(store),
-            todayProvider.overrideWithValue(duringFair),
-          ],
-          child: const MilanQuoteApp(),
-        ),
-        duration: Duration.zero,
-      );
-      // The store reads the bundled asset, so the screen shows an indeterminate
-      // spinner for a frame or two. pumpAndSettle would wait for that spinner
-      // forever, so pump a bounded number of frames until it is gone instead.
-      for (var i = 0; i < 20; i++) {
-        await tester.pump(const Duration(milliseconds: 50));
-        if (find.byType(CircularProgressIndicator).evaluate().isEmpty) break;
-      }
-      await tester.pumpAndSettle();
-    }
-
-    await pumpWithStore(tester);
+    await pumpWithStore(tester, store);
     await addWindow(
       tester,
       room: '客厅',
@@ -455,33 +459,46 @@ void main() {
     );
     expect(find.text('RM 552.00'), findsWidgets);
 
-    // Open the price list and change the night curtain from RM46 to RM50.
-    await tester.tap(find.byIcon(Icons.price_change_outlined));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('改单项价格'));
-    await tester.pumpAndSettle();
+    // The office publishes version 2 and this handset pulls it.
+    final published = jsonDecode(cardJson) as Map<String, dynamic>;
+    published['version'] = 2;
+    for (final rule
+        in (published['rules'] as List).cast<Map<String, dynamic>>()) {
+      if (rule['id'] == 'night-curtain-lo') rule['rate_sen'] = 5000;
+    }
+    await store.adoptServerCard(
+      PriceList.fair,
+      published,
+      at: DateTime.utc(2026, 8, 29),
+    );
 
-    await tester.enterText(find.byType(TextField).first, '夜帘');
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('夜帘（遮光）').first);
-    await tester.pumpAndSettle();
-
-    await tester.enterText(find.byType(TextField).first, '50.00');
-    await tester.tap(find.text('保存'));
-    await tester.pumpAndSettle();
-
-    // Back to the quote: 12ft x RM50. The Material back button, not
-    // pageBack(), which looks for the Cupertino one.
-    await tester.tap(find.byType(BackButton));
-    await tester.pumpAndSettle();
-    expect(find.text('RM 600.00'), findsWidgets);
-    expect(find.text('RM 552.00'), findsNothing);
-
-    // And it survives a restart, because it is stored, not held in memory.
+    // Unmounted first. Pumping another ProviderScope at the same position
+    // updates the existing one rather than replacing it, so its cached card
+    // would survive and this would silently test nothing.
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle();
-    await pumpWithStore(tester);
+
+    // 12ft x RM50, on the quote that was already saved. The price moved and no
+    // code did, and it survives a restart because it is stored rather than
+    // held in memory.
+    await pumpWithStore(tester, memoryStore(storage));
     expect(find.text('RM 600.00'), findsWidgets);
+    expect(find.text('RM 552.00'), findsNothing);
+  });
+
+  testWidgets('with nobody signed in, prices are read-only', (tester) async {
+    // §3 and Phase 3: staff see rates and cannot edit them, and the editing
+    // controls are not there to be found. The server refuses too — this is the
+    // courtesy, not the control.
+    await pumpWithStore(tester, memoryStore(InMemoryRateCardStorage()));
+    await tester.tap(find.byIcon(Icons.price_change_outlined));
+    await tester.pumpAndSettle();
+
+    expect(find.text('改单项价格'), findsNothing);
+    expect(find.text('发布给所有人'), findsNothing);
+    expect(find.text('只有公司可以更改价格。'), findsOneWidget);
+    // The honest line about where today's prices came from is still there.
+    expect(find.textContaining('随程序附带'), findsOneWidget);
   });
 
   testWidgets('a quote survives a force-quit and reopens with its lines', (

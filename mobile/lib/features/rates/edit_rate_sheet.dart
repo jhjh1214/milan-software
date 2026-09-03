@@ -16,6 +16,8 @@ import '../../core/money.dart';
 import '../../l10n/app_localizations.dart';
 import '../../pricing/models.dart';
 import '../../pricing/rate_card_csv.dart';
+import '../../sync/api_client.dart';
+import '../../sync/sync_state.dart';
 import '../../ui/theme.dart';
 import '../quote/quote_state.dart';
 
@@ -235,8 +237,34 @@ class _EditRateSheetState extends ConsumerState<_EditRateSheet> {
     final store = ref.read(rateCardStoreProvider);
     final list = (await ref.read(activeRateCardProvider.future)).list;
     final json = applyRateCardImportToJson(await store.loadJson(list), import);
-    await store.save(list, json);
-    ref.invalidate(activeRateCardProvider);
+
+    // Published, not saved. Since Phase 3 a price belongs to the office: the
+    // server takes the new version and every handset picks it up on its next
+    // sync. Saving it here instead would leave this phone quoting a number no
+    // other phone has.
+    final credentials = ref.read(credentialsProvider).valueOrNull;
+    if (credentials == null) {
+      setState(() => _errors = [L.of(context).ratesPublishOffline]);
+      return;
+    }
+
+    final result = await ref
+        .read(apiClientProvider)
+        .publishCard(token: credentials.token, listId: list.id, payload: json);
+    if (!mounted) return;
+
+    if (result case SyncFailed(:final failure)) {
+      setState(() {
+        _errors = [
+          failure == SyncFailure.offline
+              ? L.of(context).ratesPublishOffline
+              : L.of(context).ratesReadOnly,
+        ];
+      });
+      return;
+    }
+
+    await ref.read(syncProvider.notifier).syncNow();
     if (mounted) Navigator.of(context).pop(true);
   }
 }

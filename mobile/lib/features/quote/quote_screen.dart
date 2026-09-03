@@ -7,9 +7,11 @@ import '../../data/rate_card_store.dart';
 import '../../l10n/app_localizations.dart';
 import '../../pricing/engine.dart';
 import '../../pricing/models.dart';
+import '../../sync/sync_state.dart';
 import '../../ui/theme.dart';
 import '../../ui/unit_labels.dart';
 import '../rates/rate_card_screen.dart';
+import '../sync/sync_screen.dart';
 import 'line_photo.dart';
 import 'quote_state.dart';
 import 'share_quote.dart';
@@ -40,6 +42,7 @@ class QuoteScreen extends ConsumerWidget {
               MaterialPageRoute<void>(builder: (_) => const RateCardScreen()),
             ),
           ),
+          const _SyncButton(),
           const SizedBox(width: Space.sm),
         ],
       ),
@@ -872,6 +875,33 @@ class _TotalBar extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The way to the sync screen, carrying the queue depth as a badge.
+///
+/// The badge is the whole point of putting it here. A part-timer who can see
+/// "3 waiting" understands a dead connection; one who cannot assumes the orders
+/// vanished, and starts writing them on paper as well.
+class _SyncButton extends ConsumerWidget {
+  const _SyncButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = L.of(context);
+    final queued = ref.watch(outboxDepthProvider).valueOrNull ?? 0;
+
+    return IconButton(
+      tooltip: l.syncTitle,
+      icon: Badge(
+        isLabelVisible: queued > 0,
+        label: Text('$queued'),
+        child: const Icon(Icons.cloud_sync_outlined),
+      ),
+      onPressed: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: (_) => const SyncScreen())),
     );
   }
 }

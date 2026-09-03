@@ -449,4 +449,172 @@ class LMs extends L {
 
   @override
   String get tierStandard => 'Kadar biasa';
+
+  @override
+  String get roleAdmin => 'Pentadbir';
+
+  @override
+  String get roleStaff => 'Kakitangan';
+
+  @override
+  String get roleParttime => 'Pekerja sambilan';
+
+  @override
+  String get syncTitle => 'Penyegerakan';
+
+  @override
+  String get signInTitle => 'Log masuk';
+
+  @override
+  String get signInPhone => 'Nombor telefon';
+
+  @override
+  String get signInPin => 'PIN';
+
+  @override
+  String get signInAction => 'Log masuk';
+
+  @override
+  String get signInFailed => 'Nombor atau PIN salah';
+
+  @override
+  String get signInOffline => 'Tiada sambungan. Cuba lagi bila ada isyarat.';
+
+  @override
+  String signInBusy(int seconds) {
+    return 'Terlalu banyak cubaan. Tunggu $seconds saat.';
+  }
+
+  @override
+  String get signInWhy =>
+      'Log masuk sekali sebelum pesta jualan. Selepas itu app tetap boleh guna tanpa internet.';
+
+  @override
+  String signedInAs(String name, String role) {
+    return 'Log masuk sebagai $name ($role)';
+  }
+
+  @override
+  String get signOut => 'Log keluar';
+
+  @override
+  String get notSignedIn =>
+      'Belum log masuk. Sebut harga tetap boleh dibuat; ia tidak dihantar ke pejabat.';
+
+  @override
+  String get serverAddress => 'Alamat pelayan';
+
+  @override
+  String get serverAddressInvalid =>
+      'Masukkan alamat https, contoh milan.example.com';
+
+  @override
+  String get serverAddressChanged => 'Pelayan ditukar. Sila log masuk semula.';
+
+  @override
+  String get syncNow => 'Segerak sekarang';
+
+  @override
+  String get syncRunning => 'Sedang segerak';
+
+  @override
+  String get syncNever => 'Belum pernah disegerakkan';
+
+  @override
+  String syncLastAt(String time) {
+    return 'Segerak terakhir $time';
+  }
+
+  @override
+  String get syncOffline =>
+      'Tiada sambungan. Semua masih berfungsi; ia akan menyusul kemudian.';
+
+  @override
+  String get syncSignedOut =>
+      'Telefon ini telah dilog keluar. Log masuk semula untuk hantar sebut harga.';
+
+  @override
+  String syncPricesUpdated(int version) {
+    return 'Harga dikemas kini ke versi $version';
+  }
+
+  @override
+  String get syncPricesCurrent => 'Harga sudah terkini';
+
+  @override
+  String syncQueued(int count) {
+    return '$count sebut harga menunggu untuk dihantar';
+  }
+
+  @override
+  String syncSent(int count) {
+    return '$count sebut harga telah dihantar';
+  }
+
+  @override
+  String syncParked(int count) {
+    return '$count sebut harga perlu perhatian';
+  }
+
+  @override
+  String syncDisagreed(int count) {
+    return '$count sebut harga dikira berbeza oleh pejabat. Ia tetap diterima dan ditanda untuk semakan.';
+  }
+
+  @override
+  String get syncLocalEditDropped =>
+      'Harga yang diubah pada telefon ini telah diganti dengan senarai pejabat.';
+
+  @override
+  String pricesFromServer(String time) {
+    return 'Harga dari pejabat, setakat $time';
+  }
+
+  @override
+  String get pricesBundled =>
+      'Harga yang dihantar bersama app. Log masuk untuk dapatkan senarai pejabat.';
+
+  @override
+  String get pricesLocal =>
+      'Harga yang diubah pada telefon ini. Ia akan diganti pada segerak berikutnya.';
+
+  @override
+  String get ratesServerOwned =>
+      'Harga datang dari pejabat supaya setiap telefon beri harga yang sama. Perubahan di sini diterbitkan kepada semua.';
+
+  @override
+  String get ratesPublish => 'Terbitkan kepada semua';
+
+  @override
+  String ratesPublished(int version) {
+    return 'Versi $version diterbitkan. Setiap telefon akan menerimanya pada segerak berikutnya.';
+  }
+
+  @override
+  String get ratesPublishOffline =>
+      'Penerbitan memerlukan sambungan, supaya setiap telefon dapat senarai yang sama.';
+
+  @override
+  String get ratesReadOnly => 'Hanya pejabat boleh menukar harga.';
+
+  @override
+  String get ratesCheckUpdates => 'Semak kemas kini';
+
+  @override
+  String get fairModeTitle => 'Mod pesta jualan';
+
+  @override
+  String get fairModePrepare => 'Sedia untuk pesta jualan';
+
+  @override
+  String get fairModeWhy =>
+      'Muat turun kedua-dua senarai harga dan kosongkan baris gilir, supaya telefon boleh guna berhari-hari tanpa isyarat.';
+
+  @override
+  String get fairModeReady =>
+      'Sedia. Kedua-dua senarai harga terkini dan tiada apa-apa menunggu untuk dihantar.';
+
+  @override
+  String get fairModeNotReady =>
+      'Belum sedia. Sambung ke internet dan cuba lagi sebelum bertolak.';
 }

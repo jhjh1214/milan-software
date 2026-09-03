@@ -24,3 +24,16 @@ const List<String> _months = [
 /// Formats a date as `12 Mar 2027`.
 String formatDate(DateTime date) =>
     '${date.day} ${_months[date.month - 1]} ${date.year}';
+
+/// Formats an instant as `12 Mar 2027 14:05`, in the reader's own zone.
+///
+/// Stored timestamps are UTC (SPEC.md 7) and displayed Asia/Kuala_Lumpur, which
+/// on these handsets is simply local time. Converting on display rather than on
+/// storage is what stops a quote taken at 11pm on the last day of a promo from
+/// becoming the next day in transit.
+String formatDateTime(DateTime instant) {
+  final local = instant.toLocal();
+  final hour = local.hour.toString().padLeft(2, '0');
+  final minute = local.minute.toString().padLeft(2, '0');
+  return '${formatDate(local)} $hour:$minute';
+}
