@@ -105,9 +105,39 @@ says the change is recorded against you), and the weekly override review --
 which §6.5 says *is* the control. All three languages; 42 new strings merged
 through file bytes.
 
-**Still open in Phase 4:** the **declined-deposit report**. The data is captured
-in `deposit_prompts` and nothing shows it, so that acceptance criterion is not
-met. Everything else on the Phase 4 list has a test behind it.
+**Phase 4's acceptance list is complete**, and every criterion in SPEC.md §11
+now names the test behind it. The declined-deposit report is built, with the
+arithmetic pure in `summariseDeposits`.
+
+**Two rate-lock bugs, both found by asking what the dashboard could read.**
+The lock machinery was correct and tested throughout; it was keyed and stored
+in ways that meant it could never actually apply.
+
+1. **The hold could never be used.** The lock was keyed on the **quote id**, so
+   a customer who deposited at the fair and came back in March — a new quote,
+   a new id — was quoted the standard rate. *More* than the hold they bought,
+   after the app told them the promo was held until next August. Nothing caught
+   it because no test used a second quote. `pricing/customer_key.dart` now keys
+   on a normalised phone, falling back to the quote id when there is no usable
+   one — which preserves the reason the old key existed (two anonymous quotes
+   must not share a hold).
+2. **A hold was one handset's secret.** `category_locks` and `deposit_prompts`
+   existed only on the device and were never pushed, so `order_lines.
+   category_lock_id` pointed at a row the server had never seen. Migration 0005
+   and `GET /api/locks` fix the server half.
+
+**Still to do on that:** the **device half of the lock sync**. The server
+accepts and serves locks; nothing on the handset pushes or pulls them yet, so
+the cross-handset hold is not yet fixed end to end. That is the next slice.
+
+**Two new blocking questions**, both about money, both built the conservative
+way rather than guessed: §13 **B9** (what identifies a returning customer —
+phone is in force, a real customer record is the open part) and **B10** (two
+handsets each taking a deposit for one category; both rows kept, the first
+prices, the second marked `superseded`, nothing refunded automatically).
+
+**Schema snapshots start at v10.** `dart run drift_dev schema dump` writes
+them, and CI fails a `schemaVersion` bump that arrives without one.
 
 **Migrations are tested, but only the last step.** v9 -> v10 runs against a
 database with data in it. `Migrator.createTable` is `IF NOT EXISTS`, so a loose
