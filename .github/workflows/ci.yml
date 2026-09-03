@@ -307,6 +307,112 @@ jobs:
           print("signed in and pulled", len(bundle["payload"]["rules"]), "rules")
           PY
 
+      # Against real Postgres, not SQLite. The unit tests run on SQLite, which
+      # drops the timezone off a timestamptz and is relaxed about a partial
+      # unique index -- both of which this exercise depends on. A push and a
+      # read that agree here have agreed on the database the shop will run.
+      - name: An order and a hold survive a real round trip
+        working-directory: deploy
+        run: |
+          docker compose exec -T api python - <<'PY'
+          import json, urllib.request, uuid
+          from datetime import datetime, timedelta, timezone
+
+          BASE = "http://127.0.0.1:8000"
+
+          def call(path, body=None, token=None, method=None):
+              data = None if body is None else json.dumps(body).encode()
+              req = urllib.request.Request(
+                  BASE + path,
+                  data=data,
+                  method=method or ("POST" if body is not None else "GET"),
+                  headers={
+                      "Content-Type": "application/json",
+                      **({"Authorization": f"Bearer {token}"} if token else {}),
+                  },
+              )
+              with urllib.request.urlopen(req) as r:
+                  return json.load(r)
+
+          token = call(
+              "/api/auth/login",
+              {"phone": "0123456789", "pin": "4821", "device_id": "ci-reads"},
+          )["token"]
+
+          now = datetime.now(timezone.utc)
+          phone = "012-345 6789"
+          order_id, line_id = str(uuid.uuid4()), str(uuid.uuid4())
+
+          # A hold, keyed the way the device keys it: normalised, not as typed.
+          call(
+              "/api/locks",
+              {
+                  "id": str(uuid.uuid4()),
+                  "customer_key": "phone:0123456789",
+                  "category": "curtain",
+                  "held_rate_card_version": 1,
+                  "held_discount_pct": "1/10",
+                  "held_until": (now + timedelta(days=365)).isoformat(),
+                  "opened_at": now.isoformat(),
+              },
+              token,
+          )
+
+          call(
+              "/api/orders",
+              {
+                  "id": order_id,
+                  "quote_id": str(uuid.uuid4()),
+                  "channel": "fair",
+                  "pinned_rate_card_version": 1,
+                  "estimate_total_sen": 55200,
+                  "deposit_paid_sen": 30000,
+                  "customer_name": "Ah Lian",
+                  "customer_phone": phone,
+                  "confirmed_at": now.isoformat(),
+                  "lines": [
+                      {
+                          "id": line_id,
+                          "quote_line_id": str(uuid.uuid4()),
+                          "sort_order": 0,
+                          "room": "Living room",
+                          "variant": "night_curtain_sfold",
+                          "layer": "night",
+                          "est_width_tmm": 36576,
+                          "applied_rule_id": "rule-1",
+                          "applied_rate_card_version": 1,
+                          "standard_rate_sen": 4600,
+                          "rate_sen": 4600,
+                          "billed_qty": "12",
+                          "billed_unit": "ft",
+                          "line_total_sen": 55200,
+                      }
+                  ],
+              },
+              token,
+          )
+
+          board = call("/api/orders", token=token)
+          card = next(o for o in board["orders"] if o["id"] == order_id)
+          assert board["total"] >= 1, board["total"]
+          assert card["order_no"], "the server issues the number, and did not"
+          assert card["line_count"] == 1, card
+          # The customer typed a dash. The board has to find their hold anyway,
+          # which only works if the key is built the way the device builds it.
+          assert card["held_until"], "the hold did not reach the board"
+
+          detail = call(f"/api/orders/{order_id}", token=token)
+          assert len(detail["lines"]) == 1, detail
+          assert detail["order"]["id"] == order_id
+
+          # And the hold reads back for a second handset.
+          held = call("/api/locks?customer_key=phone:0123456789", token=token)
+          assert len(held["locks"]) == 1, held
+          assert held["locks"][0]["held_discount_pct"] == "1/10", held
+
+          print("ok - order and hold survived a real round trip")
+          PY
+
       - name: An unauthenticated pull is refused
         working-directory: deploy
         run: |
