@@ -20,10 +20,17 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..api.schemas import LineResult, PushResult, QuoteIn
+from ..api.schemas import (
+    LineResult,
+    PaymentIn,
+    PaymentResult,
+    PushResult,
+    QuoteIn,
+)
 from ..core.length import Length
 from ..models.db import (
     IdempotencyRecord,
+    Payment,
     PricingDiscrepancy,
     Quote,
     QuoteLine,
@@ -44,6 +51,7 @@ from ..pricing.models import (
     PricingStage,
     RateCard,
 )
+from .receipts import issue_receipt_no
 
 
 class UnknownRateCardVersion(Exception):
@@ -202,6 +210,60 @@ def push_quote(
         device_total_sen=quote.device_total_sen,
         discrepancies=results,
     )
+
+
+def push_payment(
+    session: Session, payload: PaymentIn, *, taken_by: User | None = None
+) -> PaymentResult:
+    """Accepts a payment and issues its receipt number. §6.4, §9.2.
+
+    **Idempotent on the device's own payment id.** A fair's connection drops
+    mid-request constantly; a retry must not take the same RM300 twice, and it
+    must hand back the *same* receipt number, because the customer may already
+    be holding one with that number printed on it.
+
+    The number is issued here and only here. CLAUDE.md: receipt numbers are a
+    server-issued exception to client-generated ids, because they go on a legal
+    document and two handsets offline at one fair would invent the same one.
+    """
+    existing = session.get(Payment, payload.id)
+    if existing is not None:
+        return PaymentResult(
+            payment_id=existing.id,
+            duplicate=True,
+            # Never re-issued. A second number for one payment is a second
+            # receipt for money that was taken once.
+            receipt_no=existing.receipt_no or "",
+        )
+
+    receipt_no = issue_receipt_no(session, taken_at=payload.taken_at.date())
+
+    session.add(
+        Payment(
+            id=payload.id,
+            quote_id=payload.quote_id,
+            category_lock_id=payload.category_lock_id,
+            kind=payload.kind,
+            amount_sen=payload.amount_sen,
+            method=payload.method,
+            external_ref=payload.external_ref,
+            receipt_no=receipt_no,
+            taken_by_user_id=None if taken_by is None else taken_by.id,
+            taken_at=payload.taken_at,
+            device_id=payload.device_id,
+            status="settled",
+        )
+    )
+    session.add(
+        IdempotencyRecord(
+            key=f"payment:{payload.id}",
+            entity_type="payment",
+            entity_id=payload.id,
+        )
+    )
+    session.flush()
+
+    return PaymentResult(payment_id=payload.id, duplicate=False, receipt_no=receipt_no)
 
 
 def active_card(session: Session, list_id: str) -> RateCardVersion | None:

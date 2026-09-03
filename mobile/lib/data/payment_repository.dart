@@ -55,6 +55,31 @@ class PaymentRepository {
     return id;
   }
 
+  /// The body the server expects. Field names match its schema exactly, so
+  /// there is no translation layer to get wrong.
+  ///
+  /// No `receipt_no`: the device does not have one and must not invent one.
+  Map<String, dynamic> pushBodyFor(PaymentRow row) => {
+    'id': row.id,
+    'quote_id': row.quoteId,
+    'category_lock_id': row.categoryLockId,
+    'kind': row.kind,
+    'amount_sen': row.amountSen,
+    'method': row.method,
+    'external_ref': row.externalRef,
+    // UTC on the wire. The receipt number's period comes from this, so a
+    // payment taken at 11pm must not become the next month in transit.
+    'taken_at': row.takenAt.toUtc().toIso8601String(),
+    'device_id': row.deviceId,
+  };
+
+  /// Payments still waiting for a receipt number.
+  ///
+  /// Shown as "pending sync" rather than blank: a salesperson who can see the
+  /// number is coming does not go looking for one that was never issued.
+  Future<List<PaymentRow>> awaitingReceipt() =>
+      (_db.select(_db.payments)..where((p) => p.receiptNo.isNull())).get();
+
   Future<List<PaymentRow>> forQuote(String quoteId) =>
       (_db.select(_db.payments)
             ..where((p) => p.quoteId.equals(quoteId))

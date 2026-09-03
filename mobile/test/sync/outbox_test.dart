@@ -14,6 +14,8 @@ import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:milan_quote/data/database.dart';
+import 'package:milan_quote/data/payment_repository.dart';
+import 'package:milan_quote/pricing/cash_up.dart';
 import 'package:milan_quote/sync/api_client.dart';
 import 'package:milan_quote/sync/outbox.dart';
 import 'package:milan_quote/sync/quote_payload.dart';
@@ -302,6 +304,130 @@ void main() {
       'quote-0-second',
       'quote-0-third',
     ], reason: 'a queue that reorders is one nobody can reason about');
+  });
+
+  group('payments', () {
+    /// Records a payment and queues it, the way taking an RM300 does.
+    Future<String> queueAPayment({
+      int sen = 30000,
+      String id = 'pay-1',
+      String quoteId = 'quote-for-pay',
+    }) async {
+      await db
+          .into(db.quotes)
+          .insert(
+            QuotesCompanion.insert(
+              id: quoteId,
+              rateCardVersion: 1,
+              createdAt: at,
+              updatedAt: at,
+            ),
+          );
+      final repo = PaymentRepository(db);
+      await repo.record(
+        id: id,
+        quoteId: quoteId,
+        kind: PaymentKind.deposit,
+        method: PaymentMethod.cash,
+        amountSen: sen,
+        takenAt: at,
+      );
+      final row = (await repo.forQuote(quoteId)).single;
+      await outboxer.enqueuePayment(id, repo.pushBodyFor(row));
+      return id;
+    }
+
+    test('a payment goes up and comes back with a receipt number', () async {
+      // The Phase 4 acceptance criterion: recorded offline, receipt resolves
+      // after sync.
+      final id = await queueAPayment();
+      expect(
+        (await PaymentRepository(db).awaitingReceipt()).single.id,
+        id,
+        reason: 'until it syncs, there is no number to show',
+      );
+
+      final report = await outboxer.drain(credentials);
+
+      expect(report.sent, [id]);
+      final row = (await PaymentRepository(
+        db,
+      ).forQuote('quote-for-pay')).single;
+      expect(row.receiptNo, 'R2608-0001');
+      expect(row.status, 'settled');
+      expect(row.syncedAt, at);
+      expect(await PaymentRepository(db).awaitingReceipt(), isEmpty);
+    });
+
+    test('a retry does not take the money twice', () async {
+      // The worst failure in the system: charging RM600 because a connection
+      // dropped once.
+      final id = await queueAPayment();
+      await outboxer.drain(credentials);
+
+      final repo = PaymentRepository(db);
+      final row = (await repo.forQuote('quote-for-pay')).single;
+      await outboxer.enqueuePayment(id, repo.pushBodyFor(row));
+      await outboxer.drain(credentials);
+
+      expect(server.receipts, hasLength(1));
+      expect((await repo.forQuote('quote-for-pay')), hasLength(1));
+    });
+
+    test('a retry keeps the receipt number it was already given', () async {
+      // The customer may already be holding a printed one.
+      final id = await queueAPayment();
+      await outboxer.drain(credentials);
+      final first = (await PaymentRepository(
+        db,
+      ).forQuote('quote-for-pay')).single.receiptNo;
+
+      final repo = PaymentRepository(db);
+      final row = (await repo.forQuote('quote-for-pay')).single;
+      await outboxer.enqueuePayment(id, repo.pushBodyFor(row));
+      await outboxer.drain(credentials);
+
+      expect((await repo.forQuote('quote-for-pay')).single.receiptNo, first);
+    });
+
+    test('no signal leaves the payment queued and unnumbered', () async {
+      await queueAPayment();
+      server.offline = true;
+
+      final report = await outboxer.drain(credentials);
+
+      expect(report.failure, SyncFailure.offline);
+      expect(await db.pendingOutbox(), hasLength(1));
+      expect(
+        (await PaymentRepository(
+          db,
+        ).forQuote('quote-for-pay')).single.receiptNo,
+        isNull,
+        reason: 'the device never invents one while it waits',
+      );
+    });
+
+    test('the body carries no receipt number on the way up', () async {
+      await queueAPayment();
+      final body =
+          jsonDecode((await db.pendingOutbox()).single.payload)
+              as Map<String, dynamic>;
+
+      expect(body.containsKey('receipt_no'), isFalse);
+      expect(body['amount_sen'], 30000);
+      expect(body['method'], 'cash');
+    });
+
+    test('quotes and payments drain from the one queue, in order', () async {
+      // A payment must not wait behind a quote, and a quote must not wait
+      // behind a payment. They happened in an order and they leave in it.
+      await queueAQuote(room: '客厅');
+      await queueAPayment();
+
+      final report = await outboxer.drain(credentials);
+      expect(report.sent, hasLength(2));
+      expect(await db.pendingOutbox(), isEmpty);
+    });
   });
 
   test('the payload is frozen at enqueue, not rebuilt at send', () async {

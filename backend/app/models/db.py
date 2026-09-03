@@ -253,6 +253,67 @@ class QuoteLine(Base):
     __table_args__ = (Index("ix_quote_lines_quote", "quote_id", "sort_order"),)
 
 
+class Payment(Base):
+    """Money taken on a device. §6.4.
+
+    The system **records** payments; it does not process them. The card
+    terminal stays where it is, so there is no PCI scope and no chargeback
+    exposure here.
+
+    APPEND ONLY. A refund is a new row, never an edit to the row it reverses.
+    """
+
+    __tablename__ = "payments"
+
+    #: The device's own id. The push is idempotent on it, so a retry after a
+    #: dropped connection cannot take the same RM300 twice.
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    quote_id: Mapped[str] = mapped_column(String(36))
+    category_lock_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+
+    kind: Mapped[str] = mapped_column(String(16))
+    amount_sen: Mapped[int] = mapped_column(BigInteger)
+    method: Mapped[str] = mapped_column(String(24))
+    external_ref: Mapped[str | None] = mapped_column(String(80), nullable=True)
+
+    #: **Issued here, never on a device.** It goes on a legal document, and two
+    #: handsets offline at one fair would invent the same number.
+    receipt_no: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
+    taken_by_user_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=True
+    )
+    taken_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    device_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), default="settled")
+
+    received_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        Index("ix_payments_quote", "quote_id"),
+        Index("ix_payments_taken", "taken_at"),
+        # A receipt number identifies one payment or it identifies nothing.
+        Index("ix_payments_receipt", "receipt_no", unique=True),
+    )
+
+
+class ReceiptCounter(Base):
+    """The next receipt number in a period. §6.4, and CLAUDE.md on IDs.
+
+    One row per ``YYYYMM``, incremented under a row lock, so two devices
+    syncing at once cannot be handed the same number. The device never sees
+    this table: it pushes a payment and is told what the number turned out to
+    be.
+    """
+
+    __tablename__ = "receipt_counters"
+
+    period: Mapped[str] = mapped_column(String(6), primary_key=True)
+    next_value: Mapped[int] = mapped_column(Integer, default=1)
+
+
 class PricingDiscrepancy(Base):
     """A line the server priced differently from the device.
 

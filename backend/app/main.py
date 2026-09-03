@@ -26,6 +26,8 @@ from sqlalchemy.orm import Session
 from .api.schemas import (
     BundleOut,
     LoginIn,
+    PaymentIn,
+    PaymentResult,
     PublishIn,
     PublishOut,
     PushResult,
@@ -47,6 +49,7 @@ from .services.ingest import (
     UnknownRateCardVersion,
     active_card,
     publish_card,
+    push_payment,
     push_quote,
 )
 
@@ -265,6 +268,24 @@ def publish(payload: PublishIn, session: SessionDep, admin: AdminDep) -> Publish
     return PublishOut(
         version=row.version, list_id=row.list_id, published_by=row.published_by
     )
+
+
+@app.post("/api/payments", response_model=PaymentResult)
+def push_payment_route(
+    payload: PaymentIn, session: SessionDep, who: CurrentDep
+) -> PaymentResult:
+    """Accepts a payment and issues its receipt number. §6.4.
+
+    **Idempotent on the device's own payment id**, and a retry gets the *same*
+    receipt number back — the customer may already be holding a printed one, and
+    a second number for one payment is a second receipt for money taken once.
+
+    The number is issued here and only here. A device that invented one would
+    collide with every other device offline at the same fair, on a document a
+    customer keeps.
+    """
+    user, _ = who
+    return push_payment(session, payload, taken_by=user)
 
 
 @app.post("/api/quotes", response_model=PushResult)

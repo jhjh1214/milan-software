@@ -164,6 +164,26 @@ class PushResponse {
   bool get agreed => discrepancies.isEmpty;
 }
 
+/// What the server made of a pushed payment.
+class ReceiptIssued {
+  final String paymentId;
+
+  /// True when the server had already accepted this payment. **A success**:
+  /// the same RM300 was not taken twice, and the receipt number below is the
+  /// one it was given the first time.
+  final bool duplicate;
+
+  /// Issued by the server and never by the device. Until this arrives the app
+  /// shows "pending sync" rather than a number it invented.
+  final String receiptNo;
+
+  const ReceiptIssued({
+    required this.paymentId,
+    required this.duplicate,
+    required this.receiptNo,
+  });
+}
+
 class ApiClient {
   final Uri baseUrl;
   final http.Client _http;
@@ -304,6 +324,26 @@ class ApiClient {
       deviceTotalSen: json['device_total_sen'] as int?,
       discrepancies: ((json['discrepancies'] as List?) ?? const [])
           .cast<Map<String, dynamic>>(),
+    ),
+  );
+
+  /// Pushes one payment. §6.4, §9.2.
+  ///
+  /// Idempotent on the payment's own id, and a retry gets back the **same**
+  /// receipt number — the customer may already be holding a printed one.
+  Future<SyncResult<ReceiptIssued>> pushPayment(
+    String token,
+    Map<String, dynamic> payment,
+  ) => _send(
+    () => _http.post(
+      _url('/api/payments'),
+      headers: _headers(token),
+      body: jsonEncode(payment),
+    ),
+    (json) => ReceiptIssued(
+      paymentId: json['payment_id'] as String,
+      duplicate: json['duplicate'] as bool,
+      receiptNo: json['receipt_no'] as String,
     ),
   );
 

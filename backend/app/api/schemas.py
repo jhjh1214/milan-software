@@ -45,6 +45,36 @@ class QuoteIn(BaseModel):
     lines: list[QuoteLineIn] = []
 
 
+class PaymentIn(BaseModel):
+    """A payment pushed up from a device. §6.4.
+
+    No ``receipt_no``: the device does not have one and must not invent one.
+    """
+
+    id: str = Field(min_length=36, max_length=36)
+    quote_id: str = Field(min_length=36, max_length=36)
+    category_lock_id: str | None = None
+    kind: str = Field(pattern="^(deposit|progress|balance|refund)$")
+    #: Always positive. A refund is negative by its `kind`, not by its sign, so
+    #: nobody has to remember which rows carry a minus.
+    amount_sen: int = Field(gt=0)
+    method: str = Field(pattern="^(cash|card_terminal|duitnow|bank_transfer|cheque)$")
+    external_ref: str | None = Field(default=None, max_length=80)
+    taken_at: datetime
+    device_id: str | None = None
+
+
+class PaymentResult(BaseModel):
+    payment_id: str
+    #: True when this exact payment had already been accepted. A retry is a
+    #: success — the device cannot know whether the first attempt landed, and
+    #: taking the same RM300 twice is the failure this prevents.
+    duplicate: bool
+    #: The number the server issued, first time and every time after. A retry
+    #: gets the **same** one back, so a reprinted receipt matches the first.
+    receipt_no: str
+
+
 class LineResult(BaseModel):
     line_id: str
     server_total_sen: int | None

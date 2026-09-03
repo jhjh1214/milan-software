@@ -494,6 +494,32 @@ class AppDatabase extends _$AppDatabase {
   ///
   /// Both or neither: a row deleted while the quote's `synced_at` stayed null
   /// would leave a quote that looks unsent and will never be sent again.
+  /// Writes the receipt number the server issued onto a payment, and clears
+  /// its outbox row, in **one** transaction.
+  ///
+  /// Both or neither. A payment marked settled with no number would show a
+  /// blank where a customer expects one; a number written with the row left
+  /// queued would be pushed again and, worse, is the state where a second
+  /// number could be issued.
+  Future<void> settlePayment({
+    required String paymentId,
+    required String receiptNo,
+    required DateTime at,
+  }) => transaction(() async {
+    await (update(payments)..where((p) => p.id.equals(paymentId))).write(
+      PaymentsCompanion(
+        receiptNo: Value(receiptNo),
+        status: const Value('settled'),
+        syncedAt: Value(at),
+      ),
+    );
+  });
+
+  /// Removes an outbox row whose work is done and has no `synced_at` of its
+  /// own to stamp.
+  Future<void> dropOutbox(String outboxId) =>
+      (delete(outbox)..where((o) => o.id.equals(outboxId))).go();
+
   Future<void> completeOutbox(String outboxId, String quoteId, DateTime at) =>
       transaction(() async {
         await (delete(outbox)..where((o) => o.id.equals(outboxId))).go();

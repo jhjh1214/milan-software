@@ -74,19 +74,32 @@ class Outboxer {
   /// a second: the outbox holds work to do, not a history of intentions, and
   /// two rows for one quote would mean two pushes where the second tells the
   /// server nothing new.
-  Future<void> enqueueQuote(
-    String quoteId,
+  Future<void> enqueueQuote(String quoteId, Map<String, dynamic> payload) =>
+      _enqueue('quote', quoteId, payload);
+
+  /// Queues a payment to be sent. §6.4.
+  ///
+  /// Its receipt number comes back on the way out, and is written onto the
+  /// payment. Until then the app shows "pending sync" rather than a number it
+  /// made up — the number goes on paper a customer keeps, and two handsets
+  /// offline at one fair would invent the same one.
+  Future<void> enqueuePayment(String paymentId, Map<String, dynamic> payload) =>
+      _enqueue('payment', paymentId, payload);
+
+  Future<void> _enqueue(
+    String entityType,
+    String entityId,
     Map<String, dynamic> payload,
   ) async {
     final existing = await (db.select(
       db.outbox,
-    )..where((o) => o.entityId.equals(quoteId))).getSingleOrNull();
+    )..where((o) => o.entityId.equals(entityId))).getSingleOrNull();
 
     await db.enqueueOutbox(
       OutboxCompanion.insert(
         id: existing?.id ?? newId(),
-        entityType: 'quote',
-        entityId: quoteId,
+        entityType: entityType,
+        entityId: entityId,
         payload: jsonEncode(payload),
         // Keeps its place in the queue. A quote edited at 4pm should not
         // overtake one finished at 2pm that is still waiting.
@@ -106,10 +119,15 @@ class Outboxer {
     final disagreed = <String>[];
 
     for (final row in await db.pendingOutbox()) {
-      final result = await api.pushQuote(
-        credentials.token,
-        jsonDecode(row.payload) as Map<String, dynamic>,
-      );
+      final body = jsonDecode(row.payload) as Map<String, dynamic>;
+
+      // One queue, two kinds of work. A payment cannot wait behind a quote
+      // that is failing, and a quote cannot wait behind a payment — they drain
+      // in the order they happened, which is the order they matter in.
+      final SyncResult<Object> result = switch (row.entityType) {
+        'payment' => await api.pushPayment(credentials.token, body),
+        _ => await api.pushQuote(credentials.token, body),
+      };
 
       switch (result) {
         case SyncOk(value: final response):
@@ -118,9 +136,22 @@ class Outboxer {
           // design expects to happen and must not treat as an error — a row
           // that reports failure on a quote the server already has would be
           // retried forever and never drain.
-          await db.completeOutbox(row.id, row.entityId, clock());
+          if (response is ReceiptIssued) {
+            // The one number the device may not invent, written back the
+            // moment the server hands it over.
+            await db.settlePayment(
+              paymentId: row.entityId,
+              receiptNo: response.receiptNo,
+              at: clock(),
+            );
+            await db.dropOutbox(row.id);
+          } else {
+            await db.completeOutbox(row.id, row.entityId, clock());
+            if (response is PushResponse && !response.agreed) {
+              disagreed.add(row.entityId);
+            }
+          }
           sent.add(row.entityId);
-          if (!response.agreed) disagreed.add(row.entityId);
 
         case SyncFailed(:final failure, :final detail):
           await _recordFailure(row, detail);

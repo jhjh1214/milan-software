@@ -28,6 +28,7 @@ import '../../pricing/cash_up.dart';
 import '../../pricing/deposit_prompt.dart';
 import '../../pricing/models.dart';
 import '../../pricing/rate_lock.dart';
+import '../../sync/sync_state.dart';
 import '../../ui/theme.dart';
 import '../payment/payment_method_sheet.dart';
 import 'quote_state.dart';
@@ -153,16 +154,19 @@ Future<void> _askFor(
       // The money goes down first. If the app dies between the two writes, a
       // payment with no lock is a customer to call back; a lock with no
       // payment is money nobody can find.
-      final paymentId = await ref
-          .read(paymentRepositoryProvider)
-          .record(
-            id: newId(),
-            quoteId: quote.quoteId,
-            kind: PaymentKind.deposit,
-            method: method,
-            amountSen: card.config.minDepositSen,
-            takenAt: now,
-          );
+      final payments = ref.read(paymentRepositoryProvider);
+      final paymentId = await payments.record(
+        id: newId(),
+        quoteId: quote.quoteId,
+        kind: PaymentKind.deposit,
+        method: method,
+        amountSen: card.config.minDepositSen,
+        takenAt: now,
+        // Best effort, never awaited. The device id lives in the Keystore, and
+        // recording money must not depend on anything that can fail or take a
+        // moment — an audit field is worth less than the payment it labels.
+        deviceId: ref.read(deviceIdProvider).valueOrNull,
+      );
 
       // The rule decides whether a hold is allowed, not the screen. Away from
       // a fair it refuses, and the sheet never appears there anyway.
@@ -184,9 +188,7 @@ Future<void> _askFor(
           at: now,
           depositPaymentId: paymentId,
         );
-        await ref
-            .read(paymentRepositoryProvider)
-            .linkToLock(paymentId: paymentId, lockId: lock.id);
+        await payments.linkToLock(paymentId: paymentId, lockId: lock.id);
         ref.invalidate(openDepositGapsProvider);
         messenger.showSnackBar(
           SnackBar(
@@ -204,6 +206,21 @@ Future<void> _askFor(
         // hold a price.
         messenger.showSnackBar(SnackBar(content: Text(l.depositNotAtFair)));
       }
+
+      // Queued last, so the row it describes is already complete — including
+      // the lock it bought. It goes up on the next connection and comes back
+      // with the receipt number the server issued.
+      await ref
+          .read(outboxerProvider)
+          .enqueuePayment(
+            paymentId,
+            payments.pushBodyFor(
+              (await payments.forQuote(
+                quote.quoteId,
+              )).firstWhere((p) => p.id == paymentId),
+            ),
+          );
+      ref.invalidate(outboxDepthProvider);
 
     case DepositChoice.declined:
       // No confirmation. Somebody just pressed "no hold" and knows they did;

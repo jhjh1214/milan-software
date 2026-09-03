@@ -40,6 +40,11 @@ class FakeServer {
   /// Quote ids already accepted, for the idempotency check.
   final Set<String> accepted = {};
 
+  /// Payment id -> the receipt number issued for it. Issued once and handed
+  /// back on every retry, because a second number for one payment is a second
+  /// receipt for money taken once.
+  final Map<String, String> receipts = {};
+
   /// Every request that arrived, in order. Lets a test assert what was *not*
   /// sent — the up-to-date short circuit is only worth anything if the payload
   /// really is skipped.
@@ -147,6 +152,31 @@ class FakeServer {
                   'detail': null,
                 },
               ],
+      });
+    }
+
+    if (path == '/api/payments') {
+      final body =
+          jsonDecode(utf8.decode(request.bodyBytes)) as Map<String, dynamic>;
+      final id = body['id'] as String;
+
+      // Idempotent, and the receipt number is issued once. A retry gets the
+      // same one back, because the customer may already be holding it.
+      final existing = receipts[id];
+      if (existing != null) {
+        return _json({
+          'payment_id': id,
+          'duplicate': true,
+          'receipt_no': existing,
+        });
+      }
+      final issued =
+          'R2608-${(receipts.length + 1).toString().padLeft(4, '0')}';
+      receipts[id] = issued;
+      return _json({
+        'payment_id': id,
+        'duplicate': false,
+        'receipt_no': issued,
       });
     }
 
