@@ -1,0 +1,36 @@
+<form class="sign-in" (ngSubmit)="submit()">
+  <h1>Milan</h1>
+
+  <label for="phone">Phone</label>
+  <input
+    id="phone"
+    name="phone"
+    type="tel"
+    inputmode="tel"
+    autocomplete="username"
+    [(ngModel)]="phone"
+    [disabled]="busy()"
+  />
+
+  <label for="pin">PIN</label>
+  <input
+    id="pin"
+    name="pin"
+    type="password"
+    inputmode="numeric"
+    autocomplete="current-password"
+    [(ngModel)]="pin"
+    [disabled]="busy()"
+  />
+
+  @if (failure(); as message) {
+    <!-- role=alert so a screen reader hears it. The message never says which
+         of the two was wrong: "no such phone" tells somebody holding a stolen
+         handset which numbers are real. -->
+    <p class="failure" role="alert">{{ message }}</p>
+  }
+
+  <button type="submit" [disabled]="!ready || busy()">
+    {{ busy() ? 'Signing in…' : 'Sign in' }}
+  </button>
+</form>

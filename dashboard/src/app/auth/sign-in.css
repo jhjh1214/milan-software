@@ -1,0 +1,78 @@
+/* One column, centred, nothing else on the page. There is exactly one thing
+   to do here and the screen should not suggest otherwise. */
+
+:host {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: 24px;
+}
+
+.sign-in {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 320px;
+}
+
+h1 {
+  margin: 0 0 16px;
+  font-size: 28px;
+  font-weight: 600;
+  color: #1e3a5f;
+  text-align: center;
+}
+
+label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #56637a;
+}
+
+input {
+  /* 44px, so it is a real target and the browser does not zoom on focus. */
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 16px;
+}
+
+input:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 1px;
+}
+
+button {
+  margin-top: 16px;
+  min-height: 48px;
+  border: none;
+  border-radius: 6px;
+  background: #1e3a5f;
+  color: #fff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:disabled {
+  background: #94a3b8;
+  cursor: default;
+}
+
+button:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.failure {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #fee2e2;
+  color: #7f1d1d;
+  font-size: 14px;
+}

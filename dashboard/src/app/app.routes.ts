@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
 
+import { signedIn } from './auth/signed-in.guard';
+
 /**
  * Every screen is reachable by URL, and every filter state with it. SPEC.md
  * §11 Phase 5 makes that an acceptance criterion: somebody has to be able to
@@ -11,7 +13,13 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'orders' },
   {
+    path: 'sign-in',
+    loadComponent: () => import('./auth/sign-in').then((m) => m.SignIn),
+    title: 'Sign in',
+  },
+  {
     path: 'orders',
+    canActivate: [signedIn],
     loadComponent: () =>
       import('./orders/order-board').then((m) => m.OrderBoard),
     title: 'Orders',
