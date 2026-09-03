@@ -29,18 +29,48 @@ enum Family { curtain, blind, track, flooring, wallpaper, addon, service }
 /// The category an RM300 deposit buys a rate hold on.
 enum DepositCategory { curtain, flooring, wallpaper }
 
+/// Raised when a line's deposit category cannot be decided.
+///
+/// A hard failure rather than a default, because the default would be a guess
+/// about money: filing an unparented add-on under curtains could price it at a
+/// held curtain rate that its RM300 never bought.
+class UnknownDepositCategory implements Exception {
+  final String detail;
+  const UnknownDepositCategory(this.detail);
+
+  @override
+  String toString() => 'UnknownDepositCategory: $detail';
+}
+
 /// Maps a product family to the deposit category that covers it.
 ///
 /// **Kept in one function on purpose.** SPEC.md §6.1: silently applying a
 /// curtain lock to a flooring line is the expensive bug in this design.
-DepositCategory depositCategoryOf(Family family) => switch (family) {
-  Family.curtain || Family.blind || Family.track => DepositCategory.curtain,
-  Family.flooring => DepositCategory.flooring,
-  Family.wallpaper => DepositCategory.wallpaper,
-  // Add-ons and services inherit their parent line's category. An unparented
-  // one is a data error, not something to silently file under curtains.
-  Family.addon || Family.service => DepositCategory.curtain,
-};
+///
+/// Add-ons and services take their **parent line's** category. A motor is
+/// charged on top of the blind it drives; it has no category of its own because
+/// it cannot exist on its own. A rule may also name its category outright —
+/// self-levelling is family `service` and deposit category `flooring` — and
+/// that answer wins, because a service belongs to the work it prepares.
+DepositCategory depositCategoryOf(Family family, {Family? parentFamily}) =>
+    switch (family) {
+      Family.curtain || Family.blind || Family.track => DepositCategory.curtain,
+      Family.flooring => DepositCategory.flooring,
+      Family.wallpaper => DepositCategory.wallpaper,
+      Family.addon || Family.service => switch (parentFamily) {
+        null => throw UnknownDepositCategory(
+          'a ${family.name} line has no parent and no deposit_category; '
+          'it cannot be priced against a lock',
+        ),
+        // One level only. An add-on hanging off an add-on is not a shape this
+        // card produces, and allowing it would hide the same bug one level
+        // deeper.
+        Family.addon || Family.service => throw UnknownDepositCategory(
+          'a ${family.name} line hangs off another ${parentFamily.name} line',
+        ),
+        final parent => depositCategoryOf(parent),
+      },
+    };
 
 /// How a rule's quantity is measured.
 enum PriceBasis {

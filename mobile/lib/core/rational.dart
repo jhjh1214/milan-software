@@ -47,6 +47,26 @@ class Rational implements Comparable<Rational> {
   static const Rational zero = Rational._(0, 1);
   static const Rational one = Rational._(1, 1);
 
+  /// Parses this type's own `toString` form: `"3"` or `"1/10"`.
+  ///
+  /// The exact inverse of [toString], so a rational survives a round trip
+  /// through JSON without going near a decimal. `1/3` has no decimal form, and
+  /// a percentage that cannot be written down cannot be checked against the
+  /// Python engine — `shared/pricing-fixtures.json` carries discount
+  /// percentages in this notation for exactly that reason.
+  static Rational? tryParse(String s) {
+    final slash = s.indexOf('/');
+    if (slash == -1) {
+      final whole = int.tryParse(s);
+      return whole == null ? null : Rational.fromInt(whole);
+    }
+    if (s.indexOf('/', slash + 1) != -1) return null;
+    final n = int.tryParse(s.substring(0, slash));
+    final d = int.tryParse(s.substring(slash + 1));
+    if (n == null || d == null || d == 0) return null;
+    return Rational(n, d);
+  }
+
   /// Parses a non-negative decimal string such as `"7"`, `"7.5"` or `"2.4"`
   /// into an exact fraction. Returns null if [s] is not such a number.
   ///

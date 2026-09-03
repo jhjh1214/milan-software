@@ -3,6 +3,473 @@
   "_rate_card": "rate-card-fair-2026-08.json",
   "_units": "Dimensions are in tenths of a millimetre (tmm). Money is in sen. 1ft = 3048 tmm, 1in = 254 tmm.",
   "schema_version": 1,
+  "_rate_lock_purpose": "SPEC.md §6.1: 'a line whose category has no active lock must not be priced at a held version. Silently applying a curtain lock to a flooring line is the expensive bug in this design. Write that test before the resolver.' These cases were written first, and both engines load them.",
+  "_rate_lock_pct": "Discount percentages are exact rationals written as strings, the same as billed_qty. '1/10' is ten percent. Never a float: a percentage of a price is money, and money is never binary floating point.",
+  "rate_lock_cases": [
+    {
+      "id": "lock-a-curtain-line-uses-its-own-curtain-lock",
+      "source": "SPEC.md §6.1",
+      "why": "The base case. A fair customer paid RM300 for curtains and comes back inside the 12 months.",
+      "today": "2027-03-12",
+      "channel": "showroom",
+      "current_rate_card_version": 101,
+      "current_promo_pct": "0",
+      "order_pinned_rate_card_version": 101,
+      "locks": [
+        {
+          "id": "lock-curtain",
+          "category": "curtain",
+          "held_rate_card_version": 1,
+          "held_discount_pct": "0",
+          "held_until": "2027-08-29",
+          "status": "active"
+        }
+      ],
+      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
+      "expect": {"basis": "held", "rate_card_version": 1, "discount_pct": "0", "lock_id": "lock-curtain"}
+    },
+    {
+      "id": "lock-a-flooring-line-never-rides-a-curtain-lock",
+      "source": "SPEC.md §6.1, the hard rule",
+      "why": "THE expensive bug. One RM300 was paid, for curtains. The flooring on the same order is not held and must not be priced as if it were.",
+      "today": "2026-08-29",
+      "channel": "fair",
+      "current_rate_card_version": 1,
+      "current_promo_pct": "0",
+      "order_pinned_rate_card_version": 101,
+      "locks": [
+        {
+          "id": "lock-curtain",
+          "category": "curtain",
+          "held_rate_card_version": 1,
+          "held_discount_pct": "1/10",
+          "held_until": "2027-08-29",
+          "status": "active"
+        }
+      ],
+      "line": {"family": "flooring", "deposit_category_override": null, "parent_family": null},
+      "expect": {"basis": "fair_current", "rate_card_version": 1, "discount_pct": "0", "lock_id": null}
+    },
+    {
+      "id": "lock-a-flooring-line-outside-a-fair-falls-to-standard",
+      "source": "SPEC.md §6.1, third branch",
+      "why": "Same unlocked flooring line, but in the showroom in March. No promo, no hold, the order's own pinned version.",
+      "today": "2027-03-12",
+      "channel": "showroom",
+      "current_rate_card_version": 101,
+      "current_promo_pct": "0",
+      "order_pinned_rate_card_version": 101,
+      "locks": [
+        {
+          "id": "lock-curtain",
+          "category": "curtain",
+          "held_rate_card_version": 1,
+          "held_discount_pct": "0",
+          "held_until": "2027-08-29",
+          "status": "active"
+        }
+      ],
+      "line": {"family": "flooring", "deposit_category_override": null, "parent_family": null},
+      "expect": {"basis": "standard_pinned", "rate_card_version": 101, "discount_pct": "0", "lock_id": null}
+    },
+    {
+      "id": "lock-a-blind-rides-the-curtain-deposit",
+      "source": "SPEC.md §6.1",
+      "why": "'Blinds and tracks have their own rates but ride the curtain deposit.' family and deposit category are different fields.",
+      "today": "2027-03-12",
+      "channel": "showroom",
+      "current_rate_card_version": 101,
+      "current_promo_pct": "0",
+      "order_pinned_rate_card_version": 101,
+      "locks": [
+        {
+          "id": "lock-curtain",
+          "category": "curtain",
+          "held_rate_card_version": 1,
+          "held_discount_pct": "0",
+          "held_until": "2027-08-29",
+          "status": "active"
+        }
+      ],
+      "line": {"family": "blind", "deposit_category_override": null, "parent_family": null},
+      "expect": {"basis": "held", "rate_card_version": 1, "discount_pct": "0", "lock_id": "lock-curtain"}
+    },
+    {
+      "id": "lock-a-track-rides-the-curtain-deposit",
+      "source": "SPEC.md §6.1",
+      "why": "Same mapping. A special track is charged on top of a curtain and belongs to the same RM300.",
+      "today": "2027-03-12",
+      "channel": "showroom",
+      "current_rate_card_version": 101,
+      "current_promo_pct": "0",
+      "order_pinned_rate_card_version": 101,
+      "locks": [
+        {
+          "id": "lock-curtain",
+          "category": "curtain",
+          "held_rate_card_version": 1,
+          "held_discount_pct": "0",
+          "held_until": "2027-08-29",
+          "status": "active"
+        }
+      ],
+      "line": {"family": "track", "deposit_category_override": null, "parent_family": null},
+      "expect": {"basis": "held", "rate_card_version": 1, "discount_pct": "0", "lock_id": "lock-curtain"}
+    },
+    {
+      "id": "lock-wallpaper-is-its-own-category",
+      "source": "SPEC.md §6.1",
+      "why": "Three deposit categories, not two. Wallpaper needs its own RM300.",
+      "today": "2027-03-12",
+      "channel": "showroom",
+      "current_rate_card_version": 101,
+      "current_promo_pct": "0",
+      "order_pinned_rate_card_version": 101,
+      "locks": [
+        {
+          "id": "lock-wallpaper",
+          "category": "wallpaper",
+          "held_rate_card_version": 1,
+          "held_discount_pct": "0",
+          "held_until": "2027-08-29",
+          "status": "active"
+        }
+      ],
+      "line": {"family": "wallpaper", "deposit_category_override": null, "parent_family": null},
+      "expect": {"basis": "held", "rate_card_version": 1, "discount_pct": "0", "lock_id": "lock-wallpaper"}
+    },
+    {
+      "id": "lock-a-service-uses-the-category-its-rule-names",
+      "source": "rate-card-fair-2026-08.json, self-levelling",
+      "why": "Self levelling is family 'service' and deposit_category 'flooring'. The rule's own answer wins over the family map, because a service belongs to the work it prepares.",
+      "today": "2027-03-12",
+      "channel": "showroom",
+      "current_rate_card_version": 101,
+      "current_promo_pct": "0",
+      "order_pinned_rate_card_version": 101,
+      "locks": [
+        {
+          "id": "lock-flooring",
+          "category": "flooring",
+          "held_rate_card_version": 1,
+          "held_discount_pct": "0",
+          "held_until": "2027-08-29",
+          "status": "active"
+        }
+      ],
+      "line": {"family": "service", "deposit_category_override": "flooring", "parent_family": null},
+      "expect": {"basis": "held", "rate_card_version": 1, "discount_pct": "0", "lock_id": "lock-flooring"}
+    },
+    {
+      "id": "lock-an-addon-follows-the-line-it-attaches-to",
+      "source": "SPEC.md §13 A16",
+      "why": "A motor on a blind is charged on top of that blind. It cannot have a deposit category of its own, because it cannot exist on its own.",
+      "today": "2027-03-12",
+      "channel": "showroom",
+      "current_rate_card_version": 101,
+      "current_promo_pct": "0",
+      "order_pinned_rate_card_version": 101,
+      "locks": [
+        {
+          "id": "lock-curtain",
+          "category": "curtain",
+          "held_rate_card_version": 1,
+          "held_discount_pct": "0",
+          "held_until": "2027-08-29",
+          "status": "active"
+        }
+      ],
+      "line": {"family": "addon", "deposit_category_override": null, "parent_family": "blind"},
+      "expect": {"basis": "held", "rate_card_version": 1, "discount_pct": "0", "lock_id": "lock-curtain"}
+    },
+    {
+      "id": "lock-an-addon-on-flooring-does-not-ride-a-curtain-lock",
+      "source": "SPEC.md §6.1, the hard rule again",
+      "why": "The same expensive bug, one level down. An add-on inherits its parent's category, including when that category is not the locked one.",
+      "today": "2026-08-29",
+      "channel": "fair",
+      "current_rate_card_version": 1,
+      "current_promo_pct": "0",
+      "order_pinned_rate_card_version": 101,
+      "locks": [
+        {
+          "id": "lock-curtain",
+          "category": "curtain",
+          "held_rate_card_version": 1,
+          "held_discount_pct": "0",
+          "held_until": "2027-08-29",
+          "status": "active"
+        }
+      ],
+      "line": {"family": "addon", "deposit_category_override": null, "parent_family": "flooring"},
+      "expect": {"basis": "fair_current", "rate_card_version": 1, "discount_pct": "0", "lock_id": null}
+    },
+    {
+      "id": "lock-at-a-fair-with-no-deposit-yet-uses-todays-card",
+      "source": "SPEC.md §6.1, second branch",
+      "why": "Standing at the fair before any RM300 is paid. Fair prices apply today; nothing is held.",
+      "today": "2026-08-29",
+      "channel": "fair",
+      "current_rate_card_version": 1,
+      "current_promo_pct": "0",
+      "order_pinned_rate_card_version": 101,
+      "locks": [],
+      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
+      "expect": {"basis": "fair_current", "rate_card_version": 1, "discount_pct": "0", "lock_id": null}
+    },
+    {
+      "id": "lock-a-showroom-walk-in-uses-the-orders-pinned-version",
+      "source": "SPEC.md §6.1, third branch",
+      "why": "'Showroom pays standard.' No promo, no hold, and the version the order was created against so a mid-order publish cannot move the price.",
+      "today": "2027-03-12",
+      "channel": "showroom",
+      "current_rate_card_version": 102,
+      "current_promo_pct": "0",
+      "order_pinned_rate_card_version": 101,
+      "locks": [],
+      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
+      "expect": {"basis": "standard_pinned", "rate_card_version": 101, "discount_pct": "0", "lock_id": null}
+    },
+    {
+      "id": "lock-a-home-visit-is-not-a-fair",
+      "source": "SPEC.md §3",
+      "why": "Only the fair channel gets fair pricing without a deposit. A home visit is standard, like the showroom.",
+      "today": "2026-08-29",
+      "channel": "home_visit",
+      "current_rate_card_version": 1,
+      "current_promo_pct": "0",
+      "order_pinned_rate_card_version": 101,
+      "locks": [],
+      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
+      "expect": {"basis": "standard_pinned", "rate_card_version": 101, "discount_pct": "0", "lock_id": null}
+    },
+    {
+      "id": "lock-expired-yesterday-is-not-a-lock",
+      "source": "SPEC.md §6.1, held_until",
+      "why": "Twelve months and no more. An expired hold prices like no hold at all.",
+      "today": "2027-08-30",
+      "channel": "showroom",
+      "current_rate_card_version": 101,
+      "current_promo_pct": "0",
+      "order_pinned_rate_card_version": 101,
+      "locks": [
+        {
+          "id": "lock-curtain",
+          "category": "curtain",
+          "held_rate_card_version": 1,
+          "held_discount_pct": "0",
+          "held_until": "2027-08-29",
+          "status": "active"
+        }
+      ],
+      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
+      "expect": {"basis": "standard_pinned", "rate_card_version": 101, "discount_pct": "0", "lock_id": null}
+    },
+    {
+      "id": "lock-on-its-final-day-still-holds",
+      "source": "SPEC.md §6.1, held_until",
+      "why": "The fencepost. held_until is the last day the hold is good for, not the first day it is not: a customer who arrives on the final day was promised that price.",
+      "today": "2027-08-29",
+      "channel": "showroom",
+      "current_rate_card_version": 101,
+      "current_promo_pct": "0",
+      "order_pinned_rate_card_version": 101,
+      "locks": [
+        {
+          "id": "lock-curtain",
+          "category": "curtain",
+          "held_rate_card_version": 1,
+          "held_discount_pct": "0",
+          "held_until": "2027-08-29",
+          "status": "active"
+        }
+      ],
+      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
+      "expect": {"basis": "held", "rate_card_version": 1, "discount_pct": "0", "lock_id": "lock-curtain"}
+    },
+    {
+      "id": "lock-cancelled-is-not-a-lock",
+      "source": "SPEC.md §6.1, status",
+      "why": "A cancelled hold is a row kept for the record, not a price.",
+      "today": "2027-03-12",
+      "channel": "showroom",
+      "current_rate_card_version": 101,
+      "current_promo_pct": "0",
+      "order_pinned_rate_card_version": 101,
+      "locks": [
+        {
+          "id": "lock-curtain",
+          "category": "curtain",
+          "held_rate_card_version": 1,
+          "held_discount_pct": "0",
+          "held_until": "2027-08-29",
+          "status": "cancelled"
+        }
+      ],
+      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
+      "expect": {"basis": "standard_pinned", "rate_card_version": 101, "discount_pct": "0", "lock_id": null}
+    },
+    {
+      "id": "lock-refunded-is-not-a-lock",
+      "source": "SPEC.md §6.1, status",
+      "why": "The RM300 went back. The price it bought goes back with it.",
+      "today": "2027-03-12",
+      "channel": "showroom",
+      "current_rate_card_version": 101,
+      "current_promo_pct": "0",
+      "order_pinned_rate_card_version": 101,
+      "locks": [
+        {
+          "id": "lock-curtain",
+          "category": "curtain",
+          "held_rate_card_version": 1,
+          "held_discount_pct": "0",
+          "held_until": "2027-08-29",
+          "status": "refunded"
+        }
+      ],
+      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
+      "expect": {"basis": "standard_pinned", "rate_card_version": 101, "discount_pct": "0", "lock_id": null}
+    },
+    {
+      "id": "lock-pins-the-percentage-not-only-the-version",
+      "source": "CLAUDE.md, version pinning",
+      "why": "'Pinning only the version silently reprices held orders when the promo % moves.' The promo has since gone from 10% to 20%; this customer keeps 10%.",
+      "today": "2027-03-12",
+      "channel": "fair",
+      "current_rate_card_version": 1,
+      "current_promo_pct": "1/5",
+      "order_pinned_rate_card_version": 101,
+      "locks": [
+        {
+          "id": "lock-curtain",
+          "category": "curtain",
+          "held_rate_card_version": 1,
+          "held_discount_pct": "1/10",
+          "held_until": "2027-08-29",
+          "status": "active"
+        }
+      ],
+      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
+      "expect": {"basis": "held", "rate_card_version": 1, "discount_pct": "1/10", "lock_id": "lock-curtain"}
+    },
+    {
+      "id": "lock-an-unlocked-fair-line-takes-todays-percentage",
+      "source": "SPEC.md §6.1, second branch",
+      "why": "No hold, so today's promo applies rather than anybody's held one.",
+      "today": "2026-08-29",
+      "channel": "fair",
+      "current_rate_card_version": 1,
+      "current_promo_pct": "1/5",
+      "order_pinned_rate_card_version": 101,
+      "locks": [],
+      "line": {"family": "flooring", "deposit_category_override": null, "parent_family": null},
+      "expect": {"basis": "fair_current", "rate_card_version": 1, "discount_pct": "1/5", "lock_id": null}
+    },
+    {
+      "id": "lock-the-showroom-never-takes-a-promo-percentage",
+      "source": "SPEC.md §3",
+      "why": "'Promo and the 12-month lock are fair-only.' A promo running at a fair must not leak into a showroom walk-in.",
+      "today": "2026-08-29",
+      "channel": "showroom",
+      "current_rate_card_version": 1,
+      "current_promo_pct": "1/5",
+      "order_pinned_rate_card_version": 101,
+      "locks": [],
+      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
+      "expect": {"basis": "standard_pinned", "rate_card_version": 101, "discount_pct": "0", "lock_id": null}
+    },
+    {
+      "id": "lock-two-categories-held-a-curtain-line-takes-the-curtain-one",
+      "source": "SPEC.md §6.1",
+      "why": "Two RM300s were paid, at different fairs, so the two categories hold different versions. Each line takes its own.",
+      "today": "2027-03-12",
+      "channel": "showroom",
+      "current_rate_card_version": 101,
+      "current_promo_pct": "0",
+      "order_pinned_rate_card_version": 101,
+      "locks": [
+        {
+          "id": "lock-curtain",
+          "category": "curtain",
+          "held_rate_card_version": 1,
+          "held_discount_pct": "0",
+          "held_until": "2027-08-29",
+          "status": "active"
+        },
+        {
+          "id": "lock-flooring",
+          "category": "flooring",
+          "held_rate_card_version": 55,
+          "held_discount_pct": "1/20",
+          "held_until": "2027-11-30",
+          "status": "active"
+        }
+      ],
+      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
+      "expect": {"basis": "held", "rate_card_version": 1, "discount_pct": "0", "lock_id": "lock-curtain"}
+    },
+    {
+      "id": "lock-two-categories-held-a-flooring-line-takes-the-flooring-one",
+      "source": "SPEC.md §6.1",
+      "why": "The other half of the same order. Getting this wrong charges a customer last August's flooring prices, or this year's curtain prices.",
+      "today": "2027-03-12",
+      "channel": "showroom",
+      "current_rate_card_version": 101,
+      "current_promo_pct": "0",
+      "order_pinned_rate_card_version": 101,
+      "locks": [
+        {
+          "id": "lock-curtain",
+          "category": "curtain",
+          "held_rate_card_version": 1,
+          "held_discount_pct": "0",
+          "held_until": "2027-08-29",
+          "status": "active"
+        },
+        {
+          "id": "lock-flooring",
+          "category": "flooring",
+          "held_rate_card_version": 55,
+          "held_discount_pct": "1/20",
+          "held_until": "2027-11-30",
+          "status": "active"
+        }
+      ],
+      "line": {"family": "flooring", "deposit_category_override": null, "parent_family": null},
+      "expect": {"basis": "held", "rate_card_version": 55, "discount_pct": "1/20", "lock_id": "lock-flooring"}
+    },
+    {
+      "id": "lock-one-expired-one-live-does-not-borrow-the-live-one",
+      "source": "SPEC.md §6.1",
+      "why": "The expensive bug wearing a different hat. A curtain hold that has run out must not quietly fall back to the flooring hold that has not.",
+      "today": "2027-09-15",
+      "channel": "showroom",
+      "current_rate_card_version": 101,
+      "current_promo_pct": "0",
+      "order_pinned_rate_card_version": 101,
+      "locks": [
+        {
+          "id": "lock-curtain",
+          "category": "curtain",
+          "held_rate_card_version": 1,
+          "held_discount_pct": "0",
+          "held_until": "2027-08-29",
+          "status": "active"
+        },
+        {
+          "id": "lock-flooring",
+          "category": "flooring",
+          "held_rate_card_version": 55,
+          "held_discount_pct": "1/20",
+          "held_until": "2027-11-30",
+          "status": "active"
+        }
+      ],
+      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
+      "expect": {"basis": "standard_pinned", "rate_card_version": 101, "discount_pct": "0", "lock_id": null}
+    }
+  ],
   "cases": [
     {
       "id": "golden-1-night-curtain-lower-band",
