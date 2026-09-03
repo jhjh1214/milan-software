@@ -45,6 +45,30 @@ class FakeServer {
   /// receipt for money taken once.
   final Map<String, String> receipts = {};
 
+  /// Order id -> the number issued for it. Issued once and handed back on
+  /// every retry, because a second number for one order is a second piece of
+  /// paperwork for a sale that happened once.
+  final Map<String, String> orderNumbers = {};
+
+  /// Order id -> where the server thinks it is.
+  final Map<String, String> orderStatus = {};
+
+  /// Event ids already applied. Idempotency for a status move hangs on the
+  /// event, not the order -- an order walks the pipeline many times.
+  final Set<String> appliedEvents = {};
+
+  /// The body of the last order pushed, so a test can assert what was sent.
+  List<int>? lastOrderBody;
+
+  /// When set, POST /api/orders reports the status it would not apply.
+  String? refuseOrderStatusBecause;
+
+  /// When set, POST /api/orders reports these overrides as refused.
+  Map<String, String> refuseOverrides = const {};
+
+  /// When set, POST /api/orders/status refuses every move with this reason.
+  String? refuseStatusBecause;
+
   /// Every request that arrived, in order. Lets a test assert what was *not*
   /// sent — the up-to-date short circuit is only worth anything if the payload
   /// really is skipped.
@@ -177,6 +201,71 @@ class FakeServer {
         'payment_id': id,
         'duplicate': false,
         'receipt_no': issued,
+      });
+    }
+
+    if (path == '/api/orders') {
+      final body =
+          jsonDecode(utf8.decode(request.bodyBytes)) as Map<String, dynamic>;
+      final id = body['id'] as String;
+      lastOrderBody = request.bodyBytes;
+
+      // Idempotent, and the number is issued once. A retry gets the same one
+      // back, because the customer may already be holding paperwork with it.
+      final existing = orderNumbers[id];
+      if (existing != null) {
+        return _json({
+          'order_id': id,
+          'duplicate': true,
+          'order_no': existing,
+          'status_refused_because': null,
+          'overrides_refused': <String, dynamic>{},
+        });
+      }
+      final issued =
+          'MLK-2608-${(orderNumbers.length + 1).toString().padLeft(4, '0')}';
+      orderNumbers[id] = issued;
+      orderStatus[id] = 'confirmed';
+      return _json({
+        'order_id': id,
+        'duplicate': false,
+        'order_no': issued,
+        'status_refused_because': refuseOrderStatusBecause,
+        'overrides_refused': refuseOverrides,
+      });
+    }
+
+    if (path == '/api/orders/status') {
+      final body =
+          jsonDecode(utf8.decode(request.bodyBytes)) as Map<String, dynamic>;
+      final orderId = body['order_id'] as String;
+      final eventId = body['event_id'] as String;
+
+      if (appliedEvents.contains(eventId)) {
+        return _json({
+          'order_id': orderId,
+          'duplicate': true,
+          'status': orderStatus[orderId] ?? 'confirmed',
+          'refused_because': null,
+        });
+      }
+
+      if (refuseStatusBecause != null) {
+        return _json({
+          'order_id': orderId,
+          'duplicate': false,
+          'status': orderStatus[orderId] ?? 'confirmed',
+          'refused_because': refuseStatusBecause,
+        });
+      }
+
+      appliedEvents.add(eventId);
+      orderStatus[orderId] = body['to'] as String;
+      return _json({
+        'order_id': orderId,
+        'duplicate': false,
+        'status': orderStatus[orderId]!,
+        'refused_because': null,
       });
     }
 

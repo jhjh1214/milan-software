@@ -731,6 +731,32 @@ class AppDatabase extends _$AppDatabase {
     );
   });
 
+  /// Writes back the order number the server issued.
+  ///
+  /// The same rule as a receipt number and for the same reason: two
+  /// part-timers offline at one fair would invent the same
+  /// `{branch}-{yymm}-{seq}`, and it goes on a document the customer takes
+  /// away. Until this lands the screen shows "pending sync".
+  Future<void> settleOrder({
+    required String orderId,
+    required String orderNo,
+    required DateTime at,
+  }) => (update(orders)..where((o) => o.id.equals(orderId))).write(
+    OrdersCompanion(orderNo: Value(orderNo), syncedAt: Value(at)),
+  );
+
+  /// Stamps one order event as accepted by the server.
+  ///
+  /// Per event, not per order: an order walks the pipeline many times and each
+  /// step syncs on its own, so a stamp on the order would say nothing about
+  /// which moves the server has actually seen.
+  Future<void> settleOrderEvent({
+    required String eventId,
+    required DateTime at,
+  }) => (update(orderEvents)..where((e) => e.id.equals(eventId))).write(
+    OrderEventsCompanion(syncedAt: Value(at)),
+  );
+
   /// Removes an outbox row whose work is done and has no `synced_at` of its
   /// own to stamp.
   Future<void> dropOutbox(String outboxId) =>

@@ -86,6 +86,25 @@ class Outboxer {
   Future<void> enqueuePayment(String paymentId, Map<String, dynamic> payload) =>
       _enqueue('payment', paymentId, payload);
 
+  /// Queues a confirmed order to be sent. §6.3.
+  ///
+  /// Its number comes back on the way out, the same way a receipt number does
+  /// and for the same reason. A deposit already changed hands before this row
+  /// existed, so nothing about the sale waits on it — only the number does.
+  Future<void> enqueueOrder(String orderId, Map<String, dynamic> payload) =>
+      _enqueue('order', orderId, payload);
+
+  /// Queues one step along the pipeline. §6.3.
+  ///
+  /// Keyed on the **event id**, not the order. An order walks the pipeline
+  /// many times and each move is its own row: keying on the order would have
+  /// the second step overwrite the first while it was still queued, and the
+  /// history would lose a step that really happened.
+  Future<void> enqueueStatusChange(
+    String eventId,
+    Map<String, dynamic> payload,
+  ) => _enqueue('order_status', eventId, payload);
+
   Future<void> _enqueue(
     String entityType,
     String entityId,
@@ -121,11 +140,13 @@ class Outboxer {
     for (final row in await db.pendingOutbox()) {
       final body = jsonDecode(row.payload) as Map<String, dynamic>;
 
-      // One queue, two kinds of work. A payment cannot wait behind a quote
-      // that is failing, and a quote cannot wait behind a payment — they drain
-      // in the order they happened, which is the order they matter in.
+      // One queue, four kinds of work. None of them can wait behind another
+      // that is failing — they drain in the order they happened, which is the
+      // order they matter in.
       final SyncResult<Object> result = switch (row.entityType) {
         'payment' => await api.pushPayment(credentials.token, body),
+        'order' => await api.pushOrder(credentials.token, body),
+        'order_status' => await api.pushStatusChange(credentials.token, body),
         _ => await api.pushQuote(credentials.token, body),
       };
 
@@ -145,6 +166,28 @@ class Outboxer {
               at: clock(),
             );
             await db.dropOutbox(row.id);
+          } else if (response is OrderAccepted) {
+            // The order number, for the same reason as a receipt number.
+            await db.settleOrder(
+              orderId: row.entityId,
+              orderNo: response.orderNo,
+              at: clock(),
+            );
+            await db.dropOutbox(row.id);
+            if (!response.fullyAccepted) {
+              // The order landed and the money is safe, but the server would
+              // not take all of it. Surfaced rather than swallowed: a status
+              // it refused means the two have drifted, and an override it
+              // refused means a price moved on one handset with no audit row
+              // anywhere else.
+              disagreed.add(row.entityId);
+            }
+          } else if (response is StatusAccepted) {
+            await db.settleOrderEvent(eventId: row.entityId, at: clock());
+            await db.dropOutbox(row.id);
+            if (!response.accepted) {
+              disagreed.add(row.entityId);
+            }
           } else {
             await db.completeOutbox(row.id, row.entityId, clock());
             if (response is PushResponse && !response.agreed) {

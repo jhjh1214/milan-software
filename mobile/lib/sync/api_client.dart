@@ -184,6 +184,64 @@ class ReceiptIssued {
   });
 }
 
+/// The server's answer to a pushed order.
+class OrderAccepted {
+  final String orderId;
+
+  /// True when the server had already accepted this exact order. **A success**:
+  /// one deposit produced one order, and the number below is the one it was
+  /// given the first time.
+  final bool duplicate;
+
+  /// Issued by the server and never by the device. Until this arrives the app
+  /// shows "pending sync" rather than a number it invented.
+  final String orderNo;
+
+  /// Set when the server would not have allowed the status the device pushed.
+  /// The order was still accepted — the money is taken — and this says what it
+  /// was left at instead.
+  final String? statusRefusedBecause;
+
+  /// Overrides the server would not store, by id. Their lines keep the totals
+  /// they arrived with.
+  final Map<String, String> overridesRefused;
+
+  const OrderAccepted({
+    required this.orderId,
+    required this.duplicate,
+    required this.orderNo,
+    this.statusRefusedBecause,
+    this.overridesRefused = const {},
+  });
+
+  /// True when everything the device sent was taken as sent.
+  bool get fullyAccepted =>
+      statusRefusedBecause == null && overridesRefused.isEmpty;
+}
+
+/// The server's answer to one step along the pipeline.
+class StatusAccepted {
+  final String orderId;
+
+  /// True when this exact move had already been applied.
+  final bool duplicate;
+
+  /// Where the order actually is now — which is where it was, if refused.
+  final String status;
+
+  /// Why the server would not make the move, null when it did.
+  final String? refusedBecause;
+
+  const StatusAccepted({
+    required this.orderId,
+    required this.duplicate,
+    required this.status,
+    this.refusedBecause,
+  });
+
+  bool get accepted => refusedBecause == null;
+}
+
 class ApiClient {
   final Uri baseUrl;
   final http.Client _http;
@@ -344,6 +402,59 @@ class ApiClient {
       paymentId: json['payment_id'] as String,
       duplicate: json['duplicate'] as bool,
       receiptNo: json['receipt_no'] as String,
+    ),
+  );
+
+  /// Pushes a confirmed order, and gets back the number the server issued.
+  ///
+  /// Idempotent on the order's own id, and a retry gets back the **same**
+  /// number — the customer may already be holding paperwork with it on.
+  Future<SyncResult<OrderAccepted>> pushOrder(
+    String token,
+    Map<String, dynamic> order,
+  ) => _send(
+    () => _http.post(
+      _url('/api/orders'),
+      headers: _headers(token),
+      body: jsonEncode(order),
+    ),
+    (json) => OrderAccepted(
+      orderId: json['order_id'] as String,
+      duplicate: json['duplicate'] as bool,
+      orderNo: json['order_no'] as String,
+      statusRefusedBecause: json['status_refused_because'] as String?,
+      overridesRefused: {
+        for (final e
+            in (json['overrides_refused'] as Map<String, dynamic>? ?? {})
+                .entries)
+          e.key: e.value as String,
+      },
+    ),
+  );
+
+  /// Pushes one step along the pipeline.
+  ///
+  /// Idempotent on the **event id**, not the order — an order walks the
+  /// pipeline many times, and keying on the order would make the second
+  /// legitimate move look like a retry of the first.
+  ///
+  /// A refusal comes back as a successful response with `refusedBecause` set,
+  /// not as a transport failure. The device may be hours ahead of the server
+  /// and needs to know *which* move was rejected rather than lose the batch.
+  Future<SyncResult<StatusAccepted>> pushStatusChange(
+    String token,
+    Map<String, dynamic> change,
+  ) => _send(
+    () => _http.post(
+      _url('/api/orders/status'),
+      headers: _headers(token),
+      body: jsonEncode(change),
+    ),
+    (json) => StatusAccepted(
+      orderId: json['order_id'] as String,
+      duplicate: json['duplicate'] as bool,
+      status: json['status'] as String,
+      refusedBecause: json['refused_because'] as String?,
     ),
   );
 
