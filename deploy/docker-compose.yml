@@ -43,7 +43,12 @@ services:
       - "8000"
 
   caddy:
-    image: caddy:2.8-alpine
+    # Built rather than pulled: the image is Caddy with the dashboard baked in.
+    # A shared volume would let the files on disk and the image serving them be
+    # different versions, and the way you would find that out is somebody
+    # seeing a screen that no longer exists in the code.
+    build:
+      context: ../dashboard
     restart: unless-stopped
     ports:
       - "80:80"

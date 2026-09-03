@@ -1,0 +1,13 @@
+# Never sent to the build context.
+#
+# node_modules is reinstalled from the lockfile inside the image -- a host copy
+# would be the wrong platform's binaries. dist and .angular are outputs, and
+# shipping a stale one in would be the way an old bundle escapes.
+#
+# Test files stay: excluding them would make the image build subtly different
+# from `npm run build` on a desk, and a build that only fails in one of the two
+# places is the worst kind.
+node_modules
+dist
+.angular
+.vscode

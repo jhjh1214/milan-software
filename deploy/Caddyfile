@@ -13,8 +13,29 @@
 		reverse_proxy api:8000
 	}
 
+	# Anything that looks like a file is served as one, and 404s when it is
+	# missing. Falling back to index.html here would answer a stale bundle
+	# reference with HTML where JavaScript was expected, and that arrives as a
+	# parse error nobody can read rather than a 404 that names what is gone.
+	@asset path *.js *.css *.map *.woff2 *.woff *.ico *.png *.jpg *.svg *.webmanifest
+	handle @asset {
+		root * /srv
+		# Hashed by name, so immutable. index.html is not, below.
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	# Everything else is the app. Angular routes are client-side, so a deep
+	# link -- the kind somebody pastes to a colleague, which SPEC.md 11 makes
+	# an acceptance criterion -- has to reach index.html.
 	handle {
-		respond "Milan Software" 200
+		root * /srv
+		# Never cached. The shell names the hashed bundles, so a cached one
+		# keeps loading the old app after a deploy and nobody can work out why
+		# their fix has not appeared.
+		header Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
 	}
 
 	header {
@@ -25,6 +46,7 @@
 		# Caddy's default advertises the version.
 		-Server
 	}
+
 
 	log {
 		output file /data/access.log {
