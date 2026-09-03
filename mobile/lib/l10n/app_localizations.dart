@@ -1387,6 +1387,258 @@ abstract class L {
   /// In zh, this message translates to:
   /// **'量好之后才出实际价钱。'**
   String get orderMeasureNext;
+
+  /// No description provided for @statusConfirmed.
+  ///
+  /// In zh, this message translates to:
+  /// **'已确认'**
+  String get statusConfirmed;
+
+  /// No description provided for @statusMeasurementBooked.
+  ///
+  /// In zh, this message translates to:
+  /// **'已约量尺'**
+  String get statusMeasurementBooked;
+
+  /// No description provided for @statusMeasured.
+  ///
+  /// In zh, this message translates to:
+  /// **'已量尺'**
+  String get statusMeasured;
+
+  /// No description provided for @statusMaterialSelected.
+  ///
+  /// In zh, this message translates to:
+  /// **'已选料'**
+  String get statusMaterialSelected;
+
+  /// No description provided for @statusInProduction.
+  ///
+  /// In zh, this message translates to:
+  /// **'生产中'**
+  String get statusInProduction;
+
+  /// No description provided for @statusReady.
+  ///
+  /// In zh, this message translates to:
+  /// **'待安装'**
+  String get statusReady;
+
+  /// No description provided for @statusInstalled.
+  ///
+  /// In zh, this message translates to:
+  /// **'已安装'**
+  String get statusInstalled;
+
+  /// No description provided for @statusClosed.
+  ///
+  /// In zh, this message translates to:
+  /// **'已结案'**
+  String get statusClosed;
+
+  /// No description provided for @statusCancelled.
+  ///
+  /// In zh, this message translates to:
+  /// **'已取消'**
+  String get statusCancelled;
+
+  /// No description provided for @orderTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'订单'**
+  String get orderTitle;
+
+  /// No description provided for @orderHistory.
+  ///
+  /// In zh, this message translates to:
+  /// **'处理记录'**
+  String get orderHistory;
+
+  /// No description provided for @orderLines.
+  ///
+  /// In zh, this message translates to:
+  /// **'订单内容'**
+  String get orderLines;
+
+  /// No description provided for @orderAdvanceTo.
+  ///
+  /// In zh, this message translates to:
+  /// **'标记为{status}'**
+  String orderAdvanceTo(String status);
+
+  /// No description provided for @orderNothingLeft.
+  ///
+  /// In zh, this message translates to:
+  /// **'这张订单已经没有下一步了。'**
+  String get orderNothingLeft;
+
+  /// No description provided for @orderCancelAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消这张订单'**
+  String get orderCancelAction;
+
+  /// No description provided for @orderCancelTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'确定取消这张订单？'**
+  String get orderCancelTitle;
+
+  /// No description provided for @orderCancelReason.
+  ///
+  /// In zh, this message translates to:
+  /// **'为什么取消？'**
+  String get orderCancelReason;
+
+  /// No description provided for @orderCancelHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'至少四个字。这就是记录。'**
+  String get orderCancelHint;
+
+  /// No description provided for @orderCancelConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消订单'**
+  String get orderCancelConfirm;
+
+  /// No description provided for @orderKeep.
+  ///
+  /// In zh, this message translates to:
+  /// **'先不取消'**
+  String get orderKeep;
+
+  /// No description provided for @orderCancelDepositNote.
+  ///
+  /// In zh, this message translates to:
+  /// **'订金照旧记录在案。退不退，另外处理。'**
+  String get orderCancelDepositNote;
+
+  /// No description provided for @orderEventBy.
+  ///
+  /// In zh, this message translates to:
+  /// **'由{name}'**
+  String orderEventBy(String name);
+
+  /// No description provided for @orderRefusedNotATransition.
+  ///
+  /// In zh, this message translates to:
+  /// **'这不是接下来的一步。'**
+  String get orderRefusedNotATransition;
+
+  /// No description provided for @orderRefusedTerminal.
+  ///
+  /// In zh, this message translates to:
+  /// **'这张订单已经结束，不能再动。'**
+  String get orderRefusedTerminal;
+
+  /// No description provided for @orderRefusedLinesNotMeasured.
+  ///
+  /// In zh, this message translates to:
+  /// **'还有窗口没量尺寸。'**
+  String get orderRefusedLinesNotMeasured;
+
+  /// No description provided for @orderRefusedMaterialNotChosen.
+  ///
+  /// In zh, this message translates to:
+  /// **'还有项目没选料。'**
+  String get orderRefusedMaterialNotChosen;
+
+  /// No description provided for @orderRefusedNoReason.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先写理由，至少四个字。'**
+  String get orderRefusedNoReason;
+
+  /// No description provided for @overrideTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'改这个价钱'**
+  String get overrideTitle;
+
+  /// No description provided for @overrideCurrent.
+  ///
+  /// In zh, this message translates to:
+  /// **'现在是{amount}'**
+  String overrideCurrent(String amount);
+
+  /// No description provided for @overrideNewTotal.
+  ///
+  /// In zh, this message translates to:
+  /// **'新的小计'**
+  String get overrideNewTotal;
+
+  /// No description provided for @overrideReason.
+  ///
+  /// In zh, this message translates to:
+  /// **'为什么改？'**
+  String get overrideReason;
+
+  /// No description provided for @overrideHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'至少四个字。每次改动都会记在你名下。'**
+  String get overrideHint;
+
+  /// No description provided for @overrideApply.
+  ///
+  /// In zh, this message translates to:
+  /// **'改'**
+  String get overrideApply;
+
+  /// No description provided for @overrideMarker.
+  ///
+  /// In zh, this message translates to:
+  /// **'价钱经人手调整'**
+  String get overrideMarker;
+
+  /// No description provided for @overrideRefusedNotAnAdmin.
+  ///
+  /// In zh, this message translates to:
+  /// **'只有管理员可以改价钱。'**
+  String get overrideRefusedNotAnAdmin;
+
+  /// No description provided for @overrideRefusedNoReason.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先写理由，至少四个字。'**
+  String get overrideRefusedNoReason;
+
+  /// No description provided for @overrideRefusedNegativeTotal.
+  ///
+  /// In zh, this message translates to:
+  /// **'一个项目不能低过零。'**
+  String get overrideRefusedNegativeTotal;
+
+  /// No description provided for @overrideRefusedNoChange.
+  ///
+  /// In zh, this message translates to:
+  /// **'本来就是这个价钱。'**
+  String get overrideRefusedNoChange;
+
+  /// No description provided for @overrideRefusedOrderFinished.
+  ///
+  /// In zh, this message translates to:
+  /// **'这张订单已经结束，价钱不能再动。'**
+  String get overrideRefusedOrderFinished;
+
+  /// No description provided for @overridesThisWeek.
+  ///
+  /// In zh, this message translates to:
+  /// **'这个星期改过的价钱'**
+  String get overridesThisWeek;
+
+  /// No description provided for @overridesNone.
+  ///
+  /// In zh, this message translates to:
+  /// **'这个星期没有人改过价钱。'**
+  String get overridesNone;
+
+  /// No description provided for @overrideRow.
+  ///
+  /// In zh, this message translates to:
+  /// **'{before} 改成 {after}，{name}'**
+  String overrideRow(String before, String after, String name);
 }
 
 class _LDelegate extends LocalizationsDelegate<L> {

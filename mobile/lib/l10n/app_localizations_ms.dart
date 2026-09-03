@@ -771,4 +771,147 @@ class LMs extends L {
 
   @override
   String get orderMeasureNext => 'Harga sebenar keluar selepas diukur.';
+
+  @override
+  String get statusConfirmed => 'Disahkan';
+
+  @override
+  String get statusMeasurementBooked => 'Ukuran ditempah';
+
+  @override
+  String get statusMeasured => 'Sudah diukur';
+
+  @override
+  String get statusMaterialSelected => 'Bahan dipilih';
+
+  @override
+  String get statusInProduction => 'Sedang dibuat';
+
+  @override
+  String get statusReady => 'Sedia dipasang';
+
+  @override
+  String get statusInstalled => 'Sudah dipasang';
+
+  @override
+  String get statusClosed => 'Selesai';
+
+  @override
+  String get statusCancelled => 'Dibatalkan';
+
+  @override
+  String get orderTitle => 'Pesanan';
+
+  @override
+  String get orderHistory => 'Apa yang sudah berlaku';
+
+  @override
+  String get orderLines => 'Apa yang dipesan';
+
+  @override
+  String orderAdvanceTo(String status) {
+    return 'Tandakan sebagai $status';
+  }
+
+  @override
+  String get orderNothingLeft => 'Tiada langkah seterusnya untuk pesanan ini.';
+
+  @override
+  String get orderCancelAction => 'Batalkan pesanan ini';
+
+  @override
+  String get orderCancelTitle => 'Batalkan pesanan ini?';
+
+  @override
+  String get orderCancelReason => 'Kenapa dibatalkan?';
+
+  @override
+  String get orderCancelHint => 'Sekurang-kurangnya 4 huruf. Ini rekodnya.';
+
+  @override
+  String get orderCancelConfirm => 'Batalkan pesanan';
+
+  @override
+  String get orderKeep => 'Jangan batalkan';
+
+  @override
+  String get orderCancelDepositNote =>
+      'Deposit kekal dalam rekod. Sama ada ia dipulangkan diuruskan di luar aplikasi.';
+
+  @override
+  String orderEventBy(String name) {
+    return 'oleh $name';
+  }
+
+  @override
+  String get orderRefusedNotATransition =>
+      'Itu bukan langkah seterusnya dari sini.';
+
+  @override
+  String get orderRefusedTerminal =>
+      'Pesanan ini sudah selesai. Tiada apa-apa lagi bergerak.';
+
+  @override
+  String get orderRefusedLinesNotMeasured => 'Ada tingkap yang belum diukur.';
+
+  @override
+  String get orderRefusedMaterialNotChosen =>
+      'Ada baris yang belum dipilih bahannya.';
+
+  @override
+  String get orderRefusedNoReason =>
+      'Tulis sebabnya dahulu, sekurang-kurangnya 4 huruf.';
+
+  @override
+  String get overrideTitle => 'Ubah harga ini';
+
+  @override
+  String overrideCurrent(String amount) {
+    return 'Sekarang $amount';
+  }
+
+  @override
+  String get overrideNewTotal => 'Jumlah baharu';
+
+  @override
+  String get overrideReason => 'Kenapa?';
+
+  @override
+  String get overrideHint =>
+      'Sekurang-kurangnya 4 huruf. Setiap perubahan direkod atas nama anda.';
+
+  @override
+  String get overrideApply => 'Ubah';
+
+  @override
+  String get overrideMarker => 'Harga diubah dengan tangan';
+
+  @override
+  String get overrideRefusedNotAnAdmin => 'Hanya admin boleh mengubah harga.';
+
+  @override
+  String get overrideRefusedNoReason =>
+      'Tulis sebabnya dahulu, sekurang-kurangnya 4 huruf.';
+
+  @override
+  String get overrideRefusedNegativeTotal =>
+      'Satu baris tidak boleh kurang daripada sifar.';
+
+  @override
+  String get overrideRefusedNoChange => 'Itu memang harganya sekarang.';
+
+  @override
+  String get overrideRefusedOrderFinished =>
+      'Pesanan ini sudah selesai. Harganya tidak boleh diubah lagi.';
+
+  @override
+  String get overridesThisWeek => 'Harga yang diubah minggu ini';
+
+  @override
+  String get overridesNone => 'Tiada sesiapa mengubah harga minggu ini.';
+
+  @override
+  String overrideRow(String before, String after, String name) {
+    return '$before kepada $after, oleh $name';
+  }
 }

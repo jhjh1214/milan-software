@@ -772,4 +772,148 @@ class LEn extends L {
 
   @override
   String get orderMeasureNext => 'The actual price comes after measuring.';
+
+  @override
+  String get statusConfirmed => 'Confirmed';
+
+  @override
+  String get statusMeasurementBooked => 'Measurement booked';
+
+  @override
+  String get statusMeasured => 'Measured';
+
+  @override
+  String get statusMaterialSelected => 'Material chosen';
+
+  @override
+  String get statusInProduction => 'In production';
+
+  @override
+  String get statusReady => 'Ready to install';
+
+  @override
+  String get statusInstalled => 'Installed';
+
+  @override
+  String get statusClosed => 'Closed';
+
+  @override
+  String get statusCancelled => 'Cancelled';
+
+  @override
+  String get orderTitle => 'Order';
+
+  @override
+  String get orderHistory => 'What has happened';
+
+  @override
+  String get orderLines => 'What was ordered';
+
+  @override
+  String orderAdvanceTo(String status) {
+    return 'Mark as $status';
+  }
+
+  @override
+  String get orderNothingLeft => 'Nothing left to do on this order.';
+
+  @override
+  String get orderCancelAction => 'Cancel this order';
+
+  @override
+  String get orderCancelTitle => 'Cancel this order?';
+
+  @override
+  String get orderCancelReason => 'Why is it being cancelled?';
+
+  @override
+  String get orderCancelHint => 'At least 4 letters. This is the record.';
+
+  @override
+  String get orderCancelConfirm => 'Cancel the order';
+
+  @override
+  String get orderKeep => 'Keep it';
+
+  @override
+  String get orderCancelDepositNote =>
+      'The deposit stays on the record. Whether it is refunded is settled off the app.';
+
+  @override
+  String orderEventBy(String name) {
+    return 'by $name';
+  }
+
+  @override
+  String get orderRefusedNotATransition =>
+      'That is not the next step from here.';
+
+  @override
+  String get orderRefusedTerminal =>
+      'This order is finished. Nothing more moves.';
+
+  @override
+  String get orderRefusedLinesNotMeasured =>
+      'Some windows still have no measurements.';
+
+  @override
+  String get orderRefusedMaterialNotChosen =>
+      'Some lines still have no material chosen.';
+
+  @override
+  String get orderRefusedNoReason =>
+      'Write a reason first, at least 4 letters.';
+
+  @override
+  String get overrideTitle => 'Change this price';
+
+  @override
+  String overrideCurrent(String amount) {
+    return 'Now $amount';
+  }
+
+  @override
+  String get overrideNewTotal => 'New total';
+
+  @override
+  String get overrideReason => 'Why?';
+
+  @override
+  String get overrideHint =>
+      'At least 4 letters. Every change is recorded against your name.';
+
+  @override
+  String get overrideApply => 'Change it';
+
+  @override
+  String get overrideMarker => 'Price changed by hand';
+
+  @override
+  String get overrideRefusedNotAnAdmin => 'Only an admin can change a price.';
+
+  @override
+  String get overrideRefusedNoReason =>
+      'Write a reason first, at least 4 letters.';
+
+  @override
+  String get overrideRefusedNegativeTotal =>
+      'A line cannot cost less than nothing.';
+
+  @override
+  String get overrideRefusedNoChange => 'That is the price already.';
+
+  @override
+  String get overrideRefusedOrderFinished =>
+      'This order is finished. Its prices no longer move.';
+
+  @override
+  String get overridesThisWeek => 'Prices changed this week';
+
+  @override
+  String get overridesNone => 'Nobody changed a price this week.';
+
+  @override
+  String overrideRow(String before, String after, String name) {
+    return '$before to $after, by $name';
+  }
 }

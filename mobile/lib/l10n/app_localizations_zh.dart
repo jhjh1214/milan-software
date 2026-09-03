@@ -749,4 +749,138 @@ class LZh extends L {
 
   @override
   String get orderMeasureNext => '量好之后才出实际价钱。';
+
+  @override
+  String get statusConfirmed => '已确认';
+
+  @override
+  String get statusMeasurementBooked => '已约量尺';
+
+  @override
+  String get statusMeasured => '已量尺';
+
+  @override
+  String get statusMaterialSelected => '已选料';
+
+  @override
+  String get statusInProduction => '生产中';
+
+  @override
+  String get statusReady => '待安装';
+
+  @override
+  String get statusInstalled => '已安装';
+
+  @override
+  String get statusClosed => '已结案';
+
+  @override
+  String get statusCancelled => '已取消';
+
+  @override
+  String get orderTitle => '订单';
+
+  @override
+  String get orderHistory => '处理记录';
+
+  @override
+  String get orderLines => '订单内容';
+
+  @override
+  String orderAdvanceTo(String status) {
+    return '标记为$status';
+  }
+
+  @override
+  String get orderNothingLeft => '这张订单已经没有下一步了。';
+
+  @override
+  String get orderCancelAction => '取消这张订单';
+
+  @override
+  String get orderCancelTitle => '确定取消这张订单？';
+
+  @override
+  String get orderCancelReason => '为什么取消？';
+
+  @override
+  String get orderCancelHint => '至少四个字。这就是记录。';
+
+  @override
+  String get orderCancelConfirm => '取消订单';
+
+  @override
+  String get orderKeep => '先不取消';
+
+  @override
+  String get orderCancelDepositNote => '订金照旧记录在案。退不退，另外处理。';
+
+  @override
+  String orderEventBy(String name) {
+    return '由$name';
+  }
+
+  @override
+  String get orderRefusedNotATransition => '这不是接下来的一步。';
+
+  @override
+  String get orderRefusedTerminal => '这张订单已经结束，不能再动。';
+
+  @override
+  String get orderRefusedLinesNotMeasured => '还有窗口没量尺寸。';
+
+  @override
+  String get orderRefusedMaterialNotChosen => '还有项目没选料。';
+
+  @override
+  String get orderRefusedNoReason => '请先写理由，至少四个字。';
+
+  @override
+  String get overrideTitle => '改这个价钱';
+
+  @override
+  String overrideCurrent(String amount) {
+    return '现在是$amount';
+  }
+
+  @override
+  String get overrideNewTotal => '新的小计';
+
+  @override
+  String get overrideReason => '为什么改？';
+
+  @override
+  String get overrideHint => '至少四个字。每次改动都会记在你名下。';
+
+  @override
+  String get overrideApply => '改';
+
+  @override
+  String get overrideMarker => '价钱经人手调整';
+
+  @override
+  String get overrideRefusedNotAnAdmin => '只有管理员可以改价钱。';
+
+  @override
+  String get overrideRefusedNoReason => '请先写理由，至少四个字。';
+
+  @override
+  String get overrideRefusedNegativeTotal => '一个项目不能低过零。';
+
+  @override
+  String get overrideRefusedNoChange => '本来就是这个价钱。';
+
+  @override
+  String get overrideRefusedOrderFinished => '这张订单已经结束，价钱不能再动。';
+
+  @override
+  String get overridesThisWeek => '这个星期改过的价钱';
+
+  @override
+  String get overridesNone => '这个星期没有人改过价钱。';
+
+  @override
+  String overrideRow(String before, String after, String name) {
+    return '$before 改成 $after，$name';
+  }
 }
