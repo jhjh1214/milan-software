@@ -157,9 +157,28 @@ Dependencies are pinned exactly, matching the rest of the repo.
 the lockfile from the ranges — so the range is what actually decides, and the
 committed lockfile alone guarantees nothing.
 
-**Next on the dashboard, in order:** sign-in (`Api.token` is a signal nothing
-sets yet, so every call would 401), the order detail screen, and the override
-review. The rate card editor with its diff preview is the big one after that.
+**Four dashboard screens are in:** sign-in, the order board, one order in
+detail, and the weekly override review — plus a thin nav shell that appears
+only once somebody is signed in. Admin-only links are hidden rather than shown
+and refused; the server refuses them either way, and none of the hiding is
+relied on as a permission check.
+
+51 dashboard tests, each screen mutation-checked. The ones worth knowing about:
+dividing by millimetres instead of tenths would have produced dimensions ten
+times too large and entirely plausible; the override review's week starting on
+Sunday would have dropped rows out of both weeks either side.
+
+**Next on the dashboard:** the **rate card editor with its diff preview** —
+§11 Phase 5's first acceptance criterion, *"publishing shows exactly which
+products move and by how much before commit"*, and the biggest remaining piece.
+Then users and roles, the measurement queue, and the reports.
+
+Two smaller things the dashboard still lacks: a session that survives a page
+refresh (deliberate for now — a token in `localStorage` on a shared office
+machine is one the next person inherits, and §13 has no question about it yet),
+and any Malay or Chinese. The handset is trilingual because a part-timer who
+reads only Malay has to be able to quote; whether the office screens need the
+same is worth asking rather than assuming.
 
 **Five CI jobs**, all green: Flutter, Python, the deploy stack, Angular, and the
 shared files.
