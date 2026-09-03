@@ -1542,6 +1542,25 @@ orders, supplier management and costing come later.
   RM600, not RM450, because the customer will be asked for two deposits and must
   never be quoted less than they are about to pay. Already implemented that way;
   the answer confirms it rather than changing it.
+- `[BLOCKING P4]` **B9.** **What identifies a returning customer?** There is no
+  `customers` table yet and a quote carries only a free-text name and phone, so
+  until this is answered the lock has nothing durable to hang on.
+
+  It was hanging on the **quote id**, which meant the twelve-month hold could
+  never be used: the customer pays RM300 at the fair, comes back in March, a new
+  quote is started with a new id, and the lock does not match. They are charged
+  the standard rate — *more* than the hold they bought, after the app told them
+  "promo rate held until 29 Aug 2027". No test covered a second quote, which is
+  why nothing caught it.
+
+  The conservative reading is now in force: the key is the customer's **phone
+  number, normalised**, and the quote id only when there is no usable phone —
+  which is no worse than the old behaviour. Phone is what the shop actually
+  collects, and honouring a hold errs in the direction the customer paid for.
+
+  Still to confirm: is a shared household phone one customer or two? Should a
+  proper customer record be created at deposit time instead? And what happens
+  when a phone is corrected after a deposit — does the hold follow it?
 - **B5.** One customer, two properties: one lock or two?
 - **B6.** Always flat RM300, or higher on large orders?
 - ~~**B7.**~~ **ANSWERED — every product defers material to measurement.** At a

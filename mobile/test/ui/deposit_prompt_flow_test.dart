@@ -24,6 +24,7 @@ import 'package:milan_quote/data/order_repository.dart';
 import 'package:milan_quote/data/payment_repository.dart';
 import 'package:milan_quote/data/rate_card_store.dart';
 import 'package:milan_quote/features/quote/quote_state.dart';
+import 'package:milan_quote/pricing/customer_key.dart';
 import 'package:milan_quote/pricing/models.dart';
 import 'package:milan_quote/pricing/rate_lock.dart';
 
@@ -145,9 +146,11 @@ void main() {
     await tester.tap(find.text('现金'));
     await tester.pumpAndSettle();
 
+    // Looked up through the same key the deposit stored it under. Asking by
+    // the raw quote id here would pass while the two disagreed, which is how
+    // the hold came to be unusable in the first place (SPEC.md §13 B9).
     final locks = await LockRepository(db).locksFor(
-      // Until Phase 4's customer record exists, the quote is its own customer.
-      (await db.latestQuote())!.id,
+      customerKeyFor(phone: null, quoteId: (await db.latestQuote())!.id).value,
     );
     expect(locks, hasLength(1));
     expect(locks.single.category, DepositCategory.curtain);

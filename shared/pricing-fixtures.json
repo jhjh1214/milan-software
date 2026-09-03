@@ -233,6 +233,114 @@
       }
     }
   ],
+  "_customer_key_purpose": "SPEC.md §6.1 and §13 B9. Which customer a rate lock belongs to. The lock follows the customer, not the order -- a hold bought at last August's fair has to price a line added months later, on a new quote. It was keyed on the quote id, which meant the twelve-month hold could never match again and the customer was charged more than the hold they paid for. Both engines load these because a lock granted on a handset and a lock read back from the server have to agree about whose it is.",
+  "_customer_key_phone": "Malaysian numbers arrive typed however the customer said them. Normalising is deliberately narrow: strip the punctuation people use, accept a +60 or 60 country prefix as a leading 0, and require at least nine digits. Anything less is treated as no phone at all, because a key built from a fragment would merge two customers, and merging two customers hands one of them the other's held prices.",
+  "customer_key_cases": [
+    {
+      "id": "key-a-plain-phone-is-the-key",
+      "source": "SPEC.md §6.1",
+      "why": "The base case. The shop collects a phone; two quotes with the same phone are the same customer coming back.",
+      "phone": "0123456789",
+      "quote_id": "q-1",
+      "expect": {"key": "phone:0123456789", "from_phone": true}
+    },
+    {
+      "id": "key-punctuation-is-ignored",
+      "source": "SPEC.md §13 B9",
+      "why": "One person types 012-345 6789 in August and 0123456789 in March. Treating those as two customers loses the hold they paid for.",
+      "phone": "012-345 6789",
+      "quote_id": "q-1",
+      "expect": {"key": "phone:0123456789", "from_phone": true}
+    },
+    {
+      "id": "key-brackets-and-dots-too",
+      "source": "SPEC.md §13 B9",
+      "why": "The same, in the other shapes people write.",
+      "phone": " (012) 345.6789 ",
+      "quote_id": "q-1",
+      "expect": {"key": "phone:0123456789", "from_phone": true}
+    },
+    {
+      "id": "key-a-plus-60-country-code-is-a-leading-zero",
+      "source": "SPEC.md §13 B9",
+      "why": "+60 12 345 6789 and 012 345 6789 are one number. A customer who gave the international form at the fair and the local one in the showroom must not lose their hold.",
+      "phone": "+60 12-345 6789",
+      "quote_id": "q-1",
+      "expect": {"key": "phone:0123456789", "from_phone": true}
+    },
+    {
+      "id": "key-a-bare-60-prefix-too",
+      "source": "SPEC.md §13 B9",
+      "why": "The same number with the plus dropped, which is how it arrives from a pasted contact.",
+      "phone": "60123456789",
+      "quote_id": "q-1",
+      "expect": {"key": "phone:0123456789", "from_phone": true}
+    },
+    {
+      "id": "key-a-leading-zero-is-kept-once",
+      "source": "SPEC.md §13 B9",
+      "why": "060... is not a country code with a zero in front of it. Stripping one here would turn a real number into somebody else's.",
+      "phone": "0601234567",
+      "quote_id": "q-1",
+      "expect": {"key": "phone:0601234567", "from_phone": true}
+    },
+    {
+      "id": "key-no-phone-falls-back-to-the-quote",
+      "source": "SPEC.md §13 B9",
+      "why": "A walk-in who gives no number. The lock still works within the quote it was bought on, which is no worse than the behaviour this replaces, and it never matches somebody else.",
+      "phone": null,
+      "quote_id": "q-1",
+      "expect": {"key": "quote:q-1", "from_phone": false}
+    },
+    {
+      "id": "key-an-empty-phone-is-no-phone",
+      "source": "SPEC.md §13 B9",
+      "why": "A field that was opened and left alone.",
+      "phone": "   ",
+      "quote_id": "q-1",
+      "expect": {"key": "quote:q-1", "from_phone": false}
+    },
+    {
+      "id": "key-a-fragment-is-not-a-phone",
+      "source": "SPEC.md §13 B9",
+      "why": "Somebody typed four digits and moved on. A key built from a fragment would collide with every other four-digit fragment and hand one customer another's held prices, so it is refused and the quote id is used instead.",
+      "phone": "0123",
+      "quote_id": "q-1",
+      "expect": {"key": "quote:q-1", "from_phone": false}
+    },
+    {
+      "id": "key-eight-digits-is-still-a-fragment",
+      "source": "SPEC.md §13 B9",
+      "why": "The edge of the nine-digit floor, from below.",
+      "phone": "01234567",
+      "quote_id": "q-1",
+      "expect": {"key": "quote:q-1", "from_phone": false}
+    },
+    {
+      "id": "key-nine-digits-is-a-phone",
+      "source": "SPEC.md §13 B9",
+      "why": "The same edge from above, so the floor cannot drift by one without a test noticing. An 03 landline is nine digits.",
+      "phone": "0312345678",
+      "quote_id": "q-1",
+      "expect": {"key": "phone:0312345678", "from_phone": true}
+    },
+    {
+      "id": "key-letters-are-not-digits",
+      "source": "SPEC.md §13 B9",
+      "why": "A name typed into the phone field. What is left after stripping is not a number, so it is not used as one.",
+      "phone": "call the office",
+      "quote_id": "q-1",
+      "expect": {"key": "quote:q-1", "from_phone": false}
+    },
+    {
+      "id": "key-two-quotes-one-phone-are-one-customer",
+      "source": "SPEC.md §6.1",
+      "why": "The whole point. The August quote and the March quote produce the same key, so the hold bought at the fair prices the line added months later.",
+      "phone": "0123456789",
+      "quote_id": "q-in-march",
+      "expect": {"key": "phone:0123456789", "from_phone": true}
+    }
+  ],
   "_price_override_purpose": "SPEC.md §6.5. An admin moving a line's total by hand, and the audit row that is the actual control. The spec is blunt about why: 'An offline PIN is bypassable, and one shared admin password reaches every part-timer within a month. The real control is the audit log plus a weekly review screen, not the gate.' Both engines load these cases because the server re-validates an override before it accepts one -- an override the server refuses would otherwise leave a handset showing a price nothing else agrees with.",
   "price_override_cases": [
     {

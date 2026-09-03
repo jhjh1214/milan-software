@@ -22,7 +22,8 @@ import '../../pricing/rate_lock.dart';
 import '../../sync/order_payload.dart';
 import '../../sync/sync_state.dart';
 import '../payment/payment_method_sheet.dart';
-import 'deposit_prompt_sheet.dart' show lockRepositoryProvider;
+import 'deposit_prompt_sheet.dart'
+    show customerKeyForQuote, lockRepositoryProvider;
 import 'quote_state.dart';
 
 final orderRepositoryProvider = Provider<OrderRepository>(
@@ -78,7 +79,12 @@ Future<ConversionRefusal?> confirmOrderForDeposit(
       .forQuote(quote.quoteId);
   final paid = Money.sen(payments.fold(0, (sum, p) => sum + p.amountSen));
 
-  final locks = await ref.read(lockRepositoryProvider).locksFor(quote.quoteId);
+  // The same key the prompt opened the lock under. Looking it up by the raw
+  // quote id here would find nothing, and every line would be priced at
+  // fair_current instead of at the rate the RM300 actually bought.
+  final locks = await ref
+      .read(lockRepositoryProvider)
+      .locksFor(customerKeyForQuote(quote));
 
   final result = confirmQuoteAsOrder(
     orderId: newId(),

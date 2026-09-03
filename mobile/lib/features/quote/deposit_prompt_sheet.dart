@@ -25,6 +25,7 @@ import '../../data/lock_repository.dart';
 import '../../data/quote_repository.dart' show newId;
 import '../../l10n/app_localizations.dart';
 import '../../pricing/cash_up.dart';
+import '../../pricing/customer_key.dart';
 import '../../pricing/deposit_prompt.dart';
 import '../../pricing/models.dart';
 import '../../pricing/rate_lock.dart';
@@ -48,7 +49,7 @@ final openDepositGapsProvider = FutureProvider<List<DepositGap>>((ref) async {
   final card = await ref.watch(rateCardProvider.future);
   final locks = await ref
       .watch(lockRepositoryProvider)
-      .locksFor(_customerKeyFor(quote));
+      .locksFor(customerKeyForQuote(quote));
   final answered = await ref
       .watch(lockRepositoryProvider)
       .answeredOn(quote.quoteId);
@@ -76,12 +77,25 @@ final openDepositGapsProvider = FutureProvider<List<DepositGap>>((ref) async {
   ];
 });
 
-/// Until Phase 4's customer record exists, a quote is its own customer.
+/// Which customer's locks apply here. SPEC.md §6.1, §13 B9.
 ///
-/// Deliberately not the phone number: a blank one would make every anonymous
-/// quote share a set of locks, and one customer's hold would price another's
-/// window.
-String _customerKeyFor(QuoteState quote) => quote.quoteId;
+/// This used to be the quote id, to avoid a real problem: *"a blank phone
+/// number would make every anonymous quote share a set of locks, and one
+/// customer's hold would price another's window."* That concern is right and
+/// still holds. What it threw out with it was the returning customer.
+///
+/// A twelve-month hold exists so somebody can come back — with a *new quote*,
+/// and a new id. Keyed on the quote, the lock could never match again: the
+/// customer paid RM300 at the fair, returned in March, and was quoted the
+/// standard rate. More than the hold they bought, after the app had told them
+/// the promo rate was held until next August.
+///
+/// `customerKeyFor` keeps both properties. A usable phone is the key, so the
+/// hold follows the customer; no usable phone falls back to the quote id, so
+/// two anonymous quotes still never share. §13 B9 is where the proper customer
+/// record gets decided.
+String customerKeyForQuote(QuoteState quote) =>
+    customerKeyFor(phone: quote.customerPhone, quoteId: quote.quoteId).value;
 
 Family? _parentFamilyOf(QuoteLine line, QuoteState quote, RateCard card) {
   if (line.parentLineId == null) return null;
@@ -185,7 +199,7 @@ Future<void> _askFor(
       if (grant.lock case final lock?) {
         await repo.store(
           lock,
-          customerId: _customerKeyFor(quote),
+          customerId: customerKeyForQuote(quote),
           at: now,
           depositPaymentId: paymentId,
         );
@@ -261,7 +275,7 @@ int _subtotalFor(WidgetRef ref, DepositGap gap) {
 /// Watched by the order banner, which says what the RM300 actually bought.
 final currentLocksProvider = FutureProvider<List<CategoryLock>>((ref) async {
   final quote = await ref.watch(quoteProvider.future);
-  return ref.watch(lockRepositoryProvider).locksFor(_customerKeyFor(quote));
+  return ref.watch(lockRepositoryProvider).locksFor(customerKeyForQuote(quote));
 });
 
 /// The category a deposit covers, in the reader's own language.

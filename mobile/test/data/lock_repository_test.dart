@@ -13,6 +13,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:milan_quote/core/rational.dart';
 import 'package:milan_quote/data/database.dart';
 import 'package:milan_quote/data/lock_repository.dart';
+import 'package:milan_quote/features/quote/deposit_prompt_sheet.dart'
+    show customerKeyForQuote;
+import 'package:milan_quote/features/quote/quote_state.dart';
 import 'package:milan_quote/pricing/deposit_prompt.dart';
 import 'package:milan_quote/pricing/models.dart';
 import 'package:milan_quote/pricing/rate_lock.dart';
@@ -247,5 +250,92 @@ void main() {
 
     expect(refused.lock, isNull);
     expect(refused.refusedBecause, LockRefusal.notAFair);
+  });
+
+  group('the returning customer', () {
+    // The case the twelve-month hold exists for, and the one that was broken.
+    // The lock was keyed on the quote id, so the August deposit could never
+    // match the March quote: the customer paid RM300 and was then quoted the
+    // standard rate — more than the hold they bought, after the app had told
+    // them the promo was held until next August. Nothing caught it because
+    // nothing tested a second quote.
+
+    QuoteState quoteFor({required String id, String? phone}) =>
+        QuoteState(quoteId: id, channel: Channel.fair, customerPhone: phone);
+
+    test('a hold bought in August prices a quote made in March', () async {
+      await repo.store(
+        aLock(),
+        at: depositDay,
+        customerId: customerKeyForQuote(
+          quoteFor(id: 'q-august', phone: '012-345 6789'),
+        ),
+      );
+
+      final inMarch = await repo.locksFor(
+        customerKeyForQuote(quoteFor(id: 'q-march', phone: '+60123456789')),
+      );
+
+      expect(
+        inMarch,
+        hasLength(1),
+        reason: 'the same customer, a new quote, and the hold they paid for',
+      );
+      expect(inMarch.single.category, DepositCategory.curtain);
+    });
+
+    test('a different phone gets nothing', () async {
+      await repo.store(
+        aLock(),
+        at: depositDay,
+        customerId: customerKeyForQuote(
+          quoteFor(id: 'q-august', phone: '0123456789'),
+        ),
+      );
+
+      expect(
+        await repo.locksFor(
+          customerKeyForQuote(quoteFor(id: 'q-march', phone: '0129999999')),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('two anonymous quotes never share a hold', () async {
+      // The reason the key was the quote id in the first place, and it still
+      // holds: with no usable phone the fallback keeps them apart.
+      await repo.store(
+        aLock(),
+        at: depositDay,
+        customerId: customerKeyForQuote(quoteFor(id: 'q-one')),
+      );
+
+      expect(
+        await repo.locksFor(customerKeyForQuote(quoteFor(id: 'q-two'))),
+        isEmpty,
+      );
+      expect(
+        await repo.locksFor(customerKeyForQuote(quoteFor(id: 'q-one'))),
+        hasLength(1),
+        reason: 'within its own quote the hold still works',
+      );
+    });
+
+    test('a phone too short to be one is treated as none', () async {
+      // A fragment would match every other fragment, and hand one customer
+      // another's held prices.
+      await repo.store(
+        aLock(),
+        at: depositDay,
+        customerId: customerKeyForQuote(quoteFor(id: 'q-one', phone: '0123')),
+      );
+
+      expect(
+        await repo.locksFor(
+          customerKeyForQuote(quoteFor(id: 'q-two', phone: '0123')),
+        ),
+        isEmpty,
+      );
+    });
   });
 }
