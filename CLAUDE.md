@@ -24,7 +24,7 @@ trilingual PDF.
 
 Built and green on the server: the Python engine passing the same fixtures, the
 sync endpoints, Alembic migrations with a test that they match the models, users
-and roles, and rate card publishing. **467 Dart tests, 217 Python tests.** 100%
+and roles, and rate card publishing. **581 Dart tests, 339 Python tests.** 100%
 coverage on `Length`, `Money` and `Rational`.
 
 **Prices are server-owned now.** One card is published and pulled by every
@@ -49,11 +49,11 @@ that way and measure that way: a single fat APK carries all three ABIs and is
 - The two Phase 2 criteria that need a stopwatch — a six-window house quoted in
   under four minutes, and an untrained person producing a correct quote within
   thirty. Run both before the client meeting.
-- The backup restore drill. `deploy/backup.sh` restores every dump it takes and
-  fails loudly if the restore comes back empty, at the wrong migration, or with
-  no rate cards, and CI runs it against the real stack — but **CI is its first
-  execution.** There is no Docker daemon on the development machine, so nothing
-  under `deploy/` has been observed working.
+- Caddy. The rest of `deploy/` has now been run for real against Postgres 16 —
+  the stack came up, `backup.sh` restored the dump it had just taken and failed
+  loudly when `rate_cards` was emptied, and `restore.sh` put a dump back over
+  the live database — but starting Caddy would chase a certificate for a domain
+  that does not resolve, so it stays unexercised until there is a host.
 
 **Phase 4 so far.** The rate lock resolver and the lock-granting rule, both
 engines, fixtures-first and mutation-checked. Only a **fair** deposit opens a
@@ -73,51 +73,58 @@ rough estimate the measurement team reads, and what the variance report compares
 the final against. Order lines are copies that snapshot the rule, band, rate and
 card version that priced them, so a number stays explainable a year later. The`order_no` is server-issued for the same reason as a receipt number.
 
-**The order status pipeline is in**, fixtures-first and mirrored both sides.
-`confirmed → measurement_booked → measured → material_selected → in_production →
-ready → installed → closed`, `cancelled` reachable up to and including `ready`,
-the last two terminal. No shortcuts and no backwards moves — a remeasure is new
-dimensions on the same order, not a rewind. Two guards: `measured` needs every
-line that wanted a visit to have final dimensions, `material_selected` needs
-every deferred material chosen. Cancelling needs a reason of four trimmed
-characters and **touches no money** — B3 is unanswered, so the deposit stays
-exactly where it is. The repository writes the status and its event in one
-transaction or neither.
+**Phase 4's three remaining pieces are all in**, fixtures-first, mirrored on
+both sides and mutation-checked.
 
-**Price override is in.** §6.5's rule, thirteen shared cases, and the
-`price_overrides` table at schema v10. Admin only, mandatory reason, and it must
-**name a person** — `is_admin` with no user id is refused. An override that
-changes nothing is refused too, because a row saying RM552 became RM552 is the
-noise that stops the weekly review being read. Zero is allowed, negative is not,
-a finished order cannot be repriced. `overridesBetween` is the query the
-"overrides this week" screen needs; the screen itself is not built.
+**The order status pipeline.** `confirmed -> measurement_booked -> measured ->
+material_selected -> in_production -> ready -> installed -> closed`, `cancelled`
+reachable up to and including `ready`, the last two terminal. No shortcuts, no
+backwards moves -- a remeasure is new dimensions on the same order, not a
+rewind. Two guards: `measured` needs every line that wanted a visit to have
+final dimensions, `material_selected` needs every deferred material chosen.
+Cancelling needs four trimmed characters and **touches no money** -- B3 is
+unanswered, so the deposit stays exactly where it is.
 
-**Migrations are tested now, but only the last step.** v9 → v10 runs against a
+**Price override.** Admin only, mandatory reason, and it must **name a person**:
+`is_admin` with no user id is refused. An override that changes nothing is
+refused too, because a row saying RM552 became RM552 is the noise that stops the
+weekly review being read. Zero allowed, negative not, a finished order not
+repriced. The audit row, the marker and the event are one transaction or none.
+
+**Orders push to the server.** Migration 0004. `order_no` is server-issued
+(`MLK-2608-0001`, per branch per month) for the same reason a receipt number is.
+The push is idempotent on the device's id and a retry hands back the same
+number. **Nothing rejects an order outright** -- the money is already taken, so
+a status or override the server would not allow is left out and named in the
+result. `POST /api/orders/status` carries every later step, keyed on the **event
+id**, because an order walks the pipeline many times.
+
+**Three screens.** The order screen (status, history, lines, the one next-step
+button, cancel with its reason), the override sheet (admin only, pre-filled,
+says the change is recorded against you), and the weekly override review --
+which §6.5 says *is* the control. All three languages; 42 new strings merged
+through file bytes.
+
+**Still open in Phase 4:** the **declined-deposit report**. The data is captured
+in `deposit_prompts` and nothing shows it, so that acceptance criterion is not
+met. Everything else on the Phase 4 list has a test behind it.
+
+**Migrations are tested, but only the last step.** v9 -> v10 runs against a
 database with data in it. `Migrator.createTable` is `IF NOT EXISTS`, so a loose
-guard on a create step is harmless — but v2, v3, v4 and v7 use `addColumn`,
+guard on a create step is harmless -- but v2, v3, v4 and v7 use `addColumn`,
 where the same mistake throws on launch, and nothing reaches those without a
-captured schema. `dart run drift_dev schema dump` writes one; v10 should be the
-first version to have it.
+captured schema. `dart run drift_dev schema dump` writes one.
 
-**Next in Phase 4, in this order:**
+**Two questions must not be guessed** -- §13 C7 (may a supply-only order skip
+the measurement steps?) and C8 (who may move an order along, or cancel one?).
+The pipeline enforces *what* can happen, not *who* may do it: the override sheet
+checks the role, the status buttons do not.
 
-1. **Push orders to the server.** The device half is stubbed and unused —
-   `settleOrderNo` and `awaitingOrderNo` exist and nothing calls them. Needs an
-   order payload, the outbox route, a server-side ingest that re-validates
-   status transitions and overrides with the mirrored Python modules, migration
-   0004 for `orders` / `order_lines` / `order_events` / `price_overrides`, and
-   `order_no` issuance through the same counter pattern as receipt numbers.
-2. **The order screen** — status, history, the next-step and cancel buttons, and
-   the override sheet. Every string through the ARB files in all three
-   languages; **merge ARB content from files, never from a PowerShell literal**,
-   or the Chinese double-encodes.
-3. **The "overrides this week" screen.** §6.5 is explicit that without it the log
-   is never read and the control does not exist.
-
-**Two questions are open and must not be guessed** — §13 C7 (may a supply-only
-order skip the measurement steps?) and C8 (who may move an order along, or
-cancel one?). The pipeline enforces *what* can happen, not *who* may do it: no
-role check is wired to it.
+**The PowerShell encoding trap is live and has now bitten twice.** Never write a
+`.dart`, `.arb` or `.md` file through `Set-Content`/`Out-File` if it contains
+`§` or Chinese -- it writes ANSI or adds a BOM. Author the content with the
+Write tool, or merge it with a Python script that reads and writes explicit
+UTF-8 from files.
 
 **The real price list is in.** `shared/rate-card-fair-2026-08.json` carries the
 MITC Aug 2026 fair list in full — 77 rows, two delivery zones, three product
