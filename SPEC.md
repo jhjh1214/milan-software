@@ -1058,12 +1058,27 @@ First phase with running costs, so maintenance billing starts here.
 - Docker Compose deploy, nightly backup, **tested restore**
 
 **Acceptance**
-- [ ] Same fixtures pass in both Dart and Python suites, in CI
-- [ ] Quote offline for one hour, restore network, everything lands **once**
-- [ ] Double-submit the same outbox row: no duplicate created
-- [ ] Publish a rate change; every device picks it up on next connect
-- [ ] Token killed mid-fair simulation: app keeps working offline
+- [x] Same fixtures pass in both Dart and Python suites, in CI
+- [x] Quote offline for one hour, restore network, everything lands **once**
+      -- `test/sync/outbox_test.dart`. The hour is simulated, not waited out:
+      the queue does not care how long it sat, only that draining it twice
+      sends once.
+- [x] Double-submit the same outbox row: no duplicate created
+      -- both sides. `backend/tests/test_ingest.py` was written before the
+      endpoint, per 9.2, and ten retries still make one quote.
+- [x] Publish a rate change; every device picks it up on next connect
+      -- `test_api.py::test_every_device_sees_the_new_card_on_its_next_pull`
+      and `test/ui/demo_script_test.dart`.
+- [x] Token killed mid-fair simulation: app keeps working offline
+      -- the card already pulled still prices, and queued quotes are kept
+      rather than parked. Revoking is the control that replaces expiry;
+      sessions never expire on their own (12).
 - [ ] Database restored from backup into a scratch container successfully
+      -- `deploy/backup.sh` restores every dump it takes and fails the run if
+      the restore comes back empty, at the wrong migration, or with no rate
+      cards. CI runs it against the real stack, **and CI is its first
+      execution**: there is no Docker daemon on the development machine, so
+      nothing here has been observed working yet.
 
 ---
 

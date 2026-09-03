@@ -12,24 +12,50 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 
 ## Current state
 
-**Phase 1 complete. Phase 2 functionally complete.** Flutter only, no server yet.
+**Phases 1 and 2 complete. Phase 3 functionally complete** — Flutter app,
+FastAPI backend, Postgres, and sync between them.
 
-Built and green: `Length`, `Money`, `Rational`, the unit parser, the soft
-warnings, the pricing engine over the real 77-row fair card, the custom keypad,
-the quote wizard in zh / en / ms, local persistence (a quote survives a
+Built and green on the device: `Length`, `Money`, `Rational`, the unit parser,
+the soft warnings, the pricing engine over the real 77-row fair card, the custom
+keypad, the quote wizard in zh / en / ms, local persistence (a quote survives a
 force-quit), special-track and add-on upgrades, whole-order product rules, the
-delivery zone charge, customer details, a photo per window, the on-device
-trilingual PDF, and **admin price editing by CSV with a diff preview**.
+delivery zone charge, customer details, a photo per window, and the on-device
+trilingual PDF.
 
-282 tests; 100% coverage on `Length`, `Money` and `Rational`. Release APK 25.0MB
-against the 30MB target.
+Built and green on the server: the Python engine passing the same fixtures, the
+sync endpoints, Alembic migrations with a test that they match the models, users
+and roles, and rate card publishing. **337 Dart tests, 147 Python tests.** 100%
+coverage on `Length`, `Money` and `Rational`.
 
-**The two Phase 2 criteria still open need a stopwatch, not a test:** a
-six-window house quoted in under four minutes, and an untrained person producing
-a correct quote within thirty. Run both before the client meeting.
+**Prices are server-owned now.** One card is published and pulled by every
+handset. On-device editing is read-only except for an admin, and an admin's
+change is *published* rather than saved — it needs a connection and is refused
+without one, because a price change sitting in an outbox would be live on one
+phone and no other. A leftover Phase 2 local edit is replaced on the first
+successful pull, whatever version it claims: that number was invented on the
+device, so comparing it against the server's means nothing.
 
-Next: Phase 3, the FastAPI backend and sync, where the Python engine must match
-`shared/pricing-fixtures.json` case for case.
+**Sessions never expire** (SPEC.md §12). A token that expires does so mid-fair,
+with no signal, holding a customer's deposit. Revocation is the control instead,
+plus scrypt on PINs, a login throttle that backs off but never locks out, and an
+append-only attempt ledger.
+
+Release APK **22.4MB arm64, `--split-per-abi`**, against the 30MB target. Build
+that way and measure that way: a single fat APK carries all three ABIs and is
+62.9MB, which is not what anybody installs.
+
+**Still open, and each needs something a test cannot give:**
+
+- The two Phase 2 criteria that need a stopwatch — a six-window house quoted in
+  under four minutes, and an untrained person producing a correct quote within
+  thirty. Run both before the client meeting.
+- The backup restore drill. `deploy/backup.sh` restores every dump it takes and
+  fails loudly if the restore comes back empty, at the wrong migration, or with
+  no rate cards, and CI runs it against the real stack — but **CI is its first
+  execution.** There is no Docker daemon on the development machine, so nothing
+  under `deploy/` has been observed working.
+
+Next: Phase 4, deposits, rate locks and orders.
 
 **The real price list is in.** `shared/rate-card-fair-2026-08.json` carries the
 MITC Aug 2026 fair list in full — 77 rows, two delivery zones, three product

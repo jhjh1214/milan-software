@@ -246,6 +246,31 @@ void main() {
       expect(result.failure, SyncFailure.unauthenticated);
     });
 
+    test('a token killed mid-fair leaves the handset quoting', () async {
+      // The Phase 3 acceptance criterion. An admin revokes a lost phone, or a
+      // session is ended by mistake, and the part-timer holding it is halfway
+      // through a customer. The card already pulled is still there and still
+      // prices.
+      final h = harness();
+      await h.sync.pull(credentials);
+
+      h.server.validTokens.clear();
+      final result = await h.sync.pull(credentials);
+
+      expect(result.failure, SyncFailure.unauthenticated);
+      final card = await h.store.load(PriceList.fair);
+      expect(card.version, 1);
+      expect(
+        card.rules.firstWhere((r) => r.id == 'night-curtain-lo').rateSen,
+        4600,
+        reason: 'the prices it already had are untouched',
+      );
+      expect(
+        (await h.store.provenance(PriceList.fair)).origin,
+        RateCardOrigin.server,
+      );
+    });
+
     test('what landed before a failure is kept', () async {
       // Stopping at the first failure must not roll back the list that already
       // arrived — that would waste the only connection of the day.
