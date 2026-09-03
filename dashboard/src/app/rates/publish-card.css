@@ -1,0 +1,212 @@
+/* Two steps, and the second one is meant to feel like a step. */
+
+:host {
+  display: block;
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+h1 {
+  margin: 0 0 16px;
+  font-size: 24px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+h2 {
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #56637a;
+  margin: 20px 0 8px;
+}
+
+h2.warn {
+  color: #92400e;
+}
+
+.which {
+  border: none;
+  padding: 0;
+  margin: 0 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.which legend {
+  float: left;
+  width: 100%;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #56637a;
+  margin-bottom: 6px;
+}
+
+.which button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  font-size: 14px;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.which button.on {
+  background: #1e3a5f;
+  border-color: #1e3a5f;
+  color: #fff;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #56637a;
+  margin-bottom: 6px;
+}
+
+textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  resize: vertical;
+}
+
+textarea:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.or {
+  margin: 8px 0 16px;
+  font-size: 14px;
+  color: #56637a;
+}
+
+button.primary,
+button.danger {
+  min-height: 48px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button.primary {
+  background: #1e3a5f;
+}
+
+/* The publish button is the one that changes what every handset quotes
+   tomorrow, and it should not look like the button that only shows a list. */
+button.danger {
+  background: #b91c1c;
+  margin-top: 16px;
+}
+
+button:disabled {
+  background: #94a3b8;
+  cursor: default;
+}
+
+.diff {
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.summary {
+  margin: 0;
+  font-size: 15px;
+}
+
+.net {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.nothing {
+  margin: 0;
+  color: #56637a;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th {
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #56637a;
+  padding: 0 12px 8px 0;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+td {
+  padding: 8px 12px 8px 0;
+  border-bottom: 1px solid #f1f3f5;
+}
+
+/* Right-aligned and tabular, so an outlier is visible without reading any
+   individual number. */
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.num.down {
+  color: #92400e;
+}
+
+ul {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 14px;
+}
+
+.note {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #56637a;
+}
+
+.done {
+  padding: 16px;
+  border: 1px solid #047857;
+  border-radius: 8px;
+  background: #ecfdf5;
+  color: #065f46;
+  margin-bottom: 16px;
+}
+
+.failure {
+  padding: 12px 16px;
+  border: 1px solid #b91c1c;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #7f1d1d;
+  margin: 12px 0;
+}

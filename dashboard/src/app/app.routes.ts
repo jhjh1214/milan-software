@@ -45,4 +45,13 @@ export const routes: Routes = [
       import('./overrides/override-review').then((m) => m.OverrideReview),
     title: 'Prices changed by hand',
   },
+  {
+    // Admin only, server-enforced. Publishing changes what every handset
+    // quotes tomorrow.
+    path: 'rates',
+    canActivate: [signedIn],
+    loadComponent: () =>
+      import('./rates/publish-card').then((m) => m.PublishCard),
+    title: 'Publish a price list',
+  },
 ];

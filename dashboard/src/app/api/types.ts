@@ -155,3 +155,43 @@ export const PIPELINE: readonly OrderStatus[] = [
   'installed',
   'closed',
 ];
+
+/** One rule whose price a publish would move. */
+export interface RateChangeOut {
+  readonly rule_id: string;
+  readonly label: string;
+  /** Integer sen. Null when the rule is being added or removed. */
+  readonly old_rate_sen: number | null;
+  readonly new_rate_sen: number | null;
+  readonly old_mvp_rate_sen: number | null;
+  readonly new_mvp_rate_sen: number | null;
+  /**
+   * What the standard rate moves by. Null for an added or removed rule —
+   * "moved by RM46" is a sentence about a rule that existed before.
+   */
+  readonly delta_sen: number | null;
+}
+
+/** Everything a publish would do, before it does any of it. */
+export interface CardDiffOut {
+  readonly changed: readonly RateChangeOut[];
+  readonly added: readonly RateChangeOut[];
+  /**
+   * A product that stops being quotable is at least as big a change as one
+   * that gets dearer, and it is the one nobody notices.
+   */
+  readonly removed: readonly RateChangeOut[];
+  /** Counted, not listed. A preview is only readable if it shows what moves. */
+  readonly unchanged: number;
+  /** True when publishing would create a version nobody can tell apart. */
+  readonly is_empty: boolean;
+  readonly total_delta_sen: number;
+}
+
+export interface PublishOut {
+  readonly version: number;
+  readonly list_id: string;
+  readonly published_by: string | null;
+}
+
+export type ListId = 'fair' | 'standard';

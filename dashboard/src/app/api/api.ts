@@ -21,11 +21,14 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import type {
+  CardDiffOut,
   Channel,
+  ListId,
   OrderDetailOut,
   OrderStatus,
   OrdersOut,
   OverridesOut,
+  PublishOut,
 } from './types';
 
 /** Where the server is. Set once, at build time. */
@@ -90,6 +93,40 @@ export class Api {
       params: new HttpParams().set('start', start).set('end', end),
       headers: this.authorised(),
     });
+  }
+
+  /**
+   * What publishing this card would change. Changes nothing itself.
+   *
+   * The diff is computed on the server, because the server is the authority on
+   * pricing — a diff worked out here would be a different implementation from
+   * the one that decides what actually lands.
+   */
+  previewCard(
+    listId: ListId,
+    payload: unknown,
+    language: string,
+  ): Observable<CardDiffOut> {
+    return this.http.post<CardDiffOut>(
+      `${API_BASE}/rate-cards/preview`,
+      { list_id: listId, payload, language },
+      { headers: this.authorised() },
+    );
+  }
+
+  /**
+   * Publishes a card. Admin only, server-enforced.
+   *
+   * A price change publishes a **new version**; old rows are never updated in
+   * place and never deleted, so a quote taken at a fair can still be explained
+   * months later.
+   */
+  publishCard(listId: ListId, payload: unknown): Observable<PublishOut> {
+    return this.http.post<PublishOut>(
+      `${API_BASE}/rate-cards`,
+      { list_id: listId, payload },
+      { headers: this.authorised() },
+    );
   }
 
   private authorised(): Record<string, string> {

@@ -1,0 +1,130 @@
+<h1>Publish a price list</h1>
+
+@if (stage() === 'published') {
+  <p class="done" role="status">
+    Published as version {{ publishedVersion() }}. Every handset picks it up on
+    its next pull.
+  </p>
+  <button type="button" class="primary" (click)="startAgain()">
+    Publish another
+  </button>
+} @else {
+  <fieldset class="which">
+    <legend>Which list</legend>
+    @for (id of lists; track id) {
+      <button
+        type="button"
+        [class.on]="listId() === id"
+        [attr.aria-pressed]="listId() === id"
+        (click)="chooseList(id)"
+      >
+        {{ id }}
+      </button>
+    }
+  </fieldset>
+
+  <label for="card">The card, as JSON</label>
+  <textarea
+    id="card"
+    rows="10"
+    spellcheck="false"
+    [value]="text()"
+    (input)="onText($any($event.target).value)"
+  ></textarea>
+
+  <p class="or">
+    or
+    <input type="file" accept=".json,application/json" (change)="onFile($event)" />
+  </p>
+
+  @if (failure(); as message) {
+    <p class="failure" role="alert">{{ message }}</p>
+  }
+
+  <button
+    type="button"
+    class="primary"
+    [disabled]="!canPreview()"
+    (click)="preview()"
+  >
+    {{ busy() ? 'Working…' : 'Show me what changes' }}
+  </button>
+
+  @if (diff(); as d) {
+    <section class="diff" aria-live="polite">
+      @if (d.is_empty) {
+        <!-- Publishing this would create a version nobody can tell apart from
+             the live one, and every handset would pull it for no reason. -->
+        <p class="nothing">
+          Nothing would change. {{ d.unchanged }} rules, all at the same price.
+        </p>
+      } @else {
+        <p class="summary">
+          {{ d.changed.length }} prices move, {{ d.added.length }} added,
+          {{ d.removed.length }} removed, {{ d.unchanged }} unchanged.
+          @if (d.changed.length > 0) {
+            <span class="net">Net {{ money(d.total_delta_sen) }}.</span>
+          }
+        </p>
+
+        @if (d.changed.length > 0) {
+          <h2>Prices that move</h2>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Product</th>
+                <th scope="col">From</th>
+                <th scope="col">To</th>
+                <th scope="col">Change</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Biggest move first, regardless of direction: the row that
+                   will start an argument is the row read first. -->
+              @for (c of d.changed; track c.rule_id) {
+                <tr>
+                  <td>{{ c.label }}</td>
+                  <td class="num">{{ money(c.old_rate_sen ?? 0) }}</td>
+                  <td class="num">{{ money(c.new_rate_sen ?? 0) }}</td>
+                  <td class="num" [class.down]="(c.delta_sen ?? 0) < 0">
+                    {{ delta(c) }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+
+        @if (d.removed.length > 0) {
+          <!-- A product that stops being quotable is at least as big a change
+               as one that gets dearer, and it is the one nobody notices. -->
+          <h2 class="warn">Products that disappear</h2>
+          <ul>
+            @for (c of d.removed; track c.rule_id) {
+              <li>{{ c.label }} — was {{ money(c.old_rate_sen ?? 0) }}</li>
+            }
+          </ul>
+        }
+
+        @if (d.added.length > 0) {
+          <h2>New products</h2>
+          <ul>
+            @for (c of d.added; track c.rule_id) {
+              <li>{{ c.label }} — {{ money(c.new_rate_sen ?? 0) }}</li>
+            }
+          </ul>
+        }
+      }
+    </section>
+
+    @if (canPublish()) {
+      <button type="button" class="danger" (click)="publish()">
+        {{ busy() ? 'Publishing…' : 'Publish this' }}
+      </button>
+      <p class="note">
+        This becomes the live price list. The one it replaces is kept, so a
+        quote taken against it can still be explained.
+      </p>
+    }
+  }
+}
