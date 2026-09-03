@@ -225,7 +225,11 @@ void main() {
     expect(order.status, 'confirmed');
     expect(order.estimateTotalSen, 55200);
     expect(order.depositPaidSen, 30000);
-    expect(order.balanceDueSen, 25200);
+    expect(
+      order.balanceDueSen,
+      0,
+      reason: 'no balance is stated until the tape has been out',
+    );
     expect(
       order.orderNo,
       isNull,
@@ -252,8 +256,18 @@ void main() {
 
     expect(find.textContaining('订单已确认'), findsOneWidget);
     expect(find.textContaining('订单号等同步'), findsOneWidget);
-    expect(find.textContaining('已付 RM 300.00'), findsOneWidget);
-    expect(find.textContaining('尚欠 RM 252.00'), findsOneWidget);
+    expect(find.textContaining('已收订金 RM 300.00'), findsOneWidget);
+
+    // What the RM300 actually bought: a held rate, with the date it runs to
+    // and the list version the eventual bill is worked out from.
+    expect(find.textContaining('窗帘促销价锁到'), findsOneWidget);
+    expect(find.textContaining('第 1 版'), findsOneWidget);
+
+    // And no balance. Client, Sep 2026: "no need to say owe how much based on
+    // quotation." A figure from an estimate is one the customer remembers and
+    // the tape contradicts.
+    expect(find.textContaining('尚欠'), findsNothing);
+    expect(find.text('RM 252.00'), findsNothing);
   });
 
   testWidgets('the quote survives conversion untouched', (tester) async {
@@ -320,7 +334,7 @@ void main() {
     expect(
       updated.balanceDueSen,
       0,
-      reason: 'overpaid owes nothing, not a negative that reads as a refund',
+      reason: 'still no balance: the estimate is not a bill',
     );
 
     final history = await OrderRepository(db).historyOf(order.id);

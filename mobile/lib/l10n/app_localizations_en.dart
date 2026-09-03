@@ -754,4 +754,22 @@ class LEn extends L {
   @override
   String get orderDueNote =>
       'Against the estimate. After measuring it can only stay the same or fall.';
+
+  @override
+  String orderDepositTaken(String amount) {
+    return 'Deposit $amount taken';
+  }
+
+  @override
+  String orderRateLocked(String category, String date) {
+    return '$category promo rate held until $date';
+  }
+
+  @override
+  String orderRateReference(int version) {
+    return 'Billed at the rates in force then (list version $version).';
+  }
+
+  @override
+  String get orderMeasureNext => 'The actual price comes after measuring.';
 }

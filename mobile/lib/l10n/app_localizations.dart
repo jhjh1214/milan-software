@@ -1363,6 +1363,30 @@ abstract class L {
   /// In zh, this message translates to:
   /// **'按估价算。量好之后只会一样或更少。'**
   String get orderDueNote;
+
+  /// No description provided for @orderDepositTaken.
+  ///
+  /// In zh, this message translates to:
+  /// **'已收订金 {amount}'**
+  String orderDepositTaken(String amount);
+
+  /// No description provided for @orderRateLocked.
+  ///
+  /// In zh, this message translates to:
+  /// **'{category}促销价锁到 {date}'**
+  String orderRateLocked(String category, String date);
+
+  /// No description provided for @orderRateReference.
+  ///
+  /// In zh, this message translates to:
+  /// **'按当时的价格表（第 {version} 版）算，账单以此为准。'**
+  String orderRateReference(int version);
+
+  /// No description provided for @orderMeasureNext.
+  ///
+  /// In zh, this message translates to:
+  /// **'量好之后才出实际价钱。'**
+  String get orderMeasureNext;
 }
 
 class _LDelegate extends LocalizationsDelegate<L> {

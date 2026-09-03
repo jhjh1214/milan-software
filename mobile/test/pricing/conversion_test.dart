@@ -139,19 +139,22 @@ void main() {
       // Confirming around it would put a number on an order that cannot be
       // explained to the customer it is billed to.
       final result = confirm(
-        lines: [convertible(), ConvertibleLine(
-          id: 'broken',
-          sortOrder: 1,
-          room: '书房',
-          layer: 'night',
-          width: Length.tenths(36576),
-          height: null,
-          basis: const RateBasis(
-            source: RateSource.fairCurrent,
-            rateCardVersion: 1,
-            discountPct: Rational.zero,
+        lines: [
+          convertible(),
+          ConvertibleLine(
+            id: 'broken',
+            sortOrder: 1,
+            room: '书房',
+            layer: 'night',
+            width: Length.tenths(36576),
+            height: null,
+            basis: const RateBasis(
+              source: RateSource.fairCurrent,
+              rateCardVersion: 1,
+              discountPct: Rational.zero,
+            ),
           ),
-        )],
+        ],
       );
       expect(result.refusedBecause, ConversionRefusal.unpricedLine);
     });
@@ -297,22 +300,28 @@ void main() {
       expect(line.estHeight!.tmm, 27432);
     });
 
-    test('the balance is against the estimate, so it can only fall', () {
+    test('no balance is worked out from the estimate', () {
+      // Client, Sep 2026: "no need to say owe how much based on quotation,
+      // only say deposit is for fair lock price rate." A figure derived from
+      // an estimate is one the customer remembers and the tape contradicts,
+      // and §8.5 promises the final can only fall.
       final order = confirm(
         estimate: Money.sen(120000),
         deposit: Money.sen(30000),
       ).order!;
-      expect(order.balanceDue, Money.sen(90000));
+
+      expect(order.estimateTotal, Money.sen(120000));
+      expect(order.depositPaid, Money.sen(30000));
+      // There is no `balanceDue` to read. The type does not offer one, so no
+      // screen can accidentally show it.
     });
 
-    test('an overpaid deposit does not make the balance negative', () {
-      // A customer who hands over RM500 on a RM300 quote owes nothing, not
-      // minus RM200 — and a negative balance would read as a refund due.
-      final order = confirm(
-        estimate: Money.sen(30000),
-        deposit: Money.sen(50000),
-      ).order!;
-      expect(order.balanceDue, Money.zero);
+    test('what the deposit bought is the rate, and it says which', () {
+      // "must have price rate at that time reference for that bill."
+      final order = confirm().order!;
+      expect(order.heldRateReference, 1);
+      expect(order.lines.single.appliedRateCardVersion, 1);
+      expect(order.lines.single.rateSen, 4600);
     });
   });
 
@@ -321,6 +330,10 @@ void main() {
     // until it arrives. Two part-timers offline at one fair would produce the
     // same one, on a document the customer takes away.
     final order = confirm().order!;
-    expect(order.id, 'order-1', reason: 'a client-generated UUID, not a number');
+    expect(
+      order.id,
+      'order-1',
+      reason: 'a client-generated UUID, not a number',
+    );
   });
 }

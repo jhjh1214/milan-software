@@ -117,11 +117,21 @@ class QuoteScreen extends ConsumerWidget {
   }
 }
 
-/// Says that this quote is now a confirmed sale, and what is left to pay.
+/// Says that this quote is now a confirmed sale, and **what the deposit
+/// bought** — which is a held rate, not a part-payment of a bill.
+///
+/// Client, Sep 2026: *"no need to say owe how much based on quotation, only say
+/// deposit is for fair lock price rate, must have price rate at that time
+/// reference for that bill."*
+///
+/// So no balance is shown. A figure worked out from an estimate is one the
+/// customer will remember and the tape will contradict, and §8.5 promises the
+/// final can only fall. What is shown instead is the thing that is actually
+/// true and actually promised: the rate, the category it covers, the date it
+/// runs to, and the list version the eventual bill is worked out from.
 ///
 /// Only appears once money has been taken — §3: the deposit *is* the
-/// confirmation. Before that there is nothing to say, and a banner promising an
-/// order nobody has paid for would be the wrong kind of encouraging.
+/// confirmation.
 class _OrderBanner extends ConsumerWidget {
   const _OrderBanner();
 
@@ -130,6 +140,9 @@ class _OrderBanner extends ConsumerWidget {
     final l = L.of(context);
     final order = ref.watch(currentOrderProvider).valueOrNull;
     if (order == null) return const SizedBox.shrink();
+
+    final locks = ref.watch(currentLocksProvider).valueOrNull ?? const [];
+    final today = ref.watch(todayProvider);
 
     return Container(
       width: double.infinity,
@@ -159,14 +172,30 @@ class _OrderBanner extends ConsumerWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  l.orderPaidAndDue(
-                    Money.sen(order.depositPaidSen).format(),
-                    Money.sen(order.balanceDueSen).format(),
-                  ),
+                  l.orderDepositTaken(Money.sen(order.depositPaidSen).format()),
                   style: AppText.caption,
                 ),
+
+                // What the RM300 actually bought, per category it covers.
+                for (final lock in locks)
+                  if (lock.isActiveOn(today))
+                    Text(
+                      l.orderRateLocked(
+                        categoryLabel(l, lock.category),
+                        formatDate(lock.heldUntil),
+                      ),
+                      style: AppText.caption.copyWith(color: AppColors.accent),
+                    ),
+
                 Text(
-                  l.orderDueNote,
+                  // The reference the eventual bill is worked out from.
+                  l.orderRateReference(order.pinnedRateCardVersion),
+                  style: AppText.caption.copyWith(
+                    color: AppColors.mutedForeground,
+                  ),
+                ),
+                Text(
+                  l.orderMeasureNext,
                   style: AppText.caption.copyWith(
                     color: AppColors.mutedForeground,
                   ),

@@ -40,7 +40,9 @@ class OrderRepository {
                 deliveryChargeSen: Value(draft.deliveryCharge.sen),
                 estimateTotalSen: draft.estimateTotal.sen,
                 depositPaidSen: Value(draft.depositPaid.sen),
-                balanceDueSen: Value(draft.balanceDue.sen),
+                // Left at zero until final pricing. A balance worked out from
+                // an estimate is a number the customer remembers and the tape
+                // contradicts, and §8.5 promises the final can only fall.
                 hasUnmeasuredLines: Value(draft.hasUnmeasuredLines),
                 confirmedByUserId: Value(byUserId),
                 confirmedAt: draft.confirmedAt,
@@ -118,8 +120,10 @@ class OrderRepository {
 
   /// Adds a later payment to an order that already exists.
   ///
-  /// The balance moves with it, and the event log gains a row. The estimate
-  /// never moves — it is the record of what was quoted.
+  /// Only the money taken moves. The estimate never does — it is the record of
+  /// what was quoted — and `balance_due_sen` stays untouched until final
+  /// pricing, because there is no honest balance to state before the tape has
+  /// been out.
   Future<void> recordFurtherPayment({
     required String orderId,
     required Money amount,
@@ -130,14 +134,8 @@ class OrderRepository {
       _db.orders,
     )..where((o) => o.id.equals(orderId))).getSingle();
 
-    final paid = order.depositPaidSen + amount.sen;
     await (_db.update(_db.orders)..where((o) => o.id.equals(orderId))).write(
-      OrdersCompanion(
-        depositPaidSen: Value(paid),
-        // Against the estimate, and never below zero: a customer who has
-        // overpaid owes nothing, not a negative amount that reads as a refund.
-        balanceDueSen: Value((order.estimateTotalSen - paid).clamp(0, 1 << 62)),
-      ),
+      OrdersCompanion(depositPaidSen: Value(order.depositPaidSen + amount.sen)),
     );
 
     await _db

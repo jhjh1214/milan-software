@@ -315,5 +315,13 @@
   "orderNoPending": "订单号等同步",
   "orderPaidAndDue": "已付 {paid}　尚欠 {balance}",
   "@orderPaidAndDue": { "placeholders": { "paid": { "type": "String" }, "balance": { "type": "String" } } },
-  "orderDueNote": "按估价算。量好之后只会一样或更少。"
+  "orderDueNote": "按估价算。量好之后只会一样或更少。",
+
+  "orderDepositTaken": "已收订金 {amount}",
+  "@orderDepositTaken": { "placeholders": { "amount": { "type": "String" } } },
+  "orderRateLocked": "{category}促销价锁到 {date}",
+  "@orderRateLocked": { "placeholders": { "category": { "type": "String" }, "date": { "type": "String" } } },
+  "orderRateReference": "按当时的价格表（第 {version} 版）算，账单以此为准。",
+  "@orderRateReference": { "placeholders": { "version": { "type": "int" } } },
+  "orderMeasureNext": "量好之后才出实际价钱。"
 }

@@ -731,4 +731,22 @@ class LZh extends L {
 
   @override
   String get orderDueNote => '按估价算。量好之后只会一样或更少。';
+
+  @override
+  String orderDepositTaken(String amount) {
+    return '已收订金 $amount';
+  }
+
+  @override
+  String orderRateLocked(String category, String date) {
+    return '$category促销价锁到 $date';
+  }
+
+  @override
+  String orderRateReference(int version) {
+    return '按当时的价格表（第 $version 版）算，账单以此为准。';
+  }
+
+  @override
+  String get orderMeasureNext => '量好之后才出实际价钱。';
 }

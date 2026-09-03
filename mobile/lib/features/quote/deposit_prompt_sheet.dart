@@ -256,11 +256,23 @@ int _subtotalFor(WidgetRef ref, DepositGap gap) {
   return total;
 }
 
-String _categoryLabel(L l, DepositCategory category) => switch (category) {
+/// Every lock the current quote's customer holds, in whatever state.
+///
+/// Watched by the order banner, which says what the RM300 actually bought.
+final currentLocksProvider = FutureProvider<List<CategoryLock>>((ref) async {
+  final quote = await ref.watch(quoteProvider.future);
+  return ref.watch(lockRepositoryProvider).locksFor(_customerKeyFor(quote));
+});
+
+/// The category a deposit covers, in the reader's own language.
+String categoryLabel(L l, DepositCategory category) => switch (category) {
   DepositCategory.curtain => l.categoryCurtain,
   DepositCategory.flooring => l.categoryFlooring,
   DepositCategory.wallpaper => l.categoryWallpaper,
 };
+
+String _categoryLabel(L l, DepositCategory category) =>
+    categoryLabel(l, category);
 
 class _DepositSheet extends StatelessWidget {
   final DepositGap gap;

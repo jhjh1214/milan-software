@@ -753,4 +753,22 @@ class LMs extends L {
   @override
   String get orderDueNote =>
       'Berdasarkan anggaran. Selepas diukur ia hanya boleh kekal atau turun.';
+
+  @override
+  String orderDepositTaken(String amount) {
+    return 'Deposit $amount diterima';
+  }
+
+  @override
+  String orderRateLocked(String category, String date) {
+    return 'Harga promosi $category dikunci hingga $date';
+  }
+
+  @override
+  String orderRateReference(int version) {
+    return 'Dibilkan pada kadar ketika itu (senarai versi $version).';
+  }
+
+  @override
+  String get orderMeasureNext => 'Harga sebenar keluar selepas diukur.';
 }

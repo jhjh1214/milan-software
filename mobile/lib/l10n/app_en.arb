@@ -236,5 +236,10 @@
   "orderConfirmed": "Order confirmed",
   "orderNoPending": "Order number pending sync",
   "orderPaidAndDue": "Paid {paid} · {balance} to go",
-  "orderDueNote": "Against the estimate. After measuring it can only stay the same or fall."
+  "orderDueNote": "Against the estimate. After measuring it can only stay the same or fall.",
+
+  "orderDepositTaken": "Deposit {amount} taken",
+  "orderRateLocked": "{category} promo rate held until {date}",
+  "orderRateReference": "Billed at the rates in force then (list version {version}).",
+  "orderMeasureNext": "The actual price comes after measuring."
 }

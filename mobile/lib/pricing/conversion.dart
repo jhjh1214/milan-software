@@ -136,8 +136,14 @@ class OrderDraft {
   /// variance report has something to compare against.
   final Money estimateTotal;
 
-  /// Money taken so far, and what is left against the **estimate**. The real
-  /// balance is not known until the site measurement is in.
+  /// Money taken so far.
+  ///
+  /// **What is left is deliberately not computed here.** Client, Sep 2026:
+  /// *"no need to say owe how much based on quotation, only say deposit is for
+  /// fair lock price rate."* A balance derived from an estimate is a number the
+  /// customer will remember and the tape will contradict, and §8.5 promises the
+  /// final can only fall. The balance becomes real at final pricing, and not a
+  /// moment earlier.
   final Money depositPaid;
 
   final List<OrderLineDraft> lines;
@@ -158,13 +164,16 @@ class OrderDraft {
     this.deliveryCharge = Money.zero,
   });
 
-  /// Against the estimate, so it can only fall once the tape comes out.
-  Money get balanceDue =>
-      Money.sen((estimateTotal.sen - depositPaid.sen).clamp(0, 1 << 62));
-
   /// True while any line is still on estimated dimensions. Everything is, at
   /// conversion.
   bool get hasUnmeasuredLines => lines.any((l) => l.needsMeasuring);
+
+  /// The card version every line was priced at.
+  ///
+  /// What the deposit actually bought: *"must have price rate at that time
+  /// reference for that bill."* The final invoice is worked out from this
+  /// version's rates, whatever has been published since.
+  int get heldRateReference => pinnedRateCardVersion;
 }
 
 /// Why a quote cannot become an order yet.

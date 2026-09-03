@@ -236,5 +236,10 @@
   "orderConfirmed": "Pesanan disahkan",
   "orderNoPending": "Nombor pesanan menunggu penyegerakan",
   "orderPaidAndDue": "Dibayar {paid} · baki {balance}",
-  "orderDueNote": "Berdasarkan anggaran. Selepas diukur ia hanya boleh kekal atau turun."
+  "orderDueNote": "Berdasarkan anggaran. Selepas diukur ia hanya boleh kekal atau turun.",
+
+  "orderDepositTaken": "Deposit {amount} diterima",
+  "orderRateLocked": "Harga promosi {category} dikunci hingga {date}",
+  "orderRateReference": "Dibilkan pada kadar ketika itu (senarai versi {version}).",
+  "orderMeasureNext": "Harga sebenar keluar selepas diukur."
 }
