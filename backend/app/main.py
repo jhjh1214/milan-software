@@ -18,6 +18,7 @@ what replaces expiry.
 from __future__ import annotations
 
 from collections.abc import Iterator
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Response, status
@@ -29,11 +30,15 @@ from .api.schemas import (
     CategoryLockOut,
     DepositPromptIn,
     DepositPromptResult,
+    DepositPromptsOut,
     LockPushResult,
     LocksOut,
     LoginIn,
+    OrderDetailOut,
     OrderIn,
     OrderResult,
+    OrdersOut,
+    OverridesOut,
     PaymentIn,
     PaymentResult,
     PublishIn,
@@ -66,6 +71,13 @@ from .services.ingest import (
     push_order,
     push_payment,
     push_quote,
+)
+from .services.reads import (
+    MAX_PAGE,
+    list_orders,
+    order_detail,
+    overrides_between,
+    prompts_between,
 )
 
 app = FastAPI(
@@ -402,6 +414,86 @@ def push_prompt_route(
     """
     user, _ = who
     return push_deposit_prompt(session, payload, by=user)
+
+
+@app.get("/api/orders", response_model=OrdersOut)
+def orders_route(
+    session: SessionDep,
+    who: CurrentDep,
+    status_filter: str | None = Query(default=None, alias="status"),
+    channel: str | None = None,
+    confirmed_from: datetime | None = None,
+    confirmed_to: datetime | None = None,
+    limit: int = Query(default=MAX_PAGE, ge=1, le=MAX_PAGE),
+    offset: int = Query(default=0, ge=0),
+) -> OrdersOut:
+    """The order board. SPEC.md 11 Phase 5.
+
+    Filters combine and are all optional. `confirmed_from` is inclusive and
+    `confirmed_to` exclusive, so one order lands in exactly one period.
+
+    Sorted by how soon a hold runs out, nulls last: a hold that expires unused
+    is a customer who paid RM300 and got nothing, so those are the cards that
+    have to be at the top.
+
+    `total` is what matches the filter, not what is on this page -- a board that
+    cannot say "50 of 512" leaves somebody guessing whether the filter worked.
+    """
+    _ = who
+    orders, total = list_orders(
+        session,
+        status=status_filter,
+        channel=channel,
+        confirmed_from=confirmed_from,
+        confirmed_to=confirmed_to,
+        limit=limit,
+        offset=offset,
+    )
+    return OrdersOut(orders=orders, total=total)
+
+
+@app.get("/api/orders/{order_id}", response_model=OrderDetailOut)
+def order_detail_route(
+    order_id: str, session: SessionDep, who: CurrentDep
+) -> OrderDetailOut:
+    """One order, with its lines, its history and every price moved by hand.
+
+    All in one response: somebody looking at an order is almost always
+    answering "why is this number what it is", and three round trips to answer
+    that is three chances to give up.
+    """
+    _ = who
+    detail = order_detail(session, order_id)
+    if detail is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such order")
+    return detail
+
+
+@app.get("/api/overrides", response_model=OverridesOut)
+def overrides_route(
+    start: datetime, end: datetime, session: SessionDep, admin: AdminDep
+) -> OverridesOut:
+    """Every price moved by hand in a window. SPEC.md 6.5.
+
+    Admin only. The log names people, and it is the control on a power only
+    admins have -- handing it to everybody would make it a leaderboard.
+    """
+    _ = admin
+    return OverridesOut(overrides=overrides_between(session, start=start, end=end))
+
+
+@app.get("/api/deposit-prompts", response_model=DepositPromptsOut)
+def prompts_route(
+    start: datetime, end: datetime, session: SessionDep, admin: AdminDep
+) -> DepositPromptsOut:
+    """Every answer to the category prompt in a window. SPEC.md 6.2.
+
+    Raw rows, not a summary. The dashboard will want to slice these by
+    salesperson and by fair, and aggregating here would mean two summaries that
+    have to agree and eventually will not.
+    """
+    _ = admin
+    return DepositPromptsOut(prompts=prompts_between(session, start=start, end=end))
 
 
 @app.post("/api/quotes", response_model=PushResult)

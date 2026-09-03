@@ -384,3 +384,123 @@ class DepositPromptIn(BaseModel):
 class DepositPromptResult(BaseModel):
     prompt_id: str
     duplicate: bool
+
+
+class OrderSummary(BaseModel):
+    """One card on the order board. §11 Phase 5.
+
+    Deliberately not the whole order. The board shows 500 of these and sending
+    every line with each would make the one screen the office lives in slow
+    enough that people stop opening it.
+    """
+
+    id: str
+    order_no: str | None
+    status: str
+    channel: str
+    customer_name: str | None
+    customer_phone: str | None
+    estimate_total_sen: int
+    deposit_paid_sen: int
+    has_unmeasured_lines: bool
+    confirmed_at: datetime
+    line_count: int
+
+    #: The earliest date any hold on this order runs out, or null when none
+    #: does. The board sorts by it ascending and colours by how close it is:
+    #: §11 Phase 5 wants amber at 60 days and red at 30, because a hold that
+    #: expires unused is a customer who paid RM300 and got nothing.
+    held_until: datetime | None = None
+
+
+class OrdersOut(BaseModel):
+    """A page of the order board.
+
+    An object rather than a bare array so the total can travel with it -- a
+    board that cannot say "showing 50 of 512" leaves somebody guessing whether
+    the filter worked.
+    """
+
+    orders: list[OrderSummary] = []
+    #: How many match the filter, not how many are on this page.
+    total: int = 0
+
+
+class OrderLineOut(BaseModel):
+    id: str
+    sort_order: int
+    room: str
+    variant: str
+    material_key: str | None
+    layer: str
+    est_width_tmm: int
+    est_height_tmm: int | None
+    final_width_tmm: int | None
+    final_height_tmm: int | None
+    is_site_measured: bool
+    quantity: int
+    applied_rule_id: str
+    applied_band_label: str | None
+    applied_rate_card_version: int
+    applied_discount_pct: str
+    standard_rate_sen: int
+    rate_sen: int
+    billed_qty: str
+    billed_unit: str
+    line_total_sen: int
+    material_deferred: bool
+    is_overridden: bool
+
+
+class OrderEventOut(BaseModel):
+    id: str
+    event: str
+    note: str | None
+    by_user_id: str | None
+    at: datetime
+
+
+class PriceOverrideOut(BaseModel):
+    id: str
+    order_line_id: str
+    order_id: str
+    before_sen: int
+    after_sen: int
+    reason: str
+    admin_user_id: str
+    at: datetime
+
+
+class OrderDetailOut(BaseModel):
+    """One order, with everything needed to answer a question about it.
+
+    The lines, the history and the overrides together: somebody looking at an
+    order is almost always answering "why is this number what it is", and three
+    round trips to answer that is three chances to give up.
+    """
+
+    order: OrderSummary
+    lines: list[OrderLineOut] = []
+    events: list[OrderEventOut] = []
+    overrides: list[PriceOverrideOut] = []
+
+
+class OverridesOut(BaseModel):
+    """The "overrides this week" screen. §6.5."""
+
+    overrides: list[PriceOverrideOut] = []
+
+
+class DepositPromptOut(BaseModel):
+    id: str
+    quote_id: str
+    category: str
+    choice: str
+    category_subtotal_sen: int
+    at: datetime
+
+
+class DepositPromptsOut(BaseModel):
+    """The declined-deposit report. §6.2."""
+
+    prompts: list[DepositPromptOut] = []
