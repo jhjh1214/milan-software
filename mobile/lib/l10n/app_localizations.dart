@@ -1141,6 +1141,102 @@ abstract class L {
   /// In zh, this message translates to:
   /// **'还没准备好。出发前请连上网络再试一次。'**
   String get fairModeNotReady;
+
+  /// No description provided for @atFair.
+  ///
+  /// In zh, this message translates to:
+  /// **'在展销会'**
+  String get atFair;
+
+  /// No description provided for @atFairHelp.
+  ///
+  /// In zh, this message translates to:
+  /// **'用促销价，RM300 可以锁价 12 个月。展销会结束后会自动关掉。'**
+  String get atFairHelp;
+
+  /// No description provided for @atFairEnded.
+  ///
+  /// In zh, this message translates to:
+  /// **'展销会已在 {date} 结束，现在是平时价。'**
+  String atFairEnded(String date);
+
+  /// No description provided for @channelFair.
+  ///
+  /// In zh, this message translates to:
+  /// **'展销会'**
+  String get channelFair;
+
+  /// No description provided for @channelShowroom.
+  ///
+  /// In zh, this message translates to:
+  /// **'店里'**
+  String get channelShowroom;
+
+  /// No description provided for @depositNeededTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'这单有{category}'**
+  String depositNeededTitle(String category);
+
+  /// No description provided for @depositNeededBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'{category}要另外 {amount}，才可以锁住促销价 12 个月。'**
+  String depositNeededBody(String category, String amount);
+
+  /// No description provided for @depositCollect.
+  ///
+  /// In zh, this message translates to:
+  /// **'收 {amount}'**
+  String depositCollect(String amount);
+
+  /// No description provided for @depositDecline.
+  ///
+  /// In zh, this message translates to:
+  /// **'不锁价，照今天的价'**
+  String get depositDecline;
+
+  /// No description provided for @depositRemove.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消{category}'**
+  String depositRemove(String category);
+
+  /// No description provided for @depositCollected.
+  ///
+  /// In zh, this message translates to:
+  /// **'已记录 {amount}。{category}价格锁到 {date}。'**
+  String depositCollected(String amount, String category, String date);
+
+  /// No description provided for @depositDeclined.
+  ///
+  /// In zh, this message translates to:
+  /// **'知道了。{category}没有锁价。'**
+  String depositDeclined(String category);
+
+  /// No description provided for @depositNotAtFair.
+  ///
+  /// In zh, this message translates to:
+  /// **'只有在展销会付的 RM300 才能锁价。'**
+  String get depositNotAtFair;
+
+  /// No description provided for @categoryCurtain.
+  ///
+  /// In zh, this message translates to:
+  /// **'窗帘'**
+  String get categoryCurtain;
+
+  /// No description provided for @categoryFlooring.
+  ///
+  /// In zh, this message translates to:
+  /// **'地板'**
+  String get categoryFlooring;
+
+  /// No description provided for @categoryWallpaper.
+  ///
+  /// In zh, this message translates to:
+  /// **'壁纸'**
+  String get categoryWallpaper;
 }
 
 class _LDelegate extends LocalizationsDelegate<L> {

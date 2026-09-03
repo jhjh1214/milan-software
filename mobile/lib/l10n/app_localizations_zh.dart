@@ -598,4 +598,66 @@ class LZh extends L {
 
   @override
   String get fairModeNotReady => '还没准备好。出发前请连上网络再试一次。';
+
+  @override
+  String get atFair => '在展销会';
+
+  @override
+  String get atFairHelp => '用促销价，RM300 可以锁价 12 个月。展销会结束后会自动关掉。';
+
+  @override
+  String atFairEnded(String date) {
+    return '展销会已在 $date 结束，现在是平时价。';
+  }
+
+  @override
+  String get channelFair => '展销会';
+
+  @override
+  String get channelShowroom => '店里';
+
+  @override
+  String depositNeededTitle(String category) {
+    return '这单有$category';
+  }
+
+  @override
+  String depositNeededBody(String category, String amount) {
+    return '$category要另外 $amount，才可以锁住促销价 12 个月。';
+  }
+
+  @override
+  String depositCollect(String amount) {
+    return '收 $amount';
+  }
+
+  @override
+  String get depositDecline => '不锁价，照今天的价';
+
+  @override
+  String depositRemove(String category) {
+    return '取消$category';
+  }
+
+  @override
+  String depositCollected(String amount, String category, String date) {
+    return '已记录 $amount。$category价格锁到 $date。';
+  }
+
+  @override
+  String depositDeclined(String category) {
+    return '知道了。$category没有锁价。';
+  }
+
+  @override
+  String get depositNotAtFair => '只有在展销会付的 RM300 才能锁价。';
+
+  @override
+  String get categoryCurtain => '窗帘';
+
+  @override
+  String get categoryFlooring => '地板';
+
+  @override
+  String get categoryWallpaper => '壁纸';
 }

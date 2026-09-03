@@ -192,5 +192,24 @@
   "fairModePrepare": "Sedia untuk pesta jualan",
   "fairModeWhy": "Muat turun kedua-dua senarai harga dan kosongkan baris gilir, supaya telefon boleh guna berhari-hari tanpa isyarat.",
   "fairModeReady": "Sedia. Kedua-dua senarai harga terkini dan tiada apa-apa menunggu untuk dihantar.",
-  "fairModeNotReady": "Belum sedia. Sambung ke internet dan cuba lagi sebelum bertolak."
+  "fairModeNotReady": "Belum sedia. Sambung ke internet dan cuba lagi sebelum bertolak.",
+
+  "atFair": "Di pesta jualan",
+  "atFairHelp": "Harga pesta jualan, dan RM300 mengunci harga selama 12 bulan. Ia tutup sendiri bila pesta jualan tamat.",
+  "atFairEnded": "Pesta jualan tamat pada {date}. Ini harga biasa.",
+  "channelFair": "Pesta jualan",
+  "channelShowroom": "Bilik pameran",
+
+  "depositNeededTitle": "Pesanan ini ada {category}",
+  "depositNeededBody": "{category} perlu {amount} sendiri untuk mengunci harga promosi selama 12 bulan.",
+  "depositCollect": "Ambil {amount}",
+  "depositDecline": "Tanpa kunci, harga hari ini",
+  "depositRemove": "Buang {category}",
+  "depositCollected": "{amount} direkodkan. {category} dikunci hingga {date}.",
+  "depositDeclined": "Difahami. {category} tidak dikunci.",
+  "depositNotAtFair": "Hanya RM300 yang dibayar di pesta jualan boleh mengunci harga.",
+
+  "categoryCurtain": "langsir",
+  "categoryFlooring": "lantai",
+  "categoryWallpaper": "kertas dinding"
 }

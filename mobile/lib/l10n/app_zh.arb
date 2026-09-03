@@ -260,5 +260,31 @@
   "fairModePrepare": "出展前准备",
   "fairModeWhy": "下载两份价格表并清空上传队列，手机就能连续几天没网络也照用。",
   "fairModeReady": "准备好了。两份价格表都是最新，也没有待上传的报价。",
-  "fairModeNotReady": "还没准备好。出发前请连上网络再试一次。"
+  "fairModeNotReady": "还没准备好。出发前请连上网络再试一次。",
+
+  "atFair": "在展销会",
+  "atFairHelp": "用促销价，RM300 可以锁价 12 个月。展销会结束后会自动关掉。",
+  "atFairEnded": "展销会已在 {date} 结束，现在是平时价。",
+  "@atFairEnded": { "placeholders": { "date": { "type": "String" } } },
+  "channelFair": "展销会",
+  "channelShowroom": "店里",
+
+  "depositNeededTitle": "这单有{category}",
+  "@depositNeededTitle": { "placeholders": { "category": { "type": "String" } } },
+  "depositNeededBody": "{category}要另外 {amount}，才可以锁住促销价 12 个月。",
+  "@depositNeededBody": { "placeholders": { "category": { "type": "String" }, "amount": { "type": "String" } } },
+  "depositCollect": "收 {amount}",
+  "@depositCollect": { "placeholders": { "amount": { "type": "String" } } },
+  "depositDecline": "不锁价，照今天的价",
+  "depositRemove": "取消{category}",
+  "@depositRemove": { "placeholders": { "category": { "type": "String" } } },
+  "depositCollected": "已记录 {amount}。{category}价格锁到 {date}。",
+  "@depositCollected": { "placeholders": { "amount": { "type": "String" }, "category": { "type": "String" }, "date": { "type": "String" } } },
+  "depositDeclined": "知道了。{category}没有锁价。",
+  "@depositDeclined": { "placeholders": { "category": { "type": "String" } } },
+  "depositNotAtFair": "只有在展销会付的 RM300 才能锁价。",
+
+  "categoryCurtain": "窗帘",
+  "categoryFlooring": "地板",
+  "categoryWallpaper": "壁纸"
 }

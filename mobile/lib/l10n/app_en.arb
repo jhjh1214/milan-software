@@ -192,5 +192,24 @@
   "fairModePrepare": "Get ready for a fair",
   "fairModeWhy": "Downloads both price lists and empties the queue, so the phone works for days with no signal.",
   "fairModeReady": "Ready. Both price lists are current and nothing is waiting to send.",
-  "fairModeNotReady": "Not ready yet. Connect and try again before you leave."
+  "fairModeNotReady": "Not ready yet. Connect and try again before you leave.",
+
+  "atFair": "At a fair",
+  "atFairHelp": "Fair prices, and RM300 holds them for 12 months. Turns itself off when the fair ends.",
+  "atFairEnded": "The fair ended on {date}. These are standard prices.",
+  "channelFair": "Fair",
+  "channelShowroom": "Showroom",
+
+  "depositNeededTitle": "This order has {category}",
+  "depositNeededBody": "{category} needs its own {amount} to hold the promo price for 12 months.",
+  "depositCollect": "Take {amount}",
+  "depositDecline": "No hold, today's price",
+  "depositRemove": "Remove {category}",
+  "depositCollected": "{amount} recorded. {category} held until {date}.",
+  "depositDeclined": "Noted. {category} is not held.",
+  "depositNotAtFair": "Only RM300 paid at a fair can hold a price.",
+
+  "categoryCurtain": "curtains",
+  "categoryFlooring": "flooring",
+  "categoryWallpaper": "wallpaper"
 }

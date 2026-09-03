@@ -619,4 +619,67 @@ class LEn extends L {
   @override
   String get fairModeNotReady =>
       'Not ready yet. Connect and try again before you leave.';
+
+  @override
+  String get atFair => 'At a fair';
+
+  @override
+  String get atFairHelp =>
+      'Fair prices, and RM300 holds them for 12 months. Turns itself off when the fair ends.';
+
+  @override
+  String atFairEnded(String date) {
+    return 'The fair ended on $date. These are standard prices.';
+  }
+
+  @override
+  String get channelFair => 'Fair';
+
+  @override
+  String get channelShowroom => 'Showroom';
+
+  @override
+  String depositNeededTitle(String category) {
+    return 'This order has $category';
+  }
+
+  @override
+  String depositNeededBody(String category, String amount) {
+    return '$category needs its own $amount to hold the promo price for 12 months.';
+  }
+
+  @override
+  String depositCollect(String amount) {
+    return 'Take $amount';
+  }
+
+  @override
+  String get depositDecline => 'No hold, today\'s price';
+
+  @override
+  String depositRemove(String category) {
+    return 'Remove $category';
+  }
+
+  @override
+  String depositCollected(String amount, String category, String date) {
+    return '$amount recorded. $category held until $date.';
+  }
+
+  @override
+  String depositDeclined(String category) {
+    return 'Noted. $category is not held.';
+  }
+
+  @override
+  String get depositNotAtFair => 'Only RM300 paid at a fair can hold a price.';
+
+  @override
+  String get categoryCurtain => 'curtains';
+
+  @override
+  String get categoryFlooring => 'flooring';
+
+  @override
+  String get categoryWallpaper => 'wallpaper';
 }

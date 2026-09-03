@@ -72,6 +72,30 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Taps something that may be below the fold, scrolling to it first.
+  ///
+  /// The quote list is longer than a phone screen as soon as there are a couple
+  /// of windows, so the delivery and customer rows are reached by scrolling in
+  /// the app too.
+  Future<void> tapAfterScrolling(WidgetTester tester, String label) async {
+    final target = find.text(label);
+    if (target.evaluate().isEmpty) {
+      // Not built yet — a lazy list has not reached it.
+      await tester.scrollUntilVisible(
+        target,
+        120,
+        scrollable: find.byType(Scrollable).first,
+      );
+    } else {
+      // Built but possibly off-screen. `finds` does not mean `is hittable`,
+      // and a tap on an off-screen widget lands on whatever is drawn there.
+      await tester.ensureVisible(target);
+    }
+    await tester.pumpAndSettle();
+    await tester.tap(target);
+    await tester.pumpAndSettle();
+  }
+
   /// Presses the custom keypad, never the system keyboard — which is the
   /// point of §8.1.
   Future<void> typeOnKeypad(WidgetTester tester, String input) async {
@@ -139,6 +163,15 @@ void main() {
         await tester.pumpAndSettle();
       }
       await tester.tap(find.text(upgrades.isEmpty ? '不用，就这样' : '完成'));
+      await tester.pumpAndSettle();
+    }
+
+    // §6.2 asks for the category's RM300 as soon as that category appears on a
+    // fair quote. These tests are about prices, so they decline and carry on —
+    // the prompt itself is covered in `deposit_prompt_flow_test.dart`.
+    final decline = find.text('不锁价，照今天的价');
+    if (decline.evaluate().isNotEmpty) {
+      await tester.tap(decline);
       await tester.pumpAndSettle();
     }
   }
@@ -366,8 +399,7 @@ void main() {
     expect(find.text('RM 552.00'), findsWidgets);
     expect(find.text('马六甲市区（不加钱）'), findsOneWidget);
 
-    await tester.tap(find.text('马六甲市区（不加钱）'));
-    await tester.pumpAndSettle();
+    await tapAfterScrolling(tester, '马六甲市区（不加钱）');
     await tester.tap(find.text('吉隆坡 / 芙蓉 / 森美兰'));
     await tester.pumpAndSettle();
 
@@ -390,10 +422,8 @@ void main() {
       width: "3'",
       height: "4'",
     );
-    await tester.tap(find.text('马六甲市区（不加钱）'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('麻坡 / 东甲 / 亚罗牙也 / 淡边'));
-    await tester.pumpAndSettle();
+    await tapAfterScrolling(tester, '马六甲市区（不加钱）');
+    await tapAfterScrolling(tester, '麻坡 / 东甲 / 亚罗牙也 / 淡边');
 
     // RM162 floors to RM300, plus RM100 travel = RM400. Not RM600.
     expect(find.text('+RM 100.00'), findsOneWidget);
@@ -416,8 +446,7 @@ void main() {
     );
     expect(find.text('可以不填，之后再补'), findsOneWidget);
 
-    await tester.tap(find.text('可以不填，之后再补'));
-    await tester.pumpAndSettle();
+    await tapAfterScrolling(tester, '可以不填，之后再补');
     await tester.enterText(find.byType(TextField).first, '陈大文');
     await tester.enterText(find.byType(TextField).last, '012-3456789');
     await tester.tap(find.text('保存'));

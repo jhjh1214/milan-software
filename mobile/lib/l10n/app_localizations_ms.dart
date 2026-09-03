@@ -617,4 +617,68 @@ class LMs extends L {
   @override
   String get fairModeNotReady =>
       'Belum sedia. Sambung ke internet dan cuba lagi sebelum bertolak.';
+
+  @override
+  String get atFair => 'Di pesta jualan';
+
+  @override
+  String get atFairHelp =>
+      'Harga pesta jualan, dan RM300 mengunci harga selama 12 bulan. Ia tutup sendiri bila pesta jualan tamat.';
+
+  @override
+  String atFairEnded(String date) {
+    return 'Pesta jualan tamat pada $date. Ini harga biasa.';
+  }
+
+  @override
+  String get channelFair => 'Pesta jualan';
+
+  @override
+  String get channelShowroom => 'Bilik pameran';
+
+  @override
+  String depositNeededTitle(String category) {
+    return 'Pesanan ini ada $category';
+  }
+
+  @override
+  String depositNeededBody(String category, String amount) {
+    return '$category perlu $amount sendiri untuk mengunci harga promosi selama 12 bulan.';
+  }
+
+  @override
+  String depositCollect(String amount) {
+    return 'Ambil $amount';
+  }
+
+  @override
+  String get depositDecline => 'Tanpa kunci, harga hari ini';
+
+  @override
+  String depositRemove(String category) {
+    return 'Buang $category';
+  }
+
+  @override
+  String depositCollected(String amount, String category, String date) {
+    return '$amount direkodkan. $category dikunci hingga $date.';
+  }
+
+  @override
+  String depositDeclined(String category) {
+    return 'Difahami. $category tidak dikunci.';
+  }
+
+  @override
+  String get depositNotAtFair =>
+      'Hanya RM300 yang dibayar di pesta jualan boleh mengunci harga.';
+
+  @override
+  String get categoryCurtain => 'langsir';
+
+  @override
+  String get categoryFlooring => 'lantai';
+
+  @override
+  String get categoryWallpaper => 'kertas dinding';
 }

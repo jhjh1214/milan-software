@@ -478,6 +478,28 @@ class RateCard {
   /// walk-in.
   bool isExpiredOn(DateTime now) => promo != null && !promo!.coversDate(now);
 
+  /// Any rule for [variant], for the things that are true of every band of a
+  /// product — its family, and the deposit category it names.
+  ///
+  /// The first match is enough: bands of one variant differ only in their
+  /// rate and their band edge, never in what kind of thing they are.
+  PricingRule? ruleFor(String variant) {
+    for (final rule in rules) {
+      if (rule.variant == variant) return rule;
+    }
+    return null;
+  }
+
+  /// The promo percentage a lock taken today would pin.
+  ///
+  /// **Zero, and deliberately so.** These *are* the printed fair prices, not a
+  /// discount applied to a standard list — see the note in
+  /// `rate-card-fair-2026-08.json`. The field exists because CLAUDE.md requires
+  /// a lock to pin the percentage as well as the version: the day the client
+  /// runs "fair price and another 10% off", a held order must not move when
+  /// that promotion ends.
+  Rational get promoDiscountPct => Rational.zero;
+
   factory RateCard.fromJson(Map<String, dynamic> json) => RateCard(
     version: json['version'] as int,
     provisional: json['provisional'] as bool? ?? false,

@@ -12,6 +12,7 @@ import '../../ui/theme.dart';
 import '../../ui/unit_labels.dart';
 import '../rates/rate_card_screen.dart';
 import '../sync/sync_screen.dart';
+import 'deposit_prompt_sheet.dart';
 import 'line_photo.dart';
 import 'quote_state.dart';
 import 'share_quote.dart';
@@ -142,30 +143,36 @@ class _ProvisionalBanner extends StatelessWidget {
   }
 }
 
-/// Which price list produced these numbers.
+/// Which price list produced these numbers, and the switch that decides it.
 ///
 /// Always on screen. A quote is either a fair price or a standard price, and
 /// the difference is 20% on curtains and 50% on blinds — the salesperson
 /// holding the phone has to know which they are showing the customer.
 ///
-/// The list is chosen by the date (§3), not by a switch someone can forget.
-class _PriceListBanner extends StatelessWidget {
+/// The switch lives here rather than in a settings screen for the same reason:
+/// it moves prices, so it belongs where the prices are. It cannot do damage on
+/// its own — the promo window on the card is what makes fair mode mean
+/// anything, and outside those dates this reads standard however it is set.
+class _PriceListBanner extends ConsumerWidget {
   final PricedQuote priced;
 
   const _PriceListBanner({required this.priced});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = L.of(context);
     final isFair = priced.priceList == PriceList.fair;
     final promo = priced.promo;
+    final fairModeOn = ref.watch(fairModeProvider).valueOrNull ?? true;
 
     return Container(
       width: double.infinity,
       color: isFair ? AppColors.muted : AppColors.warningSurface,
-      padding: const EdgeInsets.symmetric(
-        horizontal: Space.lg,
-        vertical: Space.md,
+      padding: const EdgeInsets.fromLTRB(
+        Space.lg,
+        Space.md,
+        Space.sm,
+        Space.md,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,6 +195,16 @@ class _PriceListBanner extends StatelessWidget {
                     color: isFair ? AppColors.primary : AppColors.warning,
                   ),
                 ),
+                // Fair mode on while the prices are standard is confusing
+                // enough to make somebody re-enter a quote, so it says which
+                // one is true rather than leaving the switch to imply it.
+                if (fairModeOn && !isFair && promo != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    l.atFairEnded(formatDate(promo.validTo)),
+                    style: AppText.caption.copyWith(color: AppColors.warning),
+                  ),
+                ],
                 // The standard list is derived, not printed. Say so until a
                 // real one exists — §13 A3.
                 if (!isFair) ...[
@@ -198,6 +215,13 @@ class _PriceListBanner extends StatelessWidget {
                   ),
                 ],
               ],
+            ),
+          ),
+          Semantics(
+            label: l.atFair,
+            child: Switch(
+              value: fairModeOn,
+              onChanged: (on) => ref.read(fairModeProvider.notifier).set(on),
             ),
           ),
         ],
@@ -859,11 +883,20 @@ class _TotalBar extends ConsumerWidget {
                     Expanded(
                       flex: hasLines ? 1 : 2,
                       child: FilledButton.icon(
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const WizardScreen(),
-                          ),
-                        ),
+                        onPressed: () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const WizardScreen(),
+                            ),
+                          );
+                          // §6.2, asked here rather than inside the wizard: the
+                          // question is about the whole order, and a customer
+                          // who has just watched a window priced is the person
+                          // to ask. Away from a fair it asks nothing.
+                          if (context.mounted) {
+                            await askForOutstandingDeposits(context, ref);
+                          }
+                        },
                         icon: const Icon(Icons.add),
                         label: Text(l.addWindow),
                       ),
