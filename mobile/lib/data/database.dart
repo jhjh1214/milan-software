@@ -114,6 +114,83 @@ class QuoteLines extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// One RM300, holding one category's prices for twelve months. SPEC.md §6.1.
+///
+/// **Rows are never edited into existence.** `openCategoryLock` in
+/// `pricing/rate_lock.dart` is the only thing that builds one, and it refuses
+/// outside a fair and below the minimum, so a screen cannot open a lock the
+/// business does not sell.
+///
+/// Held on the device as well as the server because the resolver has to work
+/// with no signal: a customer who deposited at the August fair and walks into
+/// the showroom in March must be priced correctly on a handset that has not
+/// synced today.
+@DataClassName('CategoryLockRow')
+class CategoryLocks extends Table {
+  TextColumn get id => text()();
+
+  /// Whose lock it is. The lock follows the **customer**, not the order — a
+  /// hold bought at last August's fair prices a line added months later.
+  TextColumn get customerId => text()();
+
+  /// `curtain`, `flooring` or `wallpaper`. Three, not seven: blinds and tracks
+  /// ride the curtain deposit.
+  TextColumn get category => text()();
+
+  /// The payment that bought it, so a refund can find the lock it cancels.
+  TextColumn get depositPaymentId => text().nullable()();
+
+  /// Pinned **both**, at deposit time. Pinning only the version silently
+  /// reprices this customer when the promo percentage moves.
+  IntColumn get heldRateCardVersion => integer()();
+
+  /// Exact rational, stored in this type's own `toString` notation — `0`,
+  /// `1/10`. Never a float: a percentage of a price is money.
+  TextColumn get heldDiscountPct => text().withDefault(const Constant('0'))();
+
+  /// The **last day** the hold is good for, inclusive.
+  DateTimeColumn get heldUntil => dateTime()();
+
+  /// `active`, `expired`, `cancelled` or `refunded`.
+  TextColumn get status => text().withDefault(const Constant('active'))();
+
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get syncedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Every time the category prompt was shown, and what was pressed. §6.2.
+///
+/// **APPEND ONLY.** The declined-deposit report is the point: it tells the boss
+/// what fairs are leaving on the table, and it only exists if a decline is
+/// recorded as deliberately as a sale. A row is never updated — pressing a
+/// different button later is a second row.
+@DataClassName('DepositPromptRow')
+class DepositPrompts extends Table {
+  TextColumn get id => text()();
+  TextColumn get quoteId => text()();
+  TextColumn get category => text()();
+
+  /// `collected`, `declined`, `lines_removed` or `dismissed`. Dismissed is kept
+  /// distinct from declined: "they said no" and "nobody asked properly" are
+  /// different problems, and only one of them is the customer's.
+  TextColumn get choice => text()();
+
+  /// What the quote was worth in this category when the question was asked, so
+  /// the report can say what was left on the table rather than only how often.
+  IntColumn get categorySubtotalSen =>
+      integer().withDefault(const Constant(0))();
+
+  TextColumn get byUserId => text().nullable()();
+  DateTimeColumn get at => dateTime()();
+  DateTimeColumn get syncedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// Work waiting to reach the server. §9.2.
 ///
 /// The whole of the push side is this table plus a drainer. Nothing is sent
@@ -163,7 +240,9 @@ class Outbox extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [Quotes, QuoteLines, Outbox])
+@DriftDatabase(
+  tables: [Quotes, QuoteLines, Outbox, CategoryLocks, DepositPrompts],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
     : super(executor ?? driftDatabase(name: 'milan_quote'));
@@ -180,7 +259,7 @@ class AppDatabase extends _$AppDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -206,6 +285,11 @@ class AppDatabase extends _$AppDatabase {
       // before sync existed was never destined for a server.
       if (from < 5) {
         await m.createTable(outbox);
+      }
+      // v6: rate locks and the category prompt log (§6.1, §6.2).
+      if (from < 6) {
+        await m.createTable(categoryLocks);
+        await m.createTable(depositPrompts);
       }
     },
     beforeOpen: (details) async {
