@@ -309,5 +309,11 @@
   "cashUpNotCounted": "还有 {count} 项现金没点。点了才算数。",
   "@cashUpNotCounted": { "placeholders": { "count": { "type": "int" } } },
   "cashUpOff": "{method}{direction} {amount}。",
-  "@cashUpOff": { "placeholders": { "method": { "type": "String" }, "amount": { "type": "String" }, "direction": { "type": "String" } } }
+  "@cashUpOff": { "placeholders": { "method": { "type": "String" }, "amount": { "type": "String" }, "direction": { "type": "String" } } },
+
+  "orderConfirmed": "订单已确认",
+  "orderNoPending": "订单号等同步",
+  "orderPaidAndDue": "已付 {paid}　尚欠 {balance}",
+  "@orderPaidAndDue": { "placeholders": { "paid": { "type": "String" }, "balance": { "type": "String" } } },
+  "orderDueNote": "按估价算。量好之后只会一样或更少。"
 }

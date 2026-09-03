@@ -738,4 +738,19 @@ class LMs extends L {
   String cashUpOff(String method, String amount, String direction) {
     return '$method $direction $amount.';
   }
+
+  @override
+  String get orderConfirmed => 'Pesanan disahkan';
+
+  @override
+  String get orderNoPending => 'Nombor pesanan menunggu penyegerakan';
+
+  @override
+  String orderPaidAndDue(String paid, String balance) {
+    return 'Dibayar $paid · baki $balance';
+  }
+
+  @override
+  String get orderDueNote =>
+      'Berdasarkan anggaran. Selepas diukur ia hanya boleh kekal atau turun.';
 }

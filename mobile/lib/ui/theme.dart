@@ -30,6 +30,11 @@ abstract final class AppColors {
   static const accent = Color(0xFF047857);
   static const onAccent = Color(0xFFFFFFFF);
 
+  /// A quiet green ground for the one thing worth being pleased about: a
+  /// confirmed sale. Deliberately pale — the warning and alarm surfaces have to
+  /// stay the loudest things on a screen.
+  static const accentSurface = Color(0xFFECFDF5);
+
   /// Page background. Never pure white — a faint tint reduces glare outdoors
   /// while keeping cards distinct.
   static const background = Color(0xFFF8FAFC);

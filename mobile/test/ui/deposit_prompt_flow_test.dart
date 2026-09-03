@@ -238,6 +238,24 @@ void main() {
     );
   });
 
+  testWidgets('the screen says the sale is confirmed', (tester) async {
+    // The salesperson has to be able to tell a customer it is done, and the
+    // reference number is not theirs to invent.
+    await pumpApp(tester, channel: Channel.fair);
+    await addACurtain(tester);
+    expect(find.textContaining('订单已确认'), findsNothing);
+
+    await tester.tap(find.text('收 RM 300.00'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('现金'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('订单已确认'), findsOneWidget);
+    expect(find.textContaining('订单号等同步'), findsOneWidget);
+    expect(find.textContaining('已付 RM 300.00'), findsOneWidget);
+    expect(find.textContaining('尚欠 RM 252.00'), findsOneWidget);
+  });
+
   testWidgets('the quote survives conversion untouched', (tester) async {
     // Client, Sep 2026: "the quote should be recorded as reference to the
     // order, so have rough estimate of what to do." The measurement team reads

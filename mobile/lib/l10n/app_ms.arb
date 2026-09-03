@@ -231,5 +231,10 @@
   "cashUpBalanced": "Semua sepadan.",
   "cashUpNothingTaken": "Belum ada wang diterima hari ini.",
   "cashUpNotCounted": "{count} jumlah tunai belum dikira. Ia hanya dikira setelah anda mengiranya.",
-  "cashUpOff": "{method} {direction} {amount}."
+  "cashUpOff": "{method} {direction} {amount}.",
+
+  "orderConfirmed": "Pesanan disahkan",
+  "orderNoPending": "Nombor pesanan menunggu penyegerakan",
+  "orderPaidAndDue": "Dibayar {paid} · baki {balance}",
+  "orderDueNote": "Berdasarkan anggaran. Selepas diukur ia hanya boleh kekal atau turun."
 }

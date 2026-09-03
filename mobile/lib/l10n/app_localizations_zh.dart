@@ -717,4 +717,18 @@ class LZh extends L {
   String cashUpOff(String method, String amount, String direction) {
     return '$method$direction $amount。';
   }
+
+  @override
+  String get orderConfirmed => '订单已确认';
+
+  @override
+  String get orderNoPending => '订单号等同步';
+
+  @override
+  String orderPaidAndDue(String paid, String balance) {
+    return '已付 $paid　尚欠 $balance';
+  }
+
+  @override
+  String get orderDueNote => '按估价算。量好之后只会一样或更少。';
 }

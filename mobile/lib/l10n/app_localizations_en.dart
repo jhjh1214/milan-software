@@ -739,4 +739,19 @@ class LEn extends L {
   String cashUpOff(String method, String amount, String direction) {
     return '$method is $direction $amount.';
   }
+
+  @override
+  String get orderConfirmed => 'Order confirmed';
+
+  @override
+  String get orderNoPending => 'Order number pending sync';
+
+  @override
+  String orderPaidAndDue(String paid, String balance) {
+    return 'Paid $paid · $balance to go';
+  }
+
+  @override
+  String get orderDueNote =>
+      'Against the estimate. After measuring it can only stay the same or fall.';
 }

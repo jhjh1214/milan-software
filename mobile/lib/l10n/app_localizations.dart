@@ -1339,6 +1339,30 @@ abstract class L {
   /// In zh, this message translates to:
   /// **'{method}{direction} {amount}。'**
   String cashUpOff(String method, String amount, String direction);
+
+  /// No description provided for @orderConfirmed.
+  ///
+  /// In zh, this message translates to:
+  /// **'订单已确认'**
+  String get orderConfirmed;
+
+  /// No description provided for @orderNoPending.
+  ///
+  /// In zh, this message translates to:
+  /// **'订单号等同步'**
+  String get orderNoPending;
+
+  /// No description provided for @orderPaidAndDue.
+  ///
+  /// In zh, this message translates to:
+  /// **'已付 {paid}　尚欠 {balance}'**
+  String orderPaidAndDue(String paid, String balance);
+
+  /// No description provided for @orderDueNote.
+  ///
+  /// In zh, this message translates to:
+  /// **'按估价算。量好之后只会一样或更少。'**
+  String get orderDueNote;
 }
 
 class _LDelegate extends LocalizationsDelegate<L> {

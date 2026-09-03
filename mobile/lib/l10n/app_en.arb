@@ -231,5 +231,10 @@
   "cashUpBalanced": "Everything matches.",
   "cashUpNothingTaken": "No money taken yet today.",
   "cashUpNotCounted": "{count} cash total not counted yet. It only counts once you count it.",
-  "cashUpOff": "{method} is {direction} {amount}."
+  "cashUpOff": "{method} is {direction} {amount}.",
+
+  "orderConfirmed": "Order confirmed",
+  "orderNoPending": "Order number pending sync",
+  "orderPaidAndDue": "Paid {paid} · {balance} to go",
+  "orderDueNote": "Against the estimate. After measuring it can only stay the same or fall."
 }

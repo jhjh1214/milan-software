@@ -12,6 +12,7 @@ import '../../ui/theme.dart';
 import '../../ui/unit_labels.dart';
 import '../rates/rate_card_screen.dart';
 import '../sync/sync_screen.dart';
+import 'confirm_order.dart';
 import 'deposit_prompt_sheet.dart';
 import 'line_photo.dart';
 import 'quote_state.dart';
@@ -58,6 +59,7 @@ class QuoteScreen extends ConsumerWidget {
         data: (priced) => Column(
           children: [
             if (priced.provisionalCard) const _ProvisionalBanner(),
+            const _OrderBanner(),
             _PriceListBanner(priced: priced),
             Expanded(
               child: priced.lines.isEmpty
@@ -110,6 +112,69 @@ class QuoteScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Says that this quote is now a confirmed sale, and what is left to pay.
+///
+/// Only appears once money has been taken — §3: the deposit *is* the
+/// confirmation. Before that there is nothing to say, and a banner promising an
+/// order nobody has paid for would be the wrong kind of encouraging.
+class _OrderBanner extends ConsumerWidget {
+  const _OrderBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = L.of(context);
+    final order = ref.watch(currentOrderProvider).valueOrNull;
+    if (order == null) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      color: AppColors.accentSurface,
+      padding: const EdgeInsets.symmetric(
+        horizontal: Space.lg,
+        vertical: Space.md,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.check_circle_outline,
+            size: 20,
+            color: AppColors.accent,
+          ),
+          const SizedBox(width: Space.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  // The number comes from the server. Saying so beats an empty
+                  // space where a reference should be.
+                  order.orderNo ?? '${l.orderConfirmed} · ${l.orderNoPending}',
+                  style: AppText.bodyStrong.copyWith(color: AppColors.accent),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  l.orderPaidAndDue(
+                    Money.sen(order.depositPaidSen).format(),
+                    Money.sen(order.balanceDueSen).format(),
+                  ),
+                  style: AppText.caption,
+                ),
+                Text(
+                  l.orderDueNote,
+                  style: AppText.caption.copyWith(
+                    color: AppColors.mutedForeground,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
