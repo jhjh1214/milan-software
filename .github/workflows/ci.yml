@@ -5,6 +5,13 @@ on:
     branches: [main]
   pull_request:
 
+# One run per ref. Pushing twice in quick succession, or a default-branch
+# change, otherwise leaves two identical runs racing to publish the same
+# image tag.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 # The pricing engine is the reason this exists. A green suite here is the only
 # thing standing between a rate-card edit and a wrong number in front of a
 # customer.
@@ -82,23 +89,37 @@ jobs:
           for line in open('coverage/lcov.info', encoding='utf-8'):
               line = line.strip()
               if line.startswith('SF:'):
-                  cur = line[3:].replace('\\', '/')
-                  files[cur] = [0, 0]
-              elif line.startswith('DA:') and cur:
-                  _, hits = line[3:].split(',')
-                  files[cur][1] += 1
-                  if int(hits) > 0:
-                      files[cur][0] += 1
+                  cur = line[3:].replace(chr(92), '/')
+                  files[cur] = []
+              elif line.startswith('DA:') and cur is not None:
+                  no, hits = line[3:].split(',')
+                  files[cur].append((int(no), int(hits)))
 
           required = ('core/length.dart', 'core/money.dart', 'core/rational.dart')
           failed = False
-          for f, (hit, total) in files.items():
-              if f.endswith(required):
-                  pct = 100.0 * hit / total if total else 100.0
-                  status = 'ok' if pct == 100.0 else 'FAIL'
-                  print(f'{status:5} {f.split("/lib/")[-1]:<24} {pct:6.1f}%  {hit}/{total}')
-                  if pct < 100.0:
-                      failed = True
+          for path, rows in files.items():
+              if not path.endswith(required):
+                  continue
+              hit = sum(1 for _, h in rows if h > 0)
+              total = len(rows)
+              pct = 100.0 * hit / total if total else 100.0
+              name = path.split('/lib/')[-1]
+              status = 'ok' if pct == 100.0 else 'FAIL'
+              print(f'{status:5} {name:<24} {pct:6.1f}%  {hit}/{total}')
+              if pct == 100.0:
+                  continue
+              failed = True
+              # Name the lines. A bare percentage sends whoever reads this
+              # hunting through the file, and the answer can differ between
+              # a developer machine and the runner.
+              try:
+                  src = open(path, encoding='utf-8').read().splitlines()
+              except OSError:
+                  src = []
+              for no, hits in rows:
+                  if hits == 0:
+                      text = src[no - 1].strip() if no <= len(src) else '?'
+                      print(f'      uncovered {name}:{no}  {text}')
           sys.exit(1 if failed else 0)
           PY
 
@@ -190,12 +211,33 @@ jobs:
           echo "::error::the API never became healthy"; exit 1
 
       # Proves the container really did migrate on boot, not just start.
+      # Compared against what alembic reports as head, never a literal
+      # revision: `grep -q 0001` was still passing itself off as this check
+      # after 0002 and 0003 landed, and a hardcoded revision goes stale on the
+      # next migration while still looking like it is being verified.
       - name: The schema is at the migration head
         working-directory: deploy
         run: |
-          set -a; . ./.env; set +a
-          docker compose exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tA \
-            -c "SELECT version_num FROM alembic_version;" | grep -q 0001
+          set -a
+          # shellcheck source=/dev/null
+          . ./.env
+          set +a
+
+          head=$(docker compose exec -T api alembic heads \
+            | awk '{print $1}' | grep -E '^[0-9a-z_]+$' | head -1)
+          applied=$(docker compose exec -T db \
+            psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tA \
+            -c "SELECT version_num FROM alembic_version;" | tr -d '[:space:]')
+
+          echo "head=$head applied=$applied"
+          if [ -z "$head" ] || [ -z "$applied" ]; then
+            echo "::error::could not read the migration head or the applied revision"
+            exit 1
+          fi
+          if [ "$head" != "$applied" ]; then
+            echo "::error::the database is at $applied but head is $head - the container did not migrate on boot"
+            exit 1
+          fi
 
       # The first-boot sequence from deploy/README.md, run exactly as written.
       # The PIN goes in on stdin, never as an argument: an argument lands in
