@@ -24,7 +24,7 @@ trilingual PDF.
 
 Built and green on the server: the Python engine passing the same fixtures, the
 sync endpoints, Alembic migrations with a test that they match the models, users
-and roles, and rate card publishing. **443 Dart tests, 217 Python tests.** 100%
+and roles, and rate card publishing. **467 Dart tests, 217 Python tests.** 100%
 coverage on `Length`, `Money` and `Rational`.
 
 **Prices are server-owned now.** One card is published and pulled by every
@@ -68,8 +68,13 @@ device may not invent, because it goes on paper a customer keeps. Until it
 arrives the app shows `pending sync`. The daily cash-up totals by method and
 refuses to call a day balanced when nobody counted.
 
-Next in Phase 4: quote to order conversion, the order status pipeline, and price
-override with its audit row.
+**A deposit confirms the order**, and the quote is kept as its reference -- the
+rough estimate the measurement team reads, and what the variance report compares
+the final against. Order lines are copies that snapshot the rule, band, rate and
+card version that priced them, so a number stays explainable a year later. The`order_no` is server-issued for the same reason as a receipt number.
+
+Next in Phase 4: the order status pipeline, price override with its audit row,
+and pushing orders to the server.
 
 **The real price list is in.** `shared/rate-card-fair-2026-08.json` carries the
 MITC Aug 2026 fair list in full — 77 rows, two delivery zones, three product

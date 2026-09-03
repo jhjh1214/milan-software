@@ -547,7 +547,7 @@ fairs are leaving on the table.
 ```sql
 orders
   id uuid PK
-  order_no                  text          -- client-generated {branch}-{yymm}-{seq}
+  order_no                  text          -- SERVER-issued {branch}-{yymm}-{seq}
   customer_id
   channel                   enum(showroom, home_visit, fair, referral, phone)
   project_id, unit_type_id  uuid NULL
@@ -588,6 +588,32 @@ order_events                              -- APPEND ONLY
 
 **Estimate and final are both kept.** The variance report by salesperson tells
 the boss who is guessing badly and needs retraining.
+
+**The quote is referenced, never consumed.** Client, Sep 2026: *"the quote
+should be recorded as reference to the order, so have rough estimate of what to
+do."* `orders.quote_id` points back at it and the quote is left exactly as it
+was — it is what the measurement team reads before going out, and what the
+variance report compares the final against. `order_lines` are **copies** of the
+quote's lines, so editing an old quote cannot change a confirmed order and
+measuring an order cannot change the estimate it came from.
+
+**`order_no` is server-issued, not client-generated.** This deviates from the
+column comment as originally written, deliberately. It appears on a document the
+customer takes away, and `{branch}-{yymm}-{seq}` has no per-device component:
+two part-timers offline at one fair would both mint `MLK-2608-0007`. CLAUDE.md's
+rule — *"anything on a legal document: null until sync, shown as 'pending sync',
+never fabricated on-device"* — is the stronger constraint, and it is the same
+mechanism receipt numbers already use. The order's **id** stays a
+client-generated UUID, so nothing waits on a server to exist.
+
+**A line whose lock disagrees with the priced version refuses conversion.**
+If a line's `category_lock` holds version 55 and the quote on screen was priced
+at version 1, the customer is being shown a price their RM300 did not buy — in
+one direction or the other. Recording the held version on a line that was priced
+at another would make the order lie about itself, and that lie is what somebody
+reads a year later. It cannot arise through today's paths, because locks are
+only opened at a fair where the active card is the one they pin, but it is the
+§6.1 bug one level downstream and it fails loudly.
 
 ## 6.4 Payments
 
