@@ -190,6 +190,163 @@ class CategoryLocks extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// A confirmed sale. SPEC.md §6.3.
+///
+/// §3: a deposit confirms an order — *"Not a quote, not a lead. A confirmed
+/// sale."* So a row here means money has been taken.
+///
+/// **The quote is referenced, never consumed.** Client, Sep 2026: *"the quote
+/// should be recorded as reference to the order, so have rough estimate of what
+/// to do."* The quote stays exactly as it was; this points back at it. That is
+/// what the measurement team reads before going out, and what §6.3's variance
+/// report compares the final against.
+@DataClassName('OrderRow')
+class Orders extends Table {
+  /// Client-generated UUID v4, like every other id here.
+  TextColumn get id => text()();
+
+  /// The quote this was confirmed from. The rough estimate of what to do.
+  TextColumn get quoteId => text().references(Quotes, #id)();
+
+  /// `{branch}-{yymm}-{seq}`. **Server-issued**, null until sync, shown as
+  /// "pending sync" — the same rule as a receipt number, and for the same
+  /// reason: it goes on a document the customer takes away, and two part-timers
+  /// offline at one fair would invent the same one.
+  TextColumn get orderNo => text().nullable()();
+
+  /// Where the sale happened. Decides whether the deposit locked anything.
+  TextColumn get channel => text()();
+
+  /// The card that priced it. A later publish must not reprice a confirmed
+  /// order.
+  IntColumn get pinnedRateCardVersion => integer()();
+
+  TextColumn get customerName => text().nullable()();
+  TextColumn get customerPhone => text().nullable()();
+  TextColumn get deliveryZoneId => text().nullable()();
+  IntColumn get deliveryChargeSen => integer().withDefault(const Constant(0))();
+
+  /// `confirmed`, `measurement_booked`, `measured`, `material_selected`,
+  /// `in_production`, `ready`, `installed`, `closed`, `cancelled`.
+  TextColumn get status => text().withDefault(const Constant('confirmed'))();
+
+  /// **Both kept, for good.** §6.3: the variance report by salesperson tells
+  /// the boss who is guessing badly, and it has nothing to compare if the
+  /// estimate is overwritten by the final.
+  IntColumn get estimateTotalSen => integer()();
+  IntColumn get finalTotalSen => integer().nullable()();
+
+  IntColumn get depositPaidSen => integer().withDefault(const Constant(0))();
+
+  /// Against the **estimate** until the tape comes out, so it can only fall.
+  IntColumn get balanceDueSen => integer().withDefault(const Constant(0))();
+
+  /// True while any line is still on the sizes entered at the fair.
+  BoolColumn get hasUnmeasuredLines =>
+      boolean().withDefault(const Constant(true))();
+
+  TextColumn get confirmedByUserId => text().nullable()();
+  DateTimeColumn get confirmedAt => dateTime()();
+  DateTimeColumn get syncedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// One line on a confirmed order. SPEC.md §6.3.
+///
+/// A **copy** of the quote line, not a pointer to it. The quote is a record of
+/// what was estimated and must not change when the order is measured; the order
+/// is a record of what is being made and must not change when somebody edits an
+/// old quote.
+///
+/// Each line snapshots how it was priced — rule, band, rate, card version,
+/// discount — so a price is still explainable a year later, when the card that
+/// produced it has been superseded twice.
+@DataClassName('OrderLineRow')
+class OrderLines extends Table {
+  TextColumn get id => text()();
+  TextColumn get orderId => text().references(Orders, #id)();
+
+  /// The quote line it was copied from. The trail back to the estimate.
+  TextColumn get quoteLineId => text()();
+
+  IntColumn get sortOrder => integer()();
+  TextColumn get room => text()();
+  TextColumn get variant => text()();
+  TextColumn get materialKey => text().nullable()();
+  TextColumn get layer => text()();
+  TextColumn get parentLineId => text().nullable()();
+
+  /// What was entered at the fair. Tenths of a millimetre, never millimetres.
+  IntColumn get estWidthTmm => integer()();
+  IntColumn get estHeightTmm => integer().nullable()();
+
+  /// What the tape said. Null until somebody has been out with one, and stored
+  /// **beside** the estimate rather than over it.
+  IntColumn get finalWidthTmm => integer().nullable()();
+  IntColumn get finalHeightTmm => integer().nullable()();
+  BoolColumn get isSiteMeasured =>
+      boolean().withDefault(const Constant(false))();
+  TextColumn get measuredByUserId => text().nullable()();
+  DateTimeColumn get measuredAt => dateTime().nullable()();
+
+  IntColumn get quantity => integer().withDefault(const Constant(1))();
+
+  /// The lock that priced it, or null when nothing did. §6.1's hard rule, one
+  /// step downstream: a line must not claim a lock priced it when none did.
+  TextColumn get categoryLockId => text().nullable()();
+
+  TextColumn get appliedRuleId => text()();
+  TextColumn get appliedBandLabel => text().nullable()();
+  IntColumn get appliedRateCardVersion => integer()();
+
+  /// Exact rational in `Rational.toString` notation. Never a float.
+  TextColumn get appliedDiscountPct =>
+      text().withDefault(const Constant('0'))();
+
+  /// Before tier substitution, and after. The quote prints both.
+  IntColumn get standardRateSen => integer()();
+  IntColumn get rateSen => integer()();
+
+  TextColumn get billedQty => text()();
+  TextColumn get billedUnit => text()();
+  IntColumn get lineTotalSen => integer()();
+
+  /// True when the material is still to be chosen and the line was quoted at
+  /// the **dearest** option in its group (B7).
+  BoolColumn get materialDeferred =>
+      boolean().withDefault(const Constant(false))();
+
+  /// True when an admin overrode the price. §6.5 keeps the reason in its own
+  /// append-only table; this is the marker the quote and the screen show.
+  BoolColumn get isOverridden => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Everything that ever happened to an order. §6.3. **APPEND ONLY.**
+///
+/// Corrections are new rows with a reason, never edits. An order that went to
+/// production and came back is two events, and the second one does not erase
+/// the first.
+@DataClassName('OrderEventRow')
+class OrderEvents extends Table {
+  TextColumn get id => text()();
+  TextColumn get orderId => text()();
+
+  /// `confirmed`, `status_changed`, `measured`, `cancelled`, and so on.
+  TextColumn get event => text()();
+  TextColumn get note => text().nullable()();
+  TextColumn get byUserId => text().nullable()();
+  DateTimeColumn get at => dateTime()();
+  DateTimeColumn get syncedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// Money taken. SPEC.md §6.4.
 ///
 /// **The system records payments. It does not process them.** The existing card
@@ -335,6 +492,9 @@ class Outbox extends Table {
   tables: [
     Quotes,
     QuoteLines,
+    Orders,
+    OrderLines,
+    OrderEvents,
     Outbox,
     CategoryLocks,
     DepositPrompts,
@@ -358,7 +518,7 @@ class AppDatabase extends _$AppDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -403,6 +563,12 @@ class AppDatabase extends _$AppDatabase {
       // v8: money taken (§6.4).
       if (from < 8) {
         await m.createTable(payments);
+      }
+      // v9: confirmed orders, their lines and their event log (§6.3).
+      if (from < 9) {
+        await m.createTable(orders);
+        await m.createTable(orderLines);
+        await m.createTable(orderEvents);
       }
     },
     beforeOpen: (details) async {

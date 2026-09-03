@@ -1446,25 +1446,15 @@ orders, supplier management and costing come later.
   prices under the same 10ft header as the curtains for the obvious reason: the
   rate is a made-up curtain, so the drop bands it exactly as a plain curtain's
   does. Plain rods and the Doso/Meyer tracks are unbanded, as printed.
-- `[BLOCKING P4]` **A19. Is Multi Track RM68/RM75 a curtain or hardware?**
-  It is the one row the client's answer does not settle. It bands on the drop
-  with a +RM7 step and costs RM68/ft, which is far above real hardware in this
-  card (RM9–RM40) and reads like a composite — but it is named after a track,
-  not a heading style, and *"all other special tracks are direct add on"* points
-  the other way.
-
-  **Left as an add-on for now**, which quotes RM46 + RM68 = RM114/ft. That is
-  the conservative direction while the question is open: §8.5 promises the final
-  will never exceed the quote, so over-quoting keeps the promise and
-  under-quoting breaks it. Confirm against the printed page before anyone quotes
-  a multi-track window.
-- **A20. Should Doso and Meyer be offered as upgrades at all?**
-  §4.1 reads them as "Track Only" — the price of track bought *without* a
-  curtain. The app currently offers them as upgrades on a curtain whose rate
-  already includes a railing, which charges for a second track: about RM108 on a
-  12ft window. Either they are standalone products, or "Track Only" means
-  something else. Not urgent — nobody has to pick them — but it is a real
-  RM9–10/ft that can be added by mistake.
+- ~~**A19.**~~ **ANSWERED — Multi Track is an add-on.** Client, Sep 2026, on
+  being shown the remaining track rows: *"yes the track all are right."* So
+  RM68/ft is charged **on top of** the curtain, giving RM114/ft on a night
+  curtain, and it bands on the drop because a taller curtain needs heavier
+  track. Only the six heading-style composites in A16 include the curtain.
+- ~~**A20.**~~ **ANSWERED — Doso and Meyer stay as upgrades.** Same answer.
+  "Track Only" is what the printed list calls them, not a rule about who may
+  buy one: a customer replacing the standard railing with a Doso pays RM9/ft on
+  top. Nothing to change.
 
 ## B. Deposits and locks
 - ~~**B1.**~~ **ANSWERED.** Client, Sep 2026:

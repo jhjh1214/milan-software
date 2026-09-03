@@ -31,6 +31,7 @@ import '../../pricing/rate_lock.dart';
 import '../../sync/sync_state.dart';
 import '../../ui/theme.dart';
 import '../payment/payment_method_sheet.dart';
+import 'confirm_order.dart';
 import 'quote_state.dart';
 
 final lockRepositoryProvider = Provider<LockRepository>(
@@ -206,6 +207,11 @@ Future<void> _askFor(
         // hold a price.
         messenger.showSnackBar(SnackBar(content: Text(l.depositNotAtFair)));
       }
+
+      // §3: the deposit **is** the confirmation. Not a quote, not a lead, a
+      // confirmed sale — and the quote stays exactly as it was, referenced by
+      // the order as the rough estimate of what to do.
+      await confirmOrderForDeposit(ref, depositJustTaken: minDeposit, at: now);
 
       // Queued last, so the row it describes is already complete — including
       // the lock it bought. It goes up on the next connection and comes back

@@ -18,7 +18,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:milan_quote/app.dart';
 import 'package:milan_quote/data/database.dart';
+import 'package:milan_quote/core/money.dart';
 import 'package:milan_quote/data/lock_repository.dart';
+import 'package:milan_quote/data/order_repository.dart';
 import 'package:milan_quote/data/payment_repository.dart';
 import 'package:milan_quote/data/rate_card_store.dart';
 import 'package:milan_quote/features/quote/quote_state.dart';
@@ -191,6 +193,132 @@ void main() {
 
     final day = await PaymentRepository(db).cashUp(duringFair);
     expect(day.expectedTotal.sen, 30000);
+  });
+
+  testWidgets('the deposit confirms the quote as an order', (tester) async {
+    // §3: "ORDER IS CONFIRMED. Not a quote, not a lead. A confirmed sale."
+    // The deposit is the only thing that does it — there is no confirm button.
+    await pumpApp(tester, channel: Channel.fair);
+    await addACurtain(tester);
+
+    final quoteId = (await db.latestQuote())!.id;
+    final orders = OrderRepository(db);
+    expect(
+      await orders.forQuote(quoteId),
+      isNull,
+      reason: 'a quote with no money against it is still a quote',
+    );
+
+    await tester.tap(find.text('收 RM 300.00'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('现金'));
+    await tester.pumpAndSettle();
+
+    final order = await orders.forQuote(quoteId);
+    expect(order, isNotNull);
+    expect(
+      order!.quoteId,
+      quoteId,
+      reason: 'the quote is referenced, not consumed',
+    );
+    expect(order.channel, 'fair');
+    expect(order.status, 'confirmed');
+    expect(order.estimateTotalSen, 55200);
+    expect(order.depositPaidSen, 30000);
+    expect(order.balanceDueSen, 25200);
+    expect(
+      order.orderNo,
+      isNull,
+      reason: 'server-issued, like a receipt number',
+    );
+    expect(
+      order.hasUnmeasuredLines,
+      isTrue,
+      reason: 'everything is an estimate until a tape goes near it',
+    );
+  });
+
+  testWidgets('the quote survives conversion untouched', (tester) async {
+    // Client, Sep 2026: "the quote should be recorded as reference to the
+    // order, so have rough estimate of what to do." The measurement team reads
+    // it, and §6.3's variance report compares the final against it.
+    await pumpApp(tester, channel: Channel.fair);
+    await addACurtain(tester);
+    await tester.tap(find.text('收 RM 300.00'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('现金'));
+    await tester.pumpAndSettle();
+
+    final quoteId = (await db.latestQuote())!.id;
+    final quoteLines = await db.linesFor(quoteId);
+    expect(quoteLines, hasLength(1), reason: 'the quote still has its line');
+
+    final order = (await OrderRepository(db).forQuote(quoteId))!;
+    final orderLines = await OrderRepository(db).linesOf(order.id);
+
+    expect(orderLines, hasLength(1));
+    expect(orderLines.single.quoteLineId, quoteLines.single.id);
+    expect(
+      orderLines.single.id,
+      isNot(quoteLines.single.id),
+      reason: 'a copy, so editing one cannot change the other',
+    );
+    expect(orderLines.single.estWidthTmm, 36576);
+    expect(orderLines.single.appliedRuleId, 'night-curtain-lo');
+    expect(orderLines.single.rateSen, 4600);
+    expect(orderLines.single.lineTotalSen, 55200);
+  });
+
+  testWidgets('a second deposit adds to the order, not another one', (
+    tester,
+  ) async {
+    // Two categories at one stall is a normal afternoon. It is one sale.
+    await pumpApp(tester, channel: Channel.fair);
+    await addACurtain(tester);
+    await tester.tap(find.text('收 RM 300.00'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('现金'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+
+    final quoteId = (await db.latestQuote())!.id;
+    final order = (await OrderRepository(db).forQuote(quoteId))!;
+
+    await OrderRepository(db).recordFurtherPayment(
+      orderId: order.id,
+      amount: Money.sen(30000),
+      at: duringFair,
+    );
+
+    final updated = (await OrderRepository(db).forQuote(quoteId))!;
+    expect(updated.id, order.id, reason: 'one quote confirms once');
+    expect(updated.depositPaidSen, 60000);
+    expect(
+      updated.estimateTotalSen,
+      55200,
+      reason: 'the estimate never moves; it is what was quoted',
+    );
+    expect(
+      updated.balanceDueSen,
+      0,
+      reason: 'overpaid owes nothing, not a negative that reads as a refund',
+    );
+
+    final history = await OrderRepository(db).historyOf(order.id);
+    expect(history.map((e) => e.event), ['confirmed', 'payment_taken']);
+  });
+
+  testWidgets('declining leaves it a quote', (tester) async {
+    // No money, no order. Calling it confirmed would put it on the production
+    // board with nothing paid against it.
+    await pumpApp(tester, channel: Channel.fair);
+    await addACurtain(tester);
+    await tester.tap(find.text('不锁价，照今天的价'));
+    await tester.pumpAndSettle();
+
+    final quoteId = (await db.latestQuote())!.id;
+    expect(await OrderRepository(db).forQuote(quoteId), isNull);
   });
 
   testWidgets('backing out at the method step records nothing', (tester) async {
