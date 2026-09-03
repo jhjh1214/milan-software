@@ -135,11 +135,34 @@ local row is the one somebody watched the money change hands for. With no
 signal it adds nothing and raises nothing, which leaves the quote higher than
 it needs to be — permitted by §8.5, and corrected on the next connection.
 
-**Next, and the reason both lock bugs surfaced:** the dashboard has nothing to
-read. Every endpoint is a push. Phase 5's order board needs `GET /api/orders`
-with filters, one order with its lines and history, and the two review queries
-that already exist on the device. That is the prerequisite for any Angular
-work, and it is testable backend work.
+**The read side exists**, which is what made the two lock bugs findable in the
+first place — until then every endpoint was a push and nothing ever read the
+data back. `GET /api/orders` with combining filters and a real `total`,
+`GET /api/orders/{id}` returning lines, history and overrides in one response,
+and the two review queries. CI now proves an order and a hold survive a round
+trip against **real Postgres**, not SQLite — which drops the timezone off a
+`timestamptz` and is relaxed about the partial unique index, both of which this
+depends on.
+
+**Phase 5 has started.** `dashboard/` is Angular 21 standalone, lazily routed,
+with the order board as its first screen: sorted by how soon a rate hold runs
+out, amber at 60 days and red at 30, and a fourth state for one that has already
+gone — that is not a thing to hurry, it is a customer who paid RM300 and got
+nothing. Filters live in the URL and nowhere else, which is §11 Phase 5's
+acceptance criterion. Money is integer sen here too, and there is deliberately
+no function that turns sen into a fractional number.
+
+Dependencies are pinned exactly, matching the rest of the repo.
+`dashboard/tools/check-pins.mjs` fails a caret, because `npm install` rewrites
+the lockfile from the ranges — so the range is what actually decides, and the
+committed lockfile alone guarantees nothing.
+
+**Next on the dashboard, in order:** sign-in (`Api.token` is a signal nothing
+sets yet, so every call would 401), the order detail screen, and the override
+review. The rate card editor with its diff preview is the big one after that.
+
+**Five CI jobs**, all green: Flutter, Python, the deploy stack, Angular, and the
+shared files.
 
 **Two new blocking questions**, both about money, both built the conservative
 way rather than guessed: §13 **B9** (what identifies a returning customer —
