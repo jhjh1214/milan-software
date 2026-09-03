@@ -11,6 +11,7 @@ import 'package:drift/drift.dart';
 import '../core/money.dart';
 import '../pricing/conversion.dart';
 import '../pricing/order_status.dart';
+import '../pricing/price_override.dart';
 import 'database.dart';
 import 'quote_repository.dart' show newId;
 
@@ -222,6 +223,122 @@ class OrderRepository {
 
     return decision;
   });
+
+  /// Moves a line's total by hand, and writes the row that justifies it.
+  /// SPEC.md §6.5.
+  ///
+  /// The rule is in `pricing/price_override.dart`. This stores what it returns:
+  /// the new total, the `is_overridden` marker the screen and the printed quote
+  /// read, the append-only `price_overrides` row, and an `order_events` entry —
+  /// **in one transaction, or none of it.**
+  ///
+  /// An override that applied without its audit row would be the one case the
+  /// weekly review cannot show, which is precisely the case somebody would want
+  /// hidden. §6.5 puts the entire control on that review, so the row is not a
+  /// side effect of the price change; it is the reason the price change is
+  /// allowed at all.
+  Future<OverrideDecision> overrideLineTotal({
+    required String orderLineId,
+    required Money newTotal,
+    required String? reason,
+    required String? adminUserId,
+    required bool isAdmin,
+    required DateTime at,
+    String? deviceId,
+  }) => _db.transaction(() async {
+    final line = await (_db.select(
+      _db.orderLines,
+    )..where((l) => l.id.equals(orderLineId))).getSingle();
+
+    final order = await (_db.select(
+      _db.orders,
+    )..where((o) => o.id.equals(line.orderId))).getSingle();
+
+    final decision = overrideLinePrice(
+      before: Money.sen(line.lineTotalSen),
+      after: newTotal,
+      reason: reason,
+      adminUserId: adminUserId,
+      isAdmin: isAdmin,
+      orderIsTerminal: OrderStatus.fromWire(order.status).isTerminal,
+    );
+
+    if (!decision.isApplied) return decision;
+    final record = decision.record!;
+
+    await (_db.update(
+      _db.orderLines,
+    )..where((l) => l.id.equals(orderLineId))).write(
+      OrderLinesCompanion(
+        lineTotalSen: Value(record.after.sen),
+        // The marker the screen and the printed quote read. Never cleared:
+        // a line that was overridden once stays a line somebody moved by
+        // hand, whatever it is moved to afterwards.
+        isOverridden: const Value(true),
+      ),
+    );
+
+    await _db
+        .into(_db.priceOverrides)
+        .insert(
+          PriceOverridesCompanion.insert(
+            id: newId(),
+            orderLineId: orderLineId,
+            orderId: line.orderId,
+            beforeSen: record.before.sen,
+            afterSen: record.after.sen,
+            reason: record.reason,
+            adminUserId: record.adminUserId,
+            deviceId: Value(deviceId),
+            at: at,
+          ),
+        );
+
+    await _db
+        .into(_db.orderEvents)
+        .insert(
+          OrderEventsCompanion.insert(
+            id: newId(),
+            orderId: line.orderId,
+            event: 'price_overridden',
+            note: Value(
+              '${record.before.format()} → ${record.after.format()}: '
+              '${record.reason}',
+            ),
+            byUserId: Value(record.adminUserId),
+            at: at,
+          ),
+        );
+
+    return decision;
+  });
+
+  /// Every override in a window, newest first. SPEC.md §6.5 and §11 Phase 5.
+  ///
+  /// *"build the 'overrides this week' screen — without it the log is never read
+  /// and the control does not exist."* The query is here so the screen is cheap
+  /// to build; a control nobody can see is not a control.
+  ///
+  /// [from] is inclusive and [to] exclusive, so a week is seven days with no
+  /// midnight straddling either edge.
+  Future<List<PriceOverrideRow>> overridesBetween({
+    required DateTime from,
+    required DateTime to,
+  }) =>
+      (_db.select(_db.priceOverrides)
+            ..where(
+              (o) =>
+                  o.at.isBiggerOrEqualValue(from) & o.at.isSmallerThanValue(to),
+            )
+            ..orderBy([(o) => OrderingTerm.desc(o.at)]))
+          .get();
+
+  /// Every override on one order, oldest first — the line's own history.
+  Future<List<PriceOverrideRow>> overridesOn(String orderId) =>
+      (_db.select(_db.priceOverrides)
+            ..where((o) => o.orderId.equals(orderId))
+            ..orderBy([(o) => OrderingTerm.asc(o.at)]))
+          .get();
 
   /// Writes back the order number the server issued.
   ///

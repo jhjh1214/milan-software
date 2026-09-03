@@ -347,6 +347,49 @@ class OrderEvents extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Every price an admin moved by hand. SPEC.md §6.5.
+///
+/// **APPEND ONLY, and never deletable from the app.** This table *is* the
+/// control:
+///
+/// > An offline PIN is bypassable, and one shared admin password reaches every
+/// > part-timer within a month. The real control is the audit log plus a weekly
+/// > review screen, not the gate.
+///
+/// Which is why `reason` and `adminUserId` are both NOT NULL. A row that cannot
+/// say who or why is not an audit trail; it is a record that a number changed.
+///
+/// `orderId` is denormalised off the line on purpose. The whole point of the
+/// table is the "overrides this week" screen, and that screen groups by order —
+/// making it join through `order_lines` for every row would be the small
+/// friction that stops it being written.
+@DataClassName('PriceOverrideRow')
+class PriceOverrides extends Table {
+  TextColumn get id => text()();
+  TextColumn get orderLineId => text().references(OrderLines, #id)();
+
+  /// Denormalised for the weekly review. See the class comment.
+  TextColumn get orderId => text()();
+
+  IntColumn get beforeSen => integer()();
+  IntColumn get afterSen => integer()();
+
+  /// Mandatory, minimum four characters, stored trimmed. §6.5.
+  TextColumn get reason => text()();
+
+  /// Mandatory. *"Individual PINs so the log names a person."*
+  TextColumn get adminUserId => text()();
+
+  /// Which handset. Two admins sharing a PIN still show up as two devices.
+  TextColumn get deviceId => text().nullable()();
+
+  DateTimeColumn get at => dateTime()();
+  DateTimeColumn get syncedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// Money taken. SPEC.md §6.4.
 ///
 /// **The system records payments. It does not process them.** The existing card
@@ -499,6 +542,7 @@ class Outbox extends Table {
     CategoryLocks,
     DepositPrompts,
     Payments,
+    PriceOverrides,
     Settings,
   ],
 )
@@ -518,7 +562,7 @@ class AppDatabase extends _$AppDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -569,6 +613,12 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(orders);
         await m.createTable(orderLines);
         await m.createTable(orderEvents);
+      }
+      // v10: the price override audit log (§6.5). Created rather than
+      // backfilled: there is nothing to backfill, and an empty audit table is
+      // the honest state of a handset that has never overridden anything.
+      if (from < 10) {
+        await m.createTable(priceOverrides);
       }
     },
     beforeOpen: (details) async {

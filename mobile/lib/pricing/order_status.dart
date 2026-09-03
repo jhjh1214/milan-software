@@ -46,6 +46,13 @@
 /// Pure: no clock, no I/O, no Flutter. Everything is passed in.
 library;
 
+// For `minReasonLength`. §6.5 is where that bar is set, so it is declared with
+// the override rather than copied here — one number, one place, whichever of
+// the two somebody reads first.
+import 'price_override.dart' show minReasonLength;
+
+export 'price_override.dart' show minReasonLength;
+
 /// Where an order is. The wire values are the enum in SPEC.md §6.3 and the
 /// strings stored in `orders.status`, on both sides of the sync.
 enum OrderStatus {
@@ -171,10 +178,6 @@ class StatusChange {
 
   bool get isAllowed => to != null;
 }
-
-/// The shortest cancellation reason that says anything. §6.5 sets the same bar
-/// for a price override.
-const int minReasonLength = 4;
 
 /// What each status may become. Everything not listed is refused.
 ///

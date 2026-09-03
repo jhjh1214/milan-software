@@ -21,6 +21,7 @@ import 'package:milan_quote/data/database.dart';
 import 'package:milan_quote/data/order_repository.dart';
 import 'package:milan_quote/pricing/conversion.dart';
 import 'package:milan_quote/pricing/order_status.dart';
+import 'package:milan_quote/pricing/price_override.dart';
 import 'package:milan_quote/pricing/rate_lock.dart';
 
 void main() {
@@ -353,5 +354,234 @@ void main() {
     await repo.advanceStatus(orderId: id, to: OrderStatus.measured, at: tick());
 
     expect((await read(id)).estimateTotalSen, estimate);
+  });
+
+  group('overriding a line price', () {
+    Future<String> lineOf(String orderId) async =>
+        (await repo.linesOf(orderId)).first.id;
+
+    test('moves the total, marks the line, and writes the audit row', () async {
+      final id = await confirm();
+      final lineId = await lineOf(id);
+
+      final result = await repo.overrideLineTotal(
+        orderLineId: lineId,
+        newTotal: const Money.sen(90000),
+        reason: 'matched a competitor quote',
+        adminUserId: 'u-boss',
+        isAdmin: true,
+        at: tick(),
+        deviceId: 'handset-3',
+      );
+      expect(result.isApplied, isTrue);
+
+      final line = (await repo.linesOf(id)).single;
+      expect(line.lineTotalSen, 90000);
+      expect(line.isOverridden, isTrue);
+
+      final audit = (await repo.overridesOn(id)).single;
+      expect(audit.beforeSen, 96000);
+      expect(audit.afterSen, 90000);
+      expect(audit.reason, 'matched a competitor quote');
+      expect(audit.adminUserId, 'u-boss');
+      expect(audit.deviceId, 'handset-3');
+    });
+
+    test('shows up in the order history too', () async {
+      // Two readers, two places. The audit table is the weekly review; the
+      // event log is what somebody scrolls when one customer asks.
+      final id = await confirm();
+      await repo.overrideLineTotal(
+        orderLineId: await lineOf(id),
+        newTotal: const Money.sen(90000),
+        reason: 'matched a competitor quote',
+        adminUserId: 'u-boss',
+        isAdmin: true,
+        at: tick(),
+      );
+
+      final last = (await repo.historyOf(id)).last;
+      expect(last.event, 'price_overridden');
+      expect(last.note, contains('RM 960.00'));
+      expect(last.note, contains('RM 900.00'));
+      expect(last.note, contains('matched a competitor quote'));
+      expect(last.byUserId, 'u-boss');
+    });
+
+    test('a refusal changes nothing at all', () async {
+      // The price and the audit row are one write or neither. A price that
+      // moved without its row is the single case the weekly review cannot
+      // show, which is exactly the case somebody would want hidden.
+      final id = await confirm();
+      final lineId = await lineOf(id);
+
+      for (final attempt in [
+        () => repo.overrideLineTotal(
+          orderLineId: lineId,
+          newTotal: const Money.sen(90000),
+          reason: 'matched a competitor quote',
+          adminUserId: 'u-ah-lian',
+          isAdmin: false,
+          at: tick(),
+        ),
+        () => repo.overrideLineTotal(
+          orderLineId: lineId,
+          newTotal: const Money.sen(90000),
+          reason: 'no',
+          adminUserId: 'u-boss',
+          isAdmin: true,
+          at: tick(),
+        ),
+        () => repo.overrideLineTotal(
+          orderLineId: lineId,
+          newTotal: const Money.sen(-1),
+          reason: 'a perfectly good reason',
+          adminUserId: 'u-boss',
+          isAdmin: true,
+          at: tick(),
+        ),
+      ]) {
+        expect((await attempt()).isApplied, isFalse);
+      }
+
+      final line = (await repo.linesOf(id)).single;
+      expect(line.lineTotalSen, 96000);
+      expect(line.isOverridden, isFalse);
+      expect(await repo.overridesOn(id), isEmpty);
+      expect((await repo.historyOf(id)).length, 1);
+    });
+
+    test('a cancelled order cannot be repriced', () async {
+      final id = await confirm();
+      await repo.advanceStatus(
+        orderId: id,
+        to: OrderStatus.cancelled,
+        at: tick(),
+        reason: 'customer bought elsewhere',
+      );
+
+      final result = await repo.overrideLineTotal(
+        orderLineId: await lineOf(id),
+        newTotal: const Money.sen(90000),
+        reason: 'matched a competitor quote',
+        adminUserId: 'u-boss',
+        isAdmin: true,
+        at: tick(),
+      );
+      expect(result.refusedBecause, OverrideRefusal.orderFinished);
+      expect((await repo.linesOf(id)).single.lineTotalSen, 96000);
+    });
+
+    test('two overrides on one line both survive', () async {
+      // Append-only. The second must not overwrite the first, or the review
+      // sees one move where there were two and the intermediate number — the
+      // one somebody may have quoted aloud — disappears.
+      final id = await confirm();
+      final lineId = await lineOf(id);
+
+      await repo.overrideLineTotal(
+        orderLineId: lineId,
+        newTotal: const Money.sen(90000),
+        reason: 'matched a competitor quote',
+        adminUserId: 'u-boss',
+        isAdmin: true,
+        at: tick(),
+      );
+      await repo.overrideLineTotal(
+        orderLineId: lineId,
+        newTotal: const Money.sen(85000),
+        reason: 'customer pushed again',
+        adminUserId: 'u-boss',
+        isAdmin: true,
+        at: tick(),
+      );
+
+      final audit = await repo.overridesOn(id);
+      expect(audit.map((o) => (o.beforeSen, o.afterSen)), [
+        (96000, 90000),
+        (90000, 85000),
+      ]);
+      expect((await repo.linesOf(id)).single.lineTotalSen, 85000);
+    });
+
+    test('the marker is never cleared by a later override', () async {
+      // A line moved back to its original total is still a line somebody moved
+      // by hand, and the printed quote has to keep saying so.
+      final id = await confirm();
+      final lineId = await lineOf(id);
+
+      await repo.overrideLineTotal(
+        orderLineId: lineId,
+        newTotal: const Money.sen(90000),
+        reason: 'matched a competitor quote',
+        adminUserId: 'u-boss',
+        isAdmin: true,
+        at: tick(),
+      );
+      await repo.overrideLineTotal(
+        orderLineId: lineId,
+        newTotal: const Money.sen(96000),
+        reason: 'competitor quote was withdrawn',
+        adminUserId: 'u-boss',
+        isAdmin: true,
+        at: tick(),
+      );
+
+      final line = (await repo.linesOf(id)).single;
+      expect(line.lineTotalSen, 96000);
+      expect(line.isOverridden, isTrue);
+      expect((await repo.overridesOn(id)).length, 2);
+    });
+  });
+
+  group('the overrides this week screen', () {
+    test('reads a window, newest first, and excludes its far edge', () async {
+      // §6.5: "without it the log is never read and the control does not
+      // exist." An off-by-one at either edge either double counts a row in two
+      // weeks or drops it from both.
+      final id = await confirm();
+      final lineId = (await repo.linesOf(id)).first.id;
+
+      final monday = DateTime(2026, 8, 24);
+      final sunday = DateTime(2026, 8, 30);
+      final nextMonday = DateTime(2026, 8, 31);
+
+      var total = 96000;
+      for (final at in [
+        monday.subtract(const Duration(seconds: 1)),
+        monday,
+        DateTime(2026, 8, 27, 11),
+        sunday,
+        nextMonday,
+      ]) {
+        total -= 100;
+        await repo.overrideLineTotal(
+          orderLineId: lineId,
+          newTotal: Money.sen(total),
+          reason: 'a perfectly good reason',
+          adminUserId: 'u-boss',
+          isAdmin: true,
+          at: at,
+        );
+      }
+
+      final week = await repo.overridesBetween(from: monday, to: nextMonday);
+      expect(week.length, 3);
+      expect(
+        week.map((o) => o.at),
+        [sunday, DateTime(2026, 8, 27, 11), monday],
+        reason: 'newest first, the Monday included and the next Monday not',
+      );
+    });
+
+    test('is empty rather than null when nobody overrode anything', () async {
+      expect(
+        await repo.overridesBetween(
+          from: DateTime(2026, 8, 24),
+          to: DateTime(2026, 8, 31),
+        ),
+        isEmpty,
+      );
+    });
   });
 }
