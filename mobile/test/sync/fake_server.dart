@@ -25,6 +25,18 @@ class FakeServer {
   /// Set to have every call hang past the client's timeout.
   bool hang = false;
 
+  /// Set to have `POST /api/quotes` refuse everything, as it would for a quote
+  /// priced against a rate card version this server never published.
+  bool rejectQuotes = false;
+
+  /// When set, the server reports this total instead of agreeing with the
+  /// device — the §9.4 disagreement path.
+  int? serverTotalOverrideSen;
+
+  /// The body of the last quote pushed, so a test can assert what was sent
+  /// rather than only what came back.
+  List<int>? lastQuoteBody;
+
   /// Quote ids already accepted, for the idempotency check.
   final Set<String> accepted = {};
 
@@ -108,16 +120,33 @@ class FakeServer {
     }
 
     if (path == '/api/quotes') {
+      lastQuoteBody = request.bodyBytes;
+      if (rejectQuotes) {
+        return _json({'detail': 'no such rate card version'}, 409);
+      }
+
       final body =
           jsonDecode(utf8.decode(request.bodyBytes)) as Map<String, dynamic>;
       final id = body['id'] as String;
       final duplicate = !accepted.add(id);
+      final deviceTotal = body['device_total_sen'];
+      final serverTotal = serverTotalOverrideSen ?? deviceTotal;
       return _json({
         'quote_id': id,
         'duplicate': duplicate,
-        'server_total_sen': body['device_total_sen'],
-        'device_total_sen': body['device_total_sen'],
-        'discrepancies': <Map<String, dynamic>>[],
+        'server_total_sen': serverTotal,
+        'device_total_sen': deviceTotal,
+        'discrepancies': serverTotal == deviceTotal
+            ? <Map<String, dynamic>>[]
+            : [
+                {
+                  'line_id': (body['lines'] as List).first['id'],
+                  'server_total_sen': serverTotal,
+                  'device_total_sen': deviceTotal,
+                  'agreed': false,
+                  'detail': null,
+                },
+              ],
       });
     }
 

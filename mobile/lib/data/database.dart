@@ -114,7 +114,56 @@ class QuoteLines extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [Quotes, QuoteLines])
+/// Work waiting to reach the server. §9.2.
+///
+/// The whole of the push side is this table plus a drainer. Nothing is sent
+/// synchronously and nothing blocks the UI on a network call: a quote is
+/// finished, a row lands here, and it goes up whenever there is signal — which
+/// at a fair might be that evening, in the car.
+///
+/// **Drained FIFO.** Order matters because a later row can depend on an earlier
+/// one, and because a queue that reorders is a queue nobody can reason about
+/// when it goes wrong.
+///
+/// The row's [entityId] is the quote's own client-generated UUID, which is what
+/// makes the push idempotent: the server has seen that id or it has not. A
+/// retry after a connection dropped mid-request is therefore free, and the
+/// device never has to know whether the first attempt landed.
+@DataClassName('OutboxRow')
+class Outbox extends Table {
+  TextColumn get id => text()();
+
+  /// `quote` for now. Payments and photos join it in Phase 4.
+  TextColumn get entityType => text()();
+
+  /// The entity's client-generated id. The server is idempotent on it.
+  TextColumn get entityId => text()();
+
+  /// The whole request body, serialised at enqueue time.
+  ///
+  /// Frozen rather than rebuilt at send time on purpose: what goes up is what
+  /// the customer was shown, not what the quote has since been edited into.
+  TextColumn get payload => text()();
+
+  IntColumn get attempts => integer().withDefault(const Constant(0))();
+  DateTimeColumn get lastAttemptAt => dateTime().nullable()();
+
+  /// Why the last attempt failed. For the diagnostics screen; never shown raw
+  /// to a part-timer.
+  TextColumn get lastError => text().nullable()();
+
+  /// Set when a row has failed so many times that it is clearly not going to
+  /// work. It stops being retried but is **never deleted** — it is somebody's
+  /// order, and it needs looking at rather than losing.
+  DateTimeColumn get parkedAt => dateTime().nullable()();
+
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DriftDatabase(tables: [Quotes, QuoteLines, Outbox])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
     : super(executor ?? driftDatabase(name: 'milan_quote'));
@@ -131,7 +180,7 @@ class AppDatabase extends _$AppDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -152,6 +201,11 @@ class AppDatabase extends _$AppDatabase {
       // v4: a photo per window (§8.1).
       if (from < 4) {
         await m.addColumn(quoteLines, quoteLines.photoPath);
+      }
+      // v5: the outbox (§9.2). Created rather than backfilled — a quote taken
+      // before sync existed was never destined for a server.
+      if (from < 5) {
+        await m.createTable(outbox);
       }
     },
     beforeOpen: (details) async {
@@ -204,5 +258,44 @@ class AppDatabase extends _$AppDatabase {
   Future<void> clearAll() => transaction(() async {
     await delete(quoteLines).go();
     await delete(quotes).go();
+    await delete(outbox).go();
   });
+
+  /// The next rows to send, oldest first. §9.2 drains FIFO.
+  ///
+  /// Parked rows are skipped: one bad row must not stop every quote behind it
+  /// from reaching the office.
+  Future<List<OutboxRow>> pendingOutbox({int limit = 50}) =>
+      (select(outbox)
+            ..where((o) => o.parkedAt.isNull())
+            ..orderBy([(o) => OrderingTerm.asc(o.createdAt)])
+            ..limit(limit))
+          .get();
+
+  /// Watches the queue depth, so the UI can show "3 waiting to send" without
+  /// polling — and without ever blocking on it.
+  Stream<int> watchOutboxDepth() {
+    final count = outbox.id.count();
+    return (selectOnly(outbox)
+          ..addColumns([count])
+          ..where(outbox.parkedAt.isNull()))
+        .map((row) => row.read(count) ?? 0)
+        .watchSingle();
+  }
+
+  Future<void> enqueueOutbox(OutboxCompanion row) =>
+      into(outbox).insert(row, mode: InsertMode.insertOrReplace);
+
+  /// Removes a row the server has confirmed, and stamps the quote as synced,
+  /// in **one** transaction.
+  ///
+  /// Both or neither: a row deleted while the quote's `synced_at` stayed null
+  /// would leave a quote that looks unsent and will never be sent again.
+  Future<void> completeOutbox(String outboxId, String quoteId, DateTime at) =>
+      transaction(() async {
+        await (delete(outbox)..where((o) => o.id.equals(outboxId))).go();
+        await (update(quotes)..where((q) => q.id.equals(quoteId))).write(
+          QuotesCompanion(syncedAt: Value(at)),
+        );
+      });
 }
