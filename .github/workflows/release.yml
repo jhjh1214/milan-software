@@ -1,0 +1,170 @@
+name: Release
+
+# The delivery half. CI proves the code is right; this produces the two things
+# somebody can actually install: a server image and an APK.
+#
+# It runs only after CI has gone green on `main`, and on a tag. Building a
+# release from a red tree would put a wrong price in front of a customer with a
+# version number attached to it.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+  push:
+    tags: ["v*"]
+
+concurrency:
+  # One release at a time. Two runs pushing `:main` would race, and the loser
+  # would silently win.
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  image:
+    name: Server image → GHCR
+    runs-on: ubuntu-latest
+    # A workflow_run fires whatever CI concluded, so the result has to be
+    # checked here rather than assumed.
+    if: >-
+      github.event_name == 'push' ||
+      github.event.workflow_run.conclusion == 'success'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # workflow_run checks out the default branch, not the commit that
+          # triggered CI. Pinning it keeps the image and its tests on the same
+          # source.
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/api
+          tags: |
+            type=raw,value=main,enable=${{ github.event_name == 'workflow_run' }}
+            type=semver,pattern={{version}}
+            type=sha,format=long
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # The image is only worth pushing if it starts, migrates and serves. A
+      # tag nobody can boot is worse than no tag.
+      - name: The pushed image boots, migrates and serves
+        run: |
+          docker network create milan-release
+          docker run -d --name db --network milan-release \
+            -e POSTGRES_USER=milan -e POSTGRES_PASSWORD=milan \
+            -e POSTGRES_DB=milan postgres:16
+          for i in $(seq 1 60); do
+            docker exec db pg_isready -U milan -d milan >/dev/null 2>&1 && break
+            sleep 2
+          done
+
+          IMAGE=$(echo "${{ steps.meta.outputs.tags }}" | head -1)
+          docker run -d --name api --network milan-release -p 8000:8000 \
+            -e DATABASE_URL=postgresql+psycopg://milan:milan@db:5432/milan \
+            "$IMAGE"
+
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8000/api/health >/dev/null 2>&1; then
+              echo "healthy after ${i}s"; break
+            fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:8000/api/health | grep -q '"ok"'
+
+          # It migrated itself on boot, with no separate step.
+          docker exec db psql -U milan -d milan -tA \
+            -c "SELECT version_num FROM alembic_version;" | grep -q .
+
+          # And it is still closed to strangers.
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/api/bundle)
+          test "$code" = "401" || { echo "::error::bundle answered $code, not 401"; exit 1; }
+          echo "ok — the image boots, migrates and refuses anonymous pulls"
+
+      - name: Logs, if that failed
+        if: failure()
+        run: docker logs api --tail 50 || true
+
+  apk:
+    name: Android APK
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'push' ||
+      github.event.workflow_run.conclusion == 'success'
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.0
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+      - run: dart run build_runner build --delete-conflicting-outputs
+
+      # Split per ABI. A single fat APK carries all three and is 63MB, which is
+      # not what anybody installs — SPEC.md §12 budgets 30MB.
+      - name: Build
+        run: |
+          flutter build apk --release --split-per-abi \
+            --dart-define=MILAN_API_URL=${{ vars.MILAN_API_URL || 'https://milan.example.com' }}
+
+      - name: Check it still fits the 30MB budget
+        run: |
+          apk=build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+          bytes=$(stat -c%s "$apk")
+          mb=$(( bytes / 1048576 ))
+          echo "arm64 APK is ${mb}MB"
+          if [ "$mb" -gt 30 ]; then
+            echo "::error::the APK is ${mb}MB, over the 30MB target in SPEC.md §12"
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: milan-apk
+          path: mobile/build/app/outputs/flutter-apk/app-*-release.apk
+          retention-days: 30
+
+      # A tag is a thing somebody installs, so it gets a release page with the
+      # APKs attached rather than an artifact that expires.
+      - name: Attach the APKs to the tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: mobile/build/app/outputs/flutter-apk/app-*-release.apk
+          generate_release_notes: true

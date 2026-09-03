@@ -98,6 +98,19 @@ class TestCreatingTheFirstAdmin:
         with db() as session:
             assert session.scalars(select(User)).one().role == "parttime"
 
+    def test_an_empty_stdin_says_so_rather_than_blaming_the_pin(
+        self, db, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Reaching the strength check with "" reports "a PIN is digits only",
+        # which sends somebody looking at their PIN when their shell never
+        # delivered it.
+        monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: False)
+        monkeypatch.setattr(cli.sys.stdin, "readline", lambda: "\n")
+
+        with pytest.raises(SystemExit) as exit:
+            cli.main(["users", "add", "--name", "Boss", "--phone", "0123"])
+        assert "stdin" in str(exit.value)
+
     def test_the_pin_is_not_an_argument(self) -> None:
         # An argument lands in shell history and in ps output. This is the
         # check that the flag never gets added "for convenience".

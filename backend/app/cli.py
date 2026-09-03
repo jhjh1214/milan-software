@@ -36,7 +36,21 @@ ROLES = ("admin", "staff", "parttime")
 def read_pin(confirm: bool = True) -> str:
     """From the terminal if there is one, else from stdin (for scripts)."""
     if not sys.stdin.isatty():
-        return sys.stdin.readline().strip()
+        pin = sys.stdin.readline().strip()
+        if not pin:
+            # Says what actually went wrong. Reaching the strength check with
+            # an empty string reports "a PIN is digits only", which sends
+            # somebody looking at their PIN when the real problem is that
+            # their shell never delivered it -- PowerShell's pipe into
+            # `docker compose exec` is one that does not.
+            raise SystemExit(
+                "no PIN arrived on stdin. Pipe one in, e.g.\n"
+                "  echo 4821 | docker compose exec -T api python -m app.cli "
+                "users add --name ... --phone ...\n"
+                "On Windows use cmd or Git Bash: PowerShell's pipe does not "
+                "reach the container."
+            )
+        return pin
 
     pin = getpass.getpass("PIN: ")
     if confirm and getpass.getpass("PIN again: ") != pin:

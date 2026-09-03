@@ -1144,12 +1144,14 @@ First phase with running costs, so maintenance billing starts here.
       -- the card already pulled still prices, and queued quotes are kept
       rather than parked. Revoking is the control that replaces expiry;
       sessions never expire on their own (12).
-- [ ] Database restored from backup into a scratch container successfully
-      -- `deploy/backup.sh` restores every dump it takes and fails the run if
-      the restore comes back empty, at the wrong migration, or with no rate
-      cards. CI runs it against the real stack, **and CI is its first
-      execution**: there is no Docker daemon on the development machine, so
-      nothing here has been observed working yet.
+- [x] Database restored from backup into a scratch container successfully
+      -- run for real, 3 Sep 2026, against the Compose stack on Postgres 16.
+      `deploy/backup.sh` dumped, restored into a scratch database and reported
+      `alembic=0003 tables=11 rate_cards=1`. Emptying `rate_cards` and running
+      it again failed with `FAIL: no rate cards in the restored database`, so
+      the drill has teeth. `deploy/restore.sh` then put a dump back over the
+      live database and the card, the admin user and a payment with its issued
+      receipt number all returned intact.
 
 ---
 

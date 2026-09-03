@@ -133,9 +133,30 @@ Take a backup first; the restore path above is the rollback.
 - **No secrets in the repo.** `.env` is gitignored; `.env.example` is the
   template.
 
-## Not yet verified
+## Verified
 
-These files have never been run. There is no Docker daemon on the development
-machine, so `docker compose config` has validated the syntax and nothing has
-validated the behaviour. Before this is relied on: bring the stack up on a
-throwaway host, take a backup, and run `restore.sh` against it.
+Run for real on 3 Sep 2026 against Postgres 16, end to end:
+
+- `docker compose up -d --build db api` — the API migrated to `0003` on boot
+  and reported healthy without a separate migration step.
+- `users add` created the first admin; `cards publish` loaded the 77-row fair
+  card.
+- Over HTTP: an unauthenticated pull was refused **401**, sign-in worked, the
+  bundle returned 77 rules, a repeat pull sent no payload, and a payment pushed
+  twice produced **one** row with the **same** receipt number `R2608-0001`.
+- `backup.sh` dumped, restored into a scratch database and reported
+  `alembic=0003 tables=11 rate_cards=1`. With `rate_cards` emptied it failed
+  with `FAIL: no rate cards in the restored database` — the drill has teeth.
+- `restore.sh` put a dump back over the live database; the card, the admin and
+  the payment with its receipt all returned, and the API came back healthy.
+
+Caddy is the one piece still unexercised: starting it would chase a real
+certificate for a domain that does not resolve.
+
+### A note about shells on Windows
+
+`backup.sh` and `restore.sh` call `docker compose`, so run them from a shell
+where that works. On the VPS that is any shell. On a Windows development
+machine use **Git Bash** — WSL's bash cannot see Docker unless WSL integration
+is switched on in Docker Desktop, and PowerShell's `|` does not deliver stdin
+into `docker compose exec`, which is what the CLI reads a PIN from.
