@@ -43,6 +43,20 @@ class Quotes extends Table {
   TextColumn get customerName => text().nullable()();
   TextColumn get customerPhone => text().nullable()();
 
+  /// Where this quote was taken: `fair`, `showroom`, `home_visit`, `phone` or
+  /// `referral`.
+  ///
+  /// Recorded on the quote rather than worked out from the date, because it
+  /// decides two things the date cannot. §3: "Promo and the 12-month lock are
+  /// fair-only. Showroom pays standard." And client, Sep 2026: *"only depo at
+  /// fair can lock price."* A showroom walk-in during the four days of a fair
+  /// is a real customer, and reading the calendar would hand them both the
+  /// promo rate and a hold they never bought.
+  ///
+  /// Every report segments by it too (§3) — the company currently cannot answer
+  /// whether a fair beats three months of showroom traffic.
+  TextColumn get channel => text().withDefault(const Constant('showroom'))();
+
   /// The delivery zone charged on this quote, if any.
   ///
   /// SPEC.md §4.1: the charge is driven by the delivery address, not by any
@@ -112,6 +126,21 @@ class QuoteLines extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
+}
+
+/// Handset preferences. Small, flat, and deliberately not domain data.
+///
+/// Drift over a key-value store is CLAUDE.md's rule about *orders* — a quote is
+/// an order with lines and Hive would turn every read into a hand-rolled join.
+/// "Is this handset at a fair" is one boolean, and giving it a table with one
+/// column would be the same mistake in the other direction.
+@DataClassName('SettingRow')
+class Settings extends Table {
+  TextColumn get key => text()();
+  TextColumn get value => text()();
+
+  @override
+  Set<Column> get primaryKey => {key};
 }
 
 /// One RM300, holding one category's prices for twelve months. SPEC.md §6.1.
@@ -241,7 +270,7 @@ class Outbox extends Table {
 }
 
 @DriftDatabase(
-  tables: [Quotes, QuoteLines, Outbox, CategoryLocks, DepositPrompts],
+  tables: [Quotes, QuoteLines, Outbox, CategoryLocks, DepositPrompts, Settings],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
@@ -259,7 +288,7 @@ class AppDatabase extends _$AppDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -290,6 +319,16 @@ class AppDatabase extends _$AppDatabase {
       if (from < 6) {
         await m.createTable(categoryLocks);
         await m.createTable(depositPrompts);
+      }
+      // v7: where a quote was taken, and handset preferences.
+      //
+      // Existing rows default to `showroom`, which is the conservative
+      // direction: a quote taken before this column existed cannot be shown to
+      // have opened a lock, and claiming it was a fair would grant one
+      // retrospectively.
+      if (from < 7) {
+        await m.addColumn(quotes, quotes.channel);
+        await m.createTable(settings);
       }
     },
     beforeOpen: (details) async {

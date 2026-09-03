@@ -11,8 +11,10 @@ import '../../core/length.dart';
 import '../../data/database.dart';
 import '../../data/quote_repository.dart';
 import '../../data/rate_card_store.dart';
+import '../../data/settings_repository.dart';
 import '../../pricing/engine.dart';
 import '../../pricing/models.dart';
+import '../../pricing/rate_lock.dart' show Channel;
 
 /// The on-device database. Overridden with an in-memory one in tests.
 final databaseProvider = Provider<AppDatabase>((ref) {
@@ -28,14 +30,54 @@ final quoteRepositoryProvider = Provider<QuoteRepository>(
 /// Where the price list lives. Overridden in tests.
 final rateCardStoreProvider = Provider<RateCardStore>((ref) => RateCardStore());
 
-/// The price list in force today, and which one it is.
+final settingsRepositoryProvider = Provider<SettingsRepository>(
+  (ref) => SettingsRepository(ref.watch(databaseProvider)),
+);
+
+/// Whether this handset is at a fair. Defaults to on — see [kFairModeKey].
+final fairModeProvider = AsyncNotifierProvider<FairModeNotifier, bool>(
+  FairModeNotifier.new,
+);
+
+class FairModeNotifier extends AsyncNotifier<bool> {
+  @override
+  Future<bool> build() =>
+      ref.watch(settingsRepositoryProvider).fairModeEnabled();
+
+  Future<void> set(bool enabled) async {
+    await ref.read(settingsRepositoryProvider).setFairMode(enabled);
+    state = AsyncData(enabled);
+    // The channel decides which card prices the quote, so everything derived
+    // from it has to be rebuilt rather than left showing yesterday's prices.
+    ref.invalidate(activeRateCardProvider);
+  }
+}
+
+/// The price list in force, which one it is, and the channel that chose it.
 ///
-/// Fair rates inside the fair's own window; standard rates every other day of
-/// the year (§3: the showroom pays standard, no promo, no lock). The date
-/// decides rather than a salesperson remembering to switch.
-final activeRateCardProvider = FutureProvider<ActiveRateCard>(
+/// Two conditions, both required: the handset must be in fair mode **and** the
+/// fair card's promo window must cover today. §3: "Promo and the 12-month lock
+/// are fair-only. Showroom pays standard."
+///
+/// The store resolves both together, because deciding the channel needs the
+/// fair card's window and choosing the list needs the channel. Splitting them
+/// across two providers made that circular, and recorded the first quote of a
+/// session as `showroom` while the card was still loading.
+final activeRateCardProvider = FutureProvider<ActiveRateCard>((ref) async {
+  final enabled = await ref.watch(fairModeProvider.future);
+  return ref
+      .watch(rateCardStoreProvider)
+      .loadActiveForHandset(ref.watch(todayProvider), fairModeEnabled: enabled);
+});
+
+/// Where a quote started now would be taken.
+///
+/// Read off the active card rather than computed again, so there is one answer
+/// and it cannot drift from the prices on screen.
+final channelProvider = Provider<Channel>(
   (ref) =>
-      ref.watch(rateCardStoreProvider).loadActive(ref.watch(todayProvider)),
+      ref.watch(activeRateCardProvider).valueOrNull?.channel ??
+      Channel.showroom,
 );
 
 /// The card in force. The card is data, never code — CLAUDE.md hard rule 1.
@@ -125,6 +167,11 @@ class QuoteState {
   final String? customerName;
   final String? customerPhone;
 
+  /// Where this quote was taken, fixed when it started. It decides whether an
+  /// RM300 can lock anything (§13 B1) and whether the category prompt appears
+  /// at all (§6.2).
+  final Channel channel;
+
   const QuoteState({
     required this.quoteId,
     this.lines = const [],
@@ -132,6 +179,7 @@ class QuoteState {
     this.deliveryZoneId,
     this.customerName,
     this.customerPhone,
+    this.channel = Channel.showroom,
   });
 }
 
@@ -149,6 +197,7 @@ class QuoteNotifier extends AsyncNotifier<QuoteState> {
     final quote = await _repo.ensureDraft(
       rateCardVersion: card.version,
       language: language,
+      channel: ref.watch(channelProvider).wire,
     );
     return _load(quote);
   }
@@ -162,6 +211,7 @@ class QuoteNotifier extends AsyncNotifier<QuoteState> {
       deliveryZoneId: quote.deliveryZoneId,
       customerName: quote.customerName,
       customerPhone: quote.customerPhone,
+      channel: Channel.fromWire(quote.channel),
     );
   }
 

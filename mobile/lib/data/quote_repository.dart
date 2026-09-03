@@ -31,8 +31,12 @@ class QuoteRepository {
   Future<QuoteRow> ensureDraft({
     required int rateCardVersion,
     required String language,
+    required String channel,
   }) async {
     final existing = await _db.latestQuote();
+    // The channel is fixed when the quote starts and never revised. A quote
+    // begun at a fair and finished in the car is still a fair quote, and
+    // rewriting it later would change which prices it was entitled to.
     if (existing != null) return existing;
 
     final now = DateTime.now();
@@ -40,6 +44,7 @@ class QuoteRepository {
       id: newId(),
       rateCardVersion: rateCardVersion,
       language: Value(language),
+      channel: Value(channel),
       createdAt: now,
       updatedAt: now,
     );

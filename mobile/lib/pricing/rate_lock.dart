@@ -58,6 +58,35 @@ enum Channel {
       Channel.values.firstWhere((c) => c.wire == wire);
 }
 
+/// Decides a quote's channel from the handset setting and the card.
+///
+/// Client, Sep 2026, asked how the app should know it is at a fair:
+/// *"Quotation normally is only at fair anyway, but make a toggle I guess with
+/// date window."*
+///
+/// So: a toggle, **bounded by the promo window on the rate card**. The window
+/// is what grants a fair price; the switch only says the handset is at the fair
+/// that window describes. Outside those dates this returns `showroom` however
+/// the switch is set, so nobody can leave it on and quote promo rates through
+/// September.
+///
+/// That guard is why the toggle can default to on: there is no state a
+/// part-timer can leave the handset in that gives a price away, and no step to
+/// remember before the first quote of a fair.
+///
+/// Pure, and takes the card rather than reading it, so the fair-day boundary is
+/// testable without waiting for August.
+Channel channelFor({
+  required bool fairModeEnabled,
+  required RateCard fairCard,
+  required DateTime today,
+}) {
+  if (!fairModeEnabled) return Channel.showroom;
+  // The card's own promo window, inclusive of the final day. A fair that ended
+  // yesterday cannot price today, whatever the switch says.
+  return fairCard.isExpiredOn(today) ? Channel.showroom : Channel.fair;
+}
+
 /// The life of an RM300 hold.
 enum LockStatus {
   active('active'),

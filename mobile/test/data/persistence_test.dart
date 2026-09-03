@@ -21,7 +21,11 @@ void main() {
   tearDown(() => db.close());
 
   Future<String> draft() async {
-    final q = await repo.ensureDraft(rateCardVersion: 1, language: 'zh');
+    final q = await repo.ensureDraft(
+      rateCardVersion: 1,
+      language: 'zh',
+      channel: 'fair',
+    );
     return q.id;
   }
 
@@ -67,6 +71,7 @@ void main() {
       final quote = await reopened.ensureDraft(
         rateCardVersion: 1,
         language: 'zh',
+        channel: 'fair',
       );
 
       expect(quote.id, id, reason: 'the same draft must be picked back up');
@@ -129,7 +134,7 @@ void main() {
         await repo.setTier(id, 'mvp');
         final quote = await QuoteRepository(
           db,
-        ).ensureDraft(rateCardVersion: 1, language: 'zh');
+        ).ensureDraft(rateCardVersion: 1, language: 'zh', channel: 'fair');
         expect(quote.tier, 'mvp');
       },
     );
@@ -219,6 +224,7 @@ void main() {
         final before = (await repo.ensureDraft(
           rateCardVersion: 1,
           language: 'zh',
+          channel: 'fair',
         )).updatedAt;
 
         await Future<void>.delayed(const Duration(milliseconds: 5));
@@ -227,6 +233,7 @@ void main() {
         final after = (await repo.ensureDraft(
           rateCardVersion: 1,
           language: 'zh',
+          channel: 'fair',
         )).updatedAt;
         // If the line landed but the timestamp did not, a crash would leave
         // latestQuote picking the wrong draft.

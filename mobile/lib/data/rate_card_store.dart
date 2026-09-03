@@ -7,9 +7,15 @@
 ///   client's provisional answer to §13 A3 (curtains +20%, blinds +50%), and
 ///   marked `provisional` until a real standard list exists.
 ///
-/// The date decides. §3: "Promo and the 12-month lock are fair-only. Showroom
-/// pays standard." So inside the fair window the fair list applies and outside
-/// it the standard one does, rather than a salesperson remembering to switch.
+/// **Two things decide, and both are needed.** §3: "Promo and the 12-month lock
+/// are fair-only. Showroom pays standard." So the fair list applies when the
+/// handset is at a fair *and* the fair's own promo window covers today.
+///
+/// The date alone used to decide, which quoted fair prices to a showroom
+/// walk-in during the four days of a fair — and, once locks existed, would have
+/// handed them a twelve-month hold they never bought. The window is still the
+/// guard on the other side: a handset left in fair mode cannot quote promo
+/// rates in September.
 ///
 /// An admin edit is stored against the list it was made on, so editing fair
 /// prices in August cannot quietly move showroom prices in November.
@@ -37,6 +43,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 
 import '../pricing/models.dart';
+import '../pricing/rate_lock.dart' show Channel, channelFor;
 
 /// The lists the app ships with.
 enum PriceList {
@@ -144,12 +151,23 @@ class RateCardProvenance {
   bool get isServerOwned => origin == RateCardOrigin.server;
 }
 
-/// The card in force, plus which list it came from.
+/// The card in force, plus which list it came from and why.
 class ActiveRateCard {
   final RateCard card;
   final PriceList list;
 
-  const ActiveRateCard({required this.card, required this.list});
+  /// Where a quote started now would be taken. It decides whether an RM300 can
+  /// lock anything (§13 B1) and whether the category prompt appears (§6.2), so
+  /// it travels with the card rather than being worked out again elsewhere.
+  final Channel channel;
+
+  const ActiveRateCard({
+    required this.card,
+    required this.list,
+    Channel? channel,
+  }) : channel =
+           channel ??
+           (list == PriceList.fair ? Channel.fair : Channel.showroom);
 
   bool get isFair => list == PriceList.fair;
 }
@@ -169,21 +187,61 @@ class RateCardStore {
   }) : _storage = storage ?? FileRateCardStorage(directory: directory),
        _bundled = bundled ?? ((list) => rootBundle.loadString(list.asset));
 
-  /// Which list applies on [today].
+  /// Which list applies to a quote taken through [channel] on [today].
   ///
-  /// The fair list only inside its own promo window. Everything else — every
-  /// showroom day of the year — is standard.
-  Future<PriceList> listFor(DateTime today) async {
+  /// **Two conditions, and both are needed.** §3: "Promo and the 12-month lock
+  /// are fair-only. Showroom pays standard." And the fair list only inside its
+  /// own promo window, so a fair that ended yesterday cannot price today.
+  ///
+  /// The channel used to be inferred from the date alone, which quoted fair
+  /// prices to a showroom walk-in during the four days of a fair — and, once
+  /// locks existed, would have handed them a twelve-month hold they never
+  /// bought.
+  Future<PriceList> listFor(DateTime today, Channel channel) async {
+    if (channel != Channel.fair) return PriceList.standard;
     final fair = RateCard.fromJson(await loadJson(PriceList.fair));
     return fair.isExpiredOn(today) ? PriceList.standard : PriceList.fair;
   }
 
-  /// The card in force on [today], and which list it is.
-  Future<ActiveRateCard> loadActive(DateTime today) async {
-    final list = await listFor(today);
+  /// The card in force for [channel] on [today], and which list it is.
+  Future<ActiveRateCard> loadActive(DateTime today, Channel channel) async {
+    final list = await listFor(today, channel);
     return ActiveRateCard(
       card: RateCard.fromJson(await loadJson(list)),
       list: list,
+      channel: channel,
+    );
+  }
+
+  /// The card in force for a handset whose fair switch is [fairModeEnabled].
+  ///
+  /// Resolves the channel here rather than making the caller do it, because
+  /// deciding the channel needs the fair card's promo window and choosing the
+  /// list needs the channel. Splitting the two across providers made that
+  /// circular, and the first quote of a session was recorded as `showroom`
+  /// while the card was still loading.
+  Future<ActiveRateCard> loadActiveForHandset(
+    DateTime today, {
+    required bool fairModeEnabled,
+  }) async {
+    final fairCard = RateCard.fromJson(await loadJson(PriceList.fair));
+    final channel = channelFor(
+      fairModeEnabled: fairModeEnabled,
+      fairCard: fairCard,
+      today: today,
+    );
+
+    if (channel == Channel.fair) {
+      return ActiveRateCard(
+        card: fairCard,
+        list: PriceList.fair,
+        channel: channel,
+      );
+    }
+    return ActiveRateCard(
+      card: RateCard.fromJson(await loadJson(PriceList.standard)),
+      list: PriceList.standard,
+      channel: channel,
     );
   }
 

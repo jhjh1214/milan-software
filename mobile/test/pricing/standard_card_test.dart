@@ -6,6 +6,7 @@ import 'package:milan_quote/core/length.dart';
 import 'package:milan_quote/data/rate_card_store.dart';
 import 'package:milan_quote/pricing/engine.dart';
 import 'package:milan_quote/pricing/models.dart';
+import 'package:milan_quote/pricing/rate_lock.dart' show Channel;
 
 /// The standard (non-fair) price list.
 ///
@@ -151,29 +152,57 @@ void main() {
       bundled: (list) async => list == PriceList.fair ? fairJson : standardJson,
     );
 
-    test('inside the fair window, fair rates apply', () async {
-      final active = await store().loadActive(DateTime(2026, 8, 29));
+    test('inside the fair window, at a fair, fair rates apply', () async {
+      final active = await store().loadActive(
+        DateTime(2026, 8, 29),
+        Channel.fair,
+      );
       expect(active.list, PriceList.fair);
       expect(active.isFair, isTrue);
       expect(ruleOf(active.card, 'night-curtain-lo').rateSen, 4600);
     });
 
     test('the day after the fair, standard rates apply', () async {
-      // §3: the showroom pays standard, no promo, no lock. Nobody has to
-      // remember to switch.
-      final active = await store().loadActive(DateTime(2026, 9, 1));
+      // §3: the showroom pays standard, no promo, no lock. The promo window on
+      // the card is the guard, so a handset left in fair mode cannot quote
+      // promo rates through September.
+      final active = await store().loadActive(
+        DateTime(2026, 9, 1),
+        Channel.fair,
+      );
       expect(active.list, PriceList.standard);
       expect(ruleOf(active.card, 'night-curtain-lo').rateSen, 5520);
     });
 
     test('a November walk-in is quoted standard, not fair', () async {
-      final active = await store().loadActive(DateTime(2026, 11, 15));
+      final active = await store().loadActive(
+        DateTime(2026, 11, 15),
+        Channel.showroom,
+      );
       expect(active.list, PriceList.standard);
     });
 
     test('the day before the fair opens is still standard', () async {
-      final active = await store().loadActive(DateTime(2026, 8, 27));
+      final active = await store().loadActive(
+        DateTime(2026, 8, 27),
+        Channel.fair,
+      );
       expect(active.list, PriceList.standard);
+    });
+
+    test('a showroom walk-in DURING the fair still pays standard', () async {
+      // The reason the channel is stored rather than read off the calendar.
+      // Reading the date alone quoted this customer fair prices, and once
+      // locks exist it would have handed them a twelve-month hold they never
+      // bought.
+      for (final channel in Channel.values) {
+        final active = await store().loadActive(DateTime(2026, 8, 29), channel);
+        expect(
+          active.list,
+          channel == Channel.fair ? PriceList.fair : PriceList.standard,
+          reason: channel.wire,
+        );
+      }
     });
   });
 
