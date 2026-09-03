@@ -73,8 +73,51 @@ rough estimate the measurement team reads, and what the variance report compares
 the final against. Order lines are copies that snapshot the rule, band, rate and
 card version that priced them, so a number stays explainable a year later. The`order_no` is server-issued for the same reason as a receipt number.
 
-Next in Phase 4: the order status pipeline, price override with its audit row,
-and pushing orders to the server.
+**The order status pipeline is in**, fixtures-first and mirrored both sides.
+`confirmed → measurement_booked → measured → material_selected → in_production →
+ready → installed → closed`, `cancelled` reachable up to and including `ready`,
+the last two terminal. No shortcuts and no backwards moves — a remeasure is new
+dimensions on the same order, not a rewind. Two guards: `measured` needs every
+line that wanted a visit to have final dimensions, `material_selected` needs
+every deferred material chosen. Cancelling needs a reason of four trimmed
+characters and **touches no money** — B3 is unanswered, so the deposit stays
+exactly where it is. The repository writes the status and its event in one
+transaction or neither.
+
+**Price override is in.** §6.5's rule, thirteen shared cases, and the
+`price_overrides` table at schema v10. Admin only, mandatory reason, and it must
+**name a person** — `is_admin` with no user id is refused. An override that
+changes nothing is refused too, because a row saying RM552 became RM552 is the
+noise that stops the weekly review being read. Zero is allowed, negative is not,
+a finished order cannot be repriced. `overridesBetween` is the query the
+"overrides this week" screen needs; the screen itself is not built.
+
+**Migrations are tested now, but only the last step.** v9 → v10 runs against a
+database with data in it. `Migrator.createTable` is `IF NOT EXISTS`, so a loose
+guard on a create step is harmless — but v2, v3, v4 and v7 use `addColumn`,
+where the same mistake throws on launch, and nothing reaches those without a
+captured schema. `dart run drift_dev schema dump` writes one; v10 should be the
+first version to have it.
+
+**Next in Phase 4, in this order:**
+
+1. **Push orders to the server.** The device half is stubbed and unused —
+   `settleOrderNo` and `awaitingOrderNo` exist and nothing calls them. Needs an
+   order payload, the outbox route, a server-side ingest that re-validates
+   status transitions and overrides with the mirrored Python modules, migration
+   0004 for `orders` / `order_lines` / `order_events` / `price_overrides`, and
+   `order_no` issuance through the same counter pattern as receipt numbers.
+2. **The order screen** — status, history, the next-step and cancel buttons, and
+   the override sheet. Every string through the ARB files in all three
+   languages; **merge ARB content from files, never from a PowerShell literal**,
+   or the Chinese double-encodes.
+3. **The "overrides this week" screen.** §6.5 is explicit that without it the log
+   is never read and the control does not exist.
+
+**Two questions are open and must not be guessed** — §13 C7 (may a supply-only
+order skip the measurement steps?) and C8 (who may move an order along, or
+cancel one?). The pipeline enforces *what* can happen, not *who* may do it: no
+role check is wired to it.
 
 **The real price list is in.** `shared/rate-card-fair-2026-08.json` carries the
 MITC Aug 2026 fair list in full — 77 rows, two delivery zones, three product
