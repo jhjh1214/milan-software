@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -747,8 +749,8 @@ class _CustomerRow extends ConsumerWidget {
                 ),
                 const SizedBox(height: Space.lg),
                 FilledButton(
-                  onPressed: () {
-                    notifier.setCustomer(
+                  onPressed: () async {
+                    await notifier.setCustomer(
                       name: nameController.text.trim().isEmpty
                           ? null
                           : nameController.text.trim(),
@@ -756,7 +758,14 @@ class _CustomerRow extends ConsumerWidget {
                           ? null
                           : phoneController.text.trim(),
                     );
-                    Navigator.of(sheet).pop();
+                    // A phone is the only thing that identifies a returning
+                    // customer, so this is the moment the handset can find out
+                    // about a hold it did not take. Not awaited: the sheet
+                    // closes now, and the quote reprices itself if anything
+                    // comes back.
+                    final quote = ref.read(quoteProvider).valueOrNull;
+                    if (quote != null) unawaited(pullHeldRatesFor(ref, quote));
+                    if (sheet.mounted) Navigator.of(sheet).pop();
                   },
                   child: Text(l.save),
                 ),

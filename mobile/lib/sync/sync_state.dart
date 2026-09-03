@@ -11,6 +11,7 @@ import '../data/quote_repository.dart' show newId;
 import '../data/rate_card_store.dart';
 import '../features/quote/quote_state.dart';
 import 'api_client.dart';
+import 'lock_sync.dart';
 import 'outbox.dart';
 import 'rate_card_sync.dart';
 import 'server_config.dart';
@@ -109,6 +110,13 @@ final rateCardSyncProvider = Provider<RateCardSync>(
   (ref) => RateCardSync(
     api: ref.watch(apiClientProvider),
     store: ref.watch(rateCardStoreProvider),
+  ),
+);
+
+final lockSyncProvider = Provider<LockSync>(
+  (ref) => LockSync(
+    db: ref.watch(databaseProvider),
+    api: ref.watch(apiClientProvider),
   ),
 );
 

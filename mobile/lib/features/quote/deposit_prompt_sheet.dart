@@ -98,6 +98,50 @@ final openDepositGapsProvider = FutureProvider<List<DepositGap>>((ref) async {
 String customerKeyForQuote(QuoteState quote) =>
     customerKeyFor(phone: quote.customerPhone, quoteId: quote.quoteId).value;
 
+/// Asks the server what this customer already holds, and stores what comes
+/// back. SPEC.md §6.1, §13 B9.
+///
+/// A hold is bought once and used later, possibly on a different phone. Six
+/// handsets work a fair: the customer deposits on phone 3 and walks into the
+/// showroom in March where phone 1 is used. Phone 1 has never seen that hold,
+/// so without this it quotes the standard rate — more than the customer paid
+/// RM300 to be protected from.
+///
+/// Called when a phone number arrives, because that is the only thing that
+/// identifies a returning customer. Best effort and never awaited by a screen:
+/// offline is the default (§9), and with no signal the quote is priced from
+/// what this handset knows. If a hold exists and could not be fetched the
+/// quote is higher than it needs to be, which §8.5 permits and the next sync
+/// corrects.
+Future<void> pullHeldRatesFor(WidgetRef ref, QuoteState quote) async {
+  final credentials = ref.read(credentialsProvider).valueOrNull;
+  if (credentials == null) return;
+
+  final key = customerKeyFor(
+    phone: quote.customerPhone,
+    quoteId: quote.quoteId,
+  );
+  // Nothing to ask about. A quote-scoped key is this handset's own, and the
+  // server has never been told a different name for it.
+  if (!key.fromPhone) return;
+
+  try {
+    final added = await ref
+        .read(lockSyncProvider)
+        .pullFor(
+          credentials: credentials,
+          customerKey: key.value,
+          at: ref.read(todayProvider),
+        );
+    if (added > 0) {
+      ref.invalidate(openDepositGapsProvider);
+      ref.invalidate(currentLocksProvider);
+    }
+  } catch (_) {
+    // Deliberately silent. See the doc comment.
+  }
+}
+
 /// Queues a hold for the server, best effort.
 ///
 /// Queued rather than sent: the RM300 is already recorded and §9 makes offline

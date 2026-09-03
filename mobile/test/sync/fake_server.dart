@@ -69,6 +69,19 @@ class FakeServer {
   /// When set, POST /api/orders/status refuses every move with this reason.
   String? refuseStatusBecause;
 
+  /// customer_key -> the holds this server will serve for them, as a handset
+  /// other than this one would have left them.
+  final Map<String, List<Map<String, dynamic>>> heldRates = {};
+
+  /// Lock ids already accepted, for the idempotency check.
+  final Set<String> acceptedLocks = {};
+
+  /// Prompt ids already accepted.
+  final Set<String> acceptedPrompts = {};
+
+  /// Set to have the lock endpoints refuse everything.
+  bool rejectLocks = false;
+
   /// Every request that arrived, in order. Lets a test assert what was *not*
   /// sent — the up-to-date short circuit is only worth anything if the payload
   /// really is skipped.
@@ -267,6 +280,59 @@ class FakeServer {
         'status': orderStatus[orderId]!,
         'refused_because': null,
       });
+    }
+
+    if (path == '/api/locks' && request.method == 'GET') {
+      if (rejectLocks) return _json({'detail': 'nope'}, 500);
+      final key = request.url.queryParameters['customer_key'] ?? '';
+      return _json({'locks': heldRates[key] ?? const []});
+    }
+
+    if (path == '/api/locks') {
+      if (rejectLocks) return _json({'detail': 'nope'}, 500);
+      final body =
+          jsonDecode(utf8.decode(request.bodyBytes)) as Map<String, dynamic>;
+      final id = body['id'] as String;
+      final duplicate = !acceptedLocks.add(id);
+
+      // A hold for a customer and category this server already holds. Both
+      // RM300s are real; the first keeps pricing.
+      final key = body['customer_key'] as String;
+      final clash = (heldRates[key] ?? const [])
+          .cast<Map<String, dynamic>>()
+          .where(
+            (l) =>
+                l['category'] == body['category'] &&
+                l['status'] == 'active' &&
+                l['id'] != id,
+          )
+          .toList();
+
+      if (!duplicate && clash.isEmpty) {
+        heldRates.putIfAbsent(key, () => []).add({
+          'id': id,
+          'customer_key': key,
+          'category': body['category'],
+          'held_rate_card_version': body['held_rate_card_version'],
+          'held_discount_pct': body['held_discount_pct'],
+          'held_until': body['held_until'],
+          'status': body['status'] ?? 'active',
+        });
+      }
+
+      return _json({
+        'lock_id': id,
+        'duplicate': duplicate,
+        'conflicts_with': clash.isEmpty ? null : clash.first['id'],
+      });
+    }
+
+    if (path == '/api/deposit-prompts') {
+      if (rejectLocks) return _json({'detail': 'nope'}, 500);
+      final body =
+          jsonDecode(utf8.decode(request.bodyBytes)) as Map<String, dynamic>;
+      final id = body['id'] as String;
+      return _json({'prompt_id': id, 'duplicate': !acceptedPrompts.add(id)});
     }
 
     return _json({'detail': 'not found'}, 404);
