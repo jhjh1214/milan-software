@@ -18,6 +18,33 @@ import 'package:milan_quote/data/database.dart';
 import 'package:milan_quote/features/order/order_screen.dart';
 import 'package:milan_quote/features/quote/quote_state.dart';
 import 'package:milan_quote/l10n/app_localizations.dart';
+import 'package:milan_quote/sync/api_client.dart';
+import 'package:milan_quote/sync/sync_state.dart';
+
+/// A signed-in session, without the Keystore the real notifier reads from.
+class _Signed extends CredentialsNotifier {
+  _Signed(this._who);
+
+  final Credentials? _who;
+
+  @override
+  Future<Credentials?> build() async => _who;
+}
+
+const admin = Credentials(
+  token: 't',
+  user: Identity(id: 'u-boss', name: 'Boss', role: 'admin', language: 'en'),
+);
+
+const partTimer = Credentials(
+  token: 't',
+  user: Identity(
+    id: 'u-ah-lian',
+    name: 'Ah Lian',
+    role: 'parttime',
+    language: 'en',
+  ),
+);
 
 void main() {
   late AppDatabase db;
@@ -88,12 +115,17 @@ void main() {
 
   tearDown(() => db.close());
 
-  Future<void> pumpScreen(WidgetTester tester, {Locale? locale}) async {
+  Future<void> pumpScreen(
+    WidgetTester tester, {
+    Locale? locale,
+    Credentials? signedInAs,
+  }) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           databaseProvider.overrideWithValue(db),
           todayProvider.overrideWithValue(at),
+          credentialsProvider.overrideWith(() => _Signed(signedInAs)),
         ],
         child: MaterialApp(
           locale: locale ?? const Locale('en'),
@@ -278,5 +310,116 @@ void main() {
     expect(find.text('Disahkan'), findsNWidgets(2));
     expect(find.text('Tandakan sebagai Ukuran ditempah'), findsOneWidget);
     expect(find.text('Batalkan pesanan ini'), findsOneWidget);
+  });
+
+  group('overriding a price', () {
+    testWidgets('an admin can, and the change is recorded against them', (
+      tester,
+    ) async {
+      await pumpScreen(tester, signedInAs: admin);
+      await tester.tap(find.text('Living room'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Change this price'), findsOneWidget);
+      expect(
+        find.textContaining('recorded against your name'),
+        findsOneWidget,
+        reason: '§6.5: the sentence is the deterrent, not the gate',
+      );
+
+      // Pre-filled with what it is now, so knocking RM50 off is an edit rather
+      // than typing a price from memory.
+      expect(find.widgetWithText(TextField, '552.00'), findsOneWidget);
+
+      await tester.enterText(
+        find.widgetWithText(TextField, '552.00'),
+        '500.00',
+      );
+      await tester.pumpAndSettle();
+
+      final apply = find.widgetWithText(FilledButton, 'Change it');
+      expect(
+        tester.widget<FilledButton>(apply).onPressed,
+        isNull,
+        reason: 'no reason written yet',
+      );
+
+      await tester.enterText(
+        find.byType(TextField).last,
+        'matched a competitor quote',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(apply);
+      await tester.pumpAndSettle();
+
+      final line = (await db.select(db.orderLines).get()).single;
+      expect(line.lineTotalSen, 50000);
+      expect(line.isOverridden, isTrue);
+
+      final audit = (await db.select(db.priceOverrides).get()).single;
+      expect(audit.beforeSen, 55200);
+      expect(audit.afterSen, 50000);
+      expect(audit.reason, 'matched a competitor quote');
+      expect(audit.adminUserId, 'u-boss');
+
+      expect(find.text('Price changed by hand'), findsOneWidget);
+    });
+
+    testWidgets('a part-timer is not even offered it', (tester) async {
+      // Hard rule 8: a part-timer never sees a rate, a cost or a margin, and
+      // never a control for changing one. The rule refuses them anyway; not
+      // showing the tap target is so nobody is invited to try.
+      await pumpScreen(tester, signedInAs: partTimer);
+      await tester.tap(find.text('Living room'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Change this price'), findsNothing);
+      expect((await db.select(db.priceOverrides).get()), isEmpty);
+    });
+
+    testWidgets('a price that has not moved cannot be applied', (tester) async {
+      // A row saying RM552 became RM552 is noise, and noise is what stops the
+      // weekly review being read at all.
+      await pumpScreen(tester, signedInAs: admin);
+      await tester.tap(find.text('Living room'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).last, 'checked the card');
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Change it'),
+            )
+            .onPressed,
+        isNull,
+      );
+    });
+
+    testWidgets('a cancelled order refuses, and says why', (tester) async {
+      // The rule is the rule. The button being enabled is only a guess about
+      // what it will say, and when the two disagree the rule wins.
+      await (db.update(db.orders)..where((o) => o.id.equals(orderId))).write(
+        const OrdersCompanion(status: Value('cancelled')),
+      );
+      await pumpScreen(tester, signedInAs: admin);
+      await tester.tap(find.text('Living room'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).first, '500.00');
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byType(TextField).last,
+        'matched a competitor quote',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Change it'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Its prices no longer move'), findsOneWidget);
+      expect((await db.select(db.priceOverrides).get()), isEmpty);
+      expect((await db.select(db.orderLines).get()).single.lineTotalSen, 55200);
+    });
   });
 }

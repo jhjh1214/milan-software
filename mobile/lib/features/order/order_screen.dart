@@ -36,6 +36,7 @@ import '../../sync/sync_state.dart';
 import '../quote/confirm_order.dart';
 import '../quote/quote_state.dart';
 import 'cancel_order_sheet.dart';
+import 'override_price_sheet.dart';
 
 /// The translated name of a status.
 ///
@@ -330,37 +331,58 @@ class _Lines extends ConsumerWidget {
     final l = L.of(context);
     final lines = ref.watch(orderLinesProvider(orderId));
 
+    // §8 hard rule 8: a part-timer never sees a rate, a cost or a margin, and
+    // never a control for changing one. The rule refuses them anyway; not
+    // showing the tap target is so nobody is invited to try.
+    final isAdmin =
+        ref.watch(credentialsProvider).valueOrNull?.user.role == 'admin';
+
     return lines.maybeWhen(
       orElse: () => const SizedBox.shrink(),
       data: (rows) => Column(
         children: [
           for (final line in rows)
-            Padding(
-              padding: const EdgeInsets.only(bottom: Space.sm),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(line.room, style: AppText.body),
-                        // §6.5: the marker is visible on screen and on the
-                        // printed quote, and is never cleared.
-                        if (line.isOverridden)
-                          Text(
-                            l.overrideMarker,
-                            style: AppText.caption.copyWith(
-                              color: AppColors.warning,
+            InkWell(
+              onTap: isAdmin
+                  ? () async {
+                      final changed = await showOverridePriceSheet(
+                        context,
+                        ref,
+                        line: line,
+                      );
+                      if (changed) {
+                        ref.invalidate(orderLinesProvider(orderId));
+                        ref.invalidate(orderHistoryProvider(orderId));
+                      }
+                    }
+                  : null,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: Space.sm),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(line.room, style: AppText.body),
+                          // §6.5: the marker is visible on screen and on the
+                          // printed quote, and is never cleared.
+                          if (line.isOverridden)
+                            Text(
+                              l.overrideMarker,
+                              style: AppText.caption.copyWith(
+                                color: AppColors.warning,
+                              ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  Text(
-                    Money.sen(line.lineTotalSen).format(),
-                    style: AppText.money,
-                  ),
-                ],
+                    Text(
+                      Money.sen(line.lineTotalSen).format(),
+                      style: AppText.money,
+                    ),
+                  ],
+                ),
               ),
             ),
         ],

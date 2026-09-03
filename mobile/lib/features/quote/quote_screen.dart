@@ -9,6 +9,7 @@ import '../../pricing/engine.dart';
 import '../../pricing/models.dart';
 import '../../sync/sync_state.dart';
 import '../../ui/theme.dart';
+import '../order/order_screen.dart';
 import '../../ui/unit_labels.dart';
 import '../rates/rate_card_screen.dart';
 import '../sync/sync_screen.dart';
@@ -144,66 +145,80 @@ class _OrderBanner extends ConsumerWidget {
     final locks = ref.watch(currentLocksProvider).valueOrNull ?? const [];
     final today = ref.watch(todayProvider);
 
-    return Container(
-      width: double.infinity,
-      color: AppColors.accentSurface,
-      padding: const EdgeInsets.symmetric(
-        horizontal: Space.lg,
-        vertical: Space.md,
+    // The way into the order. Somebody who has just taken a deposit and wants
+    // to book the measurement has this banner in front of them already, so it
+    // is the one place they will look.
+    return InkWell(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => OrderScreen(orderId: order.id)),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(
-            Icons.check_circle_outline,
-            size: 20,
-            color: AppColors.accent,
-          ),
-          const SizedBox(width: Space.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  // The number comes from the server. Saying so beats an empty
-                  // space where a reference should be.
-                  order.orderNo ?? '${l.orderConfirmed} · ${l.orderNoPending}',
-                  style: AppText.bodyStrong.copyWith(color: AppColors.accent),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  l.orderDepositTaken(Money.sen(order.depositPaidSen).format()),
-                  style: AppText.caption,
-                ),
-
-                // What the RM300 actually bought, per category it covers.
-                for (final lock in locks)
-                  if (lock.isActiveOn(today))
-                    Text(
-                      l.orderRateLocked(
-                        categoryLabel(l, lock.category),
-                        formatDate(lock.heldUntil),
-                      ),
-                      style: AppText.caption.copyWith(color: AppColors.accent),
-                    ),
-
-                Text(
-                  // The reference the eventual bill is worked out from.
-                  l.orderRateReference(order.pinnedRateCardVersion),
-                  style: AppText.caption.copyWith(
-                    color: AppColors.mutedForeground,
-                  ),
-                ),
-                Text(
-                  l.orderMeasureNext,
-                  style: AppText.caption.copyWith(
-                    color: AppColors.mutedForeground,
-                  ),
-                ),
-              ],
+      child: Container(
+        width: double.infinity,
+        color: AppColors.accentSurface,
+        padding: const EdgeInsets.symmetric(
+          horizontal: Space.lg,
+          vertical: Space.md,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(
+              Icons.check_circle_outline,
+              size: 20,
+              color: AppColors.accent,
             ),
-          ),
-        ],
+            const SizedBox(width: Space.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    // The number comes from the server. Saying so beats an empty
+                    // space where a reference should be.
+                    order.orderNo ??
+                        '${l.orderConfirmed} · ${l.orderNoPending}',
+                    style: AppText.bodyStrong.copyWith(color: AppColors.accent),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    l.orderDepositTaken(
+                      Money.sen(order.depositPaidSen).format(),
+                    ),
+                    style: AppText.caption,
+                  ),
+
+                  // What the RM300 actually bought, per category it covers.
+                  for (final lock in locks)
+                    if (lock.isActiveOn(today))
+                      Text(
+                        l.orderRateLocked(
+                          categoryLabel(l, lock.category),
+                          formatDate(lock.heldUntil),
+                        ),
+                        style: AppText.caption.copyWith(
+                          color: AppColors.accent,
+                        ),
+                      ),
+
+                  Text(
+                    // The reference the eventual bill is worked out from.
+                    l.orderRateReference(order.pinnedRateCardVersion),
+                    style: AppText.caption.copyWith(
+                      color: AppColors.mutedForeground,
+                    ),
+                  ),
+                  Text(
+                    l.orderMeasureNext,
+                    style: AppText.caption.copyWith(
+                      color: AppColors.mutedForeground,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, size: 20, color: AppColors.accent),
+          ],
+        ),
       ),
     );
   }

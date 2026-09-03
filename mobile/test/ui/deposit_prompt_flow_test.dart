@@ -384,6 +384,27 @@ void main() {
       reason: 'until it syncs the screen shows "pending sync"',
     );
   });
+
+  testWidgets('the order banner opens the order', (tester) async {
+    // A screen nothing navigates to is a screen nobody uses. Somebody who has
+    // just taken a deposit and wants to book the measurement has this banner
+    // in front of them already.
+    await pumpApp(tester, channel: Channel.fair);
+    await addACurtain(tester);
+    await tester.tap(find.text('收 RM 300.00'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('现金'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('订单已确认 · 订单号等同步'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('订单'), findsWidgets);
+    expect(find.text('标记为已约量尺'), findsOneWidget);
+    expect(find.text('取消这张订单'), findsOneWidget);
+  });
   testWidgets('declining leaves it a quote', (tester) async {
     // No money, no order. Calling it confirmed would put it on the production
     // board with nothing paid against it.
