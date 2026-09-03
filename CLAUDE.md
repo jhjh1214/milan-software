@@ -12,7 +12,7 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 
 ## Current state
 
-**Phases 1 and 2 complete. Phase 3 functionally complete** — Flutter app,
+**Phases 1-3 complete. Phase 4 in progress** — Flutter app,
 FastAPI backend, Postgres, and sync between them.
 
 Built and green on the device: `Length`, `Money`, `Rational`, the unit parser,
@@ -24,7 +24,7 @@ trilingual PDF.
 
 Built and green on the server: the Python engine passing the same fixtures, the
 sync endpoints, Alembic migrations with a test that they match the models, users
-and roles, and rate card publishing. **338 Dart tests, 146 Python tests.** 100%
+and roles, and rate card publishing. **405 Dart tests, 198 Python tests.** 100%
 coverage on `Length`, `Money` and `Rational`.
 
 **Prices are server-owned now.** One card is published and pulled by every
@@ -55,7 +55,16 @@ that way and measure that way: a single fat APK carries all three ABIs and is
   execution.** There is no Docker daemon on the development machine, so nothing
   under `deploy/` has been observed working.
 
-Next: Phase 4, deposits, rate locks and orders.
+**Phase 4 so far.** The rate lock resolver and the lock-granting rule, both
+engines, fixtures-first and mutation-checked. Only a **fair** deposit opens a
+lock -- a showroom RM300 confirms an order and buys nothing else. The category
+prompt asks for each category's RM300 once, logs whichever button was pressed,
+and never appears away from a fair. Fair mode is a toggle bounded by the card's
+promo window, so it cannot quote promo rates after the fair ends.
+
+Next in Phase 4: payments and receipts, quote to order conversion, the order
+status pipeline, the daily cash-up screen, and price override with its audit
+row.
 
 **The real price list is in.** `shared/rate-card-fair-2026-08.json` carries the
 MITC Aug 2026 fair list in full — 77 rows, two delivery zones, three product
