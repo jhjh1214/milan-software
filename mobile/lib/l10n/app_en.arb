@@ -211,5 +211,25 @@
 
   "categoryCurtain": "curtains",
   "categoryFlooring": "flooring",
-  "categoryWallpaper": "wallpaper"
+  "categoryWallpaper": "wallpaper",
+
+  "paymentMethodTitle": "How was it paid?",
+  "methodCash": "Cash",
+  "methodCard": "Card terminal",
+  "methodDuitnow": "DuitNow",
+  "methodTransfer": "Bank transfer",
+  "methodCheque": "Cheque",
+
+  "receiptPending": "Receipt number pending sync",
+  "paymentsTaken": "{amount} taken",
+
+  "cashUpTitle": "Money taken today",
+  "cashUpExpected": "Should have",
+  "cashUpCounted": "Counted",
+  "cashUpShort": "short by",
+  "cashUpOver": "over by",
+  "cashUpBalanced": "Everything matches.",
+  "cashUpNothingTaken": "No money taken yet today.",
+  "cashUpNotCounted": "{count} cash total not counted yet. It only counts once you count it.",
+  "cashUpOff": "{method} is {direction} {amount}."
 }

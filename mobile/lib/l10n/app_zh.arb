@@ -286,5 +286,28 @@
 
   "categoryCurtain": "窗帘",
   "categoryFlooring": "地板",
-  "categoryWallpaper": "壁纸"
+  "categoryWallpaper": "壁纸",
+
+  "paymentMethodTitle": "怎么付？",
+  "methodCash": "现金",
+  "methodCard": "刷卡",
+  "methodDuitnow": "DuitNow",
+  "methodTransfer": "银行转账",
+  "methodCheque": "支票",
+
+  "receiptPending": "收据号码等同步",
+  "paymentsTaken": "已收 {amount}",
+  "@paymentsTaken": { "placeholders": { "amount": { "type": "String" } } },
+
+  "cashUpTitle": "今天收的钱",
+  "cashUpExpected": "应该有",
+  "cashUpCounted": "实际点到",
+  "cashUpShort": "少了",
+  "cashUpOver": "多了",
+  "cashUpBalanced": "对得上，没问题。",
+  "cashUpNothingTaken": "今天还没收到钱。",
+  "cashUpNotCounted": "还有 {count} 项现金没点。点了才算数。",
+  "@cashUpNotCounted": { "placeholders": { "count": { "type": "int" } } },
+  "cashUpOff": "{method}{direction} {amount}。",
+  "@cashUpOff": { "placeholders": { "method": { "type": "String" }, "amount": { "type": "String" }, "direction": { "type": "String" } } }
 }

@@ -211,5 +211,25 @@
 
   "categoryCurtain": "langsir",
   "categoryFlooring": "lantai",
-  "categoryWallpaper": "kertas dinding"
+  "categoryWallpaper": "kertas dinding",
+
+  "paymentMethodTitle": "Bayar macam mana?",
+  "methodCash": "Tunai",
+  "methodCard": "Terminal kad",
+  "methodDuitnow": "DuitNow",
+  "methodTransfer": "Pindahan bank",
+  "methodCheque": "Cek",
+
+  "receiptPending": "Nombor resit menunggu penyegerakan",
+  "paymentsTaken": "{amount} diterima",
+
+  "cashUpTitle": "Wang diterima hari ini",
+  "cashUpExpected": "Sepatutnya ada",
+  "cashUpCounted": "Dikira",
+  "cashUpShort": "kurang",
+  "cashUpOver": "lebih",
+  "cashUpBalanced": "Semua sepadan.",
+  "cashUpNothingTaken": "Belum ada wang diterima hari ini.",
+  "cashUpNotCounted": "{count} jumlah tunai belum dikira. Ia hanya dikira setelah anda mengiranya.",
+  "cashUpOff": "{method} {direction} {amount}."
 }

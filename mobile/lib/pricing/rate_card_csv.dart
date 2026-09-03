@@ -20,7 +20,6 @@
 library;
 
 import '../core/money.dart';
-import '../core/rational.dart';
 import 'models.dart';
 
 /// One change an import would make.
@@ -319,13 +318,7 @@ RateCard applyRateCardImport(RateCard card, RateCardImport import) {
 }
 
 /// Parses `46.00` into 4600 sen, exactly.
-int? _money(String cell) {
-  final text = cell.trim().replaceAll(',', '').replaceAll('RM', '').trim();
-  if (text.isEmpty) return null;
-  final value = Rational.tryParseDecimal(text);
-  if (value == null) return null;
-  return (value * const Rational.fromInt(100)).roundHalfUpToInt();
-}
+int? _money(String cell) => Money.tryParse(cell)?.sen;
 
 String _quote(String value) => value.contains(',') || value.contains('"')
     ? '"${value.replaceAll('"', '""')}"'

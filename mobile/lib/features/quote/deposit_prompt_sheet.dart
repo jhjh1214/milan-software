@@ -24,10 +24,12 @@ import '../../core/money.dart';
 import '../../data/lock_repository.dart';
 import '../../data/quote_repository.dart' show newId;
 import '../../l10n/app_localizations.dart';
+import '../../pricing/cash_up.dart';
 import '../../pricing/deposit_prompt.dart';
 import '../../pricing/models.dart';
 import '../../pricing/rate_lock.dart';
 import '../../ui/theme.dart';
+import '../payment/payment_method_sheet.dart';
 import 'quote_state.dart';
 
 final lockRepositoryProvider = Provider<LockRepository>(
@@ -141,8 +143,29 @@ Future<void> _askFor(
 
   switch (decided) {
     case DepositChoice.collected:
-      // The rule decides whether this is allowed, not the screen. Away from a
-      // fair it refuses, and the sheet never appears there anyway.
+      // How it was paid, before anything is written. The cash-up is
+      // expected-versus-held **per method**, so a payment with no method
+      // cannot be reconciled against anything at the end of the day.
+      if (!context.mounted) return;
+      final method = await askForPaymentMethod(context);
+      if (method == null || !context.mounted) return;
+
+      // The money goes down first. If the app dies between the two writes, a
+      // payment with no lock is a customer to call back; a lock with no
+      // payment is money nobody can find.
+      final paymentId = await ref
+          .read(paymentRepositoryProvider)
+          .record(
+            id: newId(),
+            quoteId: quote.quoteId,
+            kind: PaymentKind.deposit,
+            method: method,
+            amountSen: card.config.minDepositSen,
+            takenAt: now,
+          );
+
+      // The rule decides whether a hold is allowed, not the screen. Away from
+      // a fair it refuses, and the sheet never appears there anyway.
       final grant = openCategoryLock(
         id: newId(),
         channel: quote.channel,
@@ -155,7 +178,15 @@ Future<void> _askFor(
       );
 
       if (grant.lock case final lock?) {
-        await repo.store(lock, customerId: _customerKeyFor(quote), at: now);
+        await repo.store(
+          lock,
+          customerId: _customerKeyFor(quote),
+          at: now,
+          depositPaymentId: paymentId,
+        );
+        await ref
+            .read(paymentRepositoryProvider)
+            .linkToLock(paymentId: paymentId, lockId: lock.id);
         ref.invalidate(openDepositGapsProvider);
         messenger.showSnackBar(
           SnackBar(
@@ -169,6 +200,8 @@ Future<void> _askFor(
           ),
         );
       } else {
+        // The money is still recorded. It confirms the order; it just does not
+        // hold a price.
         messenger.showSnackBar(SnackBar(content: Text(l.depositNotAtFair)));
       }
 

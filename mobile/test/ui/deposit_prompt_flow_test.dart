@@ -19,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:milan_quote/app.dart';
 import 'package:milan_quote/data/database.dart';
 import 'package:milan_quote/data/lock_repository.dart';
+import 'package:milan_quote/data/payment_repository.dart';
 import 'package:milan_quote/data/rate_card_store.dart';
 import 'package:milan_quote/features/quote/quote_state.dart';
 import 'package:milan_quote/pricing/models.dart';
@@ -137,6 +138,10 @@ void main() {
 
     await tester.tap(find.text('收 RM 300.00'));
     await tester.pumpAndSettle();
+    // §6.4: how it was paid, before anything is written. The cash-up is
+    // expected-versus-held per method, so this cannot be skipped.
+    await tester.tap(find.text('现金'));
+    await tester.pumpAndSettle();
 
     final locks = await LockRepository(db).locksFor(
       // Until Phase 4's customer record exists, the quote is its own customer.
@@ -151,6 +156,57 @@ void main() {
       reason: 'twelve months from the deposit',
     );
     expect(locks.single.isActiveOn(DateTime(2027, 8, 29)), isTrue);
+  });
+
+  testWidgets('the RM300 is recorded as money, not only as a hold', (
+    tester,
+  ) async {
+    // §6.4. A hold with no payment behind it is money nobody can find at the
+    // end of the day, and the cash-up is what finds it.
+    await pumpApp(tester, channel: Channel.fair);
+    await addACurtain(tester);
+
+    await tester.tap(find.text('收 RM 300.00'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('刷卡'));
+    await tester.pumpAndSettle();
+
+    final quoteId = (await db.latestQuote())!.id;
+    final payments = await PaymentRepository(db).forQuote(quoteId);
+
+    expect(payments, hasLength(1));
+    expect(payments.single.amountSen, 30000);
+    expect(payments.single.method, 'card_terminal');
+    expect(payments.single.kind, 'deposit');
+    expect(
+      payments.single.receiptNo,
+      isNull,
+      reason: 'the server issues it; the device never invents one',
+    );
+    expect(
+      payments.single.categoryLockId,
+      isNotNull,
+      reason: 'tied to the hold it bought, so a refund can find it',
+    );
+
+    final day = await PaymentRepository(db).cashUp(duringFair);
+    expect(day.expectedTotal.sen, 30000);
+  });
+
+  testWidgets('backing out at the method step records nothing', (tester) async {
+    // The customer changed their mind at the till. Nothing should be written:
+    // a payment that did not happen is worse than no payment at all.
+    await pumpApp(tester, channel: Channel.fair);
+    await addACurtain(tester);
+
+    await tester.tap(find.text('收 RM 300.00'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+
+    final quoteId = (await db.latestQuote())!.id;
+    expect(await PaymentRepository(db).forQuote(quoteId), isEmpty);
+    expect(await LockRepository(db).locksFor(quoteId), isEmpty);
   });
 
   testWidgets('saying no opens nothing, and is written down', (tester) async {
@@ -193,6 +249,10 @@ void main() {
     await pumpApp(tester, channel: Channel.fair);
     await addACurtain(tester);
     await tester.tap(find.text('收 RM 300.00'));
+    await tester.pumpAndSettle();
+    // §6.4: how it was paid, before anything is written. The cash-up is
+    // expected-versus-held per method, so this cannot be skipped.
+    await tester.tap(find.text('现金'));
     await tester.pumpAndSettle();
 
     // Let the confirmation clear. It is worth showing — it is the only thing

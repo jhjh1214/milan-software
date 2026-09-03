@@ -17,6 +17,7 @@ import '../../l10n/app_localizations.dart';
 import '../../sync/api_client.dart';
 import '../../sync/sync_state.dart';
 import '../../ui/theme.dart';
+import '../payment/cash_up_screen.dart';
 import '../quote/quote_state.dart';
 import 'sign_in_screen.dart';
 
@@ -86,6 +87,17 @@ class SyncScreen extends ConsumerWidget {
                   )
                 : const Icon(Icons.sync),
             label: Text(status.running ? l.syncRunning : l.syncNow),
+          ),
+
+          const SizedBox(height: Space.xl),
+          // §6.4. Reached from here because both answer the same end-of-day
+          // question: did everything I did today get where it needed to go.
+          OutlinedButton.icon(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const CashUpScreen()),
+            ),
+            icon: const Icon(Icons.point_of_sale_outlined),
+            label: Text(l.cashUpTitle),
           ),
 
           const SizedBox(height: Space.xxl),

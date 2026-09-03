@@ -681,4 +681,61 @@ class LMs extends L {
 
   @override
   String get categoryWallpaper => 'kertas dinding';
+
+  @override
+  String get paymentMethodTitle => 'Bayar macam mana?';
+
+  @override
+  String get methodCash => 'Tunai';
+
+  @override
+  String get methodCard => 'Terminal kad';
+
+  @override
+  String get methodDuitnow => 'DuitNow';
+
+  @override
+  String get methodTransfer => 'Pindahan bank';
+
+  @override
+  String get methodCheque => 'Cek';
+
+  @override
+  String get receiptPending => 'Nombor resit menunggu penyegerakan';
+
+  @override
+  String paymentsTaken(String amount) {
+    return '$amount diterima';
+  }
+
+  @override
+  String get cashUpTitle => 'Wang diterima hari ini';
+
+  @override
+  String get cashUpExpected => 'Sepatutnya ada';
+
+  @override
+  String get cashUpCounted => 'Dikira';
+
+  @override
+  String get cashUpShort => 'kurang';
+
+  @override
+  String get cashUpOver => 'lebih';
+
+  @override
+  String get cashUpBalanced => 'Semua sepadan.';
+
+  @override
+  String get cashUpNothingTaken => 'Belum ada wang diterima hari ini.';
+
+  @override
+  String cashUpNotCounted(int count) {
+    return '$count jumlah tunai belum dikira. Ia hanya dikira setelah anda mengiranya.';
+  }
+
+  @override
+  String cashUpOff(String method, String amount, String direction) {
+    return '$method $direction $amount.';
+  }
 }

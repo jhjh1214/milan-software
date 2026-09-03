@@ -16,6 +16,22 @@ class Money implements Comparable<Money> {
 
   static const Money zero = Money.sen(0);
 
+  /// Parses what a person types: `46`, `46.00`, `RM46.00`, `1,500.00`.
+  ///
+  /// Exact, via [Rational] — never `double.parse`. `0.1 + 0.2` is the classic
+  /// demonstration of why, and this is a till.
+  ///
+  /// Returns null rather than zero when the text is not a number: zero is a
+  /// real amount somebody might mean, and silently reading "abc" as RM0.00
+  /// would balance a cash-up that should not balance.
+  static Money? tryParse(String text) {
+    final cleaned = text.trim().replaceAll(',', '').replaceAll('RM', '').trim();
+    if (cleaned.isEmpty) return null;
+    final value = Rational.tryParseDecimal(cleaned);
+    if (value == null) return null;
+    return Money.sen((value * const Rational.fromInt(100)).roundHalfUpToInt());
+  }
+
   /// Builds an amount from ringgit and sen, e.g. `Money.rm(46, 50)` is RM46.50.
   const Money.rm(int ringgit, [int sen = 0]) : sen = ringgit * 100 + sen;
 

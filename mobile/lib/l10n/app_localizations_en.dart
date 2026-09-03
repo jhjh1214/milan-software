@@ -682,4 +682,61 @@ class LEn extends L {
 
   @override
   String get categoryWallpaper => 'wallpaper';
+
+  @override
+  String get paymentMethodTitle => 'How was it paid?';
+
+  @override
+  String get methodCash => 'Cash';
+
+  @override
+  String get methodCard => 'Card terminal';
+
+  @override
+  String get methodDuitnow => 'DuitNow';
+
+  @override
+  String get methodTransfer => 'Bank transfer';
+
+  @override
+  String get methodCheque => 'Cheque';
+
+  @override
+  String get receiptPending => 'Receipt number pending sync';
+
+  @override
+  String paymentsTaken(String amount) {
+    return '$amount taken';
+  }
+
+  @override
+  String get cashUpTitle => 'Money taken today';
+
+  @override
+  String get cashUpExpected => 'Should have';
+
+  @override
+  String get cashUpCounted => 'Counted';
+
+  @override
+  String get cashUpShort => 'short by';
+
+  @override
+  String get cashUpOver => 'over by';
+
+  @override
+  String get cashUpBalanced => 'Everything matches.';
+
+  @override
+  String get cashUpNothingTaken => 'No money taken yet today.';
+
+  @override
+  String cashUpNotCounted(int count) {
+    return '$count cash total not counted yet. It only counts once you count it.';
+  }
+
+  @override
+  String cashUpOff(String method, String amount, String direction) {
+    return '$method is $direction $amount.';
+  }
 }

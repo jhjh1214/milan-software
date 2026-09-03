@@ -190,6 +190,68 @@ class CategoryLocks extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Money taken. SPEC.md §6.4.
+///
+/// **The system records payments. It does not process them.** The existing card
+/// terminal stays; there is no PCI scope, no merchant onboarding and no
+/// chargeback exposure here. A row is a note that money changed hands.
+///
+/// **APPEND ONLY.** A refund is a new row with `kind: refund`, never an edit to
+/// the row it reverses — the cash-up screen has to reconcile what happened, not
+/// what the drawer looks like now.
+///
+/// Works fully offline; nothing here needs authorising.
+@DataClassName('PaymentRow')
+class Payments extends Table {
+  TextColumn get id => text()();
+
+  /// The quote this was taken against.
+  ///
+  /// A quote and the confirmed order it becomes share one client-generated id
+  /// — §3: an RM300 deposit *is* the confirmation, "not a quote, not a lead, a
+  /// confirmed sale" — so this keeps pointing at the right thing once §6.3's
+  /// orders arrive.
+  TextColumn get quoteId => text()();
+
+  /// The hold this deposit bought, when it bought one. Null for a progress
+  /// payment, a balance, or a deposit taken away from a fair.
+  TextColumn get categoryLockId => text().nullable()();
+
+  /// `deposit`, `progress`, `balance` or `refund`.
+  TextColumn get kind => text()();
+
+  /// Integer sen. A refund is stored positive and subtracted by its kind, so
+  /// nobody has to remember which rows are negative.
+  IntColumn get amountSen => integer()();
+
+  /// `cash`, `card_terminal`, `duitnow`, `bank_transfer` or `cheque`.
+  ///
+  /// Required. The daily cash-up is expected-versus-held **per method**, and a
+  /// payment with no method cannot be reconciled against anything.
+  TextColumn get method => text()();
+
+  /// Terminal slip number, transfer reference — typed in, whatever the person
+  /// holding the receipt has.
+  TextColumn get externalRef => text().nullable()();
+
+  /// **SERVER issued.** Null until sync, shown as "pending sync", and never
+  /// fabricated on the device (CLAUDE.md): it goes on a legal document, and two
+  /// handsets offline at one fair would invent the same number.
+  TextColumn get receiptNo => text().nullable()();
+
+  TextColumn get takenByUserId => text().nullable()();
+  DateTimeColumn get takenAt => dateTime()();
+  TextColumn get deviceId => text().nullable()();
+
+  /// `pending`, `settled` or `refunded`.
+  TextColumn get status => text().withDefault(const Constant('pending'))();
+
+  DateTimeColumn get syncedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// Every time the category prompt was shown, and what was pressed. §6.2.
 ///
 /// **APPEND ONLY.** The declined-deposit report is the point: it tells the boss
@@ -270,7 +332,15 @@ class Outbox extends Table {
 }
 
 @DriftDatabase(
-  tables: [Quotes, QuoteLines, Outbox, CategoryLocks, DepositPrompts, Settings],
+  tables: [
+    Quotes,
+    QuoteLines,
+    Outbox,
+    CategoryLocks,
+    DepositPrompts,
+    Payments,
+    Settings,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
@@ -288,7 +358,7 @@ class AppDatabase extends _$AppDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -329,6 +399,10 @@ class AppDatabase extends _$AppDatabase {
       if (from < 7) {
         await m.addColumn(quotes, quotes.channel);
         await m.createTable(settings);
+      }
+      // v8: money taken (§6.4).
+      if (from < 8) {
+        await m.createTable(payments);
       }
     },
     beforeOpen: (details) async {

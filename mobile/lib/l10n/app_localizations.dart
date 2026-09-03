@@ -1237,6 +1237,108 @@ abstract class L {
   /// In zh, this message translates to:
   /// **'壁纸'**
   String get categoryWallpaper;
+
+  /// No description provided for @paymentMethodTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'怎么付？'**
+  String get paymentMethodTitle;
+
+  /// No description provided for @methodCash.
+  ///
+  /// In zh, this message translates to:
+  /// **'现金'**
+  String get methodCash;
+
+  /// No description provided for @methodCard.
+  ///
+  /// In zh, this message translates to:
+  /// **'刷卡'**
+  String get methodCard;
+
+  /// No description provided for @methodDuitnow.
+  ///
+  /// In zh, this message translates to:
+  /// **'DuitNow'**
+  String get methodDuitnow;
+
+  /// No description provided for @methodTransfer.
+  ///
+  /// In zh, this message translates to:
+  /// **'银行转账'**
+  String get methodTransfer;
+
+  /// No description provided for @methodCheque.
+  ///
+  /// In zh, this message translates to:
+  /// **'支票'**
+  String get methodCheque;
+
+  /// No description provided for @receiptPending.
+  ///
+  /// In zh, this message translates to:
+  /// **'收据号码等同步'**
+  String get receiptPending;
+
+  /// No description provided for @paymentsTaken.
+  ///
+  /// In zh, this message translates to:
+  /// **'已收 {amount}'**
+  String paymentsTaken(String amount);
+
+  /// No description provided for @cashUpTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'今天收的钱'**
+  String get cashUpTitle;
+
+  /// No description provided for @cashUpExpected.
+  ///
+  /// In zh, this message translates to:
+  /// **'应该有'**
+  String get cashUpExpected;
+
+  /// No description provided for @cashUpCounted.
+  ///
+  /// In zh, this message translates to:
+  /// **'实际点到'**
+  String get cashUpCounted;
+
+  /// No description provided for @cashUpShort.
+  ///
+  /// In zh, this message translates to:
+  /// **'少了'**
+  String get cashUpShort;
+
+  /// No description provided for @cashUpOver.
+  ///
+  /// In zh, this message translates to:
+  /// **'多了'**
+  String get cashUpOver;
+
+  /// No description provided for @cashUpBalanced.
+  ///
+  /// In zh, this message translates to:
+  /// **'对得上，没问题。'**
+  String get cashUpBalanced;
+
+  /// No description provided for @cashUpNothingTaken.
+  ///
+  /// In zh, this message translates to:
+  /// **'今天还没收到钱。'**
+  String get cashUpNothingTaken;
+
+  /// No description provided for @cashUpNotCounted.
+  ///
+  /// In zh, this message translates to:
+  /// **'还有 {count} 项现金没点。点了才算数。'**
+  String cashUpNotCounted(int count);
+
+  /// No description provided for @cashUpOff.
+  ///
+  /// In zh, this message translates to:
+  /// **'{method}{direction} {amount}。'**
+  String cashUpOff(String method, String amount, String direction);
 }
 
 class _LDelegate extends LocalizationsDelegate<L> {

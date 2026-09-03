@@ -660,4 +660,61 @@ class LZh extends L {
 
   @override
   String get categoryWallpaper => '壁纸';
+
+  @override
+  String get paymentMethodTitle => '怎么付？';
+
+  @override
+  String get methodCash => '现金';
+
+  @override
+  String get methodCard => '刷卡';
+
+  @override
+  String get methodDuitnow => 'DuitNow';
+
+  @override
+  String get methodTransfer => '银行转账';
+
+  @override
+  String get methodCheque => '支票';
+
+  @override
+  String get receiptPending => '收据号码等同步';
+
+  @override
+  String paymentsTaken(String amount) {
+    return '已收 $amount';
+  }
+
+  @override
+  String get cashUpTitle => '今天收的钱';
+
+  @override
+  String get cashUpExpected => '应该有';
+
+  @override
+  String get cashUpCounted => '实际点到';
+
+  @override
+  String get cashUpShort => '少了';
+
+  @override
+  String get cashUpOver => '多了';
+
+  @override
+  String get cashUpBalanced => '对得上，没问题。';
+
+  @override
+  String get cashUpNothingTaken => '今天还没收到钱。';
+
+  @override
+  String cashUpNotCounted(int count) {
+    return '还有 $count 项现金没点。点了才算数。';
+  }
+
+  @override
+  String cashUpOff(String method, String amount, String direction) {
+    return '$method$direction $amount。';
+  }
 }
