@@ -546,3 +546,57 @@ class PreviewIn(BaseModel):
     #: Which language to name the products in. The ids are stable; the labels
     #: are what an admin reads.
     language: str = Field(default="zh", pattern="^(zh|en|ms)$")
+
+
+class PersonOut(BaseModel):
+    """Somebody who uses the system.
+
+    No PIN and no hash. Nothing that could be replayed leaves the server, and a
+    hash is still something to attack offline.
+    """
+
+    id: str
+    name: str
+    phone: str | None
+    email: str | None
+    role: str
+    language: str
+    is_active: bool
+    deactivated_at: datetime | None
+
+
+class PeopleOut(BaseModel):
+    #: Leavers included. A list that hides them cannot answer "who used to have
+    #: access", which is the question somebody asks after something goes
+    #: missing.
+    people: list[PersonOut] = []
+
+
+class AddPersonIn(BaseModel):
+    """A new user, created by an admin who is already signed in.
+
+    The first admin still needs shell access -- there is no register endpoint
+    and no bootstrap password in the image. This only saves an admin from a
+    terminal for the second person onwards, which lowers no bar and raises a
+    real one: the alternative is one shared login reaching every handset.
+    """
+
+    name: str = Field(min_length=1, max_length=120)
+    phone: str = Field(min_length=3, max_length=40)
+    #: Never returned, never logged. Refused if weak, before anything is
+    #: written.
+    pin: str = Field(min_length=1, max_length=12)
+    role: str = Field(default="parttime", pattern="^(parttime|staff|admin)$")
+    email: str | None = Field(default=None, max_length=120)
+    language: str = Field(default="zh", pattern="^(zh|en|ms)$")
+
+
+class SetPinIn(BaseModel):
+    pin: str = Field(min_length=1, max_length=12)
+
+
+class DeactivateOut(BaseModel):
+    person: PersonOut
+    #: How many live handsets that just signed out. Worth reporting: somebody
+    #: deactivating a leaver wants to know the phone in their pocket stopped.
+    sessions_revoked: int

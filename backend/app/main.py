@@ -25,10 +25,12 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Query, Response, st
 from sqlalchemy.orm import Session
 
 from .api.schemas import (
+    AddPersonIn,
     BundleOut,
     CardDiffOut,
     CategoryLockIn,
     CategoryLockOut,
+    DeactivateOut,
     DepositPromptIn,
     DepositPromptResult,
     DepositPromptsOut,
@@ -42,6 +44,8 @@ from .api.schemas import (
     OverridesOut,
     PaymentIn,
     PaymentResult,
+    PeopleOut,
+    PersonOut,
     PreviewIn,
     PublishIn,
     PublishOut,
@@ -49,10 +53,12 @@ from .api.schemas import (
     QuoteIn,
     RateChangeOut,
     SessionOut,
+    SetPinIn,
     StatusChangeIn,
     StatusChangeResult,
     UserOut,
 )
+from .core.security import WeakPin
 from .db import session_scope
 from .models.db import DeviceSession, User
 from .services.auth import (
@@ -75,6 +81,16 @@ from .services.ingest import (
     push_order,
     push_payment,
     push_quote,
+)
+from .services.people import (
+    BadRole,
+    NoSuchUser,
+    PhoneTaken,
+    add_person,
+    deactivate,
+    list_people,
+    reactivate,
+    set_pin,
 )
 from .services.reads import (
     MAX_PAGE,
@@ -543,6 +559,121 @@ def preview_card_route(
         is_empty=diff.is_empty,
         total_delta_sen=diff.total_delta_sen,
     )
+
+
+def _person_out(user: User) -> PersonOut:
+    return PersonOut(
+        id=user.id,
+        name=user.name,
+        phone=user.phone,
+        email=user.email,
+        role=user.role,
+        language=user.language,
+        is_active=user.is_active,
+        deactivated_at=user.deactivated_at,
+    )
+
+
+@app.get("/api/people", response_model=PeopleOut)
+def people_route(session: SessionDep, admin: AdminDep) -> PeopleOut:
+    """Everybody who can sign in, and everybody who used to. SPEC.md 11 Phase 5.
+
+    Leavers included on purpose: a list that hides them cannot answer "who used
+    to have access", which is the question somebody asks after something goes
+    missing.
+    """
+    _ = admin
+    return PeopleOut(people=[_person_out(u) for u in list_people(session)])
+
+
+@app.post("/api/people", response_model=PersonOut, status_code=status.HTTP_201_CREATED)
+def add_person_route(
+    payload: AddPersonIn, session: SessionDep, admin: AdminDep
+) -> PersonOut:
+    """Creates somebody who can sign in. SPEC.md 12.
+
+    The *first* admin still needs shell access -- there is no register endpoint
+    and no bootstrap password in the image. This only saves an admin from a
+    terminal for the second person onwards, which lowers no bar, and raises a
+    real one: without it the boss keeps one shared login that reaches every
+    handset, which 6.5 says happens within a month.
+
+    The PIN is hashed and never returned. A weak one is refused before anything
+    is written, so a refusal leaves no half-made user behind.
+    """
+    _ = admin
+    try:
+        user = add_person(
+            session,
+            name=payload.name,
+            phone=payload.phone,
+            pin=payload.pin,
+            role=payload.role,
+            email=payload.email,
+            language=payload.language,
+        )
+    except PhoneTaken as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    except (WeakPin, BadRole) as exc:
+        raise HTTPException(HTTP_422_UNPROCESSABLE, str(exc)) from exc
+
+    return _person_out(user)
+
+
+@app.post("/api/people/{user_id}/pin", response_model=PersonOut)
+def set_pin_route(
+    user_id: str, payload: SetPinIn, session: SessionDep, admin: AdminDep
+) -> PersonOut:
+    """Changes somebody's PIN. The old one stops working immediately."""
+    _ = admin
+    try:
+        return _person_out(set_pin(session, user_id, payload.pin))
+    except NoSuchUser as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such user") from exc
+    except WeakPin as exc:
+        raise HTTPException(HTTP_422_UNPROCESSABLE, str(exc)) from exc
+
+
+@app.post("/api/people/{user_id}/deactivate", response_model=DeactivateOut)
+def deactivate_route(
+    user_id: str, session: SessionDep, admin: AdminDep
+) -> DeactivateOut:
+    """Ends somebody's access. SPEC.md 12.
+
+    Never deletes -- their quotes and payments still name them. What goes is
+    every live session: sessions never expire, so without this the handset in a
+    leaver's pocket keeps working forever.
+
+    An admin cannot deactivate themselves. Locking the last admin out of the
+    box is a mistake nobody can undo from the app, and the alternative is a
+    trip to the server with a shell.
+    """
+    if admin.id == user_id:
+        raise HTTPException(
+            HTTP_422_UNPROCESSABLE,
+            "you cannot deactivate yourself",
+        )
+
+    try:
+        person, killed = deactivate(session, user_id)
+    except NoSuchUser as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such user") from exc
+
+    return DeactivateOut(person=_person_out(person), sessions_revoked=killed)
+
+
+@app.post("/api/people/{user_id}/reactivate", response_model=PersonOut)
+def reactivate_route(user_id: str, session: SessionDep, admin: AdminDep) -> PersonOut:
+    """Lets somebody back in.
+
+    Their old sessions stay revoked, so coming back means signing in again --
+    and a handset that was out of their hands does not silently start working.
+    """
+    _ = admin
+    try:
+        return _person_out(reactivate(session, user_id))
+    except NoSuchUser as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such user") from exc
 
 
 @app.post("/api/quotes", response_model=PushResult)
