@@ -87,20 +87,32 @@ def _summary(
     )
 
 
-def _held_until_by_customer(session: Session) -> dict[str, datetime]:
+def _held_until_by_customer(
+    session: Session, keys: list[str] | None = None
+) -> dict[str, datetime]:
     """The soonest active hold expiry per customer key.
 
-    One query rather than one per order. The board sorts by this and colours by
-    it, so it is read for every card on screen.
+    **One query, whatever the page holds.** The board sorts by this and colours
+    by it, so it is read for every card on screen -- and a lookup per card is
+    the shape that turns a board somebody opens all day into one they stop
+    opening. §11 Phase 5 wants 500 orders without pagination lag, and that is
+    what this constant is protecting.
+
+    ``keys`` scopes it to the customers actually on the page. Passing None reads
+    every active hold, which is right for a single order's detail view and wrong
+    for a board.
     """
-    rows = session.execute(
-        select(
-            CategoryLock.customer_key,
-            func.min(CategoryLock.held_until),
-        )
-        .where(CategoryLock.status == "active")
-        .group_by(CategoryLock.customer_key)
-    ).all()
+    query = select(
+        CategoryLock.customer_key,
+        func.min(CategoryLock.held_until),
+    ).where(CategoryLock.status == "active")
+
+    if keys is not None:
+        if not keys:
+            return {}
+        query = query.where(CategoryLock.customer_key.in_(keys))
+
+    rows = session.execute(query.group_by(CategoryLock.customer_key)).all()
     return {key: until for key, until in rows if until is not None}
 
 
@@ -147,18 +159,29 @@ def list_orders(
 
     total = session.scalar(select(func.count()).select_from(Order).where(*filters))
 
-    counts = dict(
-        session.execute(
-            select(OrderLine.order_id, func.count()).group_by(OrderLine.order_id)
-        ).all()
-    )
-    expiries = _held_until_by_customer(session)
-
     orders = list(
         session.scalars(
             select(Order).where(*filters).order_by(Order.confirmed_at.desc())
         )
     )
+
+    # Both scoped to the orders in hand rather than to the whole table. Counting
+    # every line ever written to tell one page how many lines it has is work
+    # that grows with the business while the screen does not.
+    ids = [order.id for order in orders]
+    counts = (
+        dict(
+            session.execute(
+                select(OrderLine.order_id, func.count())
+                .where(OrderLine.order_id.in_(ids))
+                .group_by(OrderLine.order_id)
+            ).all()
+        )
+        if ids
+        else {}
+    )
+    keys = [key for key in (_customer_key(order) for order in orders) if key]
+    expiries = _held_until_by_customer(session, keys)
 
     summaries = [
         _summary(
