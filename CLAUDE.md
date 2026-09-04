@@ -243,15 +243,37 @@ Nothing in the reports averages anything. An average of integer sen needs a
 rounding rule, and inventing one to tidy a screen is how a rounding rule ends up
 being used for something that matters.
 
-**Three of Phase 5's four acceptance criteria are met.** Publishing shows what
-moves before commit; deactivating requires the name; and every filter state is
-reachable by URL — now checked end to end through a real router on the
-measurement queue and the reports, which is what the order board's filters still
-lack. The fourth, "500 orders without pagination lag", needs a populated
-database to mean anything.
+**All four of Phase 5's acceptance criteria are met, and each names a test.**
+Publishing shows what moves before commit. Deactivating requires the name.
+Every filter state is reachable by URL — checked end to end through a **real
+router** on the order board, the measurement queue and the reports, because a
+filter held in a component field passes every behavioural assertion and still
+fails the criterion the moment somebody pastes the link. And the board loads
+500 orders without lag.
 
-**Next:** the order board has no spec file at all, so its URL filters are the
-one place that criterion is claimed and not proven. Then Phase 6.
+**That last one found two real queries reading the whole table to answer a
+question about one page** — the line counts counted every line ever written,
+and the hold expiries read every active lock in the business, both regardless
+of the filter. Neither was slow today; both grew with the business while the
+screen did not. What the test asserts is not a wall-clock number but the thing
+that causes the lag: **the statement count does not grow with the board.** Ten
+orders and five hundred cost the same round trips. That is the failure this
+design invites, because `held_until` comes from a table keyed on a string
+`orders` does not hold, so the obvious simplification is a lookup per card.
+Measured for the record: 500 orders, three lines each, holds on a third —
+median 11.5 ms against in-process SQLite.
+
+**Every dashboard screen now has a spec.** 149 dashboard tests.
+
+**Next: Phase 6** — site measurement and final pricing. It is what makes the
+variance report and the outstanding-balances report show anything: both have
+columns that stay empty until an order has a final price, and both say so on
+screen rather than showing a table that looks like a failed query.
+
+Its acceptance list (§11) is the sharpest yet: *a measured order reprices at
+the old card even after two rate publishes*, *variance visible to the measurer
+before they leave the house*, *an order crossing RM10,000 cannot advance
+without buyer details*, and *works fully offline in a house with no signal*.
 
 **A repeated mistake worth knowing about:** a plain class field read inside an
 Angular `computed` never recomputes, so the button it gates stays disabled
