@@ -513,5 +513,57 @@ class TestTheMeasurementQueue:
         assert r.headers["WWW-Authenticate"] == "Bearer"
 
 
+class TestTheReports:
+    """SPEC.md §11 Phase 5. Who may read them, which is the part only HTTP
+    decides -- the arithmetic is tested against the services."""
+
+    ROUTES = (
+        "/api/reports/variance",
+        "/api/reports/fairs",
+        "/api/reports/balances",
+    )
+
+    @pytest.mark.parametrize("route", ROUTES)
+    def test_an_admin_can_read_them(self, client: TestClient, route: str) -> None:
+        token = sign_in(client, "admin")
+        assert client.get(route, headers=auth(token)).status_code == 200
+
+    @pytest.mark.parametrize("route", ROUTES)
+    @pytest.mark.parametrize("role", ["staff", "parttime"])
+    def test_nobody_else_can(self, client: TestClient, route: str, role: str) -> None:
+        # The variance report names people and ranks them; the other two carry
+        # margin-shaped numbers. §3: part-timers never see a rate, cost or
+        # margin, and a report is the easiest place to leak one.
+        token = sign_in(client, role)
+        assert client.get(route, headers=auth(token)).status_code == 403
+
+    @pytest.mark.parametrize("route", ROUTES)
+    def test_they_need_a_session(self, client: TestClient, route: str) -> None:
+        assert client.get(route).status_code == 401
+
+    def test_the_variance_report_says_when_nothing_is_priced(
+        self, client: TestClient
+    ) -> None:
+        token = sign_in(client, "admin")
+        body = client.get("/api/reports/variance", headers=auth(token)).json()
+
+        assert body["nothing_priced_yet"] is True
+
+    def test_the_balances_report_ages_against_the_server_clock(
+        self, client: TestClient
+    ) -> None:
+        token = sign_in(client, "admin")
+        body = client.get("/api/reports/balances", headers=auth(token)).json()
+
+        # Four buckets whatever the data, so a quiet month is not a differently
+        # shaped report from a busy one.
+        assert [b["label"] for b in body["buckets"]] == [
+            "0-30 days",
+            "31-60 days",
+            "61-90 days",
+            "Over 90 days",
+        ]
+
+
 def test_health(client: TestClient) -> None:
     assert client.get("/api/health").json() == {"status": "ok"}

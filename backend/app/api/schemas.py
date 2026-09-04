@@ -668,3 +668,107 @@ class MeasurementQueueOut(BaseModel):
     #: Orders, not groups. "12 jobs across 9 trips" is the sentence the office
     #: actually says.
     total_orders: int = 0
+
+
+class SalespersonVariance(BaseModel):
+    """One salesperson's estimate against the tape. §11 Phase 5, §6.3.
+
+    §6.3: *the variance report by salesperson tells the boss who is guessing
+    badly and needs retraining.* That only works if the systematic bias is
+    subtracted first -- a quotation rounds every quantity **up** and the final
+    bill uses the exact tape, so every honest estimate comes in high. What
+    identifies a bad guesser is being much further out than everybody else, not
+    being out at all.
+    """
+
+    user_id: str | None
+    name: str | None
+    #: Orders that have been finally priced. Zero until Phase 6 exists.
+    orders_priced: int
+    #: Confirmed and not yet measured. Named so an empty report explains
+    #: itself rather than reading as "nobody sold anything".
+    orders_awaiting_final: int
+    estimate_total_sen: int
+    final_total_sen: int
+    #: `final - estimate`. Negative is the expected direction.
+    variance_sen: int
+    #: Orders where the final came out **above** the estimate. §8.5 says that
+    #: cannot happen: *after site measurement the price will be the same or
+    #: lower, never higher.* Any number here but zero is a broken promise, not
+    #: a statistic, so it is counted separately and never averaged away.
+    orders_over_estimate: int
+
+
+class VarianceReport(BaseModel):
+    rows: list[SalespersonVariance] = []
+    #: True while nothing has been finally priced anywhere. The screen says so
+    #: rather than showing an empty table that looks like a failed query.
+    nothing_priced_yet: bool = True
+
+
+class FairPerformance(BaseModel):
+    """What one fair did. §11 Phase 5.
+
+    Keyed on the promo code of the card an order pinned, which is what
+    actually identifies a fair -- `channel = 'fair'` says an order came from
+    one, and the pinned version says which.
+    """
+
+    promo_code: str | None
+    valid_from: str | None
+    valid_to: str | None
+    orders: int
+    estimate_total_sen: int
+    deposits_taken_sen: int
+    #: RM300s that opened a twelve-month hold at this fair. §6.1.
+    locks_opened: int
+    #: Deliberately no average order value. An average of integer sen needs a
+    #: rounding rule, and there is no reason to invent one here when the count
+    #: and the total are both on screen.
+
+
+class FairReport(BaseModel):
+    fairs: list[FairPerformance] = []
+
+
+class OutstandingBalance(BaseModel):
+    """One order with money still to come. §11 Phase 5.
+
+    **Nothing here is called overdue.** The system does not know when a
+    balance falls due -- there is no invoice date and no terms -- so what is
+    reported is how long it has been since the deposit, and the reader draws
+    the conclusion. §13 C11.
+    """
+
+    order_id: str
+    order_no: str | None
+    customer_name: str | None
+    customer_phone: str | None
+    status: str
+    confirmed_at: datetime
+    days_since_deposit: int
+    total_sen: int
+    deposit_paid_sen: int
+    balance_sen: int
+    #: True while the total is still the quotation. §8.5: a quotation is a
+    #: reference price and the final will be the same or **lower**, so this
+    #: balance is an upper bound and must not be read as a debt.
+    is_estimate: bool
+
+
+class AgeingBucket(BaseModel):
+    """Days since the deposit, not days overdue. §13 C11."""
+
+    label: str
+    orders: int
+    balance_sen: int
+
+
+class BalancesReport(BaseModel):
+    balances: list[OutstandingBalance] = []
+    buckets: list[AgeingBucket] = []
+    total_balance_sen: int = 0
+    #: How much of the total is still an estimate rather than a final price.
+    #: A report that mixed the two without saying so would overstate what is
+    #: collectable.
+    estimated_balance_sen: int = 0

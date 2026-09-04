@@ -1639,6 +1639,24 @@ orders, supplier management and costing come later.
   customer, or by whatever the installer says. If it is by area, the answer is
   a delivery-zone or postcode grouping and an address field, not the project
   library, and that is cheaper to add now than to retrofit.
+- **C11.** **When does a balance actually fall due, and what is it aged
+  from?** The outstanding-balances report ages every row from the **deposit**,
+  because that is the only date the system knows: there is no invoice date, no
+  payment terms and no delivery date in it. So nothing on that report is called
+  *overdue* — it says "days since deposit" and lets the reader draw the
+  conclusion.
+
+  That is the conservative reading and it is almost certainly not how the shop
+  thinks. If the balance is due on installation, an order sitting at
+  `in_production` for ninety days is not late at all, and a report that implies
+  it is will be ignored inside a month. If it is due on delivery, the system
+  needs a delivery date it does not capture.
+
+  Related: while a final price does not exist (Phase 6), a balance is computed
+  from the **quotation**, which §8.5 makes an upper bound — the final will be
+  the same or lower. Every row says which it is, and the report totals the two
+  separately, because a book that mixed them would overstate what is
+  collectable.
 - **C8.** Who may move an order along, and who may cancel one? The pipeline
   enforces *what* can happen, not *who* may do it — no role check is wired to it
   yet. A part-timer marking a job installed, or cancelling one, is the kind of

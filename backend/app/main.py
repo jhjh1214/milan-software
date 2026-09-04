@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 
 from .api.schemas import (
     AddPersonIn,
+    BalancesReport,
     BundleOut,
     CardDiffOut,
     CategoryLockIn,
@@ -34,6 +35,7 @@ from .api.schemas import (
     DepositPromptIn,
     DepositPromptResult,
     DepositPromptsOut,
+    FairReport,
     LockPushResult,
     LocksOut,
     LoginIn,
@@ -58,6 +60,7 @@ from .api.schemas import (
     StatusChangeIn,
     StatusChangeResult,
     UserOut,
+    VarianceReport,
 )
 from .core.security import WeakPin
 from .db import session_scope
@@ -100,6 +103,11 @@ from .services.reads import (
     order_detail,
     overrides_between,
     prompts_between,
+)
+from .services.reports import (
+    fair_performance,
+    outstanding_balances,
+    variance_by_salesperson,
 )
 
 app = FastAPI(
@@ -534,6 +542,49 @@ def prompts_route(
     """
     _ = admin
     return DepositPromptsOut(prompts=prompts_between(session, start=start, end=end))
+
+
+@app.get("/api/reports/variance", response_model=VarianceReport)
+def variance_route(session: SessionDep, admin: AdminDep) -> VarianceReport:
+    """Estimate against the tape, per salesperson. SPEC.md 6.3, 11 Phase 5.
+
+    Admin only. It names people and ranks them, which is the same reason the
+    override review is admin only -- handed to everybody it becomes a
+    leaderboard, and the point of it is a training conversation.
+
+    Read it knowing the whole column is biased: a quotation rounds every
+    quantity up and the final bill uses the exact tape, so an honest estimate
+    always comes in high. What identifies a bad guesser is being much further
+    out than everybody else.
+    """
+    _ = admin
+    return variance_by_salesperson(session)
+
+
+@app.get("/api/reports/fairs", response_model=FairReport)
+def fairs_route(session: SessionDep, admin: AdminDep) -> FairReport:
+    """What each fair did. SPEC.md 11 Phase 5.
+
+    Grouped on the promo code of the card an order pinned: the channel says an
+    order came from a fair, the pinned version says which one.
+    """
+    _ = admin
+    return fair_performance(session)
+
+
+@app.get("/api/reports/balances", response_model=BalancesReport)
+def balances_route(session: SessionDep, admin: AdminDep) -> BalancesReport:
+    """Money still to come, aged by how long since the deposit. 11 Phase 5.
+
+    Nothing here is called overdue: there is no invoice date and no payment
+    terms in this system, so it cannot know when a balance falls due (13 C11).
+
+    Every row says whether its total is a final price or still the quotation.
+    An estimate is an upper bound (8.5), so an estimated balance is the most
+    that could be owed rather than a debt.
+    """
+    _ = admin
+    return outstanding_balances(session, now=datetime.now(UTC))
 
 
 @app.post("/api/rate-cards/preview", response_model=CardDiffOut)
