@@ -200,16 +200,58 @@ leavers stay on the roster because a list that hides them cannot answer "who use
 to have access". An admin cannot deactivate themselves, on the server as well as
 in the screen.
 
-**Two of Phase 5's four acceptance criteria are met** — publishing shows what
-moves before commit, and deactivating requires the name. The other two are
-"500 orders without pagination lag", which needs a populated database to mean
-anything, and "every filter state reachable by URL", which the order board does
-and nothing has yet checked end to end.
+**The measurement queue is in**, both sides. §11 wants it grouped by project so
+one trip covers several units — and there is no project library until Phase 8,
+nor an address anywhere. So it groups by **customer**, on the normalised phone,
+the same key a rate lock uses: one customer with three units is one card that
+says so, and a phone typed two ways is still one house. An order with no usable
+phone is its own group; pooling the phone-less ones would invent a trip and send
+somebody out for it. §13 **C10** asks what should really group a day's route,
+because if the answer is "by area" that wants an address field now rather than
+the project library later.
 
-**Next on the dashboard:** the measurement queue (grouped by project, so one
-trip covers several units) and the reports — variance by salesperson, fair
-performance, outstanding balances aged, and declined deposits. The read query for
-the last one already exists on the server; the others need new ones.
+Everything at `confirmed` or `measurement_booked` is in it, **including an order
+with nothing left to measure** — C7 is unanswered so the pipeline refuses to
+skip those steps, and filtering on the unmeasured count would make exactly those
+orders invisible while they sat at `confirmed` forever. Ordered by who has
+waited longest, not by hold expiry: an order pinned its card version when the
+deposit confirmed it, so measuring it late does not reprice it.
+
+**All four reports are in.** Variance by salesperson, fair performance,
+outstanding balances aged, and declined deposits.
+
+The variance table **says the column is biased before showing it**. A quotation
+rounds every quantity up and the bill uses the exact tape, so every honest
+estimate comes in high; read cold the table accuses honest people of padding.
+An order whose final came out *above* its estimate is flagged rather than
+averaged in — §8.5 says that cannot happen, so it is a broken promise, not a
+statistic. Equal is the promise kept; one sen over is not.
+
+Balances **never say overdue**: there is no invoice date and no payment terms in
+this system, so it reports days since the deposit and lets the reader conclude
+(§13 **C11**). A total still built from a quotation is marked on the row and
+named above the table, because §8.5 makes it an upper bound rather than a debt,
+and the two are totalled separately. Cancelled orders are in none of the three
+server reports — B3 is unanswered and a report is not the place to answer it.
+
+The declined-deposit summary is computed **in the dashboard**, mirroring the
+handset's `summariseDeposits`: the two count different data (one phone versus
+every phone), and one server-side aggregate would fix the slicing at whichever
+caller asked first.
+
+Nothing in the reports averages anything. An average of integer sen needs a
+rounding rule, and inventing one to tidy a screen is how a rounding rule ends up
+being used for something that matters.
+
+**Three of Phase 5's four acceptance criteria are met.** Publishing shows what
+moves before commit; deactivating requires the name; and every filter state is
+reachable by URL — now checked end to end through a real router on the
+measurement queue and the reports, which is what the order board's filters still
+lack. The fourth, "500 orders without pagination lag", needs a populated
+database to mean anything.
+
+**Next:** the order board has no spec file at all, so its URL filters are the
+one place that criterion is claimed and not proven. Then Phase 6.
 
 **A repeated mistake worth knowing about:** a plain class field read inside an
 Angular `computed` never recomputes, so the button it gates stays disabled
