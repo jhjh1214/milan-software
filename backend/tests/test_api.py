@@ -442,5 +442,76 @@ class TestPush:
         assert r.status_code == 422
 
 
+class TestTheMeasurementQueue:
+    """SPEC.md §11 Phase 5. Over the wire, which is the only place the clock
+    and the authorisation are decided -- the grouping itself is tested against
+    the service in `test_measurement_queue.py`."""
+
+    def _an_order(self, client: TestClient, **over) -> str:
+        order_id = str(uuid.uuid4())
+        payload = {
+            "id": order_id,
+            "quote_id": str(uuid.uuid4()),
+            "channel": "fair",
+            "pinned_rate_card_version": 1,
+            "estimate_total_sen": 55200,
+            "deposit_paid_sen": 30000,
+            "confirmed_at": datetime.now(UTC).isoformat(),
+            "lines": [
+                {
+                    "id": str(uuid.uuid4()),
+                    "quote_line_id": str(uuid.uuid4()),
+                    "sort_order": 0,
+                    "room": "Living room",
+                    "variant": "night_curtain",
+                    "layer": "night",
+                    "est_width_tmm": 36576,
+                    "applied_rule_id": "rule-1",
+                    "applied_rate_card_version": 1,
+                    "standard_rate_sen": 4600,
+                    "rate_sen": 4600,
+                    "billed_qty": "12",
+                    "billed_unit": "ft",
+                    "line_total_sen": 55200,
+                }
+            ],
+        }
+        payload.update(over)
+        token = sign_in(client, "staff")
+        r = client.post("/api/orders", json=payload, headers=auth(token))
+        assert r.status_code == 200, r.text
+        return order_id
+
+    def test_a_confirmed_order_appears_grouped(self, client: TestClient) -> None:
+        self._an_order(client, customer_phone="012-345 6789", customer_name="Ah Lian")
+        self._an_order(client, customer_phone="+60123456789", customer_name="Ah Lian")
+
+        token = sign_in(client, "staff")
+        r = client.get("/api/measurement-queue", headers=auth(token))
+
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["total_orders"] == 2
+        (group,) = body["groups"]
+        assert group["key"] == "phone:0123456789"
+        assert len(group["jobs"]) == 2
+
+    def test_the_clock_is_the_server_s(self, client: TestClient) -> None:
+        # An order confirmed a moment ago has waited no days. The route reads
+        # the clock once and passes it down, so nothing on the screen can
+        # disagree with anything else on it about what today is.
+        self._an_order(client)
+
+        token = sign_in(client, "staff")
+        body = client.get("/api/measurement-queue", headers=auth(token)).json()
+
+        assert body["groups"][0]["jobs"][0]["waiting_days"] == 0
+
+    def test_it_needs_a_session(self, client: TestClient) -> None:
+        r = client.get("/api/measurement-queue")
+        assert r.status_code == 401
+        assert r.headers["WWW-Authenticate"] == "Bearer"
+
+
 def test_health(client: TestClient) -> None:
     assert client.get("/api/health").json() == {"status": "ok"}

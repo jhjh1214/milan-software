@@ -18,7 +18,7 @@ what replaces expiry.
 from __future__ import annotations
 
 from collections.abc import Iterator
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Response, status
@@ -37,6 +37,7 @@ from .api.schemas import (
     LockPushResult,
     LocksOut,
     LoginIn,
+    MeasurementQueueOut,
     OrderDetailOut,
     OrderIn,
     OrderResult,
@@ -82,6 +83,7 @@ from .services.ingest import (
     push_payment,
     push_quote,
 )
+from .services.measurement_queue import measurement_queue
 from .services.people import (
     BadRole,
     NoSuchUser,
@@ -487,6 +489,24 @@ def order_detail_route(
     if detail is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "no such order")
     return detail
+
+
+@app.get("/api/measurement-queue", response_model=MeasurementQueueOut)
+def measurement_queue_route(
+    session: SessionDep, who: CurrentDep
+) -> MeasurementQueueOut:
+    """What is waiting for a site visit. SPEC.md 11 Phase 5.
+
+    Grouped into trips and ordered by who has waited longest -- not by hold
+    expiry the way the order board is. An order pinned its rate card version
+    when the deposit confirmed it, so measuring it late does not reprice it;
+    what is urgent here is a person who paid in July and has had no phone call.
+
+    The clock is read once, here, and passed down. Two groups computed against
+    two different "now" values could disagree about the same day.
+    """
+    _ = who
+    return measurement_queue(session, now=datetime.now(UTC))
 
 
 @app.get("/api/overrides", response_model=OverridesOut)

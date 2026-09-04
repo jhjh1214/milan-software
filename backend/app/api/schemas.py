@@ -600,3 +600,71 @@ class DeactivateOut(BaseModel):
     #: How many live handsets that just signed out. Worth reporting: somebody
     #: deactivating a leaver wants to know the phone in their pocket stopped.
     sessions_revoked: int
+
+
+class MeasurementJob(BaseModel):
+    """One order waiting for a site visit. §11 Phase 5.
+
+    Carries the counts a measurer needs before setting off -- how many windows,
+    how many still have no tape taken to them, and how many materials are still
+    to be chosen (§13 B7) -- and none of the money that would let somebody
+    reprice from this screen. Repricing happens in Phase 6, at the held version.
+    """
+
+    order_id: str
+    order_no: str | None
+    status: str
+    channel: str
+    line_count: int
+    #: Lines with no final dimensions yet. The size of the visit.
+    unmeasured_line_count: int
+    #: Lines quoted at the dearest option in their group with nothing chosen
+    #: yet (§13 B7). Every one is a decision somebody has to make on site.
+    material_pending_count: int
+    estimate_total_sen: int
+    confirmed_at: datetime
+    #: When somebody booked the visit, or null while it is still unbooked.
+    #: Read from the append-only history, never from a column: `orders` has no
+    #: booking date and inventing one would mean writing a second truth.
+    booked_at: datetime | None = None
+    #: Whole days since the deposit was taken. Computed against an injected
+    #: clock, so the number in a test is the number in the screen.
+    waiting_days: int
+
+
+class MeasurementGroup(BaseModel):
+    """One trip. §11 Phase 5: *grouped by project so one trip covers several
+    units*.
+
+    There is no project library until Phase 8, and no address is captured
+    anywhere, so the only grouping the data supports today is the customer --
+    keyed on the normalised phone, exactly as a rate lock is (§13 B9). One
+    customer with three units is one trip, which is the case that exists now.
+
+    An order with no usable phone is its own group rather than being pooled
+    with every other phone-less order. Pooling them would invent a trip that
+    does not exist.
+    """
+
+    key: str
+    customer_name: str | None
+    customer_phone: str | None
+    #: False when this group is one order that had no phone to group on.
+    grouped_by_phone: bool
+    jobs: list[MeasurementJob] = []
+    #: The oldest deposit in the group. The queue is ordered by this: the
+    #: customer who has waited longest goes first.
+    oldest_confirmed_at: datetime
+    waiting_days: int
+    #: How many of these already have a visit booked. A group where that is
+    #: zero is the one nobody has called yet.
+    booked_count: int
+
+
+class MeasurementQueueOut(BaseModel):
+    """Everything waiting for a site visit, grouped into trips."""
+
+    groups: list[MeasurementGroup] = []
+    #: Orders, not groups. "12 jobs across 9 trips" is the sentence the office
+    #: actually says.
+    total_orders: int = 0

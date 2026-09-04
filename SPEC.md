@@ -1623,6 +1623,22 @@ orders, supplier management and costing come later.
   skipped step is a lie in the append-only history. Answering "yes, skip" is a
   one-line change to the transition table and a fixture; answering it wrongly
   puts jobs in the wrong column of the measurement schedule.
+- **C10.** **What groups a measurement trip before the project library
+  exists?** §11 Phase 5 says the queue is *grouped by project so one trip
+  covers several units*, and `projects` / `unit_types` do not arrive until
+  Phase 8. No address is captured anywhere either — an order carries a name,
+  a phone and a delivery zone.
+
+  So the queue groups by **customer**, keyed on the normalised phone exactly as
+  a rate lock is (B9). One customer with three units is one trip, which is the
+  case that exists today, and an order with no usable phone is its own group
+  rather than pooled with every other phone-less order — pooling them would
+  invent a trip that does not exist.
+
+  What is worth asking is how the team actually plans a day: by area, by
+  customer, or by whatever the installer says. If it is by area, the answer is
+  a delivery-zone or postcode grouping and an address field, not the project
+  library, and that is cheaper to add now than to retrofit.
 - **C8.** Who may move an order along, and who may cancel one? The pipeline
   enforces *what* can happen, not *who* may do it — no role check is wired to it
   yet. A part-timer marking a job installed, or cancelling one, is the kind of
