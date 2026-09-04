@@ -530,30 +530,37 @@ jobs:
       - name: Every fixture section is loaded by both suites
         run: |
           missing=0
-          # `tr -d` because a section name carrying a stray carriage return
-          # matches nothing and every check passes for the wrong reason.
+
+          # `tr -d` strips a carriage return. A section name carrying one
+          # matches nothing, so every check would pass for the wrong reason.
           sections=$(python3 -c "
           import json
           data = json.load(open('shared/pricing-fixtures.json'))
           for key in data:
               if key.endswith('_cases'):
                   print(key)
-          " | tr -d '')
+          " | tr -d '\r')
 
           if [ -z "$sections" ]; then
-            echo "::error::no *_cases sections found — the contract is empty"
+            echo "::error::no *_cases sections found - the contract is empty"
             exit 1
           fi
 
-          # Searched across the whole of each suite, not one file: the sections
-          # are deliberately split across test files by subject.
+          # Searched across the whole of each suite rather than one file: the
+          # sections are deliberately split across test files by subject.
           for section in $sections; do
-            grep -rq --include='*.py' "$section" backend/tests/               || { echo "::error::$section is not loaded by the Python suite"; missing=1; }
-            grep -rq --include='*.dart' "$section" mobile/test/               || { echo "::error::$section is not loaded by the Dart suite"; missing=1; }
+            grep -rq --include='*.py' "$section" backend/tests/ || {
+              echo "::error::$section is not loaded by the Python suite"
+              missing=1
+            }
+            grep -rq --include='*.dart' "$section" mobile/test/ || {
+              echo "::error::$section is not loaded by the Dart suite"
+              missing=1
+            }
           done
 
           [ "$missing" = 0 ] || exit 1
-          echo "ok — both suites load every section:"
+          echo "ok - both suites load every section:"
           echo "$sections" | sed 's/^/  /'
 
       - name: No printed document may claim to be a tax invoice
