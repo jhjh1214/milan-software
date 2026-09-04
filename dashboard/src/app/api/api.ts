@@ -22,9 +22,12 @@ import { Observable } from 'rxjs';
 
 import type {
   AddPersonIn,
+  BalancesReport,
   CardDiffOut,
   Channel,
   DeactivateOut,
+  DepositPromptsOut,
+  FairReport,
   ListId,
   MeasurementQueueOut,
   OrderDetailOut,
@@ -34,6 +37,7 @@ import type {
   PeopleOut,
   PersonOut,
   PublishOut,
+  VarianceReport,
 } from './types';
 
 /** Where the server is. Set once, at build time. */
@@ -107,6 +111,52 @@ export class Api {
   /** Every price moved by hand in a window. Admin only, server-enforced. */
   overrides(start: string, end: string): Observable<OverridesOut> {
     return this.http.get<OverridesOut>(`${API_BASE}/overrides`, {
+      params: new HttpParams().set('start', start).set('end', end),
+      headers: this.authorised(),
+    });
+  }
+
+  /**
+   * Estimate against the tape, per salesperson. Admin only, server-enforced.
+   *
+   * Read knowing the whole column is biased: a quotation rounds every quantity
+   * up and the final bill uses the exact tape, so an honest estimate always
+   * comes in high.
+   */
+  variance(): Observable<VarianceReport> {
+    return this.http.get<VarianceReport>(`${API_BASE}/reports/variance`, {
+      headers: this.authorised(),
+    });
+  }
+
+  /** What each fair did, keyed on the promo its orders pinned. Admin only. */
+  fairs(): Observable<FairReport> {
+    return this.http.get<FairReport>(`${API_BASE}/reports/fairs`, {
+      headers: this.authorised(),
+    });
+  }
+
+  /**
+   * Money still to come, aged by how long since the deposit. Admin only.
+   *
+   * Nothing in it is overdue: the system has no invoice date and no payment
+   * terms, so it cannot know when a balance falls due (§13 C11).
+   */
+  balances(): Observable<BalancesReport> {
+    return this.http.get<BalancesReport>(`${API_BASE}/reports/balances`, {
+      headers: this.authorised(),
+    });
+  }
+
+  /**
+   * Every answer to the category prompt in a window. Admin only.
+   *
+   * Raw rows, deliberately. The counting happens where it is read, because the
+   * office slices it differently from the handset and two summaries that have
+   * to agree eventually will not.
+   */
+  depositPrompts(start: string, end: string): Observable<DepositPromptsOut> {
+    return this.http.get<DepositPromptsOut>(`${API_BASE}/deposit-prompts`, {
       params: new HttpParams().set('start', start).set('end', end),
       headers: this.authorised(),
     });

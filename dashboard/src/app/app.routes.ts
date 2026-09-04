@@ -65,6 +65,14 @@ export const routes: Routes = [
     title: 'Publish a price list',
   },
   {
+    // Admin only, server-enforced. The variance report names people and ranks
+    // them, and §3 keeps rates, costs and margins away from part-timers.
+    path: 'reports',
+    canActivate: [signedIn],
+    loadComponent: () => import('./reports/reports').then((m) => m.Reports),
+    title: 'Reports',
+  },
+  {
     // Admin only, server-enforced. Deactivating stops the handset in somebody's
     // pocket, which is why the screen asks for their name first.
     path: 'people',

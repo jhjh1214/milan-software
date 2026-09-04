@@ -1,0 +1,269 @@
+<header class="reports-head">
+  <h1>Reports</h1>
+</header>
+
+<nav class="tabs" aria-label="Reports">
+  @for (p of panels; track p) {
+    <button
+      type="button"
+      [class.on]="panel() === p"
+      [attr.aria-pressed]="panel() === p"
+      (click)="showPanel(p)"
+    >
+      @switch (p) {
+        @case ('variance') { Estimate vs final }
+        @case ('fairs') { Fair performance }
+        @case ('balances') { Outstanding balances }
+        @default { Declined deposits }
+      }
+    </button>
+  }
+</nav>
+
+@if (failure(); as message) {
+  <p class="failure" role="alert">
+    {{ message }}
+    <button type="button" (click)="retry()">Try again</button>
+  </p>
+} @else if (loading()) {
+  <p class="loading" role="status">Loading…</p>
+} @else {
+  @switch (panel()) {
+    @case ('variance') {
+      @if (variance(); as report) {
+        <!-- Said before the table, not under it. The column is biased by
+             design: a quotation rounds every quantity up and the bill uses the
+             exact tape, so an honest estimate always comes in high. Somebody
+             who reads the numbers without this reads it as fraud. -->
+        <p class="note">
+          A quotation rounds every quantity up and the final bill uses the exact
+          tape, so every honest estimate comes in high. What this shows is who
+          is much further out than everybody else — not who is out at all.
+        </p>
+
+        @if (report.nothing_priced_yet) {
+          <p class="empty">
+            Nothing has been finally priced yet, so there is nothing to compare.
+            Final prices are set at site measurement.
+          </p>
+        }
+
+        <table>
+          <caption class="visually-hidden">
+            Estimate against final price, by salesperson
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Salesperson</th>
+              <th scope="col" class="num">Priced</th>
+              <th scope="col" class="num">Awaiting</th>
+              <th scope="col" class="num">Estimated</th>
+              <th scope="col" class="num">Final</th>
+              <th scope="col" class="num">Variance</th>
+              <th scope="col" class="num">Over estimate</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of report.rows; track row.user_id) {
+              <tr>
+                <td>{{ nameOf(row.name) }}</td>
+                <td class="num">{{ row.orders_priced }}</td>
+                <td class="num">{{ row.orders_awaiting_final }}</td>
+                <td class="num">{{ money(row.estimate_total_sen) }}</td>
+                <td class="num">{{ money(row.final_total_sen) }}</td>
+                <td class="num">{{ money(row.variance_sen) }}</td>
+                <!-- §8.5: the final will be the same or lower, never higher.
+                     Any number but zero is a broken promise, so it is flagged
+                     rather than left to blend into the row. -->
+                <td class="num" [class.breach]="row.orders_over_estimate > 0">
+                  {{ row.orders_over_estimate }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    }
+
+    @case ('fairs') {
+      @if (fairs(); as report) {
+        @if (report.fairs.length === 0) {
+          <p class="empty">No orders have come from a fair yet.</p>
+        } @else {
+          <table>
+            <caption class="visually-hidden">What each fair did</caption>
+            <thead>
+              <tr>
+                <th scope="col">Fair</th>
+                <th scope="col">Dates</th>
+                <th scope="col" class="num">Orders</th>
+                <th scope="col" class="num">Quoted</th>
+                <th scope="col" class="num">Deposits taken</th>
+                <th scope="col" class="num">Rates held</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (fair of report.fairs; track fair.promo_code) {
+                <tr>
+                  <td>{{ fair.promo_code ?? 'No promotion on the card' }}</td>
+                  <td>
+                    @if (fair.valid_from) {
+                      {{ fair.valid_from }} – {{ fair.valid_to }}
+                    } @else {
+                      —
+                    }
+                  </td>
+                  <td class="num">{{ fair.orders }}</td>
+                  <td class="num">{{ money(fair.estimate_total_sen) }}</td>
+                  <td class="num">{{ money(fair.deposits_taken_sen) }}</td>
+                  <!-- §6.1. The RM300 is what a fair is for; orders without
+                       holds are a fair that quoted and secured nothing. -->
+                  <td class="num">{{ fair.locks_opened }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      }
+    }
+
+    @case ('balances') {
+      @if (balances(); as report) {
+        <!-- §13 C11. Nothing here is overdue: the system has no invoice date
+             and no payment terms, so it cannot know when a balance falls due. -->
+        <p class="note">
+          Aged from the deposit, which is the only date this system knows.
+          Nothing here is overdue.
+          @if (estimatedShare() === 'all') {
+            Every total below is still a quotation — the most that could be
+            owed, not a bill.
+          } @else if (estimatedShare() === 'some') {
+            Some totals are still quotations, marked below; a quotation is the
+            most that could be owed, not a bill.
+          }
+        </p>
+
+        <ul class="buckets">
+          @for (bucket of report.buckets; track bucket.label) {
+            <li>
+              <span class="bucket-label">{{ bucket.label }}</span>
+              <span class="bucket-total">{{ money(bucket.balance_sen) }}</span>
+              <span class="bucket-count">
+                {{ bucket.orders }} order{{ bucket.orders === 1 ? '' : 's' }}
+              </span>
+            </li>
+          }
+        </ul>
+
+        <p class="total">
+          Outstanding {{ money(report.total_balance_sen) }}, of which
+          {{ money(report.estimated_balance_sen) }} is still estimated
+        </p>
+
+        @if (report.balances.length === 0) {
+          <p class="empty">Nothing is outstanding.</p>
+        } @else {
+          <table>
+            <caption class="visually-hidden">Outstanding balances</caption>
+            <thead>
+              <tr>
+                <th scope="col">Order</th>
+                <th scope="col">Customer</th>
+                <th scope="col">Stage</th>
+                <th scope="col" class="num">Since deposit</th>
+                <th scope="col" class="num">Total</th>
+                <th scope="col" class="num">Paid</th>
+                <th scope="col" class="num">Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of report.balances; track row.order_id) {
+                <tr>
+                  <td class="reference" [class.pending]="row.order_no === null">
+                    {{ row.order_no ?? 'pending sync' }}
+                  </td>
+                  <td>{{ row.customer_name || 'No name' }}</td>
+                  <td>{{ row.status.replaceAll('_', ' ') }}</td>
+                  <td class="num">{{ row.days_since_deposit }} days</td>
+                  <td class="num">
+                    {{ money(row.total_sen) }}
+                    @if (row.is_estimate) {
+                      <span class="estimated">est.</span>
+                    }
+                  </td>
+                  <td class="num">{{ money(row.deposit_paid_sen) }}</td>
+                  <td class="num">{{ money(row.balance_sen) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      }
+    }
+
+    @default {
+      @if (declines(); as rows) {
+        <nav class="periods" aria-label="Period">
+          <span class="filter-label" id="weeks-label">Last</span>
+          <div role="group" aria-labelledby="weeks-label">
+            @for (w of periods; track w) {
+              <button
+                type="button"
+                [class.on]="weeks() === w"
+                [attr.aria-pressed]="weeks() === w"
+                (click)="showWeeks(w)"
+              >
+                {{ w }} weeks
+              </button>
+            }
+          </div>
+        </nav>
+
+        <!-- §6.2. The point is not the count, it is what was left behind. -->
+        <p class="note">
+          What was quoted in a category and not deposited on. A dismissal is
+          kept apart from a refusal: “they said no” and “nobody asked properly”
+          are different problems.
+        </p>
+
+        <table>
+          <caption class="visually-hidden">Declined category deposits</caption>
+          <thead>
+            <tr>
+              <th scope="col">Category</th>
+              <th scope="col" class="num">Asked</th>
+              <th scope="col" class="num">Collected</th>
+              <th scope="col" class="num">Declined</th>
+              <th scope="col" class="num">Lines removed</th>
+              <th scope="col" class="num">Dismissed</th>
+              <th scope="col" class="num">Take rate</th>
+              <th scope="col" class="num">Left on the table</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows; track row.category) {
+              <tr>
+                <td class="category">{{ row.category }}</td>
+                <td class="num">{{ row.asked }}</td>
+                <td class="num">{{ row.collected }}</td>
+                <td class="num">{{ row.declined }}</td>
+                <td class="num">{{ row.linesRemoved }}</td>
+                <td class="num">{{ row.dismissed }}</td>
+                <td class="num">
+                  <!-- Nobody answering is not a take rate of zero, and showing
+                       it as one would libel a quiet afternoon. -->
+                  @if (rate(row); as r) {
+                    {{ r[0] }} of {{ r[1] }}
+                  } @else {
+                    —
+                  }
+                </td>
+                <td class="num">{{ money(row.leftOnTheTableSen) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    }
+  }
+}

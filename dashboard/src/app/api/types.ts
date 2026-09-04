@@ -283,3 +283,102 @@ export interface MeasurementQueueOut {
   /** Orders, not trips. "12 jobs across 9 trips" is the sentence people say. */
   readonly total_orders: number;
 }
+
+/** One salesperson's estimate against the tape. SPEC.md §6.3, §11 Phase 5. */
+export interface SalespersonVariance {
+  readonly user_id: string | null;
+  readonly name: string | null;
+  readonly orders_priced: number;
+  readonly orders_awaiting_final: number;
+  readonly estimate_total_sen: number;
+  readonly final_total_sen: number;
+  /** `final - estimate`. Negative is the expected direction. */
+  readonly variance_sen: number;
+  /**
+   * Orders where the final came out **above** the estimate. §8.5 says that
+   * cannot happen, so any number but zero is a broken promise, not a
+   * statistic — never averaged into the variance beside it.
+   */
+  readonly orders_over_estimate: number;
+}
+
+export interface VarianceReport {
+  readonly rows: readonly SalespersonVariance[];
+  /** True while nothing anywhere has been finally priced. Phase 6 changes it. */
+  readonly nothing_priced_yet: boolean;
+}
+
+/** What one fair did, keyed on the promo its orders pinned. */
+export interface FairPerformance {
+  readonly promo_code: string | null;
+  readonly valid_from: string | null;
+  readonly valid_to: string | null;
+  readonly orders: number;
+  readonly estimate_total_sen: number;
+  readonly deposits_taken_sen: number;
+  /** RM300s that opened a twelve-month hold. §6.1. */
+  readonly locks_opened: number;
+}
+
+export interface FairReport {
+  readonly fairs: readonly FairPerformance[];
+}
+
+/** One order with money still to come. Nothing here is overdue — §13 C11. */
+export interface OutstandingBalance {
+  readonly order_id: string;
+  readonly order_no: string | null;
+  readonly customer_name: string | null;
+  readonly customer_phone: string | null;
+  readonly status: OrderStatus;
+  readonly confirmed_at: string;
+  readonly days_since_deposit: number;
+  readonly total_sen: number;
+  readonly deposit_paid_sen: number;
+  readonly balance_sen: number;
+  /** True while the total is still the quotation — an upper bound, not a debt. */
+  readonly is_estimate: boolean;
+}
+
+export interface AgeingBucket {
+  readonly label: string;
+  readonly orders: number;
+  readonly balance_sen: number;
+}
+
+export interface BalancesReport {
+  readonly balances: readonly OutstandingBalance[];
+  readonly buckets: readonly AgeingBucket[];
+  readonly total_balance_sen: number;
+  /** How much of the total is still an estimate rather than a final price. */
+  readonly estimated_balance_sen: number;
+}
+
+/** Which RM300 was asked for. SPEC.md §6.2. */
+export type DepositCategory = 'curtain' | 'flooring' | 'wallpaper';
+
+/**
+ * Which button was pressed.
+ *
+ * `dismissed` is kept apart from `declined`: "they said no" and "nobody asked
+ * properly" are different problems, and only one of them is the customer's.
+ */
+export type DepositChoice =
+  | 'collected'
+  | 'declined'
+  | 'lines_removed'
+  | 'dismissed';
+
+export interface DepositPromptOut {
+  readonly id: string;
+  readonly quote_id: string;
+  readonly category: DepositCategory;
+  readonly choice: DepositChoice;
+  /** What the quote was worth in this category when the question was asked. */
+  readonly category_subtotal_sen: number;
+  readonly at: string;
+}
+
+export interface DepositPromptsOut {
+  readonly prompts: readonly DepositPromptOut[];
+}
