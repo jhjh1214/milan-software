@@ -187,9 +187,35 @@ nobody can read; and the app shell carried no cache header, so a browser would
 keep loading the old app after a deploy. Both fixed, both now checked in the
 release job.
 
-**Next on the dashboard:** users and roles, the measurement queue, and the
-reports (variance by salesperson, fair performance, outstanding balances,
-declined deposits — the read queries for the last one already exist).
+**Users and roles are in**, on both sides. An admin who is already signed in
+can add people, change a PIN, and remove access; the **first** admin still needs
+shell access, so no bar was lowered — and a real one was raised, because the
+alternative is the boss keeping one shared login that reaches every handset.
+
+Deactivating asks for the person's name to be typed, which is §11's acceptance
+criterion. Sessions never expire (§12), so it is the only thing that stops the
+handset in a leaver's pocket, and doing it to the wrong person locks somebody out
+mid-fair. It never deletes: their quotes and payments still name them, and
+leavers stay on the roster because a list that hides them cannot answer "who used
+to have access". An admin cannot deactivate themselves, on the server as well as
+in the screen.
+
+**Two of Phase 5's four acceptance criteria are met** — publishing shows what
+moves before commit, and deactivating requires the name. The other two are
+"500 orders without pagination lag", which needs a populated database to mean
+anything, and "every filter state reachable by URL", which the order board does
+and nothing has yet checked end to end.
+
+**Next on the dashboard:** the measurement queue (grouped by project, so one
+trip covers several units) and the reports — variance by salesperson, fair
+performance, outstanding balances aged, and declined deposits. The read query for
+the last one already exists on the server; the others need new ones.
+
+**A repeated mistake worth knowing about:** a plain class field read inside an
+Angular `computed` never recomputes, so the button it gates stays disabled
+forever. It has happened twice — the publish screen's card text and the people
+form — and both times it was caught by a test rather than by reading. Make every
+piece of component state a signal.
 
 Two smaller things the dashboard still lacks: a session that survives a page
 refresh (deliberate for now — a token in `localStorage` on a shared office
