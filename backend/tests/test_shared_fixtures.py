@@ -27,6 +27,11 @@ from app.pricing.engine import (
     price_line,
     total_quote,
 )
+from app.pricing.final_pricing import (
+    FinalPricingRefusal,
+    MeasuredLine,
+    reprice_order,
+)
 from app.pricing.models import (
     CustomerTier,
     DepositCategory,
@@ -166,10 +171,103 @@ def test_quote_total_case(case: dict) -> None:
     assert totals.total.sen == expected["total_sen"], "quote total"
 
 
+@pytest.mark.parametrize(
+    "case",
+    FIXTURES["final_pricing_cases"],
+    ids=[c["id"] for c in FIXTURES["final_pricing_cases"]],
+)
+def test_final_pricing_case(case: dict) -> None:
+    """SPEC.md §11 Phase 6. Repricing a measured order.
+
+    ``available_card_versions`` decides which cards the caller holds. Only
+    version 1 exists as a file, so a case that lists another version is saying
+    the held card is not to hand -- which must refuse rather than fall back to
+    the active one.
+    """
+    cards = {
+        version: CARD
+        for version in case["available_card_versions"]
+        if version == CARD.version
+    }
+
+    result = reprice_order(
+        lines=[
+            MeasuredLine(
+                id=line["id"],
+                variant=line["variant"],
+                material_key=line["material_key"],
+                layer=Layer(line["layer"]),
+                fulfilment=Fulfilment(line["fulfilment"]),
+                quantity=line["quantity"],
+                estimate_total=Money(line["estimate_total_sen"]),
+                applied_rate_card_version=line["applied_rate_card_version"],
+                final_width=(
+                    None
+                    if line["final_width_tmm"] is None
+                    else Length(line["final_width_tmm"])
+                ),
+                final_height=(
+                    None
+                    if line["final_height_tmm"] is None
+                    else Length(line["final_height_tmm"])
+                ),
+                material_deferred=line["material_deferred"],
+            )
+            for line in case["lines"]
+        ],
+        cards=cards,
+    )
+
+    expected = case["expect"]
+    assert [line.id for line in result.lines] == [e["id"] for e in expected["lines"]]
+
+    for got, want in zip(result.lines, expected["lines"], strict=True):
+        assert got.priced_at_version == want["priced_at_version"], f"{got.id} version"
+        assert (None if got.final_total is None else got.final_total.sen) == want[
+            "final_total_sen"
+        ], f"{got.id} total"
+        assert (None if got.variance is None else got.variance.sen) == want[
+            "variance_sen"
+        ], f"{got.id} variance"
+        assert got.is_over_estimate is want["over_estimate"], f"{got.id} over"
+        assert (None if got.refusal is None else got.refusal.value) == want[
+            "refusal"
+        ], f"{got.id} refusal"
+
+        if "billed_qty" in want:
+            assert _fraction_str(got.billed_qty) == want["billed_qty"]
+            assert got.priced is not None
+            assert got.priced.billed_unit == want["billed_unit"]
+
+    assert result.estimate_total.sen == expected["estimate_total_sen"]
+    assert (None if result.final_total is None else result.final_total.sen) == expected[
+        "final_total_sen"
+    ]
+    assert (None if result.variance is None else result.variance.sen) == expected[
+        "variance_sen"
+    ]
+    assert result.is_complete is expected["is_complete"]
+
+
+def test_every_refusal_reason_is_exercised() -> None:
+    # A refusal nothing covers is a branch that will be wrong the first time it
+    # fires, in a house, with a customer watching.
+    seen = {
+        line["refusal"]
+        for case in FIXTURES["final_pricing_cases"]
+        for line in case["expect"]["lines"]
+        if line["refusal"] is not None
+    }
+    assert FinalPricingRefusal.NOT_MEASURED.value in seen
+    assert FinalPricingRefusal.MATERIAL_NOT_CHOSEN.value in seen
+    assert FinalPricingRefusal.CARD_UNAVAILABLE.value in seen
+
+
 def test_the_fixture_file_is_not_empty() -> None:
     # A green suite over an empty contract proves nothing.
     assert len(FIXTURES["cases"]) >= 20
     assert len(FIXTURES["quote_total_cases"]) >= 5
+    assert len(FIXTURES["final_pricing_cases"]) >= 10
 
 
 def test_the_card_is_the_real_price_list() -> None:

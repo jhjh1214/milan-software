@@ -1443,6 +1443,21 @@ orders, supplier management and costing come later.
   → round → multiply) or the **line total** (multiply → discount → round)?
   Differs by sen per line and real money across a house.
   *Retagged from P1: Phase 1 builds no discount and no golden case exercises one.*
+- `[BLOCKING P6]` **A21.** **Does a printed minimum quantity survive the tape?**
+  §4.3 has carried this as *"assumption pending confirmation — `min_qty`
+  applies at both stages. Confirm before Phase 6."* This is Phase 6.
+
+  Both engines apply it at both stages, so a 3ft × 3ft roller blind measures
+  9 sqft and bills 18. That is the reading the printed list supports: "Min 18
+  sqft" sits on the price list as a commercial floor next to the rate, not as a
+  rounding note. The other reading — exact tape, no floor — bills RM81 where
+  this bills RM162, and it is the customer-favourable one.
+
+  It is **not** in tension with §8.5: the estimate applies the same floor, so
+  the final still lands at or below it. What is at stake is only whether a
+  small window is charged at the printed minimum or at what it measures, and
+  the answer is worth having in writing before the first invoice rather than
+  after.
 - **A5.** One discount % for everything, or different per family?
 - **A6.** Is "Sgp Pleat" a heading bundled with a rod, or standalone fabric?
 - **A7.** Wallpaper pattern-repeat wastage: absorbed already, or added per range?

@@ -6,6 +6,7 @@ import 'package:milan_quote/core/length.dart';
 import 'package:milan_quote/core/money.dart';
 import 'package:milan_quote/core/rational.dart';
 import 'package:milan_quote/pricing/engine.dart';
+import 'package:milan_quote/pricing/final_pricing.dart';
 import 'package:milan_quote/pricing/models.dart';
 
 /// Runs `shared/pricing-fixtures.json`, the contract between the Dart and
@@ -191,6 +192,137 @@ void main() {
         }
       });
     }
+  });
+
+  group('final pricing cases', () {
+    // SPEC.md §11 Phase 6. `available_card_versions` says which cards the
+    // caller holds. Only version 1 exists as a file, so a case listing another
+    // version is saying the held card is not to hand — which must refuse
+    // rather than quietly fall back to the active one.
+    test('the fixture file actually contains cases', () {
+      expect(
+        (fixtures['final_pricing_cases'] as List).length,
+        greaterThanOrEqualTo(10),
+      );
+    });
+
+    for (final raw
+        in (jsonDecode(File(_findFixtures()).readAsStringSync())
+                as Map<String, dynamic>)['final_pricing_cases']
+            as List<dynamic>) {
+      final c = raw as Map<String, dynamic>;
+
+      test('${c['id']} — ${c['why']}', () {
+        final cards = <int, RateCard>{
+          for (final v in (c['available_card_versions'] as List).cast<int>())
+            if (v == card.version) v: card,
+        };
+
+        final result = repriceOrder(
+          lines: [
+            for (final rawLine in c['lines'] as List<dynamic>)
+              () {
+                final l = rawLine as Map<String, dynamic>;
+                return MeasuredLine(
+                  id: l['id'] as String,
+                  variant: l['variant'] as String,
+                  materialKey: l['material_key'] as String?,
+                  layer: Layer.fromWire(l['layer'] as String),
+                  fulfilment: Fulfilment.fromWire(l['fulfilment'] as String),
+                  quantity: l['quantity'] as int,
+                  estimateTotal: Money.sen(l['estimate_total_sen'] as int),
+                  appliedRateCardVersion: l['applied_rate_card_version'] as int,
+                  finalWidth: l['final_width_tmm'] == null
+                      ? null
+                      : Length.tenths(l['final_width_tmm'] as int),
+                  finalHeight: l['final_height_tmm'] == null
+                      ? null
+                      : Length.tenths(l['final_height_tmm'] as int),
+                  materialDeferred: l['material_deferred'] as bool,
+                );
+              }(),
+          ],
+          cards: cards,
+        );
+
+        final expected = c['expect'] as Map<String, dynamic>;
+        final expectedLines = (expected['lines'] as List)
+            .cast<Map<String, dynamic>>();
+
+        expect(
+          result.lines.map((l) => l.id).toList(),
+          expectedLines.map((e) => e['id']).toList(),
+          reason: 'every line comes back, in order',
+        );
+
+        for (var i = 0; i < expectedLines.length; i++) {
+          final got = result.lines[i];
+          final want = expectedLines[i];
+
+          expect(
+            got.pricedAtVersion,
+            want['priced_at_version'],
+            reason: '${got.id}: priced at the version it recorded',
+          );
+          expect(
+            got.finalTotal?.sen,
+            want['final_total_sen'],
+            reason: '${got.id}: final total',
+          );
+          expect(
+            got.variance?.sen,
+            want['variance_sen'],
+            reason: '${got.id}: variance',
+          );
+          expect(
+            got.isOverEstimate,
+            want['over_estimate'],
+            reason: '${got.id}: over the estimate',
+          );
+          expect(
+            got.refusal?.wire,
+            want['refusal'],
+            reason: '${got.id}: refusal',
+          );
+
+          if (want.containsKey('billed_qty')) {
+            expect(
+              billedQuantityOf(got).toString(),
+              want['billed_qty'],
+              reason: '${got.id}: the tape is billed exactly',
+            );
+            expect(got.priced?.billedUnit, want['billed_unit']);
+          }
+        }
+
+        expect(result.estimateTotal.sen, expected['estimate_total_sen']);
+        expect(
+          result.finalTotal?.sen,
+          expected['final_total_sen'],
+          reason: 'order total',
+        );
+        expect(result.variance?.sen, expected['variance_sen']);
+        expect(result.isComplete, expected['is_complete']);
+      });
+    }
+
+    test('every refusal reason is exercised by a case', () {
+      // A refusal nothing covers is a branch that will be wrong the first time
+      // it fires, in a house, with a customer watching.
+      final seen = <String>{
+        for (final raw in fixtures['final_pricing_cases'] as List)
+          for (final line
+              in ((raw as Map<String, dynamic>)['expect']
+                      as Map<String, dynamic>)['lines']
+                  as List)
+            if ((line as Map<String, dynamic>)['refusal'] != null)
+              line['refusal'] as String,
+      };
+
+      expect(seen, contains(FinalPricingRefusal.notMeasured.wire));
+      expect(seen, contains(FinalPricingRefusal.materialNotChosen.wire));
+      expect(seen, contains(FinalPricingRefusal.cardUnavailable.wire));
+    });
   });
 
   group('quote total cases', () {

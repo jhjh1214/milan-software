@@ -522,6 +522,40 @@ jobs:
           diff -u /tmp/before.json shared/rate-card-standard.json \
             || { echo "::error::rate-card-standard.json is not what tool/build_standard_card.py produces. Edit the fair card or the generator, not the derived file."; exit 1; }
 
+      # CLAUDE.md hard rule 3: the fixture file is THE CONTRACT between the two
+      # engines, and it is only a contract if both sides load every part of it.
+      # A section added to the file and wired into one suite is a rule half the
+      # system does not follow -- and the half that does not is whichever one
+      # nobody looked at.
+      - name: Every fixture section is loaded by both suites
+        run: |
+          missing=0
+          # `tr -d` because a section name carrying a stray carriage return
+          # matches nothing and every check passes for the wrong reason.
+          sections=$(python3 -c "
+          import json
+          data = json.load(open('shared/pricing-fixtures.json'))
+          for key in data:
+              if key.endswith('_cases'):
+                  print(key)
+          " | tr -d '')
+
+          if [ -z "$sections" ]; then
+            echo "::error::no *_cases sections found — the contract is empty"
+            exit 1
+          fi
+
+          # Searched across the whole of each suite, not one file: the sections
+          # are deliberately split across test files by subject.
+          for section in $sections; do
+            grep -rq --include='*.py' "$section" backend/tests/               || { echo "::error::$section is not loaded by the Python suite"; missing=1; }
+            grep -rq --include='*.dart' "$section" mobile/test/               || { echo "::error::$section is not loaded by the Dart suite"; missing=1; }
+          done
+
+          [ "$missing" = 0 ] || exit 1
+          echo "ok — both suites load every section:"
+          echo "$sections" | sed 's/^/  /'
+
       - name: No printed document may claim to be a tax invoice
         # CLAUDE.md hard rule 7 is a legal constraint, not a labelling
         # preference. SQL Account is the sole issuer of record.
