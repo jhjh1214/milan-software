@@ -54,4 +54,12 @@ export const routes: Routes = [
       import('./rates/publish-card').then((m) => m.PublishCard),
     title: 'Publish a price list',
   },
+  {
+    // Admin only, server-enforced. Deactivating stops the handset in somebody's
+    // pocket, which is why the screen asks for their name first.
+    path: 'people',
+    canActivate: [signedIn],
+    loadComponent: () => import('./people/people').then((m) => m.People),
+    title: 'People',
+  },
 ];

@@ -1,0 +1,199 @@
+:host {
+  display: block;
+  padding: 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: #94a3b8;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+button.primary {
+  background: #1e3a5f;
+  border-color: #1e3a5f;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Removing somebody's access stops the handset in their pocket. It should not
+   look like the button that opens a form. */
+button.danger {
+  background: #b91c1c;
+  border-color: #b91c1c;
+  color: #fff;
+  font-weight: 600;
+}
+
+button:disabled {
+  background: #94a3b8;
+  border-color: #94a3b8;
+  color: #fff;
+  cursor: default;
+}
+
+.add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  padding: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #56637a;
+  margin-bottom: 4px;
+}
+
+input,
+select {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font: inherit;
+  /* 16px so a browser does not zoom the field on focus. */
+  font-size: 16px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th {
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #56637a;
+  padding: 0 12px 8px 0;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+td {
+  padding: 10px 12px 10px 0;
+  border-bottom: 1px solid #f1f3f5;
+  vertical-align: middle;
+}
+
+/* A leaver is dimmed, not hidden, and the row still says when they left —
+   colour alone would not carry it. */
+tr.gone td {
+  color: #56637a;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.role {
+  text-transform: capitalize;
+}
+
+.confirm {
+  margin-top: 20px;
+  padding: 16px;
+  border: 2px solid #b91c1c;
+  border-radius: 8px;
+  background: #fef2f2;
+}
+
+.confirm p {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+.confirm input {
+  width: 100%;
+  max-width: 320px;
+  margin-bottom: 12px;
+}
+
+.note {
+  padding: 12px 16px;
+  border: 1px solid #047857;
+  border-radius: 8px;
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.failure {
+  padding: 12px 16px;
+  border: 1px solid #b91c1c;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+.failure button {
+  margin-left: 12px;
+}
+
+.muted {
+  color: #56637a;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

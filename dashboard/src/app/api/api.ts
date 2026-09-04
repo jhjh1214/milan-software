@@ -21,13 +21,17 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import type {
+  AddPersonIn,
   CardDiffOut,
   Channel,
+  DeactivateOut,
   ListId,
   OrderDetailOut,
   OrderStatus,
   OrdersOut,
   OverridesOut,
+  PeopleOut,
+  PersonOut,
   PublishOut,
 } from './types';
 
@@ -125,6 +129,49 @@ export class Api {
     return this.http.post<PublishOut>(
       `${API_BASE}/rate-cards`,
       { list_id: listId, payload },
+      { headers: this.authorised() },
+    );
+  }
+
+  /** Everybody who can sign in, and everybody who used to. Admin only. */
+  people(): Observable<PeopleOut> {
+    return this.http.get<PeopleOut>(`${API_BASE}/people`, {
+      headers: this.authorised(),
+    });
+  }
+
+  /**
+   * Creates somebody who can sign in.
+   *
+   * The PIN goes up once and never comes back. The *first* admin still needs
+   * shell access to the box -- this only saves a terminal for the second
+   * person onwards.
+   */
+  addPerson(person: AddPersonIn): Observable<PersonOut> {
+    return this.http.post<PersonOut>(`${API_BASE}/people`, person, {
+      headers: this.authorised(),
+    });
+  }
+
+  /**
+   * Ends somebody's access, and reports how many handsets that signed out.
+   *
+   * Never deletes: their quotes and payments still name them. Sessions never
+   * expire, so this is the only thing that stops the phone in their pocket.
+   */
+  deactivate(id: string): Observable<DeactivateOut> {
+    return this.http.post<DeactivateOut>(
+      `${API_BASE}/people/${id}/deactivate`,
+      {},
+      { headers: this.authorised() },
+    );
+  }
+
+  /** Lets somebody back in. Their old sessions stay revoked. */
+  reactivate(id: string): Observable<PersonOut> {
+    return this.http.post<PersonOut>(
+      `${API_BASE}/people/${id}/reactivate`,
+      {},
       { headers: this.authorised() },
     );
   }

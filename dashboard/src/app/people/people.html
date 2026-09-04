@@ -1,0 +1,146 @@
+<header class="head">
+  <h1>People</h1>
+  @if (!adding()) {
+    <button type="button" class="primary" (click)="openAdd()">Add somebody</button>
+  }
+</header>
+
+@if (note(); as message) {
+  <p class="note" role="status">{{ message }}</p>
+}
+@if (failure(); as message) {
+  <p class="failure" role="alert">
+    {{ message }}
+    <button type="button" (click)="retry()">Reload</button>
+  </p>
+}
+
+@if (adding()) {
+  <form class="add" (ngSubmit)="add()">
+    <div>
+      <label for="name">Name</label>
+      <input
+        id="name"
+        [value]="name()"
+        (input)="name.set($any($event.target).value)"
+      />
+    </div>
+    <div>
+      <label for="phone">Phone</label>
+      <input
+        id="phone"
+        type="tel"
+        inputmode="tel"
+        [value]="phone()"
+        (input)="phone.set($any($event.target).value)"
+      />
+    </div>
+    <div>
+      <label for="pin">PIN</label>
+      <input
+        id="pin"
+        type="password"
+        inputmode="numeric"
+        autocomplete="new-password"
+        [value]="pin()"
+        (input)="pin.set($any($event.target).value)"
+      />
+    </div>
+    <div>
+      <label for="role">Role</label>
+      <select
+        id="role"
+        [value]="role()"
+        (change)="role.set($any($event.target).value)"
+      >
+        @for (r of roles; track r) {
+          <option [value]="r">{{ r }}</option>
+        }
+      </select>
+    </div>
+    <div class="actions">
+      <button type="submit" class="primary" [disabled]="!canAdd()">Add</button>
+      <button type="button" (click)="adding.set(false)">Cancel</button>
+    </div>
+  </form>
+}
+
+@if (loading()) {
+  <p class="muted" role="status">Loading…</p>
+} @else if (people().length > 0) {
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Name</th>
+        <th scope="col">Phone</th>
+        <th scope="col">Role</th>
+        <th scope="col">Status</th>
+        <th scope="col"><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (person of people(); track person.id) {
+        <tr [class.gone]="!person.is_active">
+          <td>{{ person.name }}</td>
+          <td class="num">{{ person.phone }}</td>
+          <td class="role">{{ person.role }}</td>
+          <td>
+            @if (person.is_active) {
+              Active
+            } @else {
+              <!-- Leavers stay on the list. A screen that hides them cannot
+                   answer "who used to have access". -->
+              Left {{ date(person.deactivated_at) }}
+            }
+          </td>
+          <td class="actions">
+            @if (isMe(person)) {
+              <!-- Locking the last admin out is a mistake nobody can undo from
+                   the app. The server refuses it too. -->
+              <span class="muted">You</span>
+            } @else if (person.is_active) {
+              <button type="button" (click)="startDeactivating(person)">
+                Remove access
+              </button>
+            } @else {
+              <button type="button" (click)="reactivate(person)">
+                Let back in
+              </button>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}
+
+@if (confirming(); as person) {
+  <div class="confirm" role="dialog" aria-labelledby="confirm-title">
+    <h2 id="confirm-title">Remove {{ person.name }}'s access?</h2>
+    <p>
+      Their handset signs out the next time it reaches the server. Their quotes
+      and payments stay, and still name them.
+    </p>
+    <!-- §11 Phase 5's acceptance criterion. Not friction for its own sake:
+         doing this to the wrong person silently locks somebody out mid-fair,
+         and typing the name is the cheapest way to make the click deliberate. -->
+    <label for="typed">Type <strong>{{ person.name }}</strong> to confirm</label>
+    <input
+      id="typed"
+      autocomplete="off"
+      [value]="typedName()"
+      (input)="typedName.set($any($event.target).value)"
+    />
+    <div class="actions">
+      <button
+        type="button"
+        class="danger"
+        [disabled]="!nameMatches()"
+        (click)="deactivate()"
+      >
+        Remove access
+      </button>
+      <button type="button" (click)="cancelDeactivating()">Keep it</button>
+    </div>
+  </div>
+}

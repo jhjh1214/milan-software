@@ -195,3 +195,42 @@ export interface PublishOut {
 }
 
 export type ListId = 'fair' | 'standard';
+
+/** What somebody may do. SPEC.md 3, least privileged first. */
+export type Role = 'parttime' | 'staff' | 'admin';
+
+/**
+ * Somebody who uses the system.
+ *
+ * No PIN and no hash: nothing replayable leaves the server, and a hash is
+ * still something to attack offline at leisure.
+ */
+export interface PersonOut {
+  readonly id: string;
+  readonly name: string;
+  readonly phone: string | null;
+  readonly email: string | null;
+  readonly role: Role;
+  readonly language: string;
+  readonly is_active: boolean;
+  readonly deactivated_at: string | null;
+}
+
+export interface PeopleOut {
+  /** Leavers included. Hiding them loses the answer to "who used to have access". */
+  readonly people: readonly PersonOut[];
+}
+
+export interface DeactivateOut {
+  readonly person: PersonOut;
+  /** How many live handsets that just signed out. */
+  readonly sessions_revoked: number;
+}
+
+export interface AddPersonIn {
+  readonly name: string;
+  readonly phone: string;
+  /** Sent once, never stored and never read back. */
+  readonly pin: string;
+  readonly role: Role;
+}
