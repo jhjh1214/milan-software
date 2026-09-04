@@ -265,7 +265,41 @@ median 11.5 ms against in-process SQLite.
 
 **Every dashboard screen now has a spec.** 149 dashboard tests.
 
-**Next: Phase 6** — site measurement and final pricing. It is what makes the
+**Phase 6 has started, fixtures-first.** 13 `final_pricing_cases` in
+`shared/pricing-fixtures.json`, then both engines against them. Every
+expectation was derived from §4.3's formula with exact `Fraction` arithmetic,
+independently of both engines, so three-way agreement is evidence rather than a
+tautology. 20 mutations across the two, all killed.
+
+**A line reprices at the version and discount IT recorded** — never the active
+card, never the order's pinned version, because a line's lock is its own. When
+the held card is not to hand it **refuses**: falling back to today's is exactly
+what the RM300 was taken to prevent, and it is the fallback that looks most
+reasonable. Quantity is exact here; the quote rounded up and the bill does not.
+
+A line the tape has not reached and a material nobody chose both refuse, and a
+refused line stops the **order** total, not just its own — a total that quietly
+excluded a line would be a balance somebody collects and a window nobody bills
+for. An order with no lines has not been priced; zero is a number somebody would
+act on. A final **above** its estimate is flagged, not refused: §8.5's promise is
+about rounding, not the customer's own wrong dimensions.
+
+§13 **A21** raised rather than guessed — §4.3 has carried *"`min_qty` applies at
+both stages, confirm before Phase 6"* as an assumption, and this is Phase 6.
+Both engines keep applying it, so a 3ft × 3ft roller bills its printed 18 sqft
+minimum; the exact-tape reading would bill RM81 where this bills RM162.
+
+**CI now fails a fixture section that only one suite loads**, which is hard rule
+3 made mechanical.
+
+**A new trap, and it cost a red CI run.** Never write a workflow file — or
+anything with `\r`, `\n` or `\\` in it — through a bash heredoc feeding a Python
+string: the escapes are interpreted twice and a literal carriage return lands in
+the file. `ci.yml` stopped parsing and nothing ran. Author that content with the
+Write tool, and **verify a workflow before pushing**: parse it, extract the
+step's `run:` back out of the parsed YAML, and execute it.
+
+**Next in Phase 6** — site measurement on the device. It is what makes the
 variance report and the outstanding-balances report show anything: both have
 columns that stay empty until an order has a final price, and both say so on
 screen rather than showing a table that looks like a failed query.
