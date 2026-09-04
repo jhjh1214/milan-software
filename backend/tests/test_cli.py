@@ -22,6 +22,7 @@ from app import db as db_module
 from app.core.security import verify_pin
 from app.models.db import Base, DeviceSession, User
 from app.services.auth import authenticate, issue_session, resolve_token
+from tests.helpers import assert_pin_is_not_recoverable
 
 
 @pytest.fixture
@@ -71,9 +72,7 @@ class TestCreatingTheFirstAdmin:
 
         with db() as session:
             stored = session.scalars(select(User)).one().pin_hash
-            assert stored is not None
-            assert "4821" not in stored
-            assert verify_pin("4821", stored)
+            assert_pin_is_not_recoverable(stored, "4821")
 
     def test_a_weak_pin_is_refused_and_nothing_is_created(self, db, pin) -> None:
         pin("0000")

@@ -35,6 +35,7 @@ from app.services.people import (
     reactivate,
     set_pin,
 )
+from tests.helpers import assert_pin_is_not_recoverable
 
 
 @pytest.fixture
@@ -63,11 +64,14 @@ class TestAddingSomebody:
             user = add_person(session, name="Boss", phone="0123", pin="4821")
             session.commit()
 
-            assert user.pin_hash is not None
-            assert "4821" not in user.pin_hash
-            assert verify_pin("4821", user.pin_hash)
-            # Nothing on the row carries the PIN in any readable form.
-            assert "4821" not in repr(user.__dict__)
+            assert_pin_is_not_recoverable(user.pin_hash, "4821")
+
+            # And no *other* column carries it either. Safe to scan as a
+            # substring, because everything left is a name, a phone and a role
+            # rather than 190 characters of random hex.
+            row = dict(user.__dict__)
+            row.pop("pin_hash")
+            assert "4821" not in repr(row)
 
     def test_the_default_role_is_the_least_privileged(self, db) -> None:
         # Guessing wrong in this direction means somebody has to ask for

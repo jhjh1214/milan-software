@@ -17,6 +17,7 @@ from app.core.security import (
     token_fingerprint,
     verify_pin,
 )
+from tests.helpers import assert_pin_is_not_recoverable
 
 
 class TestPinHashing:
@@ -32,8 +33,7 @@ class TestPinHashing:
         assert hash_pin("4821") != hash_pin("4821")
 
     def test_the_pin_is_not_recoverable_from_the_stored_string(self) -> None:
-        stored = hash_pin("4821")
-        assert "4821" not in stored
+        assert_pin_is_not_recoverable(hash_pin("4821"), "4821")
 
     def test_a_user_with_no_pin_cannot_be_verified(self) -> None:
         # A part-timer created but not yet issued a PIN must not be loggable-in
