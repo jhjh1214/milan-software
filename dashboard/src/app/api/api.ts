@@ -26,6 +26,7 @@ import type {
   Channel,
   DeactivateOut,
   ListId,
+  MeasurementQueueOut,
   OrderDetailOut,
   OrderStatus,
   OrdersOut,
@@ -87,6 +88,18 @@ export class Api {
 
   order(id: string): Observable<OrderDetailOut> {
     return this.http.get<OrderDetailOut>(`${API_BASE}/orders/${id}`, {
+      headers: this.authorised(),
+    });
+  }
+
+  /**
+   * Everything waiting for a site visit, grouped into trips.
+   *
+   * No parameters: the queue is what it is, and the clock is the server's --
+   * two screens open on two desks should not disagree about what today is.
+   */
+  measurementQueue(): Observable<MeasurementQueueOut> {
+    return this.http.get<MeasurementQueueOut>(`${API_BASE}/measurement-queue`, {
       headers: this.authorised(),
     });
   }

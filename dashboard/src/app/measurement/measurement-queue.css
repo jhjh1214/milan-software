@@ -1,0 +1,251 @@
+:host {
+  display: block;
+  padding: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.queue-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.count {
+  margin: 0;
+  font-size: 14px;
+  color: #56637a;
+  font-variant-numeric: tabular-nums;
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.filter-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #56637a;
+}
+
+button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+button + button {
+  margin-left: 8px;
+}
+
+button:hover {
+  border-color: #94a3b8;
+}
+
+button.on {
+  background: #1e3a5f;
+  border-color: #1e3a5f;
+  color: #fff;
+  font-weight: 600;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.trips,
+.jobs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.trips {
+  display: grid;
+  gap: 16px;
+}
+
+.trip {
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  padding: 16px;
+}
+
+/* How long somebody has waited since paying a deposit. Not the board's 60/30
+   thresholds: those count down to a rate hold expiring, this counts up from
+   money taken. Colour is never the only carrier — the card says the number of
+   days in words beside it. */
+.trip[data-wait='slow'] {
+  border-left-color: #b45309;
+}
+
+.trip[data-wait='overdue'] {
+  border-left-color: #b91c1c;
+}
+
+.trip-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.trip-meta {
+  text-align: right;
+}
+
+.phone,
+.waiting,
+.booked,
+.together,
+.ungrouped,
+.trip-total {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #56637a;
+}
+
+.waiting {
+  font-weight: 600;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.trip[data-wait='overdue'] .waiting {
+  color: #b91c1c;
+}
+
+.trip[data-wait='slow'] .waiting {
+  color: #b45309;
+}
+
+/* The saving §11 Phase 5 is after. It is only real if somebody can see it. */
+.together {
+  margin-top: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #1e3a5f;
+  font-weight: 600;
+}
+
+.ungrouped {
+  margin-top: 12px;
+  font-style: italic;
+}
+
+.jobs {
+  margin-top: 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.job a {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto auto;
+  gap: 12px;
+  align-items: baseline;
+  padding: 10px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: inherit;
+  font-size: 14px;
+}
+
+.job a:hover {
+  background: #f1f5f9;
+}
+
+.reference {
+  font-family: ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  font-weight: 600;
+}
+
+/* Server-issued, and null until sync. Never fabricated on a device. */
+.reference.pending {
+  font-style: italic;
+  font-weight: 400;
+  color: #56637a;
+}
+
+.lines,
+.materials,
+.stage {
+  color: #56637a;
+}
+
+.materials {
+  color: #b45309;
+}
+
+.estimate {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.trip-total {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f3f5;
+  font-variant-numeric: tabular-nums;
+}
+
+.empty {
+  padding: 24px;
+  text-align: center;
+  color: #56637a;
+}
+
+.failure {
+  padding: 12px 16px;
+  border: 1px solid #b91c1c;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+.failure button {
+  margin-left: 12px;
+}
+
+@media (max-width: 720px) {
+  .job a {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .estimate {
+    text-align: left;
+  }
+}

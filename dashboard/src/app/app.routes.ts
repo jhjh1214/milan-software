@@ -35,6 +35,16 @@ export const routes: Routes = [
     title: 'Order',
   },
   {
+    // Everybody signed in, like the order board: booking a visit is the job of
+    // whoever is at the desk, not a privilege. Who may *move* an order along
+    // is SPEC.md §13 C8, unanswered.
+    path: 'measurement',
+    canActivate: [signedIn],
+    loadComponent: () =>
+      import('./measurement/measurement-queue').then((m) => m.MeasurementQueue),
+    title: 'Measurement queue',
+  },
+  {
     // Admin only, and the server enforces that. The guard here only keeps
     // somebody signed out from landing on an unexplained empty screen; a
     // non-admin who reaches it is told plainly rather than shown a blank week,

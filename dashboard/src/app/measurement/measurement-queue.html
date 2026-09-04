@@ -1,0 +1,148 @@
+<header class="queue-head">
+  <h1>Measurement queue</h1>
+
+  <!-- Jobs across trips, in that order: a day is planned in trips and counted
+       in jobs, and "9 trips" alone does not say how much work that is. -->
+  <p class="count" role="status">
+    @if (loading()) {
+      Loading…
+    } @else {
+      {{ visibleOrders() }} job{{ visibleOrders() === 1 ? '' : 's' }} across
+      {{ visible().length }} trip{{ visible().length === 1 ? '' : 's' }}
+      @if (visibleUnmeasured() > 0) {
+        · {{ visibleUnmeasured() }} still to measure
+      }
+    }
+  </p>
+</header>
+
+<nav class="filters" aria-label="Filters">
+  <span class="filter-label" id="show-label">Show</span>
+  <div role="group" aria-labelledby="show-label">
+    @for (f of filters; track f) {
+      <button
+        type="button"
+        [class.on]="filter() === f"
+        [attr.aria-pressed]="filter() === f"
+        (click)="show(f)"
+      >
+        @switch (f) {
+          @case ('unbooked') { Nobody called yet }
+          @case ('booked') { Visit booked }
+          @default { All }
+        }
+      </button>
+    }
+  </div>
+</nav>
+
+@if (failure(); as message) {
+  <!-- Said out loud, with a way back. A queue that silently shows nothing is
+       indistinguishable from an empty one, and somebody would go home. -->
+  <p class="failure" role="alert">
+    {{ message }}
+    <button type="button" (click)="retry()">Try again</button>
+  </p>
+} @else if (!loading() && visible().length === 0) {
+  <p class="empty">
+    @if (totalOrders() === 0) {
+      Nothing is waiting for a visit.
+    } @else {
+      No trips match this filter.
+    }
+  </p>
+} @else {
+  <ul class="trips">
+    @for (group of visible(); track group.key) {
+      <li class="trip" [attr.data-wait]="wait(group.waiting_days)">
+        <div class="trip-head">
+          <div>
+            <h2>{{ nameOf(group) }}</h2>
+            @if (group.customer_phone) {
+              <p class="phone">{{ group.customer_phone }}</p>
+            }
+          </div>
+
+          <div class="trip-meta">
+            <!-- The number the whole queue is ordered by. Said in words as
+                 well as in colour: colour alone is not information. -->
+            <p class="waiting">
+              Waiting {{ group.waiting_days }}
+              day{{ group.waiting_days === 1 ? '' : 's' }}
+            </p>
+            <p class="booked">
+              @if (group.booked_count === 0) {
+                Nobody called yet
+              } @else if (group.booked_count === group.jobs.length) {
+                Visit booked
+              } @else {
+                {{ group.booked_count }} of {{ group.jobs.length }} booked
+              }
+            </p>
+          </div>
+        </div>
+
+        @if (group.jobs.length > 1) {
+          <!-- Why these are one card. §11 Phase 5: one trip covers several
+               units, and the saving is only real if somebody can see it. -->
+          <p class="together">
+            {{ group.jobs.length }} orders for one customer — one visit covers
+            them all
+          </p>
+        }
+
+        @if (!group.grouped_by_phone) {
+          <!-- Honest about what could not be grouped. Pooling the phone-less
+               orders would invent a trip that does not exist. -->
+          <p class="ungrouped">
+            No phone recorded, so this could not be grouped with anything else.
+          </p>
+        }
+
+        <ul class="jobs">
+          @for (job of group.jobs; track job.order_id) {
+            <li class="job">
+              <a [routerLink]="['/orders', job.order_id]">
+                <span class="reference" [class.pending]="job.order_no === null">
+                  {{ job.order_no ?? 'pending sync' }}
+                </span>
+
+                <span class="lines">
+                  {{ job.unmeasured_line_count }} of {{ job.line_count }} to
+                  measure
+                </span>
+
+                @if (job.material_pending_count > 0) {
+                  <!-- §13 B7: a deferred line is quoted at the dearest option
+                       in its group, so every one of these is a decision that
+                       can only make the final price go down. -->
+                  <span class="materials">
+                    {{ job.material_pending_count }} material{{
+                      job.material_pending_count === 1 ? '' : 's'
+                    }}
+                    to choose
+                  </span>
+                }
+
+                <span class="estimate">{{ money(job.estimate_total_sen) }}</span>
+
+                <span class="stage">
+                  @if (job.booked_at) {
+                    Booked {{ date(job.booked_at) }}
+                  } @else {
+                    Not booked
+                  }
+                </span>
+              </a>
+            </li>
+          }
+        </ul>
+
+        <p class="trip-total">
+          Trip total {{ money(total(group)) }} · oldest deposit
+          {{ date(group.oldest_confirmed_at) }}
+        </p>
+      </li>
+    }
+  </ul>
+}

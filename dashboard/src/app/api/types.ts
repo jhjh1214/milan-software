@@ -234,3 +234,52 @@ export interface AddPersonIn {
   readonly pin: string;
   readonly role: Role;
 }
+
+/**
+ * One order waiting for a site visit. SPEC.md §11 Phase 5.
+ *
+ * Counts, not rates. Repricing happens in Phase 6 at the held version, and
+ * nothing on this screen should let somebody do it from here.
+ */
+export interface MeasurementJob {
+  readonly order_id: string;
+  readonly order_no: string | null;
+  readonly status: OrderStatus;
+  readonly channel: Channel;
+  readonly line_count: number;
+  /** Lines with no tape taken to them yet. The size of the visit. */
+  readonly unmeasured_line_count: number;
+  /** Decisions somebody has to make on site. SPEC.md §13 B7. */
+  readonly material_pending_count: number;
+  readonly estimate_total_sen: number;
+  readonly confirmed_at: string;
+  /** Null while the visit is still unbooked. Read from the order history. */
+  readonly booked_at: string | null;
+  readonly waiting_days: number;
+}
+
+/**
+ * One trip. §11 Phase 5: *grouped by project so one trip covers several units*.
+ *
+ * There is no project library until Phase 8 and no address is captured
+ * anywhere, so the grouping is the customer, keyed on the normalised phone
+ * exactly as a rate lock is. §13 C10 asks what should really group a day.
+ */
+export interface MeasurementGroup {
+  readonly key: string;
+  readonly customer_name: string | null;
+  readonly customer_phone: string | null;
+  /** False when this is one order that had no phone to group on. */
+  readonly grouped_by_phone: boolean;
+  readonly jobs: readonly MeasurementJob[];
+  readonly oldest_confirmed_at: string;
+  readonly waiting_days: number;
+  /** Zero is the trip nobody has called about yet. */
+  readonly booked_count: number;
+}
+
+export interface MeasurementQueueOut {
+  readonly groups: readonly MeasurementGroup[];
+  /** Orders, not trips. "12 jobs across 9 trips" is the sentence people say. */
+  readonly total_orders: number;
+}
