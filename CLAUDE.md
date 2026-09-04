@@ -168,10 +168,28 @@ dividing by millimetres instead of tenths would have produced dimensions ten
 times too large and entirely plausible; the override review's week starting on
 Sunday would have dropped rows out of both weeks either side.
 
-**Next on the dashboard:** the **rate card editor with its diff preview** —
-§11 Phase 5's first acceptance criterion, *"publishing shows exactly which
-products move and by how much before commit"*, and the biggest remaining piece.
-Then users and roles, the measurement queue, and the reports.
+**Publishing a price list is done, end to end** — §11 Phase 5's first
+acceptance criterion. Two steps, and the second is unreachable until a preview
+has been seen; any edit to the card, or switching between the fair and standard
+lists, takes it away again. The diff is computed **on the server**, so the thing
+that shows what will change is the same thing that decides what lands — a
+preview worked out in the browser could disagree with the publish it precedes,
+and once it has done that once nobody trusts it again.
+
+**The dashboard is served.** Caddy has it baked into the image at build time
+rather than reading from a shared volume, so what runs is what CI built. Both
+images — API and web — are published to GHCR and probed before their tags are
+trusted.
+
+Probing the web image found two things reading the config had not: a missing
+`.js` was answered with the HTML shell and a 200, which arrives as a parse error
+nobody can read; and the app shell carried no cache header, so a browser would
+keep loading the old app after a deploy. Both fixed, both now checked in the
+release job.
+
+**Next on the dashboard:** users and roles, the measurement queue, and the
+reports (variance by salesperson, fair performance, outstanding balances,
+declined deposits — the read queries for the last one already exist).
 
 Two smaller things the dashboard still lacks: a session that survives a page
 refresh (deliberate for now — a token in `localStorage` on a shared office
