@@ -127,14 +127,48 @@ void main() {
         'user_version',
       );
 
+  /// Undoes exactly what v11 added: the six columns for what the tape priced.
+  ///
+  /// `ALTER TABLE ... DROP COLUMN` rather than a rebuild, so what is left is
+  /// exactly the v10 table and the real `onUpgrade` runs against it.
+  Future<void> undoV11(AppDatabase db) async {
+    for (final column in const [
+      'final_billed_qty',
+      'final_billed_unit',
+      'final_rule_id',
+      'final_band_label',
+      'final_rate_sen',
+      'final_line_total_sen',
+    ]) {
+      await db.customStatement('ALTER TABLE order_lines DROP COLUMN $column');
+    }
+  }
+
+  /// Undoes exactly what v10 added: the price override audit log.
+  Future<void> undoV10(AppDatabase db) async {
+    await db.customStatement('DROP TABLE price_overrides');
+  }
+
+  /// Winds a current file back to [version], undoing each step in turn.
+  ///
+  /// It has to compose. Winding back to 9 by undoing only v10 leaves v11's
+  /// columns in place, and the upgrade then runs `addColumn` against a table
+  /// that already has them -- which throws, and is exactly the failure this
+  /// suite exists to catch, arriving as a false one.
+  Future<void> windBackTo(AppDatabase db, int version) async {
+    if (version < 11) await undoV11(db);
+    if (version < 10) await undoV10(db);
+    await db.customStatement('PRAGMA user_version = $version');
+  }
+
   test('a fresh database opens at the current version', () async {
     final db = await open();
-    expect(await userVersion(db), 10);
+    expect(await userVersion(db), 11);
     expect(await tablesIn(db), contains('price_overrides'));
     await db.close();
   });
 
-  test('v9 upgrades to v10 without touching what was already there', () async {
+  test('v9 upgrades all the way, without touching what was there', () async {
     // Build the current schema, put a quote on it, then wind the file back to
     // what a handset in the field is actually carrying.
     final before = await open();
@@ -149,20 +183,30 @@ void main() {
             updatedAt: DateTime(2026, 8, 29, 9),
           ),
         );
-    await before.customStatement('DROP TABLE price_overrides');
-    await before.customStatement('PRAGMA user_version = 9');
+    await windBackTo(before, 9);
     await before.close();
 
     final after = await open();
     expect(
       await userVersion(after),
-      10,
-      reason: 'the upgrade should have run and recorded itself',
+      11,
+      reason: 'every step from 9 should have run, and recorded itself',
     );
     expect(
       await tablesIn(after),
       contains('price_overrides'),
       reason: 'v10 creates the price override audit log (§6.5)',
+    );
+    // A handset can be several versions behind — it has been in a drawer, or
+    // the fair was the last time it had signal. Every step in between has to
+    // run, not just the last one.
+    final columns = await after
+        .customSelect("PRAGMA table_info('order_lines')")
+        .get();
+    expect(
+      [for (final c in columns) c.read<String>('name')],
+      contains('final_line_total_sen'),
+      reason: 'v11 adds what the tape priced (§11 Phase 6)',
     );
 
     final quote = await (after.select(
@@ -183,8 +227,7 @@ void main() {
     // The foreign key matters as much: an audit row pointing at no line is a
     // row the weekly review cannot explain.
     final before = await open();
-    await before.customStatement('DROP TABLE price_overrides');
-    await before.customStatement('PRAGMA user_version = 9');
+    await windBackTo(before, 9);
     await before.close();
 
     final after = await open();
@@ -240,7 +283,7 @@ void main() {
     await first.close();
 
     final second = await open();
-    expect(await userVersion(second), 10);
+    expect(await userVersion(second), 11);
     expect(await tablesIn(second), contains('price_overrides'));
     await second.close();
   });
@@ -252,8 +295,7 @@ void main() {
       // migrated handset with them off would accept an order line pointing at no
       // order, and nothing would notice until a report came up short.
       final before = await open();
-      await before.customStatement('DROP TABLE price_overrides');
-      await before.customStatement('PRAGMA user_version = 9');
+      await windBackTo(before, 9);
       await before.close();
 
       final after = await open();
@@ -263,4 +305,89 @@ void main() {
       await after.close();
     },
   );
+
+  group('v10 → v11 — what the tape priced (§11 Phase 6)', () {
+    test('the order line already on the handset survives it', () async {
+      final before = await open();
+      await seedOrderLine(before);
+      await windBackTo(before, 10);
+      await before.close();
+
+      final after = await open();
+      expect(
+        await userVersion(after),
+        11,
+        reason: 'the upgrade should have run and recorded itself',
+      );
+
+      final line = await (after.select(
+        after.orderLines,
+      )..where((l) => l.id.equals('ol-1'))).getSingle();
+
+      expect(
+        line.lineTotalSen,
+        96000,
+        reason: 'the quoted total is untouched — §6.3 keeps both',
+      );
+      expect(
+        line.finalLineTotalSen,
+        null,
+        reason: 'nothing has been measured, so there is no final total',
+      );
+      expect(line.finalBilledQty, null);
+
+      await after.close();
+    });
+
+    test('the new columns are writable, beside the estimate', () async {
+      // A migration that adds a column of the wrong type passes a "does it
+      // exist" check and fails on the first write, which is in a house.
+      final before = await open();
+      await seedOrderLine(before);
+      await windBackTo(before, 10);
+      await before.close();
+
+      final after = await open();
+      await (after.update(
+        after.orderLines,
+      )..where((l) => l.id.equals('ol-1'))).write(
+        const OrderLinesCompanion(
+          finalBilledQty: Value('4375/381'),
+          finalBilledUnit: Value('ft'),
+          finalRuleId: Value('night-curtain-lo'),
+          finalBandLabel: Value('Up to 10ft'),
+          finalRateSen: Value(4600),
+          finalLineTotalSen: Value(52822),
+        ),
+      );
+
+      final line = await (after.select(
+        after.orderLines,
+      )..where((l) => l.id.equals('ol-1'))).getSingle();
+
+      // The exact rational, stored as text. A double column would have taken
+      // this and given back something that is not 4375/381.
+      expect(line.finalBilledQty, '4375/381');
+      expect(line.finalLineTotalSen, 52822);
+      expect(
+        line.lineTotalSen,
+        96000,
+        reason: 'the final is written beside the estimate, never over it',
+      );
+
+      await after.close();
+    });
+
+    test('running the upgrade twice does not throw', () async {
+      // The point of this whole group. `addColumn` is not idempotent: if the
+      // `from < 11` guard were ever loosened, this would fail with a duplicate
+      // column name, on launch, on a handset that already migrated.
+      final first = await open();
+      await first.close();
+
+      final second = await open();
+      expect(await userVersion(second), 11);
+      await second.close();
+    });
+  });
 }

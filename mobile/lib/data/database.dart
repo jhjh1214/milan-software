@@ -322,6 +322,30 @@ class OrderLines extends Table {
   /// append-only table; this is the marker the quote and the screen show.
   BoolColumn get isOverridden => boolean().withDefault(const Constant(false))();
 
+  // What the tape priced. Written **beside** the quoted figures above, never
+  // over them: §6.3 keeps both so the variance report has something to
+  // compare, and so a customer asking why the bill differs from the quote can
+  // be shown the two side by side.
+  //
+  // All null until somebody has measured. They are written together or not at
+  // all -- a final total with no billed quantity behind it is a number nobody
+  // can explain a year later.
+
+  /// The exact measured quantity, in `Rational.toString` notation. Never a
+  /// float, and never rounded: the quote rounded up and the bill does not.
+  TextColumn get finalBilledQty => text().nullable()();
+  TextColumn get finalBilledUnit => text().nullable()();
+
+  /// The rule and band the tape selected, which need not be the ones the
+  /// estimate used -- a measured drop over 10ft moves a curtain into the upper
+  /// band. Recorded so the change is visible rather than inferred from a rate.
+  TextColumn get finalRuleId => text().nullable()();
+  TextColumn get finalBandLabel => text().nullable()();
+  IntColumn get finalRateSen => integer().nullable()();
+
+  /// What the line actually bills. Integer sen.
+  IntColumn get finalLineTotalSen => integer().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -562,7 +586,7 @@ class AppDatabase extends _$AppDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -619,6 +643,21 @@ class AppDatabase extends _$AppDatabase {
       // the honest state of a handset that has never overridden anything.
       if (from < 10) {
         await m.createTable(priceOverrides);
+      }
+      // v11: what the tape priced (§11 Phase 6). Added beside the estimate
+      // rather than over it -- §6.3 keeps both, so the variance report has
+      // something to compare and a customer can be shown the two side by side.
+      //
+      // `addColumn`, not `createTable`: these land on a table that already has
+      // rows on somebody's handset, and every existing line is correctly null
+      // here because nothing has been measured yet.
+      if (from < 11) {
+        await m.addColumn(orderLines, orderLines.finalBilledQty);
+        await m.addColumn(orderLines, orderLines.finalBilledUnit);
+        await m.addColumn(orderLines, orderLines.finalRuleId);
+        await m.addColumn(orderLines, orderLines.finalBandLabel);
+        await m.addColumn(orderLines, orderLines.finalRateSen);
+        await m.addColumn(orderLines, orderLines.finalLineTotalSen);
       }
     },
     beforeOpen: (details) async {
