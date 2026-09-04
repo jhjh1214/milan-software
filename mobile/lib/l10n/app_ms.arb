@@ -269,6 +269,7 @@
   "orderRefusedTerminal": "Pesanan ini sudah selesai. Tiada apa-apa lagi bergerak.",
   "orderRefusedLinesNotMeasured": "Ada tingkap yang belum diukur.",
   "orderRefusedMaterialNotChosen": "Ada baris yang belum dipilih bahannya.",
+  "orderRefusedBuyerDetails": "Pesanan ini melebihi RM10,000. Ambil butiran pelanggan dahulu sebelum diteruskan.",
   "orderRefusedNoReason": "Tulis sebabnya dahulu, sekurang-kurangnya 4 huruf.",
   "overrideTitle": "Ubah harga ini",
   "overrideCurrent": "Sekarang {amount}",

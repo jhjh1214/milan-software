@@ -1544,6 +1544,12 @@ abstract class L {
   /// **'还有项目没选料。'**
   String get orderRefusedMaterialNotChosen;
 
+  /// No description provided for @orderRefusedBuyerDetails.
+  ///
+  /// In zh, this message translates to:
+  /// **'这单超过 RM10,000。要先登记客户资料才能继续。'**
+  String get orderRefusedBuyerDetails;
+
   /// No description provided for @orderRefusedNoReason.
   ///
   /// In zh, this message translates to:

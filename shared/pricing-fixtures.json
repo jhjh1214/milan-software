@@ -502,6 +502,7 @@
   ],
   "_order_status_purpose": "SPEC.md §6.3. The pipeline an order walks after the deposit confirms it, and the guards on each step. Both engines load these cases, because the server re-validates every transition a handset pushes: a status that moved on one device and was refused on the server would leave the two disagreeing about whether a job is in production.",
   "_order_status_lines": "Each case carries the order's lines in the only four states the guards read: whether the line needs a site measurement, whether it has final dimensions yet, whether its material was deferred at quotation (SPEC.md §13 B7), and whether one has since been chosen.",
+  "_order_status_threshold": "`threshold_blocks` and `threshold_captures` are what `check_threshold` decided for this order (section 10.4). They are separate fields because they differ: an order inside the RM8,000 fair margin is asked about but not stopped, and a state machine that read the capture flag would hold every borderline order out of production. Absent means false, which is what every case written before the RM10,000 guard existed means: nothing to capture. `threshold_captures` defaults to `threshold_blocks`.",
   "order_status_cases": [
     {
       "id": "status-confirmed-to-measurement-booked",
@@ -737,6 +738,144 @@
       "reason": "raised in error",
       "lines": [],
       "expect": {"allowed": true}
+    },
+    {
+      "id": "status-over-threshold-cannot-leave-measured",
+      "source": "SPEC.md section 10.4",
+      "why": "The timing trap, enforced. The final crossed RM10,000 and nobody has the buyer's details, so the order stops at the first step after the final total exists -- while the measurer has only just left and the customer still answers the phone.",
+      "from": "measured",
+      "to": "material_selected",
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": false,
+          "material_chosen": true
+        }
+      ],
+      "threshold_blocks": true,
+      "expect": {
+        "allowed": false,
+        "refused_because": "buyer_details_required"
+      }
+    },
+    {
+      "id": "status-over-threshold-cannot-reach-production",
+      "source": "SPEC.md section 10.4",
+      "why": "Every later step too. A block that only covered the next one would be bypassed by whoever tapped twice.",
+      "from": "material_selected",
+      "to": "in_production",
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": false,
+          "material_chosen": true
+        }
+      ],
+      "threshold_blocks": true,
+      "expect": {
+        "allowed": false,
+        "refused_because": "buyer_details_required"
+      }
+    },
+    {
+      "id": "status-over-threshold-cannot-close",
+      "source": "SPEC.md section 10.4",
+      "why": "Closing is the last chance to notice, and section 10.2's penalty is per non-compliant invoice.",
+      "from": "installed",
+      "to": "closed",
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": false,
+          "material_chosen": true
+        }
+      ],
+      "threshold_blocks": true,
+      "expect": {
+        "allowed": false,
+        "refused_because": "buyer_details_required"
+      }
+    },
+    {
+      "id": "status-over-threshold-can-still-be-cancelled",
+      "source": "SPEC.md section 10.4, section 13 B3",
+      "why": "Cancelling has nothing to do with invoicing. Refusing it would leave an over-threshold order trapped with no way out, and the deposit question (B3) is unanswered either way.",
+      "from": "measured",
+      "to": "cancelled",
+      "reason": "customer changed their mind",
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": false,
+          "material_chosen": true
+        }
+      ],
+      "threshold_blocks": true,
+      "expect": {
+        "allowed": true
+      }
+    },
+    {
+      "id": "status-over-threshold-with-details-moves-normally",
+      "source": "SPEC.md section 10.3",
+      "why": "The requirement is the details, not the ceremony. Once they exist the order moves, at any value.",
+      "from": "measured",
+      "to": "material_selected",
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": false,
+          "material_chosen": true
+        }
+      ],
+      "threshold_blocks": false,
+      "expect": {
+        "allowed": true
+      }
+    },
+    {
+      "id": "status-under-threshold-needs-no-details",
+      "source": "SPEC.md section 10.3",
+      "why": "Most walk-ins are General Public. An order under the line moves without anybody being asked for an IC number.",
+      "from": "measured",
+      "to": "material_selected",
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": false,
+          "material_chosen": true
+        }
+      ],
+      "threshold_blocks": false,
+      "expect": {
+        "allowed": true
+      }
+    },
+    {
+      "id": "status-merely-asking-does-not-stop-the-order",
+      "source": "SPEC.md section 10.4",
+      "why": "An order inside the RM8,000 margin was ASKED about and is not over the legal line, so it moves. The state machine reads blocks_advance, never must_capture: reading the wrong one would hold every borderline fair order out of production for paperwork the law does not require.",
+      "from": "measured",
+      "to": "material_selected",
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": false,
+          "material_chosen": true
+        }
+      ],
+      "threshold_captures": true,
+      "threshold_blocks": false,
+      "expect": {
+        "allowed": true
+      }
     }
   ],
   "_rate_lock_purpose": "SPEC.md §6.1: 'a line whose category has no active lock must not be priced at a held version. Silently applying a curtain lock to a flooring line is the expensive bug in this design. Write that test before the resolver.' These cases were written first, and both engines load them.",
@@ -2540,6 +2679,220 @@
         "final_total_sen": null,
         "variance_sen": null,
         "is_complete": false
+      }
+    }
+  ],
+  "_einvoice_threshold_purpose": "SPEC.md §10.2-§10.4. Since 1 January 2026 any single transaction above RM10,000 needs its own e-invoice and cannot go into a monthly consolidated batch -- B2C as much as B2B, with penalties of RM200 to RM20,000 per non-compliant invoice. SQL Account can only issue that e-invoice if somebody captured the buyer's details, and that has to happen while the customer is standing there. So the threshold is checked TWICE (§10.4): on the estimate at the fair, prompting from RM8,000 so borderline orders are caught while the customer is present; and on the final after measurement, where it blocks. Both numbers are config on the rate card, never literals -- §10.3: 'it will change'.",
+  "_einvoice_threshold_stages": "`stage` is `estimate` at the fair and `final` after measurement. The RM8,000 prompt applies only to the estimate: the estimate is rough and an order quoted at RM8,500 can settle at RM11,200, so the margin exists to catch it while somebody can still be asked. A final is exact and needs no margin.",
+  "einvoice_threshold_cases": [
+    {
+      "id": "threshold-a-small-quote-asks-for-nothing",
+      "source": "SPEC.md §10.4",
+      "why": "Most walk-ins are General Public (§10.3). Asking a customer for an IC number to buy one blind is the friction that makes staff stop asking at all, including when it matters.",
+      "stage": "estimate",
+      "total_sen": 55200,
+      "buyer_details_complete": false,
+      "einvoice_requested": false,
+      "expect": {
+        "must_capture": false,
+        "blocks_advance": false,
+        "reason": null
+      }
+    },
+    {
+      "id": "threshold-one-sen-under-the-fair-prompt-asks-for-nothing",
+      "source": "SPEC.md §10.4",
+      "why": "RM7,999.99. The fencepost, asserted rather than inferred from a price: §10.4 says prompt FROM RM8,000.",
+      "stage": "estimate",
+      "total_sen": 799999,
+      "buyer_details_complete": false,
+      "einvoice_requested": false,
+      "expect": {
+        "must_capture": false,
+        "blocks_advance": false,
+        "reason": null
+      }
+    },
+    {
+      "id": "threshold-exactly-the-fair-prompt-asks",
+      "source": "SPEC.md §10.4",
+      "why": "RM8,000 exactly is the first amount that prompts. The margin below RM10,000 exists because the fair estimate is rough -- an order estimated at RM8,500 settles at RM11,200 (§10.4).",
+      "stage": "estimate",
+      "total_sen": 800000,
+      "buyer_details_complete": false,
+      "einvoice_requested": false,
+      "expect": {
+        "must_capture": true,
+        "blocks_advance": false,
+        "reason": "near_threshold"
+      }
+    },
+    {
+      "id": "threshold-inside-the-margin-prompts-but-does-not-block",
+      "source": "SPEC.md §10.4",
+      "why": "RM9,500 at a fair. Ask, because this may well cross after measurement -- but do not stop the deposit: the order is not over the legal threshold and refusing to take RM300 over paperwork would lose the sale.",
+      "stage": "estimate",
+      "total_sen": 950000,
+      "buyer_details_complete": false,
+      "einvoice_requested": false,
+      "expect": {
+        "must_capture": true,
+        "blocks_advance": false,
+        "reason": "near_threshold"
+      }
+    },
+    {
+      "id": "threshold-one-sen-under-the-legal-line-does-not-block",
+      "source": "SPEC.md §10.2",
+      "why": "RM9,999.99. The fencepost that costs RM200 to RM20,000 to get wrong in one direction, and a lost sale in the other.",
+      "stage": "estimate",
+      "total_sen": 999999,
+      "buyer_details_complete": false,
+      "einvoice_requested": false,
+      "expect": {
+        "must_capture": true,
+        "blocks_advance": false,
+        "reason": "near_threshold"
+      }
+    },
+    {
+      "id": "threshold-exactly-rm10000-stops-the-wizard",
+      "source": "SPEC.md §10.2, §10.3",
+      "why": "§10.2 says ABOVE RM10,000 needs its own e-invoice, and §10.3 says the wizard stops AT the threshold -- 'not a warning, a required step'. Stopping at exactly RM10,000 is the conservative direction: capturing details for one order that did not need them costs a minute, and missing one costs up to RM20,000.",
+      "stage": "estimate",
+      "total_sen": 1000000,
+      "buyer_details_complete": false,
+      "einvoice_requested": false,
+      "expect": {
+        "must_capture": true,
+        "blocks_advance": true,
+        "reason": "over_threshold"
+      }
+    },
+    {
+      "id": "threshold-a-full-house-order-stops-the-wizard",
+      "source": "SPEC.md §10.2",
+      "why": "§10.2: full-house curtain orders routinely exceed RM10,000, and a meaningful share of sales legally require buyer identification rather than a General Public receipt.",
+      "stage": "estimate",
+      "total_sen": 1450000,
+      "buyer_details_complete": false,
+      "einvoice_requested": false,
+      "expect": {
+        "must_capture": true,
+        "blocks_advance": true,
+        "reason": "over_threshold"
+      }
+    },
+    {
+      "id": "threshold-details-already-captured-block-nothing",
+      "source": "SPEC.md §10.4",
+      "why": "The requirement is the details, not the ceremony. Once they exist the order moves, at any value.",
+      "stage": "estimate",
+      "total_sen": 1450000,
+      "buyer_details_complete": true,
+      "einvoice_requested": false,
+      "expect": {
+        "must_capture": false,
+        "blocks_advance": false,
+        "reason": null
+      }
+    },
+    {
+      "id": "threshold-an-asked-for-einvoice-requires-details-at-any-value",
+      "source": "SPEC.md §10.3",
+      "why": "§10.3: also required whenever the customer asks for an e-invoice, at any value. A RM552 order for somebody who wants to claim it is as much a compliance obligation as a RM15,000 one.",
+      "stage": "estimate",
+      "total_sen": 55200,
+      "buyer_details_complete": false,
+      "einvoice_requested": true,
+      "expect": {
+        "must_capture": true,
+        "blocks_advance": true,
+        "reason": "einvoice_requested"
+      }
+    },
+    {
+      "id": "threshold-an-asked-for-einvoice-with-details-is-satisfied",
+      "source": "SPEC.md §10.3",
+      "why": "Same rule, other side. Nothing is outstanding once the details exist.",
+      "stage": "estimate",
+      "total_sen": 55200,
+      "buyer_details_complete": true,
+      "einvoice_requested": true,
+      "expect": {
+        "must_capture": false,
+        "blocks_advance": false,
+        "reason": null
+      }
+    },
+    {
+      "id": "threshold-the-fair-margin-does-not-apply-to-a-final",
+      "source": "SPEC.md §10.4",
+      "why": "RM8,500 measured. The estimate's margin exists because the estimate is rough; a final is exact, so an order that measured under the threshold is under it, and asking for an IC number at that point is friction with no compliance behind it.",
+      "stage": "final",
+      "total_sen": 850000,
+      "buyer_details_complete": false,
+      "einvoice_requested": false,
+      "expect": {
+        "must_capture": false,
+        "blocks_advance": false,
+        "reason": null
+      }
+    },
+    {
+      "id": "threshold-a-final-that-crossed-blocks-the-order",
+      "source": "SPEC.md §10.4",
+      "why": "§10.4's timing trap, exactly: estimated at RM8,500, settles at RM11,200. Nobody asked at the fair because it was under, and it is over now. The order cannot advance until the details exist -- enforced in the state machine, not the UI.",
+      "stage": "final",
+      "total_sen": 1120000,
+      "buyer_details_complete": false,
+      "einvoice_requested": false,
+      "expect": {
+        "must_capture": true,
+        "blocks_advance": true,
+        "reason": "over_threshold"
+      }
+    },
+    {
+      "id": "threshold-a-final-that-fell-back-under-blocks-nothing",
+      "source": "SPEC.md §8.5, §10.4",
+      "why": "The other direction, and it happens more often: the quote rounds every quantity up, so a final can land under a threshold the estimate crossed. Holding the order for details it no longer needs would be this rule inventing work.",
+      "stage": "final",
+      "total_sen": 980000,
+      "buyer_details_complete": false,
+      "einvoice_requested": false,
+      "expect": {
+        "must_capture": false,
+        "blocks_advance": false,
+        "reason": null
+      }
+    },
+    {
+      "id": "threshold-a-final-over-with-details-already-taken-moves-on",
+      "source": "SPEC.md §10.4",
+      "why": "The fair prompt did its job. This is what the RM8,000 margin is for.",
+      "stage": "final",
+      "total_sen": 1120000,
+      "buyer_details_complete": true,
+      "einvoice_requested": false,
+      "expect": {
+        "must_capture": false,
+        "blocks_advance": false,
+        "reason": null
+      }
+    },
+    {
+      "id": "threshold-a-zero-total-asks-for-nothing",
+      "source": "SPEC.md §10.4",
+      "why": "An order with nothing on it is not a transaction. Prompting for buyer details on it would teach staff that the prompt means nothing.",
+      "stage": "estimate",
+      "total_sen": 0,
+      "buyer_details_complete": false,
+      "einvoice_requested": false,
+      "expect": {
+        "must_capture": false,
+        "blocks_advance": false,
+        "reason": null
       }
     }
   ]

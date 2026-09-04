@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pytest
 
+from app.pricing.einvoice_threshold import ThresholdCheck
 from app.pricing.order_status import (
     _ALLOWED,
     MIN_REASON_LENGTH,
@@ -98,6 +99,16 @@ class TestTheSharedContract:
                 )
                 for line in case["lines"]
             ],
+            # Two separate fields because they differ: an order inside the
+            # RM8,000 fair margin is asked about but not stopped. Absent means
+            # false, which is what every case written before the RM10,000
+            # guard existed means: nothing to capture.
+            threshold=ThresholdCheck(
+                must_capture=case.get(
+                    "threshold_captures", case.get("threshold_blocks", False)
+                ),
+                blocks_advance=case.get("threshold_blocks", False),
+            ),
         )
 
         why = case["why"]

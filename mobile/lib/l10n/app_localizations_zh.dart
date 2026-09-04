@@ -833,6 +833,9 @@ class LZh extends L {
   String get orderRefusedMaterialNotChosen => '还有项目没选料。';
 
   @override
+  String get orderRefusedBuyerDetails => '这单超过 RM10,000。要先登记客户资料才能继续。';
+
+  @override
   String get orderRefusedNoReason => '请先写理由，至少四个字。';
 
   @override

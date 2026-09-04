@@ -6,6 +6,7 @@ import 'package:milan_quote/core/length.dart';
 import 'package:milan_quote/core/money.dart';
 import 'package:milan_quote/core/rational.dart';
 import 'package:milan_quote/pricing/engine.dart';
+import 'package:milan_quote/pricing/einvoice_threshold.dart';
 import 'package:milan_quote/pricing/final_pricing.dart';
 import 'package:milan_quote/pricing/models.dart';
 
@@ -322,6 +323,91 @@ void main() {
       expect(seen, contains(FinalPricingRefusal.notMeasured.wire));
       expect(seen, contains(FinalPricingRefusal.materialNotChosen.wire));
       expect(seen, contains(FinalPricingRefusal.cardUnavailable.wire));
+    });
+  });
+
+  group('e-invoice threshold cases', () {
+    // SPEC.md §10.2-§10.4. The two figures come off the real card, never from
+    // literals here: §10.3 says the threshold lives in config because it will
+    // change, and a test that hard-coded it would keep passing after it did.
+    test('the fixture file actually contains cases', () {
+      expect(
+        (fixtures['einvoice_threshold_cases'] as List).length,
+        greaterThanOrEqualTo(12),
+      );
+    });
+
+    for (final raw
+        in (jsonDecode(File(_findFixtures()).readAsStringSync())
+                as Map<String, dynamic>)['einvoice_threshold_cases']
+            as List<dynamic>) {
+      final c = raw as Map<String, dynamic>;
+
+      test('${c['id']} — ${c['why']}', () {
+        final result = checkThreshold(
+          total: Money.sen(c['total_sen'] as int),
+          stage: ThresholdStage.fromWire(c['stage'] as String),
+          config: card.config.thresholds,
+          buyerDetailsComplete: c['buyer_details_complete'] as bool,
+          einvoiceRequested: c['einvoice_requested'] as bool,
+        );
+
+        final expected = c['expect'] as Map<String, dynamic>;
+        expect(
+          result.mustCapture,
+          expected['must_capture'],
+          reason: 'whether buyer details are wanted',
+        );
+        expect(
+          result.blocksAdvance,
+          expected['blocks_advance'],
+          reason: 'whether the order may go on without them',
+        );
+        expect(result.reason?.wire, expected['reason'], reason: 'why');
+      });
+    }
+
+    test('the thresholds come off the card, not out of the code', () {
+      // §10.3: "Threshold lives in config, not code. It will change." If it
+      // ever stops being read from the card, this is where that shows up.
+      expect(card.config.einvoiceThresholdSen, 1000000);
+      expect(card.config.einvoicePromptSen, 800000);
+
+      // And the rule follows the card rather than a constant.
+      final moved = const ThresholdConfig(
+        threshold: Money.sen(2000000),
+        prompt: Money.sen(1500000),
+      );
+      expect(
+        checkThreshold(
+          total: const Money.sen(1200000),
+          stage: ThresholdStage.finalPricing,
+          config: moved,
+        ).blocksAdvance,
+        isFalse,
+      );
+    });
+
+    test('a card published before this defaults to the law', () {
+      // Not to "never ask". A missing threshold that meant no check would be
+      // silent non-compliance on exactly the oldest handsets.
+      final old = RateCardConfig.fromJson(const {
+        'min_deposit_sen': 30000,
+        'band_edge_warn_tmm': 760,
+      });
+      expect(old.einvoiceThresholdSen, 1000000);
+      expect(old.einvoicePromptSen, 800000);
+    });
+
+    test('every reason is exercised by a case', () {
+      final seen = <String>{
+        for (final raw in fixtures['einvoice_threshold_cases'] as List)
+          if (((raw as Map<String, dynamic>)['expect']
+                  as Map<String, dynamic>)['reason'] !=
+              null)
+            ((raw['expect']) as Map<String, dynamic>)['reason'] as String,
+      };
+      expect(seen, {for (final r in ThresholdReason.values) r.wire});
     });
   });
 

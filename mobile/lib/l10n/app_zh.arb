@@ -353,6 +353,7 @@
   "orderRefusedTerminal": "这张订单已经结束，不能再动。",
   "orderRefusedLinesNotMeasured": "还有窗口没量尺寸。",
   "orderRefusedMaterialNotChosen": "还有项目没选料。",
+  "orderRefusedBuyerDetails": "这单超过 RM10,000。要先登记客户资料才能继续。",
   "orderRefusedNoReason": "请先写理由，至少四个字。",
   "overrideTitle": "改这个价钱",
   "overrideCurrent": "现在是{amount}",

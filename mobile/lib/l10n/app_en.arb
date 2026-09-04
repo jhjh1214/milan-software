@@ -269,6 +269,7 @@
   "orderRefusedTerminal": "This order is finished. Nothing more moves.",
   "orderRefusedLinesNotMeasured": "Some windows still have no measurements.",
   "orderRefusedMaterialNotChosen": "Some lines still have no material chosen.",
+  "orderRefusedBuyerDetails": "This order is over RM10,000. Take the customer's details before it goes any further.",
   "orderRefusedNoReason": "Write a reason first, at least 4 letters.",
   "overrideTitle": "Change this price",
   "overrideCurrent": "Now {amount}",

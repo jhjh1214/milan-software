@@ -861,6 +861,10 @@ class LEn extends L {
       'Some lines still have no material chosen.';
 
   @override
+  String get orderRefusedBuyerDetails =>
+      'This order is over RM10,000. Take the customer\'s details before it goes any further.';
+
+  @override
   String get orderRefusedNoReason =>
       'Write a reason first, at least 4 letters.';
 

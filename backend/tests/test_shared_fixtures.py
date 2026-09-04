@@ -21,6 +21,12 @@ import pytest
 
 from app.core.length import Length
 from app.core.money import Money
+from app.pricing.einvoice_threshold import (
+    ThresholdConfig,
+    ThresholdReason,
+    ThresholdStage,
+    check_threshold,
+)
 from app.pricing.engine import (
     LineRequest,
     PricedLine,
@@ -263,11 +269,70 @@ def test_every_refusal_reason_is_exercised() -> None:
     assert FinalPricingRefusal.CARD_UNAVAILABLE.value in seen
 
 
+@pytest.mark.parametrize(
+    "case",
+    FIXTURES["einvoice_threshold_cases"],
+    ids=[c["id"] for c in FIXTURES["einvoice_threshold_cases"]],
+)
+def test_einvoice_threshold_case(case: dict) -> None:
+    """SPEC.md §10.2-§10.4. The RM10,000 rule.
+
+    The two figures come off the real card, never from literals here: §10.3
+    says the threshold lives in config because it will change, and a test that
+    hard-coded it would keep passing after it did.
+    """
+    result = check_threshold(
+        total=Money(case["total_sen"]),
+        stage=ThresholdStage(case["stage"]),
+        config=CARD.config.thresholds,
+        buyer_details_complete=case["buyer_details_complete"],
+        einvoice_requested=case["einvoice_requested"],
+    )
+
+    expected = case["expect"]
+    assert result.must_capture is expected["must_capture"], "must_capture"
+    assert result.blocks_advance is expected["blocks_advance"], "blocks_advance"
+    assert (None if result.reason is None else result.reason.value) == expected[
+        "reason"
+    ], "reason"
+
+
+def test_the_thresholds_come_off_the_card_not_out_of_the_code() -> None:
+    # §10.3: "Threshold lives in config, not code. It will change." If it ever
+    # stops being read from the card, this is where that shows up.
+    assert CARD.config.einvoice_threshold_sen == 1_000_000
+    assert CARD.config.einvoice_prompt_sen == 800_000
+
+    # And the rule follows the card rather than a constant: moved thresholds
+    # move the answer.
+    moved = ThresholdConfig(threshold=Money(2_000_000), prompt=Money(1_500_000))
+    assert (
+        check_threshold(
+            total=Money(1_200_000),
+            stage=ThresholdStage.FINAL,
+            config=moved,
+        ).blocks_advance
+        is False
+    )
+
+
+def test_every_threshold_reason_is_exercised() -> None:
+    # A reason nothing covers is a branch that will be wrong the first time it
+    # fires, and it fires on a legal obligation.
+    seen = {
+        case["expect"]["reason"]
+        for case in FIXTURES["einvoice_threshold_cases"]
+        if case["expect"]["reason"] is not None
+    }
+    assert seen == {reason.value for reason in ThresholdReason}
+
+
 def test_the_fixture_file_is_not_empty() -> None:
     # A green suite over an empty contract proves nothing.
     assert len(FIXTURES["cases"]) >= 20
     assert len(FIXTURES["quote_total_cases"]) >= 5
     assert len(FIXTURES["final_pricing_cases"]) >= 10
+    assert len(FIXTURES["einvoice_threshold_cases"]) >= 12
 
 
 def test_the_card_is_the_real_price_list() -> None:

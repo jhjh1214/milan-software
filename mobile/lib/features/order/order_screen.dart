@@ -66,6 +66,9 @@ String? refusalMessage(L l, StatusRefusal refusal) => switch (refusal) {
   StatusRefusal.linesNotMeasured => l.orderRefusedLinesNotMeasured,
   StatusRefusal.materialNotChosen => l.orderRefusedMaterialNotChosen,
   StatusRefusal.noReason => l.orderRefusedNoReason,
+  // §10.4. Not a warning: the order stops until somebody takes the
+  // details, and the wording says what to do rather than what went wrong.
+  StatusRefusal.buyerDetailsRequired => l.orderRefusedBuyerDetails,
 };
 
 /// One order, by id.

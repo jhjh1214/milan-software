@@ -11,6 +11,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:milan_quote/pricing/einvoice_threshold.dart';
 import 'package:milan_quote/pricing/order_status.dart';
 
 void main() {
@@ -98,6 +99,17 @@ void main() {
                 ),
               )
               .toList(),
+          // Two separate fields because they differ: an order inside the
+          // RM8,000 fair margin is asked about but not stopped. Absent means
+          // false, which is what every case written before the RM10,000 guard
+          // existed means: nothing to capture.
+          threshold: ThresholdCheck(
+            mustCapture:
+                c['threshold_captures'] as bool? ??
+                c['threshold_blocks'] as bool? ??
+                false,
+            blocksAdvance: c['threshold_blocks'] as bool? ?? false,
+          ),
         );
 
         final why = '${c['id']} — ${c['why']}';

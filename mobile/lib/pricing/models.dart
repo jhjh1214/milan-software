@@ -6,7 +6,9 @@
 library;
 
 import '../core/length.dart';
+import '../core/money.dart';
 import '../core/rational.dart';
+import 'einvoice_threshold.dart';
 
 /// Which stage of the sale is being priced.
 ///
@@ -326,11 +328,22 @@ class RateCardConfig {
   final String defaultUnitWidth;
   final String defaultUnitHeight;
 
+  /// At or over this, buyer details are legally required. RM10,000, since
+  /// 1 January 2026. SPEC.md §10.2 — Malaysian law, not this shop's policy.
+  final int einvoiceThresholdSen;
+
+  /// At or over this, the quote wizard asks. RM8,000, and only on an estimate:
+  /// §10.4's timing trap is that an order quoted at RM8,500 settles at
+  /// RM11,200, and by then the customer has gone home.
+  final int einvoicePromptSen;
+
   const RateCardConfig({
     required this.minDepositSen,
     required this.bandEdgeWarnTmm,
     required this.defaultUnitWidth,
     required this.defaultUnitHeight,
+    this.einvoiceThresholdSen = 1000000,
+    this.einvoicePromptSen = 800000,
   });
 
   factory RateCardConfig.fromJson(Map<String, dynamic> json) => RateCardConfig(
@@ -338,6 +351,18 @@ class RateCardConfig {
     bandEdgeWarnTmm: json['band_edge_warn_tmm'] as int,
     defaultUnitWidth: json['default_unit_width'] as String? ?? 'ft',
     defaultUnitHeight: json['default_unit_height'] as String? ?? 'ft',
+    // Defaulted rather than required, so a handset still holding a card
+    // published before this keeps working — and defaults to the law rather
+    // than to no check at all. A missing threshold that meant "never ask"
+    // would be silent non-compliance on exactly the oldest handsets.
+    einvoiceThresholdSen: json['einvoice_threshold_sen'] as int? ?? 1000000,
+    einvoicePromptSen: json['einvoice_prompt_sen'] as int? ?? 800000,
+  );
+
+  /// The two figures as the threshold rule wants them.
+  ThresholdConfig get thresholds => ThresholdConfig(
+    threshold: Money.sen(einvoiceThresholdSen),
+    prompt: Money.sen(einvoicePromptSen),
   );
 }
 

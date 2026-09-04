@@ -42,6 +42,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
+from .einvoice_threshold import NONE as NO_THRESHOLD
+from .einvoice_threshold import ThresholdCheck
+
 
 class UnknownOrderStatus(ValueError):
     """A status this build does not know.
@@ -123,6 +126,26 @@ class StatusRefusal(Enum):
 
     #: Cancelling with no reason, or with one too short to mean anything.
     NO_REASON = "no_reason"
+
+    #: The final crossed RM10,000 and nobody has the buyer's details.
+    #: SPEC.md §10.4: *"Enforce in the state machine, not the UI."*
+    BUYER_DETAILS_REQUIRED = "buyer_details_required"
+
+
+#: The steps a §10.4 block bites on: everything after the final total exists.
+#:
+#: ``CANCELLED`` is deliberately absent. Cancelling has nothing to do with
+#: invoicing, and refusing it would leave an over-threshold order trapped with
+#: no way out.
+_AFTER_MEASURED: frozenset[OrderStatus] = frozenset(
+    {
+        OrderStatus.MATERIAL_SELECTED,
+        OrderStatus.IN_PRODUCTION,
+        OrderStatus.READY,
+        OrderStatus.INSTALLED,
+        OrderStatus.CLOSED,
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -217,6 +240,7 @@ def advance_order(
     to: OrderStatus,
     lines: list[OrderLineState],
     reason: str | None = None,
+    threshold: ThresholdCheck = NO_THRESHOLD,
 ) -> StatusChange:
     """Decide whether an order may move from ``frm`` to ``to``.
 
@@ -240,6 +264,19 @@ def advance_order(
         if len((reason or "").strip()) < MIN_REASON_LENGTH:
             return StatusChange(refused_because=StatusRefusal.NO_REASON)
         return StatusChange(to=OrderStatus.CANCELLED)
+
+    # §10.4: an order whose final crossed RM10,000 cannot advance until the
+    # buyer's details exist. Checked *after* the cancel branch, so an
+    # over-threshold order is never trapped: cancelling has nothing to do with
+    # invoicing, and refusing it would leave a job nobody can close.
+    #
+    # The block bites from `material_selected` onwards -- the first step after
+    # the final total exists. §10.2 says capture has to happen while the
+    # customer is standing there, and the measurer has only just left; waiting
+    # until the job is installed means asking somebody who has no reason left
+    # to answer the phone. §13 C12 asks which step the client calls invoicing.
+    if threshold.blocks_advance and to in _AFTER_MEASURED:
+        return StatusChange(refused_because=StatusRefusal.BUYER_DETAILS_REQUIRED)
 
     if to is OrderStatus.MEASURED and any(
         line.needs_measuring and not line.has_final_dimensions for line in lines

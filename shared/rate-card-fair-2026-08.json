@@ -14,7 +14,11 @@
     "min_deposit_sen": 30000,
     "band_edge_warn_tmm": 760,
     "default_unit_width": "ft",
-    "default_unit_height": "ft"
+    "default_unit_height": "ft",
+    "_einvoice": "SPEC.md section 10.2-10.4. Malaysian law, not this shop's policy: since 1 Jan 2026 a single transaction above RM10,000 needs its own e-invoice and cannot go into a monthly consolidated batch. Config rather than code because section 10.3 says it will change, and because a change to it must reach every handset the way a price change does - by publishing a card, with no rebuild.",
+    "einvoice_threshold_sen": 1000000,
+    "_einvoice_prompt": "Section 10.4's timing trap. The fair estimate is rough and an order quoted at RM8,500 settles at RM11,200, so the quote wizard asks from RM8,000 - while the customer is still standing there. The margin applies to the estimate only; a final is exact and needs none.",
+    "einvoice_prompt_sen": 800000
   },
   "delivery_zones": [
     {

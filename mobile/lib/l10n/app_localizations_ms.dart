@@ -859,6 +859,10 @@ class LMs extends L {
       'Ada baris yang belum dipilih bahannya.';
 
   @override
+  String get orderRefusedBuyerDetails =>
+      'Pesanan ini melebihi RM10,000. Ambil butiran pelanggan dahulu sebelum diteruskan.';
+
+  @override
   String get orderRefusedNoReason =>
       'Tulis sebabnya dahulu, sekurang-kurangnya 4 huruf.';
 

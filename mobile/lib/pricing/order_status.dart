@@ -49,6 +49,7 @@ library;
 // For `minReasonLength`. §6.5 is where that bar is set, so it is declared with
 // the override rather than copied here — one number, one place, whichever of
 // the two somebody reads first.
+import 'einvoice_threshold.dart' show ThresholdCheck;
 import 'price_override.dart' show minReasonLength;
 
 export 'price_override.dart' show minReasonLength;
@@ -130,7 +131,11 @@ enum StatusRefusal {
   materialNotChosen('material_not_chosen'),
 
   /// Cancelling with no reason, or with one too short to mean anything.
-  noReason('no_reason');
+  noReason('no_reason'),
+
+  /// The final crossed RM10,000 and nobody has the buyer's details.
+  /// SPEC.md §10.4: *"Enforce in the state machine, not the UI."*
+  buyerDetailsRequired('buyer_details_required');
 
   const StatusRefusal(this.wire);
 
@@ -186,6 +191,19 @@ class StatusChange {
 /// closed order" is a different thing to tell somebody than "that is not a
 /// step". They are kept because the table is the readable statement of the
 /// machine, and a test holds the two in step.
+/// The steps a §10.4 block bites on: everything after the final total exists.
+///
+/// `cancelled` is deliberately absent. Cancelling has nothing to do with
+/// invoicing, and refusing it would leave an over-threshold order trapped with
+/// no way out.
+const Set<OrderStatus> _afterMeasured = {
+  OrderStatus.materialSelected,
+  OrderStatus.inProduction,
+  OrderStatus.ready,
+  OrderStatus.installed,
+  OrderStatus.closed,
+};
+
 const Map<OrderStatus, Set<OrderStatus>> _allowed = {
   OrderStatus.confirmed: {OrderStatus.measurementBooked, OrderStatus.cancelled},
   OrderStatus.measurementBooked: {OrderStatus.measured, OrderStatus.cancelled},
@@ -233,6 +251,7 @@ StatusChange advanceOrder({
   required OrderStatus to,
   required List<OrderLineState> lines,
   String? reason,
+  ThresholdCheck threshold = ThresholdCheck.none,
 }) {
   // Checked before terminal, so that a double tap on an order that is already
   // closed reads as a no-op rather than as an error somebody has to interpret.
@@ -261,6 +280,20 @@ StatusChange advanceOrder({
   if (to == OrderStatus.measured &&
       lines.any((l) => l.needsMeasuring && !l.hasFinalDimensions)) {
     return const StatusChange.refused(StatusRefusal.linesNotMeasured);
+  }
+
+  // §10.4: an order whose final crossed RM10,000 cannot advance until the
+  // buyer's details exist. Checked *after* the cancel branch, so an
+  // over-threshold order is never trapped: cancelling has nothing to do with
+  // invoicing, and refusing it would leave a job nobody can close.
+  //
+  // The block bites from `material_selected` onwards — the first step after
+  // the final total exists. §10.2 says capture has to happen while the
+  // customer is standing there, and the measurer has only just left; waiting
+  // until the job is installed means asking somebody who has no reason left to
+  // answer the phone. §13 C12 asks which step the client calls invoicing.
+  if (threshold.blocksAdvance && _afterMeasured.contains(to)) {
+    return const StatusChange.refused(StatusRefusal.buyerDetailsRequired);
   }
 
   if (to == OrderStatus.materialSelected &&

@@ -13,6 +13,8 @@ from fractions import Fraction
 from typing import Any
 
 from ..core.length import Length
+from ..core.money import Money
+from .einvoice_threshold import ThresholdConfig
 
 
 class PricingStage(Enum):
@@ -303,6 +305,15 @@ class RateCardConfig:
     default_unit_width: str = "ft"
     default_unit_height: str = "ft"
 
+    #: At or over this, buyer details are legally required. RM10,000, since
+    #: 1 January 2026. SPEC.md §10.2 -- Malaysian law, not this shop's policy.
+    einvoice_threshold_sen: int = 1_000_000
+
+    #: At or over this, the quote wizard asks. RM8,000, and only on an
+    #: estimate: §10.4's timing trap is that an order quoted at RM8,500 settles
+    #: at RM11,200, and by then the customer has gone home.
+    einvoice_prompt_sen: int = 800_000
+
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> RateCardConfig:
         return cls(
@@ -310,6 +321,20 @@ class RateCardConfig:
             band_edge_warn_tmm=data["band_edge_warn_tmm"],
             default_unit_width=data.get("default_unit_width", "ft"),
             default_unit_height=data.get("default_unit_height", "ft"),
+            # Defaulted rather than required, so a card published before this
+            # still loads -- and defaults to the law rather than to no check at
+            # all. A missing threshold that meant "never ask" would be silent
+            # non-compliance on exactly the oldest data.
+            einvoice_threshold_sen=data.get("einvoice_threshold_sen", 1_000_000),
+            einvoice_prompt_sen=data.get("einvoice_prompt_sen", 800_000),
+        )
+
+    @property
+    def thresholds(self) -> ThresholdConfig:
+        """The two figures as the threshold rule wants them."""
+        return ThresholdConfig(
+            threshold=Money(self.einvoice_threshold_sen),
+            prompt=Money(self.einvoice_prompt_sen),
         )
 
 

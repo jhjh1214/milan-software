@@ -1672,6 +1672,27 @@ orders, supplier management and costing come later.
   the same or lower. Every row says which it is, and the report totals the two
   separately, because a book that mixed them would overstate what is
   collectable.
+- `[BLOCKING P7]` **C12.** **Which pipeline step is "invoicing"?** §10.4 says
+  an order over RM10,000 *"cannot reach invoicing status until buyer details
+  exist"*, and there is no `invoicing` status: the pipeline is `confirmed →
+  measurement_booked → measured → material_selected → in_production → ready
+  → installed → closed`.
+
+  The guard currently bites from **`material_selected`** — the first step
+  after a final total exists. That is the conservative reading and it is
+  deliberate: §10.2 says capture has to happen *while the customer is standing
+  there*, and at that moment the measurer has only just left the house.
+  Blocking later — at `ready`, at `installed`, at `closed` — means discovering
+  the gap when the customer has no reason left to answer the phone, and the
+  penalty is RM200 to RM20,000 **per** non-compliant invoice.
+
+  The cost of being wrong this way is a job held in the office for a phone
+  call. The cost of being wrong the other way is a fine. But if the shop
+  actually invoices at installation, blocking production is friction with
+  nothing behind it, and moving the guard is one line and a fixture.
+
+  Cancelling is deliberately never blocked: it has nothing to do with
+  invoicing, and refusing it would leave an over-threshold order trapped.
 - **C8.** Who may move an order along, and who may cancel one? The pipeline
   enforces *what* can happen, not *who* may do it — no role check is wired to it
   yet. A part-timer marking a job installed, or cancelling one, is the kind of
