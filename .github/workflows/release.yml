@@ -107,6 +107,109 @@ jobs:
         if: failure()
         run: docker logs api --tail 50 || true
 
+  web:
+    name: Web image → GHCR
+    runs-on: ubuntu-latest
+    # Same gate as the API image: a release built off a red tree would put a
+    # wrong price in front of a customer with a version number attached.
+    if: >-
+      github.event_name == 'push' ||
+      github.event.workflow_run.conclusion == 'success'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/web
+          tags: |
+            type=raw,value=main,enable=${{ github.event_name == 'workflow_run' }}
+            type=semver,pattern={{version}}
+            type=sha,format=long
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: dashboard
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # An image that serves the wrong thing is worse than one that will not
+      # start, because it looks fine. These are the four behaviours the
+      # Caddyfile was got wrong on the first attempt.
+      - name: The pushed image serves the dashboard correctly
+        run: |
+          IMAGE=$(echo "${{ steps.meta.outputs.tags }}" | head -1)
+
+          cat > /tmp/Caddyfile <<'CADDY'
+          :8080 {
+            @asset path *.js *.css *.map *.woff2 *.woff *.ico *.png *.jpg *.svg *.webmanifest
+            handle @asset {
+              root * /srv
+              header Cache-Control "public, max-age=31536000, immutable"
+              file_server
+            }
+            handle {
+              root * /srv
+              header Cache-Control "no-cache"
+              try_files {path} /index.html
+              file_server
+            }
+          }
+          CADDY
+
+          docker run -d --name web -p 8080:8080 \
+            -v /tmp/Caddyfile:/etc/caddy/Caddyfile:ro "$IMAGE"
+
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8080/ >/dev/null 2>&1 && break
+            sleep 1
+          done
+
+          # The app is served at the root.
+          curl -fsS http://127.0.0.1:8080/ | grep -q '<app-root>' \
+            || { echo "::error::the root did not return the app"; exit 1; }
+
+          # A deep link reaches it too — §11 makes that an acceptance criterion.
+          curl -fsS 'http://127.0.0.1:8080/orders?status=confirmed' \
+            | grep -q '<app-root>' \
+            || { echo "::error::a deep link did not reach the app"; exit 1; }
+
+          # The shell is never cached, or a browser keeps the old app after a
+          # deploy and nobody can tell why their fix did not appear.
+          curl -fsS -D - -o /dev/null http://127.0.0.1:8080/ \
+            | grep -qi 'cache-control: no-cache' \
+            || { echo "::error::the app shell is cacheable"; exit 1; }
+
+          # A missing asset is a 404, not the HTML shell with a 200 — which
+          # arrives as a parse error nobody can read.
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/nope.js)
+          test "$code" = "404" \
+            || { echo "::error::a missing asset answered $code, not 404"; exit 1; }
+
+          echo "ok — the image serves the app, deep links, and 404s properly"
+
+      - name: Logs, if that failed
+        if: failure()
+        run: docker logs web --tail 50 || true
+
   apk:
     name: Android APK
     runs-on: ubuntu-latest
