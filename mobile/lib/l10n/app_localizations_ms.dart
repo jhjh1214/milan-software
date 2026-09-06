@@ -477,6 +477,97 @@ class LMs extends L {
       'Sebut harga ini dibundarkan ke atas dan untuk rujukan sahaja. Selepas pengukuran di tapak, harga akhir adalah sama atau lebih rendah, tidak akan lebih tinggi.';
 
   @override
+  String get revisedTitle => 'Pesanan disemak — selepas pengukuran di tapak';
+
+  @override
+  String get revisedOrderNo => 'No. pesanan';
+
+  @override
+  String get revisedPendingSync => 'menunggu penyegerakan';
+
+  @override
+  String get revisedQuotedOn => 'Tarikh sebut harga';
+
+  @override
+  String get revisedMeasuredOn => 'Tarikh ukuran';
+
+  @override
+  String get revisedColQuoted => 'Disebut harga';
+
+  @override
+  String get revisedColMeasured => 'Diukur';
+
+  @override
+  String get revisedColQuotedAmount => 'Sebut harga';
+
+  @override
+  String get revisedColFinalAmount => 'Akhir';
+
+  @override
+  String get revisedColChange => 'Perubahan';
+
+  @override
+  String get revisedEstimateTotal => 'Jumlah sebut harga';
+
+  @override
+  String get revisedFinalTotal => 'Jumlah akhir';
+
+  @override
+  String get revisedYouSave => 'Berkurang';
+
+  @override
+  String get revisedNoChange => 'Tiada perubahan';
+
+  @override
+  String get revisedDepositPaid => 'Deposit dibayar';
+
+  @override
+  String get revisedBalanceDue => 'Baki perlu dibayar';
+
+  @override
+  String get revisedWhyTitle => 'Mengapa ini berbeza daripada sebut harga anda';
+
+  @override
+  String get revisedWhyBody =>
+      'Sebut harga membundarkan setiap ukuran ke atas kepada unit penuh. Dokumen ini menggunakan ukuran tapak yang tepat, jadi harganya sama atau lebih rendah.';
+
+  @override
+  String get revisedOverTitle =>
+      'Satu atau lebih tingkap diukur lebih besar daripada sebut harga';
+
+  @override
+  String get revisedOverBody =>
+      'Ukuran di bawah didapati lebih besar di tapak berbanding ukuran yang diberikan semasa sebut harga, jadi baris tersebut lebih mahal. Yang lain tidak berubah. Sila semak bersama kami.';
+
+  @override
+  String revisedOverAmount(String amount) {
+    return '$amount lebih daripada sebut harga';
+  }
+
+  @override
+  String revisedPricedAt(int version) {
+    return 'Dinilai pada senarai harga versi $version';
+  }
+
+  @override
+  String get revisedNotAnInvoice =>
+      'Dokumen ini ialah pengesahan pesanan yang disemak, bukan invois cukai.';
+
+  @override
+  String revisedIncomplete(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count baris belum dinilai',
+      one: '1 baris belum dinilai',
+    );
+    return 'Pesanan ini belum boleh dicetak — $_temp0.';
+  }
+
+  @override
+  String get revisedShare => 'Kongsi pesanan disemak';
+
+  @override
   String get provisionalCardBanner =>
       'Senarai harga belum disahkan. Jangan beri sebut harga kepada pelanggan.';
 

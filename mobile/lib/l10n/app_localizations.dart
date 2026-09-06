@@ -896,6 +896,156 @@ abstract class L {
   /// **'此报价按整数进位计算，仅供参考。现场实际丈量后，价格只会相同或更低，不会更高。'**
   String get disclaimerBody;
 
+  /// No description provided for @revisedTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'修订订单 — 现场丈量后'**
+  String get revisedTitle;
+
+  /// No description provided for @revisedOrderNo.
+  ///
+  /// In zh, this message translates to:
+  /// **'订单号'**
+  String get revisedOrderNo;
+
+  /// No description provided for @revisedPendingSync.
+  ///
+  /// In zh, this message translates to:
+  /// **'待同步'**
+  String get revisedPendingSync;
+
+  /// No description provided for @revisedQuotedOn.
+  ///
+  /// In zh, this message translates to:
+  /// **'报价日期'**
+  String get revisedQuotedOn;
+
+  /// No description provided for @revisedMeasuredOn.
+  ///
+  /// In zh, this message translates to:
+  /// **'丈量日期'**
+  String get revisedMeasuredOn;
+
+  /// No description provided for @revisedColQuoted.
+  ///
+  /// In zh, this message translates to:
+  /// **'报价尺寸'**
+  String get revisedColQuoted;
+
+  /// No description provided for @revisedColMeasured.
+  ///
+  /// In zh, this message translates to:
+  /// **'实测尺寸'**
+  String get revisedColMeasured;
+
+  /// No description provided for @revisedColQuotedAmount.
+  ///
+  /// In zh, this message translates to:
+  /// **'报价金额'**
+  String get revisedColQuotedAmount;
+
+  /// No description provided for @revisedColFinalAmount.
+  ///
+  /// In zh, this message translates to:
+  /// **'最终金额'**
+  String get revisedColFinalAmount;
+
+  /// No description provided for @revisedColChange.
+  ///
+  /// In zh, this message translates to:
+  /// **'差额'**
+  String get revisedColChange;
+
+  /// No description provided for @revisedEstimateTotal.
+  ///
+  /// In zh, this message translates to:
+  /// **'报价总额'**
+  String get revisedEstimateTotal;
+
+  /// No description provided for @revisedFinalTotal.
+  ///
+  /// In zh, this message translates to:
+  /// **'最终总额'**
+  String get revisedFinalTotal;
+
+  /// No description provided for @revisedYouSave.
+  ///
+  /// In zh, this message translates to:
+  /// **'减少'**
+  String get revisedYouSave;
+
+  /// No description provided for @revisedNoChange.
+  ///
+  /// In zh, this message translates to:
+  /// **'无变动'**
+  String get revisedNoChange;
+
+  /// No description provided for @revisedDepositPaid.
+  ///
+  /// In zh, this message translates to:
+  /// **'已付订金'**
+  String get revisedDepositPaid;
+
+  /// No description provided for @revisedBalanceDue.
+  ///
+  /// In zh, this message translates to:
+  /// **'应付余额'**
+  String get revisedBalanceDue;
+
+  /// No description provided for @revisedWhyTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'为什么与报价单不同'**
+  String get revisedWhyTitle;
+
+  /// No description provided for @revisedWhyBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'报价单将每个尺寸进位到整数单位。本单据按现场实测尺寸计算，因此价格相同或更低。'**
+  String get revisedWhyBody;
+
+  /// No description provided for @revisedOverTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'有窗口实测尺寸大于报价尺寸'**
+  String get revisedOverTitle;
+
+  /// No description provided for @revisedOverBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'以下尺寸在现场实测后大于报价时提供的尺寸，因此这些项目的金额较高。其余项目不变。请与我们核对。'**
+  String get revisedOverBody;
+
+  /// ONE placeholder on purpose. gen-l10n orders positional placeholders alphabetically, so a message with two or more has an argument order nobody chose -- it has already printed a height where a width belonged, on the one screen whose job is catching a wrong dimension. The room and product names are joined to this at the call site.
+  ///
+  /// In zh, this message translates to:
+  /// **'比报价多 {amount}'**
+  String revisedOverAmount(String amount);
+
+  /// No description provided for @revisedPricedAt.
+  ///
+  /// In zh, this message translates to:
+  /// **'按价目表版本 {version} 计价'**
+  String revisedPricedAt(int version);
+
+  /// No description provided for @revisedNotAnInvoice.
+  ///
+  /// In zh, this message translates to:
+  /// **'本单据为修订订单确认书，非税务发票。'**
+  String get revisedNotAnInvoice;
+
+  /// No description provided for @revisedIncomplete.
+  ///
+  /// In zh, this message translates to:
+  /// **'此订单尚不能打印 — {count, plural, =1{有 1 个项目尚未定价} other{有 {count} 个项目尚未定价}}。'**
+  String revisedIncomplete(num count);
+
+  /// No description provided for @revisedShare.
+  ///
+  /// In zh, this message translates to:
+  /// **'分享修订订单'**
+  String get revisedShare;
+
   /// No description provided for @provisionalCardBanner.
   ///
   /// In zh, this message translates to:

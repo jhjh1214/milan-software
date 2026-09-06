@@ -470,6 +470,94 @@ class LZh extends L {
   String get disclaimerBody => '此报价按整数进位计算，仅供参考。现场实际丈量后，价格只会相同或更低，不会更高。';
 
   @override
+  String get revisedTitle => '修订订单 — 现场丈量后';
+
+  @override
+  String get revisedOrderNo => '订单号';
+
+  @override
+  String get revisedPendingSync => '待同步';
+
+  @override
+  String get revisedQuotedOn => '报价日期';
+
+  @override
+  String get revisedMeasuredOn => '丈量日期';
+
+  @override
+  String get revisedColQuoted => '报价尺寸';
+
+  @override
+  String get revisedColMeasured => '实测尺寸';
+
+  @override
+  String get revisedColQuotedAmount => '报价金额';
+
+  @override
+  String get revisedColFinalAmount => '最终金额';
+
+  @override
+  String get revisedColChange => '差额';
+
+  @override
+  String get revisedEstimateTotal => '报价总额';
+
+  @override
+  String get revisedFinalTotal => '最终总额';
+
+  @override
+  String get revisedYouSave => '减少';
+
+  @override
+  String get revisedNoChange => '无变动';
+
+  @override
+  String get revisedDepositPaid => '已付订金';
+
+  @override
+  String get revisedBalanceDue => '应付余额';
+
+  @override
+  String get revisedWhyTitle => '为什么与报价单不同';
+
+  @override
+  String get revisedWhyBody => '报价单将每个尺寸进位到整数单位。本单据按现场实测尺寸计算，因此价格相同或更低。';
+
+  @override
+  String get revisedOverTitle => '有窗口实测尺寸大于报价尺寸';
+
+  @override
+  String get revisedOverBody =>
+      '以下尺寸在现场实测后大于报价时提供的尺寸，因此这些项目的金额较高。其余项目不变。请与我们核对。';
+
+  @override
+  String revisedOverAmount(String amount) {
+    return '比报价多 $amount';
+  }
+
+  @override
+  String revisedPricedAt(int version) {
+    return '按价目表版本 $version 计价';
+  }
+
+  @override
+  String get revisedNotAnInvoice => '本单据为修订订单确认书，非税务发票。';
+
+  @override
+  String revisedIncomplete(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '有 $count 个项目尚未定价',
+      one: '有 1 个项目尚未定价',
+    );
+    return '此订单尚不能打印 — $_temp0。';
+  }
+
+  @override
+  String get revisedShare => '分享修订订单';
+
+  @override
   String get provisionalCardBanner => '价格表还没确认，不可以给客户报价';
 
   @override

@@ -480,6 +480,97 @@ class LEn extends L {
       'This quotation is rounded up to whole units and is for reference only. After on-site measurement the final price will be the same or lower, never higher.';
 
   @override
+  String get revisedTitle => 'Revised order — after site measurement';
+
+  @override
+  String get revisedOrderNo => 'Order no.';
+
+  @override
+  String get revisedPendingSync => 'pending sync';
+
+  @override
+  String get revisedQuotedOn => 'Quoted';
+
+  @override
+  String get revisedMeasuredOn => 'Measured';
+
+  @override
+  String get revisedColQuoted => 'Quoted';
+
+  @override
+  String get revisedColMeasured => 'Measured';
+
+  @override
+  String get revisedColQuotedAmount => 'Quoted';
+
+  @override
+  String get revisedColFinalAmount => 'Final';
+
+  @override
+  String get revisedColChange => 'Change';
+
+  @override
+  String get revisedEstimateTotal => 'Quoted total';
+
+  @override
+  String get revisedFinalTotal => 'Final total';
+
+  @override
+  String get revisedYouSave => 'Reduced by';
+
+  @override
+  String get revisedNoChange => 'Unchanged';
+
+  @override
+  String get revisedDepositPaid => 'Deposit paid';
+
+  @override
+  String get revisedBalanceDue => 'Balance due';
+
+  @override
+  String get revisedWhyTitle => 'Why this differs from your quotation';
+
+  @override
+  String get revisedWhyBody =>
+      'The quotation rounded every measurement up to a whole unit. This document uses the exact site measurement, so the price is the same or lower.';
+
+  @override
+  String get revisedOverTitle =>
+      'One or more windows measured larger than quoted';
+
+  @override
+  String get revisedOverBody =>
+      'The sizes below came out bigger on site than the sizes given at the time of quotation, so those lines cost more. Everything else is unchanged. Please check them with us.';
+
+  @override
+  String revisedOverAmount(String amount) {
+    return '$amount more than quoted';
+  }
+
+  @override
+  String revisedPricedAt(int version) {
+    return 'Priced at price list version $version';
+  }
+
+  @override
+  String get revisedNotAnInvoice =>
+      'This document is a revised order confirmation, not a tax invoice.';
+
+  @override
+  String revisedIncomplete(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count lines are not priced',
+      one: '1 line is not priced',
+    );
+    return 'This order cannot be printed yet — $_temp0.';
+  }
+
+  @override
+  String get revisedShare => 'Share revised order';
+
+  @override
   String get provisionalCardBanner =>
       'Rate card not confirmed. Do not quote a customer.';
 

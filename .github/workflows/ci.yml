@@ -67,12 +67,14 @@ jobs:
       - name: Test
         run: flutter test --coverage
 
-      # The Dart suite writes sample quotations; this extracts their real text.
-      # A grep over the PDF bytes proves nothing, because an embedded subset
-      # font stores text as glyph indices — so only extraction can show that
-      # the document says what hard rule 7 requires, and that the Chinese
-      # actually rendered rather than coming out as tofu.
-      - name: Check what the printed quotation actually says
+      # The Dart suite writes sample quotations and revised order documents;
+      # this extracts their real text. A grep over the PDF bytes proves
+      # nothing, because an embedded subset font stores text as glyph indices —
+      # so only extraction can show that each document says what hard rule 7
+      # requires, that the Chinese rendered rather than coming out as tofu,
+      # and that the revised order carries the quoted amount beside the final
+      # one rather than only the new number.
+      - name: Check what the printed documents actually say
         run: |
           pip install --quiet pypdf
           python3 ../tool/check_pdf_text.py

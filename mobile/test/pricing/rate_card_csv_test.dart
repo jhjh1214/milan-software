@@ -171,7 +171,10 @@ void main() {
       // export writes 0.00 for them, so the import has to accept that value
       // back on those rows — and only those rows.
       test('accepts the 0.00 the export wrote, as no change', () {
-        final result = readRateCardCsv(edited('stair-step-narrow', '0.00'), card);
+        final result = readRateCardCsv(
+          edited('stair-step-narrow', '0.00'),
+          card,
+        );
         expect(result.errors, isEmpty);
         expect(result.actualChanges, isEmpty);
       });
@@ -206,7 +209,9 @@ void main() {
 
         // And the one it did not price is untouched.
         expect(
-          applied.rules.firstWhere((r) => r.id == 'stair-step-wide').provisional,
+          applied.rules
+              .firstWhere((r) => r.id == 'stair-step-wide')
+              .provisional,
           isTrue,
         );
       });
@@ -250,9 +255,12 @@ void main() {
           json,
           readRateCardCsv(edited('stair-step-narrow', '120.00'), card),
         );
-        final row = (out['rules'] as List<dynamic>).firstWhere(
-          (r) => (r as Map<String, dynamic>)['id'] == 'stair-step-narrow',
-        ) as Map<String, dynamic>;
+        final row =
+            (out['rules'] as List<dynamic>).firstWhere(
+                  (r) =>
+                      (r as Map<String, dynamic>)['id'] == 'stair-step-narrow',
+                )
+                as Map<String, dynamic>;
         expect(row['provisional'], isFalse);
         expect(row['rate_sen'], 12000);
       });
