@@ -167,7 +167,13 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
 
     final thresholds = WarningThresholds(
       bandEdgeWarnTmm: card.config.bandEdgeWarnTmm,
+      plausibleByCategory: card.config.plausibleByCategory,
     );
+
+    // §5.4: a plausible range is a property of the field IN ITS CATEGORY. A
+    // six-metre drop is a double-height living room; a six-metre flooring run
+    // is a corridor.
+    final category = depositCategoryOf(product.family).name;
 
     final widthState = DimensionFieldState(
       raw: _rawWidth,
@@ -180,6 +186,7 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
               enteredUnit: widthParsed.unit,
               unitWasExplicit: widthParsed.unitWasExplicit,
               isHeight: false,
+              depositCategory: category,
               bandEdgesTmm: product.bandField == BandField.width
                   ? bandEdges
                   : const [],
@@ -198,6 +205,7 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
               enteredUnit: heightParsed.unit,
               unitWasExplicit: heightParsed.unitWasExplicit,
               isHeight: true,
+              depositCategory: category,
               bandEdgesTmm: product.bandField == BandField.height
                   ? bandEdges
                   : const [],
@@ -347,7 +355,23 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
     DimensionWarningKind.nearBandEdge => l.warnNearBandEdge(
       '${(w.bandEdgeTmm ?? 0) ~/ 3048} ${l.unitFoot}',
     ),
+    // §5.4: say the number back in metres. "8000in" reads as a plausible
+    // number; "203m" does not, and that is the whole point of showing it.
+    DimensionWarningKind.implausibleForCategory => l.warnImplausibleSize(
+      _metresOf(
+        _focused == _Field.width ? _rawWidth : _rawHeight,
+        _focused == _Field.width ? _widthUnit : _heightUnit,
+      ),
+    ),
   };
+
+  /// A length written in metres to one decimal, for a message whose whole job
+  /// is to make an absurd number look absurd.
+  String _metresOf(String raw, LengthUnit chip) {
+    final parsed = parseLength(raw, chip);
+    if (parsed == null) return '';
+    return '${(parsed.length.tmm / 10000).toStringAsFixed(1)}m';
+  }
 
   String _warningAction(L l, DimensionWarning w) => switch (w.kind) {
     DimensionWarningKind.unitLooksWrong => l.warnSwitchTo(

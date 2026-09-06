@@ -13,7 +13,28 @@
     "_einvoice": "SPEC.md section 10.2-10.4. Malaysian law, not this shop's policy: since 1 Jan 2026 a single transaction above RM10,000 needs its own e-invoice and cannot go into a monthly consolidated batch. Config rather than code because section 10.3 says it will change, and because a change to it must reach every handset the way a price change does - by publishing a card, with no rebuild.",
     "einvoice_threshold_sen": 1000000,
     "_einvoice_prompt": "Section 10.4's timing trap. The fair estimate is rough and an order quoted at RM8,500 settles at RM11,200, so the quote wizard asks from RM8,000 - while the customer is still standing there. The margin applies to the estimate only; a final is exact and needs none.",
-    "einvoice_prompt_sen": 800000
+    "einvoice_prompt_sen": 800000,
+    "_plausible_dimensions": "SPEC.md section 5.4. What size a thing can physically be, per deposit category and per field, in tenths of a millimetre. Config rather than hardcoded guesses: a plausible curtain drop is not a plausible flooring run. These are DELIBERATELY GENEROUS - they exist to catch 8000in (203 metres), not to second-guess a real order. A warning that fires on real work is a warning staff learn to tap past. A category absent from this map warns on nothing, which is the safe default: a missing config must never invent a limit that blocks a real order.",
+    "plausible_dimensions": {
+      "curtain": {
+        "width_min_tmm": 1000,
+        "width_max_tmm": 200000,
+        "height_min_tmm": 1000,
+        "height_max_tmm": 60000
+      },
+      "flooring": {
+        "width_min_tmm": 1000,
+        "width_max_tmm": 500000,
+        "height_min_tmm": 1000,
+        "height_max_tmm": 500000
+      },
+      "wallpaper": {
+        "width_min_tmm": 1000,
+        "width_max_tmm": 300000,
+        "height_min_tmm": 1000,
+        "height_max_tmm": 60000
+      }
+    }
   },
   "delivery_zones": [
     {

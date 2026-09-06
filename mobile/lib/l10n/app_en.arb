@@ -69,6 +69,7 @@
   "warnSwitchTo": "Change to {unit}",
   "warnDropVeryShort": "Height is only {value}. Is that right?",
   "warnNearBandEdge": "Just over {edge}. Please check the size.",
+  "warnImplausibleSize": "That is {size}. Please check the size and the unit.",
   "warnBandBothPrices": "Up to {lower}: {lowerPrice} · Over {upper}",
 
   "runningTotal": "Total",

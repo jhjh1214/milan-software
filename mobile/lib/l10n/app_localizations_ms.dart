@@ -212,6 +212,11 @@ class LMs extends L {
   }
 
   @override
+  String warnImplausibleSize(Object size) {
+    return 'Itu $size. Sila semak ukuran dan unitnya.';
+  }
+
+  @override
   String warnBandBothPrices(String lower, String lowerPrice, String upper) {
     return 'Sehingga $lower: $lowerPrice · Melebihi $upper';
   }

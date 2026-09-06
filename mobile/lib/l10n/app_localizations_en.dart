@@ -213,6 +213,11 @@ class LEn extends L {
   }
 
   @override
+  String warnImplausibleSize(Object size) {
+    return 'That is $size. Please check the size and the unit.';
+  }
+
+  @override
   String warnBandBothPrices(String lower, String lowerPrice, String upper) {
     return 'Up to $lower: $lowerPrice · Over $upper';
   }

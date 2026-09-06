@@ -105,6 +105,7 @@
   "warnDropVeryShort": "高度只有 {value}，确认吗？",
   "@warnDropVeryShort": { "placeholders": { "value": { "type": "String" } } },
   "warnNearBandEdge": "刚刚超过 {edge}，请确认尺寸",
+  "warnImplausibleSize": "这是 {size}，请确认尺寸和单位",
   "@warnNearBandEdge": { "placeholders": { "edge": { "type": "String" } } },
   "warnBandBothPrices": "{lower} 以内 {lowerPrice} · 超过 {upper}",
   "@warnBandBothPrices": {

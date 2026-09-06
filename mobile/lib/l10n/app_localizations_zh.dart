@@ -210,6 +210,11 @@ class LZh extends L {
   }
 
   @override
+  String warnImplausibleSize(Object size) {
+    return '这是 $size，请确认尺寸和单位';
+  }
+
+  @override
   String warnBandBothPrices(String lower, String lowerPrice, String upper) {
     return '$lower 以内 $lowerPrice · 超过 $upper';
   }

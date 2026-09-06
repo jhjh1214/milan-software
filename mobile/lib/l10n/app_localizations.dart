@@ -452,6 +452,12 @@ abstract class L {
   /// **'刚刚超过 {edge}，请确认尺寸'**
   String warnNearBandEdge(String edge);
 
+  /// No description provided for @warnImplausibleSize.
+  ///
+  /// In zh, this message translates to:
+  /// **'这是 {size}，请确认尺寸和单位'**
+  String warnImplausibleSize(Object size);
+
   /// No description provided for @warnBandBothPrices.
   ///
   /// In zh, this message translates to:

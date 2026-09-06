@@ -326,6 +326,32 @@ void main() {
     });
   });
 
+  group('plausible dimensions come off the card', () {
+    // §5.4 requires these in config, not code. If they ever stop being read
+    // from the card, this is where it shows up.
+    test('the real card configures a range per category', () {
+      final ranges = card.config.plausibleByCategory;
+      expect(ranges.keys, containsAll(<String>['curtain', 'flooring']));
+
+      final curtain = ranges['curtain']!;
+      expect(curtain.width, isNotNull);
+      expect(curtain.height, isNotNull);
+    });
+
+    test('8000in is outside the curtain range, 8000mm is inside it', () {
+      // The worked example, against the card the app actually ships.
+      final width = card.config.plausibleByCategory['curtain']!.width!;
+      expect(width.covers(8000 * 254), isFalse, reason: '203 metres');
+      expect(width.covers(8000 * 10), isTrue, reason: '8 metres');
+    });
+
+    test('a curtain drop is bounded tighter than a curtain width', () {
+      // They are different questions, which is why they are separate fields.
+      final curtain = card.config.plausibleByCategory['curtain']!;
+      expect(curtain.height!.maxTmm, lessThan(curtain.width!.maxTmm!));
+    });
+  });
+
   group('e-invoice threshold cases', () {
     // SPEC.md §10.2-§10.4. The two figures come off the real card, never from
     // literals here: §10.3 says the threshold lives in config because it will

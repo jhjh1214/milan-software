@@ -69,6 +69,7 @@
   "warnSwitchTo": "Tukar ke {unit}",
   "warnDropVeryShort": "Tinggi hanya {value}. Betul ke?",
   "warnNearBandEdge": "Baru melebihi {edge}. Sila semak ukuran.",
+  "warnImplausibleSize": "Itu {size}. Sila semak ukuran dan unitnya.",
   "warnBandBothPrices": "Sehingga {lower}: {lowerPrice} · Melebihi {upper}",
 
   "runningTotal": "Jumlah",

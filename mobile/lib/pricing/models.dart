@@ -5,6 +5,7 @@
 /// "The pricing engine is pure".
 library;
 
+import '../core/dimension_warnings.dart';
 import '../core/length.dart';
 import '../core/money.dart';
 import '../core/rational.dart';
@@ -337,6 +338,10 @@ class RateCardConfig {
   /// RM11,200, and by then the customer has gone home.
   final int einvoicePromptSen;
 
+  /// What each deposit category can physically measure, per field. §5.4.
+  /// Empty means no plausibility warning anywhere, which is the safe default.
+  final Map<String, CategoryPlausibility> plausibleByCategory;
+
   const RateCardConfig({
     required this.minDepositSen,
     required this.bandEdgeWarnTmm,
@@ -344,6 +349,7 @@ class RateCardConfig {
     required this.defaultUnitHeight,
     this.einvoiceThresholdSen = 1000000,
     this.einvoicePromptSen = 800000,
+    this.plausibleByCategory = const {},
   });
 
   factory RateCardConfig.fromJson(Map<String, dynamic> json) => RateCardConfig(
@@ -357,6 +363,7 @@ class RateCardConfig {
     // would be silent non-compliance on exactly the oldest handsets.
     einvoiceThresholdSen: json['einvoice_threshold_sen'] as int? ?? 1000000,
     einvoicePromptSen: json['einvoice_prompt_sen'] as int? ?? 800000,
+    plausibleByCategory: _plausibleFromJson(json['plausible_dimensions']),
   );
 
   /// The two figures as the threshold rule wants them.
@@ -364,6 +371,32 @@ class RateCardConfig {
     threshold: Money.sen(einvoiceThresholdSen),
     prompt: Money.sen(einvoicePromptSen),
   );
+}
+
+/// Reads §5.4's plausible ranges off the card.
+///
+/// A missing block, a missing category or a missing bound all mean "do not
+/// warn". A config that is absent must never invent a limit that blocks a real
+/// order.
+Map<String, CategoryPlausibility> _plausibleFromJson(Object? raw) {
+  if (raw is! Map) return const {};
+
+  PlausibleRange? range(Map<dynamic, dynamic> c, String prefix) {
+    final min = c['${prefix}_min_tmm'] as int?;
+    final max = c['${prefix}_max_tmm'] as int?;
+    return min == null && max == null
+        ? null
+        : PlausibleRange(minTmm: min, maxTmm: max);
+  }
+
+  return {
+    for (final entry in raw.entries)
+      if (entry.value is Map)
+        entry.key as String: CategoryPlausibility(
+          width: range(entry.value as Map, 'width'),
+          height: range(entry.value as Map, 'height'),
+        ),
+  };
 }
 
 /// An order-level charge driven by the delivery address, not by any line.
