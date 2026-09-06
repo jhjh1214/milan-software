@@ -12,7 +12,7 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 
 ## Current state
 
-**Phases 1-3 complete. Phase 4 in progress** — Flutter app,
+**Phases 1-6 complete. Phase 7 next** — Flutter app,
 FastAPI backend, Postgres, and sync between them.
 
 Built and green on the device: `Length`, `Money`, `Rational`, the unit parser,
@@ -24,7 +24,7 @@ trilingual PDF.
 
 Built and green on the server: the Python engine passing the same fixtures, the
 sync endpoints, Alembic migrations with a test that they match the models, users
-and roles, and rate card publishing. **581 Dart tests, 339 Python tests.** 100%
+and roles, and rate card publishing. **792 Dart tests, 595 Python tests.** 100%
 coverage on `Length`, `Money` and `Rational`.
 
 **Prices are server-owned now.** One card is published and pulled by every
@@ -352,15 +352,58 @@ exempted the value from every plausibility check; that exemption now covers only
 the "did you mean a smaller unit" nudge, and ranges are per category and per
 field off the card.
 
-**Next in Phase 6** — the revised order document, and then Phase 7. It is what makes the
-variance report and the outstanding-balances report show anything: both have
-columns that stay empty until an order has a final price, and both say so on
-screen rather than showing a table that looks like a failed query.
+**Phase 6 is complete.** Its acceptance list (§11) was the sharpest yet and
+every criterion names a test: *a measured order reprices at the old card even
+after two rate publishes*, *variance visible to the measurer before they leave
+the house*, *an order crossing RM10,000 cannot advance without buyer details*,
+and *works fully offline in a house with no signal*.
 
-Its acceptance list (§11) is the sharpest yet: *a measured order reprices at
-the old card even after two rate publishes*, *variance visible to the measurer
-before they leave the house*, *an order crossing RM10,000 cannot advance
-without buyer details*, and *works fully offline in a house with no signal*.
+**The revised order document is in**, and shared from the measure screen before
+the measurer leaves. Every line carries **both** numbers — the fair size and
+the measured size, the amount quoted and the amount now — because the document
+exists to answer *"why is this different from the quotation you gave me?"*, and
+only the new figure would start the argument it exists to prevent.
+
+Three refusals, each a decision not to print something plausible: an order that
+has not fully priced has **no document at all** (`RevisedOrderData.of` returns
+null and there is no way past it); the balance never goes negative, because a
+deposit can exceed a small final and B4 has not said what happens to the
+difference; and an unsynced order prints *pending sync* rather than inventing an
+order number. A line that measured **larger** than quoted is named and itemised
+**above** the reference-price promise, not below it — where the price did not
+fall, the customer reads why first or the two together look like a lie.
+
+`tool/check_pdf_text.py` now extracts the revised documents too, so the claims
+are checked against rendered text rather than bytes — a subset font stores
+glyph indices and a grep would pass either way.
+
+**Stairs, landings and skirting.** A staircase is charged **per step**, a
+landing separately, and both band on the **width** of the step at 5ft (exactly
+5ft is the cheaper side, A1's fencepost). SPC skirting is RM4 a running foot.
+
+The four stair rates are not known. Rather than guess a number that reaches a
+customer, the rows carry `provisional: true` with a rate of 0 and **both
+engines refuse to price them** — RM0 is a number somebody acts on, and "no
+price yet" and "free" must never be the same state. Supplying the rate is a
+data edit: the CSV import accepts a real price on a placeholder and clears the
+flag **in the same edit**, because a flag and a number that could drift apart
+would mean the admin types RM120, is told it was accepted, and the engine still
+refuses. §13 **A22**. The card file now holds 81 rows; 77 is still the count of
+sellable ones, and a test asserts both separately.
+
+**A21 is answered in principle, and the principle is conditional.** A printed
+minimum is a floor on the **job**, not the line: a small blind on its own bills
+its 18 sqft, the same blind inside a house of curtains bills what it measures.
+Four order-of-operations questions that answer raises are recorded as **A21a–d**
+rather than guessed. Until they are settled both engines keep applying `min_qty`
+unconditionally — the conservative reading, already built and fixture-tested.
+
+**Two l10n traps, both now recorded.** The gen-l10n template is **`app_zh.arb`,
+not English** — which is why adding `@`-metadata to the English file never
+changed a generated signature. And the alphabetical placeholder ordering bit a
+third time: `{room}/{product}/{amount}` generated `(amount, product, room)`.
+Any message with two or more placeholders has an argument order nobody chose;
+collapse it to one and compose at the call site.
 
 **A repeated mistake worth knowing about:** a plain class field read inside an
 Angular `computed` never recomputes, so the button it gates stays disabled
