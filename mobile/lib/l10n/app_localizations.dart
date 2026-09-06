@@ -339,6 +339,18 @@ abstract class L {
   /// **'高'**
   String get height;
 
+  /// No description provided for @lengthDimension.
+  ///
+  /// In zh, this message translates to:
+  /// **'长'**
+  String get lengthDimension;
+
+  /// No description provided for @dropDimension.
+  ///
+  /// In zh, this message translates to:
+  /// **'高'**
+  String get dropDimension;
+
   /// No description provided for @quantity.
   ///
   /// In zh, this message translates to:

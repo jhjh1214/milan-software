@@ -3,7 +3,7 @@ import 'package:milan_quote/core/dimension_warnings.dart';
 import 'package:milan_quote/core/length.dart';
 import 'package:milan_quote/core/rational.dart';
 
-/// SPEC.md §5.4. These warnings are the app's only use of magnitude, and §5.1
+/// SPEC.md §5.5. These warnings are the app's only use of magnitude, and §5.1
 /// is emphatic that magnitude may hint but never decide.
 void main() {
   Length ft(num v) => Length.tenths((v * 3048).round());
@@ -17,7 +17,7 @@ void main() {
         value: value,
         enteredUnit: LengthUnit.inch,
         unitWasExplicit: false,
-        isHeight: false,
+        isSecondDimension: false,
       );
       expect(warnings, hasLength(1));
       expect(warnings.single.kind, DimensionWarningKind.unitLooksWrong);
@@ -31,7 +31,7 @@ void main() {
         value: Length.mm(70000),
         enteredUnit: LengthUnit.mm,
         unitWasExplicit: true,
-        isHeight: false,
+        isSecondDimension: false,
       );
       expect(warnings, isEmpty);
     });
@@ -41,7 +41,7 @@ void main() {
         value: ft(12),
         enteredUnit: LengthUnit.foot,
         unitWasExplicit: false,
-        isHeight: false,
+        isSecondDimension: false,
       );
       expect(warnings, isEmpty);
     });
@@ -57,7 +57,7 @@ void main() {
           value: Length.mm(70000),
           enteredUnit: unit,
           unitWasExplicit: false,
-          isHeight: false,
+          isSecondDimension: false,
         );
         expect(
           warnings.single.suggestedUnit,
@@ -74,7 +74,7 @@ void main() {
           value: Length.mm(70000),
           enteredUnit: LengthUnit.mm,
           unitWasExplicit: false,
-          isHeight: false,
+          isSecondDimension: false,
         );
         expect(warnings, isEmpty);
       },
@@ -87,7 +87,7 @@ void main() {
         value: Length.mm(200),
         enteredUnit: LengthUnit.mm,
         unitWasExplicit: true,
-        isHeight: true,
+        isSecondDimension: true,
       );
       expect(warnings.single.kind, DimensionWarningKind.dropVeryShort);
     });
@@ -97,7 +97,7 @@ void main() {
         value: Length.mm(200),
         enteredUnit: LengthUnit.mm,
         unitWasExplicit: true,
-        isHeight: false,
+        isSecondDimension: false,
       );
       expect(warnings, isEmpty);
     });
@@ -107,9 +107,37 @@ void main() {
         value: Length.zero,
         enteredUnit: LengthUnit.mm,
         unitWasExplicit: true,
-        isHeight: true,
+        isSecondDimension: true,
       );
       expect(warnings, isEmpty);
+    });
+
+    test('a floor length is never called a short drop', () {
+      // A floor lies flat. Its second dimension is a LENGTH, and 300mm of it
+      // is a strip at a doorway — a real thing somebody orders. Questioning it
+      // is how people learn to tap past warnings, including the one that
+      // matters.
+      final warnings = checkDimension(
+        value: Length.mm(200),
+        enteredUnit: LengthUnit.mm,
+        unitWasExplicit: true,
+        isSecondDimension: true,
+        secondIsDrop: false,
+      );
+      expect(warnings, isEmpty);
+    });
+
+    test('a curtain drop still is', () {
+      // The other side of the same rule, so the flag cannot be wired to
+      // "never warn" and pass.
+      final warnings = checkDimension(
+        value: Length.mm(200),
+        enteredUnit: LengthUnit.mm,
+        unitWasExplicit: true,
+        isSecondDimension: true,
+        secondIsDrop: true,
+      );
+      expect(warnings.single.kind, DimensionWarningKind.dropVeryShort);
     });
   });
 
@@ -122,7 +150,7 @@ void main() {
         value: Length.tenths(30226), // 9ft 11in
         enteredUnit: LengthUnit.foot,
         unitWasExplicit: true,
-        isHeight: true,
+        isSecondDimension: true,
         bandEdgesTmm: const [tenFeetEdge],
       );
       expect(warnings.single.kind, DimensionWarningKind.nearBandEdge);
@@ -135,7 +163,7 @@ void main() {
         value: Length.tenths(30734), // 10ft 1in
         enteredUnit: LengthUnit.foot,
         unitWasExplicit: true,
-        isHeight: true,
+        isSecondDimension: true,
         bandEdgesTmm: const [tenFeetEdge],
       );
       expect(warnings.single.kind, DimensionWarningKind.nearBandEdge);
@@ -147,7 +175,7 @@ void main() {
         value: ft(9),
         enteredUnit: LengthUnit.foot,
         unitWasExplicit: true,
-        isHeight: true,
+        isSecondDimension: true,
         bandEdgesTmm: const [tenFeetEdge],
       );
       expect(warnings, isEmpty);
@@ -158,7 +186,7 @@ void main() {
         value: Length.tenths(30480),
         enteredUnit: LengthUnit.foot,
         unitWasExplicit: true,
-        isHeight: true,
+        isSecondDimension: true,
       );
       expect(warnings, isEmpty);
     });
@@ -168,7 +196,7 @@ void main() {
         value: Length.tenths(30480),
         enteredUnit: LengthUnit.foot,
         unitWasExplicit: true,
-        isHeight: true,
+        isSecondDimension: true,
         bandEdgesTmm: const [tenFeetEdge, 30500],
       );
       expect(
@@ -183,7 +211,7 @@ void main() {
         value: ft(9),
         enteredUnit: LengthUnit.foot,
         unitWasExplicit: true,
-        isHeight: true,
+        isSecondDimension: true,
         bandEdgesTmm: const [tenFeetEdge],
         thresholds: wide,
       );
@@ -191,14 +219,14 @@ void main() {
     });
   });
 
-  group('SPEC.md §5.4 — plausible size, per category, per field', () {
+  group('SPEC.md §5.5 — plausible size, per category, per field', () {
     // Generous on purpose: these exist to catch 203 metres, not to second-guess
     // a real order. A warning that fires on real work gets tapped past.
     const card = WarningThresholds(
       plausibleByCategory: {
         'curtain': CategoryPlausibility(
           width: PlausibleRange(minTmm: 1000, maxTmm: 200000),
-          height: PlausibleRange(minTmm: 1000, maxTmm: 60000),
+          second: PlausibleRange(minTmm: 1000, maxTmm: 60000),
         ),
         'flooring': CategoryPlausibility(
           width: PlausibleRange(minTmm: 1000, maxTmm: 500000),
@@ -210,20 +238,22 @@ void main() {
       Length value, {
       LengthUnit unit = LengthUnit.mm,
       bool explicit = true,
-      bool isHeight = false,
+      bool isSecondDimension = false,
+      bool secondIsDrop = true,
       String? category = 'curtain',
       WarningThresholds thresholds = card,
     }) => checkDimension(
       value: value,
       enteredUnit: unit,
       unitWasExplicit: explicit,
-      isHeight: isHeight,
+      isSecondDimension: isSecondDimension,
+      secondIsDrop: secondIsDrop,
       depositCategory: category,
       thresholds: thresholds,
     );
 
     test('8000in is flagged even though the unit was typed', () {
-      // THE case §5.4 works through, and the one that was silently accepted.
+      // THE case §5.5 works through, and the one that was silently accepted.
       // 8000 x 254 = 2,032,000 tenths = 203.2 metres. The old rule exempted
       // any explicit unit as "a statement, not a slip" — but an explicit
       // 8000in is a thumb in the wrong place, not a statement.
@@ -258,7 +288,7 @@ void main() {
 
     test('the range is per field: 8m wide is fine, 8m tall is not', () {
       final wide = check(Length.tenths(80000));
-      final tall = check(Length.tenths(80000), isHeight: true);
+      final tall = check(Length.tenths(80000), isSecondDimension: true);
 
       expect(
         wide.where(
@@ -311,7 +341,7 @@ void main() {
         check(
           Length.tenths(9999999),
           category: 'flooring',
-          isHeight: true,
+          isSecondDimension: true,
         ).where((w) => w.kind == DimensionWarningKind.implausibleForCategory),
         isEmpty,
       );
@@ -452,7 +482,7 @@ void main() {
         value: Length.mm(70000),
         enteredUnit: LengthUnit.inch,
         unitWasExplicit: false,
-        isHeight: true,
+        isSecondDimension: true,
         bandEdgesTmm: const [700000],
       );
       // A nudge is advice. The caller still gets a usable length.

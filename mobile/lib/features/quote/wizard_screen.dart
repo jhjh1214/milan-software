@@ -170,10 +170,20 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
       plausibleByCategory: card.config.plausibleByCategory,
     );
 
-    // §5.4: a plausible range is a property of the field IN ITS CATEGORY. A
+    // §5.5: a plausible range is a property of the field IN ITS CATEGORY. A
     // six-metre drop is a double-height living room; a six-metre flooring run
     // is a corridor.
     final category = depositCategoryOf(product.family).name;
+
+    // What the second dimension actually is. A floor lies flat: it has a
+    // LENGTH, and asking a part-timer standing in a room for its "height"
+    // invites them to type the wall.
+    final second = secondDimensionOf(product.family);
+    final secondLabel = switch (second) {
+      SecondDimension.drop => l.height,
+      SecondDimension.length => l.lengthDimension,
+      SecondDimension.height => l.height,
+    };
 
     final widthState = DimensionFieldState(
       raw: _rawWidth,
@@ -185,7 +195,8 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
               value: widthParsed.length,
               enteredUnit: widthParsed.unit,
               unitWasExplicit: widthParsed.unitWasExplicit,
-              isHeight: false,
+              isSecondDimension: false,
+              secondIsDrop: second == SecondDimension.drop,
               depositCategory: category,
               bandEdgesTmm: product.bandField == BandField.width
                   ? bandEdges
@@ -204,7 +215,8 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
               value: heightParsed.length,
               enteredUnit: heightParsed.unit,
               unitWasExplicit: heightParsed.unitWasExplicit,
-              isHeight: true,
+              isSecondDimension: true,
+              secondIsDrop: second == SecondDimension.drop,
               depositCategory: category,
               bandEdgesTmm: product.bandField == BandField.height
                   ? bandEdges
@@ -258,7 +270,7 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
                 ),
                 const SizedBox(height: Space.xl),
                 DimensionField(
-                  label: l.height,
+                  label: secondLabel,
                   state: heightState,
                   isFocused: _focused == _Field.height,
                   onTap: () => setState(() => _focused = _Field.height),
@@ -325,7 +337,7 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
     ParsedLength width,
     ParsedLength? height,
   ) {
-    // §5.5: show entered and billed together, e.g. `12尺 4寸 → 按 13 尺计`.
+    // §5.6: show entered and billed together, e.g. `12尺 4寸 → 按 13 尺计`.
     final unit = billedUnitLabel(l, product.basis);
     return switch (product.basis) {
       PriceBasis.perFtWidth => l.billedAs('${width.length.feetCeil}', unit),
@@ -355,7 +367,7 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
     DimensionWarningKind.nearBandEdge => l.warnNearBandEdge(
       '${(w.bandEdgeTmm ?? 0) ~/ 3048} ${l.unitFoot}',
     ),
-    // §5.4: say the number back in metres. "8000in" reads as a plausible
+    // §5.5: say the number back in metres. "8000in" reads as a plausible
     // number; "203m" does not, and that is the whole point of showing it.
     DimensionWarningKind.implausibleForCategory => l.warnImplausibleSize(
       _metresOf(
@@ -382,7 +394,7 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
 
   void _applyWarning(DimensionWarning w, _Field field) {
     if (w.kind != DimensionWarningKind.unitLooksWrong) return;
-    // One tap to fix, per §5.4.
+    // One tap to fix, per §5.5.
     setState(() {
       if (field == _Field.width) {
         _widthUnit = w.suggestedUnit ?? LengthUnit.mm;

@@ -29,6 +29,47 @@ enum PricingStage {
 /// ride the curtain deposit.
 enum Family { curtain, blind, track, flooring, wallpaper, addon, service }
 
+/// What the **second** dimension of a line actually is. SPEC.md §4.1, §5.
+///
+/// Every line is two dimensions and the arithmetic is the same either way —
+/// `per_sqft` multiplies them, `per_ft_width` charges only the first. What
+/// differs is **what a person is being asked to measure**, and that is not
+/// cosmetic:
+///
+/// * A curtain or a blind hangs, so the second dimension is its **drop**. It
+///   selects the band (§4.3) and a very short one is worth questioning.
+/// * A floor lies flat. The second dimension is the room's **length**. There
+///   is no drop, no band, and nothing short about a 300mm strip at a doorway.
+/// * Wallpaper covers a wall, so it really is a **height**.
+///
+/// Labelling a floor's length "height" asks a part-timer for the wrong thing
+/// in a room where the wrong thing — a wall height — is also a plausible
+/// number they can see. That is the exact confusion §5 exists to prevent.
+enum SecondDimension {
+  /// A curtain or blind's drop. Bands on it; a short one is questioned.
+  drop,
+
+  /// A floor's length. Never bands, and never questioned for being short.
+  length,
+
+  /// A wall's height, for wallpaper.
+  height,
+}
+
+/// What [family] calls its second dimension.
+///
+/// Add-ons and services inherit their parent's shape, so they follow the
+/// commonest case rather than inventing a fourth word.
+SecondDimension secondDimensionOf(Family family) => switch (family) {
+  Family.flooring => SecondDimension.length,
+  Family.wallpaper => SecondDimension.height,
+  Family.curtain ||
+  Family.blind ||
+  Family.track ||
+  Family.addon ||
+  Family.service => SecondDimension.drop,
+};
+
 /// The category an RM300 deposit buys a rate hold on.
 enum DepositCategory { curtain, flooring, wallpaper }
 
@@ -338,7 +379,7 @@ class RateCardConfig {
   /// RM11,200, and by then the customer has gone home.
   final int einvoicePromptSen;
 
-  /// What each deposit category can physically measure, per field. §5.4.
+  /// What each deposit category can physically measure, per field. §5.5.
   /// Empty means no plausibility warning anywhere, which is the safe default.
   final Map<String, CategoryPlausibility> plausibleByCategory;
 
@@ -373,7 +414,7 @@ class RateCardConfig {
   );
 }
 
-/// Reads §5.4's plausible ranges off the card.
+/// Reads §5.5's plausible ranges off the card.
 ///
 /// A missing block, a missing category or a missing bound all mean "do not
 /// warn". A config that is absent must never invent a limit that blocks a real
@@ -389,12 +430,19 @@ Map<String, CategoryPlausibility> _plausibleFromJson(Object? raw) {
         : PlausibleRange(minTmm: min, maxTmm: max);
   }
 
+  // The second dimension is named for what it is: a curtain has a `drop`, a
+  // floor a `length`, a wall a `height`. Whichever the category uses is read.
+  // Naming it `height` everywhere would be the same mistake the screens used
+  // to make — asking for the height of a floor.
+  PlausibleRange? second(Map<dynamic, dynamic> c) =>
+      range(c, 'drop') ?? range(c, 'length') ?? range(c, 'height');
+
   return {
     for (final entry in raw.entries)
       if (entry.value is Map)
         entry.key as String: CategoryPlausibility(
           width: range(entry.value as Map, 'width'),
-          height: range(entry.value as Map, 'height'),
+          second: second(entry.value as Map),
         ),
   };
 }

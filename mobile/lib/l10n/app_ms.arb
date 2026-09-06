@@ -46,6 +46,8 @@
 
   "width": "Lebar",
   "height": "Tinggi",
+  "lengthDimension": "Panjang",
+  "dropDimension": "Tinggi",
   "quantity": "Kuantiti",
   "sameWindows": "{count} tingkap serupa",
 

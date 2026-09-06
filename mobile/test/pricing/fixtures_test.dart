@@ -335,7 +335,7 @@ void main() {
 
       final curtain = ranges['curtain']!;
       expect(curtain.width, isNotNull);
-      expect(curtain.height, isNotNull);
+      expect(curtain.second, isNotNull);
     });
 
     test('8000in is outside the curtain range, 8000mm is inside it', () {
@@ -348,7 +348,86 @@ void main() {
     test('a curtain drop is bounded tighter than a curtain width', () {
       // They are different questions, which is why they are separate fields.
       final curtain = card.config.plausibleByCategory['curtain']!;
-      expect(curtain.height!.maxTmm, lessThan(curtain.width!.maxTmm!));
+      expect(curtain.second!.maxTmm, lessThan(curtain.width!.maxTmm!));
+    });
+
+    test('the card names the second dimension for what it is', () {
+      // A curtain has a `drop`, a floor a `length`, a wall a `height`. The
+      // loader reads whichever the category uses, and the card is edited by
+      // hand — so it has to read correctly to the person editing it.
+      final raw =
+          jsonDecode(File(_findCard()).readAsStringSync())
+              as Map<String, dynamic>;
+      final plausible =
+          (raw['config'] as Map<String, dynamic>)['plausible_dimensions']
+              as Map<String, dynamic>;
+
+      expect((plausible['curtain'] as Map).keys, contains('drop_max_tmm'));
+      expect(
+        (plausible['flooring'] as Map).keys,
+        contains('length_max_tmm'),
+        reason: 'a floor lies flat — it has a length, not a height',
+      );
+      expect((plausible['wallpaper'] as Map).keys, contains('height_max_tmm'));
+
+      // And each one is actually read, whatever it is called.
+      for (final category in const ['curtain', 'flooring', 'wallpaper']) {
+        expect(
+          card.config.plausibleByCategory[category]?.second,
+          isNotNull,
+          reason: '$category: the second dimension must be loaded',
+        );
+      }
+    });
+  });
+
+  group('what a family calls its second dimension', () {
+    test('a floor has a length, a curtain a drop, a wall a height', () {
+      // The arithmetic is the same either way — per_sqft multiplies the two.
+      // What differs is what a person is asked to measure, and asking for the
+      // "height" of a floor invites them to type the wall.
+      expect(secondDimensionOf(Family.flooring), SecondDimension.length);
+      expect(secondDimensionOf(Family.curtain), SecondDimension.drop);
+      expect(secondDimensionOf(Family.blind), SecondDimension.drop);
+      expect(secondDimensionOf(Family.track), SecondDimension.drop);
+      expect(secondDimensionOf(Family.wallpaper), SecondDimension.height);
+    });
+
+    test('every family has an answer', () {
+      // A family with none would fall through to whatever the switch defaults
+      // to, silently, on a screen.
+      for (final family in Family.values) {
+        expect(secondDimensionOf(family), isNotNull, reason: family.name);
+      }
+    });
+
+    test('no flooring row bands, which is why it has no drop', () {
+      // The reason flooring is the odd one out. Nothing it sells is priced by
+      // how tall it is, so its second dimension never selects a rate — it is
+      // the other side of a floor area.
+      final flooring = card.rules.where((r) => r.family == Family.flooring);
+      expect(flooring, isNotEmpty);
+      for (final rule in flooring) {
+        expect(rule.bandField, BandField.none, reason: rule.id);
+      }
+    });
+
+    test('flooring is sold by area, except skirting which is a run', () {
+      // Skirting follows the wall, so it is charged in running feet and uses
+      // only the first dimension. Worth pinning: it is the one flooring row
+      // where a second dimension would be meaningless rather than mislabelled.
+      final byBasis = <PriceBasis, List<String>>{};
+      for (final rule in card.rules.where((r) => r.family == Family.flooring)) {
+        (byBasis[rule.basis] ??= []).add(rule.id);
+      }
+
+      expect(byBasis[PriceBasis.perFtWidth], ['skirting']);
+      expect(
+        byBasis[PriceBasis.perSqft],
+        hasLength(greaterThan(5)),
+        reason: 'every other flooring row is an area',
+      );
+      expect(byBasis.keys, hasLength(2), reason: 'no third basis crept in');
     });
   });
 
@@ -595,6 +674,14 @@ PricedLine _stubLine({
     quantity: 1,
     total: Money.sen(totalSen),
   );
+}
+
+String _findCard() {
+  var dir = Directory.current;
+  while (!File('${dir.path}/shared/pricing-fixtures.json').existsSync()) {
+    dir = dir.parent;
+  }
+  return '${dir.path}/shared/rate-card-fair-2026-08.json';
 }
 
 String _findFixtures() {

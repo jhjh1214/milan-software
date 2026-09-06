@@ -137,6 +137,12 @@ class LMs extends L {
   String get height => 'Tinggi';
 
   @override
+  String get lengthDimension => 'Panjang';
+
+  @override
+  String get dropDimension => 'Tinggi';
+
+  @override
   String get quantity => 'Kuantiti';
 
   @override

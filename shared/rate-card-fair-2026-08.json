@@ -19,19 +19,20 @@
     "einvoice_threshold_sen": 1000000,
     "_einvoice_prompt": "Section 10.4's timing trap. The fair estimate is rough and an order quoted at RM8,500 settles at RM11,200, so the quote wizard asks from RM8,000 - while the customer is still standing there. The margin applies to the estimate only; a final is exact and needs none.",
     "einvoice_prompt_sen": 800000,
-    "_plausible_dimensions": "SPEC.md section 5.4. What size a thing can physically be, per deposit category and per field, in tenths of a millimetre. Config rather than hardcoded guesses: a plausible curtain drop is not a plausible flooring run. These are DELIBERATELY GENEROUS - they exist to catch 8000in (203 metres), not to second-guess a real order. A warning that fires on real work is a warning staff learn to tap past. A category absent from this map warns on nothing, which is the safe default: a missing config must never invent a limit that blocks a real order.",
+    "_plausible_dimensions": "SPEC.md section 5.4. What size a thing can physically be, per deposit category and per dimension, in tenths of a millimetre. Config rather than hardcoded guesses: a plausible curtain drop is not a plausible floor length. These are DELIBERATELY GENEROUS - they exist to catch 8000in (203 metres), not to second-guess a real order. A warning that fires on real work is a warning staff learn to tap past. A category absent from this map warns on nothing, which is the safe default: a missing config must never invent a limit that blocks a real order.",
+    "_plausible_second_dimension": "The SECOND dimension is named for what it actually is, because whoever edits this file has to recognise it. A curtain hangs, so it has a DROP. A floor lies flat, so it has a LENGTH - it is not a height, and asking a part-timer standing in a room for the 'height' of a floor invites them to type the wall. Wallpaper covers a wall, so it really is a HEIGHT. Use drop_/length_/height_ to match the category; the loader reads whichever is present.",
     "plausible_dimensions": {
       "curtain": {
         "width_min_tmm": 1000,
         "width_max_tmm": 200000,
-        "height_min_tmm": 1000,
-        "height_max_tmm": 60000
+        "drop_min_tmm": 1000,
+        "drop_max_tmm": 60000
       },
       "flooring": {
         "width_min_tmm": 1000,
         "width_max_tmm": 500000,
-        "height_min_tmm": 1000,
-        "height_max_tmm": 500000
+        "length_min_tmm": 1000,
+        "length_max_tmm": 500000
       },
       "wallpaper": {
         "width_min_tmm": 1000,

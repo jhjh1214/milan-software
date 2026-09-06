@@ -601,17 +601,51 @@ Two rules hold the whole thing together:
 2. **Nothing is silently corrected.** The system may say "that looks wrong, did
    you mean X?" and make X one tap away. It may never quietly become X. A
    silent correction is a wrong price with no visible error, which is the exact
-   failure §5.2 exists to prevent.
+   failure §5.3 exists to prevent.
 
-## 5.2 Do not guess unit from magnitude
+## 5.2 What the second dimension IS depends on the product
+
+Every line carries two dimensions and the arithmetic never changes —
+`per_sqft` multiplies them, `per_ft_width` charges only the first. What changes
+is **what a person is being asked to measure**:
+
+| Family | First | Second | Bands on it? |
+|---|---|---|---|
+| curtain, blind, track | width | **drop** | yes, the drop |
+| flooring | width | **length** | never |
+| wallpaper | width | **height** | never |
+
+**A floor lies flat. It has a length, not a height** — the two together are a
+surface area. Labelling it "height" asks a part-timer standing in a room for
+the wrong thing, in a room where the wrong thing — the wall height — is also a
+plausible number they can see and type. That is the exact confusion this whole
+section exists to prevent, and it is worse than a wrong unit because the number
+looks entirely reasonable.
+
+Two consequences beyond the label:
+
+- **The short-drop warning is drop-only.** 300mm of floor is a strip at a
+  doorway, a real thing somebody orders. Questioning it teaches people to tap
+  past warnings, including the one that matters.
+- **Nothing in flooring bands.** Every flooring row is unbanded, so its second
+  dimension never selects a rate. Skirting is the one row charged `per_ft_width`
+   — it follows the wall, so it is a running length and has no second dimension
+  at all.
+
+`secondDimensionOf(family)` is the single place this is decided, and the
+plausible ranges on the rate card are named for what they are — `drop_*`,
+`length_*`, `height_*` — because that file is edited by hand and has to read
+correctly to whoever edits it.
+
+## 5.3 Do not guess unit from magnitude
 
 Rejected design, and it stays rejected. `84` is a plausible inch drop and a
 plausible cm width. `180` likewise. The ambiguous band 50–300 is where most real
 input lands. A wrong guess produces a wrong price with no visible error.
 
-Magnitude drives **warnings** (§5.4). It never drives interpretation.
+Magnitude drives **warnings** (§5.5). It never drives interpretation.
 
-## 5.3 What ships
+## 5.4 What ships
 
 - Per-field **default unit**, set by admin
 - **Always-visible tappable unit chip** beside every dimension field
@@ -647,7 +681,7 @@ the way in. See CLAUDE.md.
 
 Chinese numerals are not parsed — out of scope.
 
-## 5.4 Plausibility validation
+## 5.5 Plausibility validation
 
 Non-blocking, one tap to fix, and **configurable rather than a pile of
 hardcoded guesses**.
@@ -690,7 +724,7 @@ number that changes itself is worse than a number that argues.
 **The band-edge warning is still the highest-value validation in the app.** On a
 12ft curtain, `10ft 1in` vs `9ft 11in` is a RM144 swing.
 
-## 5.5 Display
+## 5.6 Display
 
 Show entered value **and** billed value: `12尺 4寸 -> 按 13 尺计`.
 Never show more precision than was entered.

@@ -147,7 +147,13 @@ class _MeasureSheetState extends ConsumerState<MeasureSheet> {
                 const SizedBox(height: Space.sm),
                 _field(
                   l,
-                  l.height,
+                  // A floor lies flat: it has a LENGTH. Asking a measurer
+                  // standing in a room for the "height" of a floor invites
+                  // them to type the wall.
+                  switch (_secondDimension) {
+                    SecondDimension.length => l.lengthDimension,
+                    _ => l.height,
+                  },
                   _Field.height,
                   _rawHeight,
                   _heightUnit,
@@ -227,7 +233,8 @@ class _MeasureSheetState extends ConsumerState<MeasureSheet> {
               value: parsed.length,
               enteredUnit: parsed.unit,
               unitWasExplicit: parsed.unitWasExplicit,
-              isHeight: field == _Field.height,
+              isSecondDimension: field == _Field.height,
+              secondIsDrop: _secondDimension == SecondDimension.drop,
               depositCategory: _categoryOf(),
               thresholds: WarningThresholds(
                 plausibleByCategory:
@@ -283,17 +290,29 @@ class _MeasureSheetState extends ConsumerState<MeasureSheet> {
         : '${(parsed.length.tmm / 10000).toStringAsFixed(1)}m';
   }
 
-  /// The deposit category of the rule that priced this line, for §5.4's
-  /// category-aware plausibility check.
-  String? _categoryOf() {
+  /// The rule that priced this line, on the card it was priced at.
+  PricingRule? get _rule {
     final card = _card;
     if (card == null) return null;
     for (final rule in card.rules) {
-      if (rule.id == widget.line.appliedRuleId) {
-        return depositCategoryOf(rule.family).name;
-      }
+      if (rule.id == widget.line.appliedRuleId) return rule;
     }
     return null;
+  }
+
+  /// The deposit category of that rule, for §5.5's category-aware
+  /// plausibility check.
+  String? _categoryOf() {
+    final rule = _rule;
+    return rule == null ? null : depositCategoryOf(rule.family).name;
+  }
+
+  /// What this product's second dimension is — a drop, a floor length or a
+  /// wall height. Defaults to a drop when the rule cannot be found, which is
+  /// the commonest case and matches the field's existing label.
+  SecondDimension get _secondDimension {
+    final rule = _rule;
+    return rule == null ? SecondDimension.drop : secondDimensionOf(rule.family);
   }
 
   Future<void> _save(BuildContext context) async {

@@ -137,6 +137,12 @@ class LEn extends L {
   String get height => 'Height';
 
   @override
+  String get lengthDimension => 'Length';
+
+  @override
+  String get dropDimension => 'Drop';
+
+  @override
   String get quantity => 'Quantity';
 
   @override

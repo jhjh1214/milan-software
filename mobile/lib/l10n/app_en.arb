@@ -46,6 +46,8 @@
 
   "width": "Width",
   "height": "Height",
+  "lengthDimension": "Length",
+  "dropDimension": "Drop",
   "quantity": "Quantity",
   "sameWindows": "{count} identical windows",
 

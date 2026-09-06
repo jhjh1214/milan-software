@@ -135,6 +135,12 @@ class LZh extends L {
   String get height => '高';
 
   @override
+  String get lengthDimension => '长';
+
+  @override
+  String get dropDimension => '高';
+
+  @override
   String get quantity => '数量';
 
   @override
