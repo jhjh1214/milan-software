@@ -255,6 +255,18 @@ class PricingRule {
   /// buy-one-free-one pair: charge 1, deliver 2.
   final int bundleQty;
 
+  /// True when the rate on this row is a **placeholder**, not a real price.
+  ///
+  /// A row can exist before its price does -- stairs and landings were added
+  /// as soon as the shape was known, with the rates still to come. The engine
+  /// REFUSES to price a provisional row rather than quoting the placeholder,
+  /// because a placeholder that reaches a customer is worse than a product
+  /// that is not offered yet.
+  ///
+  /// Clearing the flag and setting the rate is a data edit: no code change and
+  /// no rebuild (hard rule 1).
+  final bool provisional;
+
   /// Overrides the family's deposit category. Flooring services ride the
   /// flooring deposit, not the curtain one.
   final DepositCategory? depositCategoryOverride;
@@ -288,6 +300,7 @@ class PricingRule {
     required this.sortOrder,
     this.coverageSqft,
     this.bundleQty = 1,
+    this.provisional = false,
     this.depositCategoryOverride,
     this.isAddon = false,
     this.attachesTo,
@@ -327,6 +340,7 @@ class PricingRule {
           ? null
           : Rational.fromInt(json['coverage_sqft'] as int),
       bundleQty: json['bundle_qty'] as int? ?? 1,
+      provisional: json['provisional'] as bool? ?? false,
       depositCategoryOverride: json['deposit_category'] == null
           ? null
           : DepositCategory.values.byName(json['deposit_category'] as String),

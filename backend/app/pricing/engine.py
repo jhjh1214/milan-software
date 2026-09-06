@@ -170,6 +170,23 @@ def price_line(
     )
 
     # 5. Raw quantity by basis, exact.
+    # A row whose price is still a placeholder is not a price.
+    #
+    # Stairs and landings exist on the card before their rates do, so the shape
+    # is ready when the numbers arrive. Quoting the placeholder would put RM0 --
+    # or whatever was typed to hold the slot -- in front of a customer, which is
+    # worse than not offering the product yet.
+    if rule.provisional:
+        raise NoApplicableRate(
+            variant=request.variant,
+            material_key=request.material_key,
+            band_value=None,
+            detail=(
+                f"{rule.id} has no rate yet -- the row is a placeholder and "
+                "cannot be quoted until a real price is published"
+            ),
+        )
+
     raw_qty = _raw_quantity(rule, request)
 
     # 6. Wastage. Not on the current card; the step exists so both engines keep

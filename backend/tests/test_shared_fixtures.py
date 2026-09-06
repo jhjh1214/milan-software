@@ -33,6 +33,7 @@ from app.pricing.einvoice_threshold import (
 )
 from app.pricing.engine import (
     LineRequest,
+    NoApplicableRate,
     PricedLine,
     price_line,
     total_quote,
@@ -47,6 +48,7 @@ from app.pricing.models import (
     DepositCategory,
     Fulfilment,
     Layer,
+    PriceBasis,
     PricingStage,
     RateCard,
 )
@@ -366,10 +368,58 @@ def test_the_fixture_file_is_not_empty() -> None:
 
 def test_the_card_is_the_real_price_list() -> None:
     assert CARD.provisional is False
-    assert len(CARD.rules) == 77
+    # 77 rows transcribed from the printed list, plus 4 stair and landing rows
+    # whose rates have not been supplied yet. Those 4 are `provisional` and the
+    # engine refuses to price them, so the count of *sellable* rows is still 77.
+    assert len(CARD.rules) == 81
+    sellable = [r for r in CARD.rules if not r.provisional]
+    assert len(sellable) == 77, "the printed list is 77 rows"
+    assert all(r.rate_sen > 0 for r in sellable)
     assert len(CARD.delivery_zones) == 2
     assert CARD.promo is not None
     assert CARD.promo.code == "MITC-2026-08"
+
+
+def test_a_placeholder_rate_cannot_be_priced() -> None:
+    """Stairs and landings exist before their rates do. SPEC.md §13 A22.
+
+    Quoting the placeholder would put RM0 in front of a customer, which is
+    worse than not offering the product yet. Mirrors the Dart engine.
+    """
+    provisional = [r for r in CARD.rules if r.provisional]
+    assert {r.id for r in provisional} == {
+        "stair-step-narrow",
+        "stair-step-wide",
+        "stair-landing-narrow",
+        "stair-landing-wide",
+    }
+
+    with pytest.raises(NoApplicableRate):
+        price_line(
+            request=LineRequest(
+                variant="stair_step",
+                width=Length(4 * 3048),
+                quantity=14,
+            ),
+            card=CARD,
+            stage=PricingStage.ESTIMATE,
+        )
+
+
+def test_a_stair_bands_on_width_at_five_feet() -> None:
+    """Exactly 5ft is the cheaper side — the same fencepost rule as A1."""
+    narrow = next(r for r in CARD.rules if r.id == "stair-step-narrow")
+    wide = next(r for r in CARD.rules if r.id == "stair-step-wide")
+
+    assert narrow.band_max_tmm == 15241
+    assert wide.band_min_tmm == 15241
+    assert 5 * 3048 < narrow.band_max_tmm, "exactly 5ft is the narrow rate"
+
+
+def test_skirting_is_four_ringgit_a_running_foot() -> None:
+    skirting = next(r for r in CARD.rules if r.id == "skirting")
+    assert skirting.rate_sen == 400
+    assert skirting.basis is PriceBasis.PER_FT_WIDTH
 
 
 def test_the_fair_card_expires_outside_its_window() -> None:

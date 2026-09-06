@@ -13,6 +13,7 @@ import 'package:milan_quote/pricing/rate_card_csv.dart';
 /// rebuild or a release.
 void main() {
   late RateCard card;
+  late String cardSource;
 
   setUpAll(() {
     var dir = Directory.current;
@@ -21,14 +22,10 @@ void main() {
     ).existsSync()) {
       dir = dir.parent;
     }
-    card = RateCard.fromJson(
-      jsonDecode(
-            File(
-              '${dir.path}/shared/rate-card-fair-2026-08.json',
-            ).readAsStringSync(),
-          )
-          as Map<String, dynamic>,
-    );
+    cardSource = File(
+      '${dir.path}/shared/rate-card-fair-2026-08.json',
+    ).readAsStringSync();
+    card = RateCard.fromJson(jsonDecode(cardSource) as Map<String, dynamic>);
   });
 
   group('export', () {
@@ -160,6 +157,105 @@ void main() {
         readRateCardCsv(edited('night-curtain-lo', '0'), card).errors.single,
         contains('not sellable'),
       );
+      // A negative is stopped one step earlier, by the money parser, so it
+      // reports "not a price" rather than "not sellable". Either way it is
+      // refused; the point of the test is that no rule ever holds one.
+      expect(
+        readRateCardCsv(edited('night-curtain-lo', '-1.00'), card).errors,
+        isNotEmpty,
+      );
+    });
+
+    group('a placeholder row', () {
+      // Stairs and landings were added before their rates were known. The
+      // export writes 0.00 for them, so the import has to accept that value
+      // back on those rows — and only those rows.
+      test('accepts the 0.00 the export wrote, as no change', () {
+        final result = readRateCardCsv(edited('stair-step-narrow', '0.00'), card);
+        expect(result.errors, isEmpty);
+        expect(result.actualChanges, isEmpty);
+      });
+
+      test('a negative rate is still refused', () {
+        // The exception is for zero exactly, not for "anything unsellable".
+        expect(
+          readRateCardCsv(edited('stair-step-narrow', '-1.00'), card).errors,
+          isNotEmpty,
+        );
+      });
+
+      test('a real rate makes it sellable in the same edit', () {
+        // The flag and the number move together. If they could drift apart the
+        // admin would type RM120, be told it was accepted, and the engine
+        // would still refuse to quote the product.
+        final result = readRateCardCsv(
+          edited('stair-step-narrow', '120.00'),
+          card,
+        );
+        expect(result.errors, isEmpty);
+        final change = result.actualChanges.single;
+        expect(change.newRateSen, 12000);
+        expect(change.clearsProvisional, isTrue);
+
+        final applied = applyRateCardImport(card, result);
+        final rule = applied.rules.firstWhere(
+          (r) => r.id == 'stair-step-narrow',
+        );
+        expect(rule.provisional, isFalse);
+        expect(rule.rateSen, 12000);
+
+        // And the one it did not price is untouched.
+        expect(
+          applied.rules.firstWhere((r) => r.id == 'stair-step-wide').provisional,
+          isTrue,
+        );
+      });
+
+      test('is quotable once priced, and refused before', () {
+        LineRequest request() => LineRequest(
+          variant: 'stair_step',
+          width: Length.tenths(4 * 3048),
+          quantity: 14,
+        );
+
+        expect(
+          () => priceLine(
+            request: request(),
+            card: card,
+            stage: PricingStage.estimate,
+          ),
+          throwsA(isA<NoApplicableRate>()),
+        );
+
+        final priced = applyRateCardImport(
+          card,
+          readRateCardCsv(edited('stair-step-narrow', '120.00'), card),
+        );
+        expect(
+          priceLine(
+            request: request(),
+            card: priced,
+            stage: PricingStage.estimate,
+          ).total.sen,
+          168000,
+          reason: '14 steps at RM120',
+        );
+      });
+
+      test('the JSON route clears the flag too', () {
+        // The two apply paths must agree: one writes the map the asset is
+        // rebuilt from, the other the card held in memory.
+        final json = jsonDecode(cardSource) as Map<String, dynamic>;
+        final out = applyRateCardImportToJson(
+          json,
+          readRateCardCsv(edited('stair-step-narrow', '120.00'), card),
+        );
+        final row = (out['rules'] as List<dynamic>).firstWhere(
+          (r) => (r as Map<String, dynamic>)['id'] == 'stair-step-narrow',
+        ) as Map<String, dynamic>;
+        expect(row['provisional'], isFalse);
+        expect(row['rate_sen'], 12000);
+      });
     });
 
     test('an MVP rate above the standard rate is refused', () {

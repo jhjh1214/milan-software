@@ -111,6 +111,14 @@ void main() {
   test('no rate is hardcoded in the engine — every rule came from data', () {
     expect(card.rules, isNotEmpty);
     for (final rule in card.rules) {
+      if (rule.provisional) {
+        // A placeholder row carries no rate ON PURPOSE, and the engine refuses
+        // to price it. Skipped here rather than allowed a zero everywhere:
+        // "stairs have no price yet" and "this product is free" must never be
+        // the same state.
+        expect(rule.rateSen, 0, reason: '${rule.id} should hold no rate');
+        continue;
+      }
       expect(rule.rateSen, greaterThan(0), reason: '${rule.id} has no rate');
     }
   });
@@ -381,6 +389,79 @@ void main() {
     });
   });
 
+  group('stairs and landings', () {
+    PricingRule ruleFor(String id) =>
+        card.rules.firstWhere((r) => r.id == id, orElse: () => fail(id));
+
+    test('skirting is RM4 a running foot', () {
+      expect(ruleFor('skirting').rateSen, 400);
+      expect(ruleFor('skirting').basis, PriceBasis.perFtWidth);
+    });
+
+    test('a stair is charged per step, not by area', () {
+      // The line's quantity is the number of steps. Width is entered only to
+      // pick the band and is never multiplied.
+      for (final id in const ['stair-step-narrow', 'stair-step-wide']) {
+        expect(ruleFor(id).basis, PriceBasis.perPiece, reason: id);
+        expect(ruleFor(id).bandField, BandField.width, reason: id);
+      }
+    });
+
+    test('a landing is one price each, banded on width like the steps', () {
+      for (final id in const ['stair-landing-narrow', 'stair-landing-wide']) {
+        expect(ruleFor(id).basis, PriceBasis.perPiece, reason: id);
+        expect(ruleFor(id).bandField, BandField.width, reason: id);
+      }
+    });
+
+    test('the band is at 5ft, and exactly 5ft is the cheaper side', () {
+      // Same fencepost rule as the 10ft curtain band (A1): the max is
+      // exclusive, so 5ft is 15240 and falls below 15241.
+      expect(ruleFor('stair-step-narrow').bandMaxTmm, 15241);
+      expect(ruleFor('stair-step-wide').bandMinTmm, 15241);
+      expect(
+        5 * 3048,
+        lessThan(ruleFor('stair-step-narrow').bandMaxTmm!),
+        reason: 'exactly 5ft wide is the narrow rate',
+      );
+    });
+
+    test('a placeholder rate cannot be quoted', () {
+      // The rates are not known yet. Quoting the placeholder would put RM0 in
+      // front of a customer, which is worse than not offering the product.
+      for (final id in const [
+        'stair-step-narrow',
+        'stair-step-wide',
+        'stair-landing-narrow',
+        'stair-landing-wide',
+      ]) {
+        expect(ruleFor(id).provisional, isTrue, reason: id);
+      }
+
+      expect(
+        () => priceLine(
+          request: LineRequest(
+            variant: 'stair_step',
+            width: Length.of(const Rational.fromInt(4), LengthUnit.foot),
+            quantity: 14,
+          ),
+          card: card,
+          stage: PricingStage.estimate,
+        ),
+        throwsA(isA<NoApplicableRate>()),
+        reason: 'a 14-step staircase must refuse, not quote RM0',
+      );
+    });
+
+    test('every other row on the card still has a real rate', () {
+      // The guard must not have been switched on for anything that sells.
+      for (final rule in card.rules) {
+        if (rule.provisional) continue;
+        expect(rule.rateSen, greaterThan(0), reason: rule.id);
+      }
+    });
+  });
+
   group('what a family calls its second dimension', () {
     test('a floor has a length, a curtain a drop, a wall a height', () {
       // The arithmetic is the same either way — per_sqft multiplies the two.
@@ -401,21 +482,28 @@ void main() {
       }
     });
 
-    test('no flooring row bands, which is why it has no drop', () {
-      // The reason flooring is the odd one out. Nothing it sells is priced by
-      // how tall it is, so its second dimension never selects a rate — it is
-      // the other side of a floor area.
+    test('no flooring row bands on its SECOND dimension', () {
+      // The reason flooring has no drop: nothing it sells is priced by how
+      // tall it is. Stairs do band — on WIDTH, the first dimension, because a
+      // wider staircase costs more per step. Neither is a height.
       final flooring = card.rules.where((r) => r.family == Family.flooring);
       expect(flooring, isNotEmpty);
       for (final rule in flooring) {
-        expect(rule.bandField, BandField.none, reason: rule.id);
+        expect(
+          rule.bandField,
+          isNot(BandField.height),
+          reason: '${rule.id}: a floor is never priced by a height',
+        );
       }
     });
 
-    test('flooring is sold by area, except skirting which is a run', () {
-      // Skirting follows the wall, so it is charged in running feet and uses
-      // only the first dimension. Worth pinning: it is the one flooring row
-      // where a second dimension would be meaningless rather than mislabelled.
+    test('flooring is sold by area, except a run and a count', () {
+      // Three ways a floor is charged, and only three:
+      //   area     — the room itself, length x width
+      //   run      — skirting, which follows the wall and uses one dimension
+      //   count    — stairs and landings, which are done one at a time
+      // The count rows still carry a width, but it selects a band rather than
+      // multiplying: a wider step costs more per step, not per foot.
       final byBasis = <PriceBasis, List<String>>{};
       for (final rule in card.rules.where((r) => r.family == Family.flooring)) {
         (byBasis[rule.basis] ??= []).add(rule.id);
@@ -425,9 +513,19 @@ void main() {
       expect(
         byBasis[PriceBasis.perSqft],
         hasLength(greaterThan(5)),
-        reason: 'every other flooring row is an area',
+        reason: 'every other flooring room row is an area',
       );
-      expect(byBasis.keys, hasLength(2), reason: 'no third basis crept in');
+      expect(
+        byBasis[PriceBasis.perPiece],
+        unorderedEquals([
+          'stair-step-narrow',
+          'stair-step-wide',
+          'stair-landing-narrow',
+          'stair-landing-wide',
+        ]),
+        reason: 'only stairs and landings are counted',
+      );
+      expect(byBasis.keys, hasLength(3), reason: 'no fourth basis crept in');
     });
   });
 

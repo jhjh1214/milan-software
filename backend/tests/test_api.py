@@ -234,7 +234,10 @@ class TestBundle:
         body = r.json()
         assert body["rate_card_version"] == 1
         assert body["up_to_date"] is False
-        assert len(body["payload"]["rules"]) == 77
+        # 77 printed rows plus the 4 stair and landing placeholders, which the
+        # bundle carries so a handset knows the products exist — the engine is
+        # what refuses to price them.
+        assert len(body["payload"]["rules"]) == 81
 
     def test_it_serves_the_standard_card_separately(self, client: TestClient) -> None:
         r = client.get(

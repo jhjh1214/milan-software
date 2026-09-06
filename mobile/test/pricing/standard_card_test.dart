@@ -102,7 +102,13 @@ void main() {
         expect(rule.rateSen, ruleOf(fair, rule.id).rateSen, reason: rule.id);
         count++;
       }
-      expect(count, 33, reason: '33 of 77 rows carry no markup');
+      expect(count, 37, reason: '37 of 81 rows carry no markup');
+      // 33 of them are real prices left at the fair rate; the other 4 are the
+      // stair and landing placeholders, which have no rate to mark up. Split
+      // out so a real row quietly losing its markup cannot hide behind them.
+      final placeholders = standard.rules.where((r) => r.provisional);
+      expect(placeholders, hasLength(4));
+      expect(placeholders.every((r) => untouched.contains(r.family)), isTrue);
     });
 
     test('an S-Fold curtain is marked up like any other curtain', () {

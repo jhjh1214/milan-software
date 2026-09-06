@@ -183,6 +183,15 @@ class PricingRule:
     sort_order: int
     coverage_sqft: Fraction | None = None
     bundle_qty: int = 1
+
+    #: True when the rate on this row is a **placeholder**, not a real price.
+    #:
+    #: A row can exist before its price does -- stairs and landings were added
+    #: as soon as the shape was known, with the rates still to come. The engine
+    #: REFUSES to price a provisional row rather than quoting the placeholder,
+    #: because a placeholder that reaches a customer is worse than a product
+    #: that is not offered yet.
+    provisional: bool = False
     deposit_category_override: DepositCategory | None = None
     is_addon: bool = False
     attaches_to: tuple[str, ...] | None = None
@@ -221,6 +230,7 @@ class PricingRule:
             sort_order=data["sort_order"],
             coverage_sqft=None if coverage is None else Fraction(coverage),
             bundle_qty=data.get("bundle_qty", 1),
+            provisional=data.get("provisional", False),
             deposit_category_override=(DepositCategory(deposit) if deposit else None),
             is_addon=data.get("is_addon", False),
             attaches_to=tuple(attaches) if attaches else None,

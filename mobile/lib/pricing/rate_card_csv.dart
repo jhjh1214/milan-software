@@ -33,6 +33,14 @@ class RateChange {
   final int? oldMvpRateSen;
   final int? newMvpRateSen;
 
+  /// True when this change gives a placeholder row its first real rate.
+  ///
+  /// Supplying the rate is what makes the product sellable — the flag is
+  /// cleared by the same edit that sets the number, never separately. If the
+  /// two could drift apart the admin would type RM120, see it accepted, and
+  /// the engine would still refuse to quote it.
+  final bool clearsProvisional;
+
   const RateChange({
     required this.ruleId,
     required this.label,
@@ -40,6 +48,7 @@ class RateChange {
     required this.newRateSen,
     required this.oldMvpRateSen,
     required this.newMvpRateSen,
+    this.clearsProvisional = false,
   });
 
   bool get rateChanged => oldRateSen != newRateSen;
@@ -153,7 +162,12 @@ RateCardImport readRateCardCsv(String csv, RateCard card) {
       errors.add('Line ${i + 1}: "${cells[4]}" is not a price');
       continue;
     }
-    if (rateSen <= 0) {
+    // Zero is refused on a row that has a price, and accepted on a placeholder
+    // that never had one — where it is what the export just wrote and means
+    // "still no rate". Without the exception the card could not round-trip at
+    // all, and an admin who exported, changed one curtain and imported back
+    // would be told four products they never touched are broken.
+    if (rateSen < 0 || (rateSen == 0 && !rule.provisional)) {
       errors.add('Line ${i + 1}: a rate of ${cells[4]} is not sellable');
       continue;
     }
@@ -184,6 +198,7 @@ RateCardImport readRateCardCsv(String csv, RateCard card) {
         newRateSen: rateSen,
         oldMvpRateSen: rule.mvpRateSen,
         newMvpRateSen: mvpSen,
+        clearsProvisional: rule.provisional && rateSen > 0,
       ),
     );
   }
@@ -208,6 +223,9 @@ RateCardImport editSingleRate({
   if (rateSen == null) {
     errors.add('rate');
   } else if (rateSen <= 0) {
+    // Stricter than the CSV route on purpose. There the zero is one the export
+    // wrote; here somebody typed it, and typing 0 into a price box is never a
+    // way to say "leave it alone" — a placeholder is left alone by not editing.
     errors.add('rate');
   }
 
@@ -234,6 +252,7 @@ RateCardImport editSingleRate({
         newRateSen: rateSen,
         oldMvpRateSen: rule.mvpRateSen,
         newMvpRateSen: mvpSen,
+        clearsProvisional: rule.provisional,
       ),
     ],
     errors: const [],
@@ -262,6 +281,7 @@ Map<String, dynamic> applyRateCardImportToJson(
           ...raw,
           'rate_sen': change.newRateSen,
           'mvp_rate_sen': change.newMvpRateSen,
+          if (change.clearsProvisional) 'provisional': false,
         }
       else
         raw,
@@ -302,6 +322,7 @@ RateCard applyRateCardImport(RateCard card, RateCardImport import) {
             bandLabels: r.bandLabels,
             rateSen: change.newRateSen,
             mvpRateSen: change.newMvpRateSen,
+            provisional: r.provisional && !change.clearsProvisional,
             minQty: r.minQty,
             sortOrder: r.sortOrder,
             coverageSqft: r.coverageSqft,

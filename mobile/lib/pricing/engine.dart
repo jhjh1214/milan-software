@@ -223,6 +223,24 @@ PricedLine priceLine({
     availableMaterials,
   );
 
+  // 4b. A row whose price is still a placeholder is not a price.
+  //
+  // Stairs and landings exist on the card before their rates do, so the shape
+  // is ready when the numbers arrive. Quoting the placeholder would put RM0 —
+  // or whatever was typed to hold the slot — in front of a customer, which is
+  // worse than not offering the product yet. Refused loudly, and the screen
+  // already has the right words for it: "no complete rate, tell the office".
+  if (rule.provisional) {
+    throw NoApplicableRate(
+      variant: request.variant,
+      materialKey: request.materialKey,
+      bandValue: null,
+      detail:
+          '${rule.id} has no rate yet — the row is a placeholder and cannot '
+          'be quoted until a real price is published',
+    );
+  }
+
   // 3. Raw quantity by basis, exact.
   final rawQty = _rawQuantity(rule, request);
 
