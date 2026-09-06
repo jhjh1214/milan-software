@@ -33,6 +33,7 @@ import '../../l10n/app_localizations.dart';
 import '../../pricing/final_pricing.dart';
 import '../../ui/theme.dart';
 import '../order/order_screen.dart' show orderLinesProvider, orderProvider;
+import '../order/share_revised_order.dart';
 import '../quote/quote_state.dart';
 import 'measure_sheet.dart';
 
@@ -140,6 +141,23 @@ class _Body extends ConsumerWidget {
         // the outstanding list is what tells them they cannot yet.
         if (pricing.outstanding.isNotEmpty)
           _Outstanding(outstanding: pricing.outstanding, l: l),
+
+        // The revised order document, handed over before they leave. Disabled
+        // rather than hidden while the order is incomplete: a button that
+        // vanishes leaves somebody looking for it, and the outstanding list
+        // above already says what is missing.
+        SafeArea(
+          minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: pricing.isComplete
+                  ? () => shareRevisedOrder(context, ref, order.id)
+                  : null,
+              child: Text(l.revisedShare),
+            ),
+          ),
+        ),
       ],
     );
   }

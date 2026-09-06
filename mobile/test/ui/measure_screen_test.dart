@@ -24,6 +24,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:milan_quote/data/database.dart';
 import 'package:milan_quote/features/measure/measure_screen.dart';
+import 'package:milan_quote/features/order/order_screen.dart'
+    show orderLinesProvider, orderProvider;
+import 'package:milan_quote/features/order/share_revised_order.dart';
 import 'package:milan_quote/pricing/models.dart';
 import 'package:milan_quote/ui/widgets/dimension_field.dart';
 import 'package:milan_quote/features/quote/quote_state.dart';
@@ -278,6 +281,95 @@ void main() {
     });
   });
 
+  group('the revised order document', () {
+    /// The share button, whatever its label reads in this locale.
+    Finder shareButton() =>
+        find.widgetWithText(FilledButton, 'Share revised order');
+
+    testWidgets('cannot be shared while a line is still unmeasured', (
+      tester,
+    ) async {
+      // Disabled rather than hidden: a button that vanishes leaves somebody
+      // hunting for it, and the outstanding list above already says why.
+      await addLine('l1');
+      await pump(tester);
+
+      expect(shareButton(), findsOneWidget);
+      expect(
+        tester.widget<FilledButton>(shareButton()).onPressed,
+        isNull,
+        reason: 'an order with an unpriced line has no document',
+      );
+    });
+
+    testWidgets('becomes available once every line has priced', (tester) async {
+      await addLine('l1');
+      await pump(tester);
+      await tester.tap(find.text('Measure'));
+      await tester.pumpAndSettle();
+      await measure(tester, width: '11', height: '9');
+
+      expect(
+        tester.widget<FilledButton>(shareButton()).onPressed,
+        isNotNull,
+        reason: 'the measurer hands this over before they leave',
+      );
+    });
+
+    testWidgets('one measured line of two is still not a document', (
+      tester,
+    ) async {
+      // The order total is what gates it, not the line. A document built from
+      // the lines that happened to price would be a balance somebody collects
+      // and a window nobody bills for.
+      await addLine('l1');
+      await addLine('l2', sortOrder: 1);
+      await pump(tester);
+
+      await tester.tap(find.text('Measure').first);
+      await tester.pumpAndSettle();
+      await measure(tester, width: '11', height: '9');
+
+      expect(tester.widget<FilledButton>(shareButton()).onPressed, isNull);
+    });
+
+    testWidgets('carries the product name, not the variant key', (
+      tester,
+    ) async {
+      // Printing "night_curtain" on a customer's paper is worse than printing
+      // nothing: it looks like the system is broken. And the size must be the
+      // one the measurer read on screen, from the same formatter.
+      await addLine('l1');
+      await pump(tester);
+      await tester.tap(find.text('Measure'));
+      await tester.pumpAndSettle();
+      await measure(tester, width: '11', height: '9');
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MeasureScreen)),
+      );
+      final data = revisedOrderDataFor(
+        order: (await container.read(orderProvider(orderId).future))!,
+        lines: await container.read(orderLinesProvider(orderId).future),
+        pricing: await container.read(orderPricingProvider(orderId).future),
+        language: 'en',
+        fallbackMeasuredOn: at,
+      )!;
+
+      final row = data.lines.single;
+      expect(row.product, isNot(contains('_')));
+      expect(row.product.toLowerCase(), contains('curtain'));
+      expect(row.quotedSize, "12' × 9'");
+      expect(row.measuredSize, "11' × 9'");
+
+      // Both amounts, so the customer can check the new figure against the
+      // paper they already hold.
+      expect(row.line.estimateTotal.sen, 55200);
+      expect(row.line.finalTotal!.sen, 50600);
+      expect(data.balanceDue.sen, 50600 - 30000);
+    });
+  });
+
   group('recording the tape', () {
     testWidgets('the estimate is on screen while the field is typed into', (
       tester,
@@ -308,16 +400,6 @@ void main() {
       await tester.pumpAndSettle();
       await measure(tester, width: '11', height: '9');
 
-      // ignore: avoid_print
-      print(
-        'AFTER SAVE: '
-        '${tester.widgetList<Text>(find.byType(Text)).map((t) => t.data).toList()}',
-      );
-      // ignore: avoid_print
-      print(
-        'AFTER: '
-        '${tester.widgetList<Text>(find.byType(Text)).map((t) => t.data).toList()}',
-      );
       // 11ft x RM46 = RM506, against RM552 quoted. The drop is §8.5's promise
       // being kept, and the measurer sees it before leaving.
       expect(find.text('RM 506.00'), findsWidgets);

@@ -1840,8 +1840,26 @@ one the next person inherits), and any Malay or Chinese (§13 C9).
   estimate beside the field being typed into, the fair photo on each row, the
   material chosen here, and the variance visible without leaving the screen.
 
+- The revised order document, shared from the measure screen before the
+  measurer leaves. Every line carries **both** numbers — the size given at the
+  fair and the size measured on site, the amount quoted and the amount now —
+  because the document exists to answer *"why is this different from the
+  quotation you gave me?"*, and only the new figure would start the argument it
+  exists to prevent.
+
+  Three refusals, each one a decision not to print something plausible: an
+  order that has not fully priced has no document at all; a balance never goes
+  negative, because a deposit can exceed a small final and §13 **B4** has not
+  said what happens to the difference; and an unsynced order prints *pending
+  sync* rather than an invented order number.
+
+  A line that measured **larger** than quoted is named and itemised, in a block
+  placed **above** the reference-price promise rather than below it. §8.5 says
+  the price can only fall; where it did not, the customer has to read why first
+  or the two together look like a lie.
+
 **Still to build**
-- The revised order document.
+- Nothing. Phase 6 is complete.
 
 **Acceptance**
 - [x] A measured order reprices at the old card even after two rate publishes
