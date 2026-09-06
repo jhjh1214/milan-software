@@ -6,6 +6,7 @@ Domain detail, data model, phases, open questions.
 Section map:
 | # | Section |
 |---|---|
+| 2 | What this product is, and where V1 stops |
 | 3 | Business context, flow, roles, deposit categories |
 | 4 | Pricing — real rate card findings, schema, engine, golden tests |
 | 5 | Units — parser table, warnings |
@@ -17,6 +18,88 @@ Section map:
 | 11 | Phases 1–9, scope and acceptance criteria |
 | 12 | Non-functional targets |
 | 13 | Open questions |
+| 14 | Architecture, boundaries, extensibility |
+
+---
+
+# 2. WHAT THIS PRODUCT IS
+
+## 2.1 One sentence
+
+An **internal** sales, quotation, order, measurement and fulfilment system for a
+soft-furnishings retailer. Staff-facing only. No customer ever logs into it.
+
+## 2.2 The quotation workflow is for dimension-dependent products
+
+Curtains, blinds, tracks, flooring and wallpaper are priced from **measurements**,
+so a quote for them needs a wizard, a unit parser, bands, minimum quantities and
+a site visit. That is what §4, §5 and §6 exist for.
+
+Fixed-price goods — sofas, beds, ready-made items — need none of it. They have a
+price, not a formula. **Do not force them through the measurement workflow**, and
+do not let their eventual arrival dilute the dimension-dependent path into
+something generic enough to hold both.
+
+A fair can run a separate booth per category, so a part-timer may work an entire
+day inside `flooring` alone and never open a curtain. Category is a first-class
+axis, not a filter added later.
+
+## 2.3 The shape of a sale
+
+```
+enquiry
+  -> fast REFERENCE quotation           (§4 estimate stage, §8.5 disclaimer)
+  -> minimum deposit PER CATEGORY       (§6.1, RM300, fair deposits also lock)
+  -> CONFIRMED ORDER                    (§6.3, a commercial record, not a lead)
+  -> measurement booked -> site visit   (§11 Phase 6)
+  -> exact dimensions                   (§4.3 final stage)
+  -> FINAL pricing at the HELD card     (§6.1, never today's)
+  -> material / series finalised        (§13 B7)
+  -> production -> ready -> installed
+  -> balance -> closed
+```
+
+**The quotation is deliberately not accurate.** It exists to be fast, safe and
+good enough to secure a deposit while the customer is standing there. Precision
+arrives at measurement. Everything downstream is designed around that: the
+estimate rounds every quantity up, the disclaimer says so in the customer's
+language, and the final can only land at or below it (§8.5).
+
+Say this plainly in every design conversation. A change that makes the quote more
+accurate at the cost of making it slower is usually the wrong trade.
+
+## 2.4 V1 — what is being built
+
+The system above, end to end:
+
+quotation · pricing · deposits and rate locks · orders · payments · site
+measurement · final pricing · fulfilment lifecycle · printed documents ·
+offline operation · auditability · the property/project library foundations.
+
+## 2.5 V2 — the customer-facing ecosystem, later
+
+Not in scope, not costed, not a requirement of any current phase:
+
+a customer app or web portal · customer accounts · rewards and loyalty ·
+referral incentives · a customer-facing catalogue · fabric and material
+browsing · product discovery · customer order tracking · self-service ·
+home-photo capture · AI-generated curtain and interior visualisations ·
+AI-assisted design suggestions.
+
+**The only V1 obligation is not to make V2 hard.** Concretely, and these are the
+decisions that would be expensive to reverse:
+
+- **Stable identifiers, not display strings.** Products, families, variants,
+  materials and collections are identified by stable keys. Pricing already
+  matches on `variant` and `material_key` rather than on a label, and labels are
+  already `{zh, en, ms}` maps (§7). Keep it that way: a customer catalogue will
+  layer its own presentation on top of the same keys.
+- **A customer is a thing, eventually.** §13 B9 is open precisely because there
+  is no `customers` table yet. Whatever answers it becomes the identity a
+  customer account would attach to.
+- **Generated imagery never becomes a specification.** An AI visualisation is a
+  picture. It must never flow into pricing, measurements, order lines or
+  production paperwork. See §14.5.
 
 ---
 
@@ -52,11 +135,28 @@ Two consequences that drive everything:
 
 ## Pricing model
 
-- **One standard price list.** The fair promo is a **discount percentage** on it,
-  not a second list.
-- **Promo and the 12-month lock are fair-only.** Showroom pays standard, no lock.
-- Showroom orders still pin the price list version at order date, so a price rise
-  between deposit and measurement does not reprice a confirmed order.
+> ⚠ **This section previously said the fair promo was a discount percentage on
+> one standard list.** The supplied MITC Aug 2026 list settled it the other way
+> and the code follows the list, not the old text.
+
+- **Two published lists, and the date picks one.** `fair` and `standard` are
+  separate card lineages, each versioned. The fair card carries the printed fair
+  prices directly — they are *not* a percentage taken off the standard list.
+  Inside a fair's promo window the fair card applies; every other day the
+  standard one does (A3).
+- **The standard list is derived from the fair list**, by
+  `tool/build_standard_card.py`, and CI fails if the committed file is not what
+  the generator produces. Only curtains and blinds are marked up; the other 45
+  rows are the same price on both (A3a).
+- **A discount percentage still exists** in the model (`held_discount_pct`,
+  `promos.discount_pct`) and is pinned alongside the version on every lock and
+  every order line. It is currently zero on both lists. Keep it: A4 and A12 are
+  unanswered, and a promo expressed as a percentage is what those answers would
+  need.
+- **The 12-month lock is fair-only.** A deposit taken anywhere else confirms an
+  order and buys nothing else (§6.1, B1).
+- Every order pins a card version at order date, so a price rise between deposit
+  and measurement does not reprice a confirmed order.
 
 ## Deposit categories
 
@@ -81,6 +181,30 @@ Curtains plus flooring = RM600, two deposits.
 Same wizard for all three. Only rate visibility differs. **Do not build two
 quoting flows.**
 
+### Visibility is a domain rule, not a UI preference
+
+"A part-timer never sees a rate, cost or margin" is a **security requirement**.
+It is satisfied by the server not sending the number, not by a screen choosing
+not to draw it.
+
+- **The backend authorises every request**, and it is the authority. Every
+  rate-card write, every override, every report that names people or carries
+  margin is refused server-side to anybody without the role, whatever the client
+  believes.
+- **The UI hides what it knows will be refused**, because offering somebody a
+  screen that answers 403 wastes their time and teaches them the app is
+  unreliable. That hiding is a courtesy. It is never the check.
+- **Nothing selectable means nothing to get wrong.** A part-timer picks a
+  product; the system picks the rate. This is why §8.1 can say errors are
+  prevented rather than reported.
+
+Authorisation lives in one place per side. A permission checked in two files
+eventually disagrees with itself — see §14.3.
+
+**Open: §13 C8.** Role checks are wired to the override sheet and to the
+admin-only endpoints. They are **not** yet wired to order status transitions, so
+the pipeline enforces what can happen and not who may do it.
+
 ## Channel
 
 ```
@@ -101,7 +225,11 @@ fair beats three months of showroom traffic.
 
 - Does not process card payments. **Records** them. Existing terminal stays.
 - Does not issue e-invoices. SQL Account does. See section 10.
-- Does not read floor plans automatically. See Phase 8.
+- Does not read floor plans automatically. Plans are digitised once by an admin
+  who can check the numbers; automated extraction is a documented future
+  direction, not a V1 feature. See Phase 8 and §14.5.
+- Does not sell to customers. There is no customer login, no catalogue and no
+  online ordering. See §2.5.
 
 ---
 
@@ -201,8 +329,19 @@ blind bills as 18sqft. Show it on the line or the customer will query it.
 - `Outdoor ZIP: RM55/sqft (1%), RM60/sqft (0%)` — openness factor
 - Slat sizes 25 / 35 / 50 / 63mm priced differently
 
-**This contradicts "customer picks fabric later, all same rate."** For these
-products material is a price driver and cannot be deferred past deposit.
+**This looks like it contradicts "customer picks fabric later".** It does not,
+and §13 B7 settled which way: **every product defers material to measurement**,
+including these seven. At a fair the job is to secure the deposit, not to settle
+the specification.
+
+What makes that safe is the quoting rule: **a deferred material is quoted at the
+DEAREST option in its group.** Quoting the cheaper one would let the final price
+rise, which §8.5 says cannot happen. The line says on its face that the material
+is not yet chosen, and the drop when the customer picks a cheaper option is the
+promise being kept rather than a discount.
+
+At **final** pricing a missing material refuses rather than guessing — nobody is
+invoiced for a material they never chose.
 
 ### Add-ons and services are lines with their own basis
 ```
@@ -379,10 +518,12 @@ variance report must subtract this known bias before it can say anything about a
 salesperson's guessing. A line quoted at 13ft and billed at 12.33ft is not a bad
 estimate.
 
-**Assumption pending confirmation:** `min_qty` applies at **both** stages. "Min
-18 sqft" is printed on the price list as a commercial floor, not a rounding
-artefact, so a site-measured 12 sqft roller blind still bills 18. Confirm before
-Phase 6.
+**`min_qty` applies at BOTH stages — see §13 A21, which is open.** "Min 18 sqft"
+is printed on the price list as a commercial floor, not a rounding artefact, so a
+site-measured 9 sqft roller blind still bills 18. Both engines do this and a
+fixture pins it. It is the reading the printed list supports and it is not in
+tension with §8.5, because the estimate applies the same floor — but it is worth
+having in writing, since the other reading bills RM81 where this bills RM162.
 
 **`rawQty` must be exact rational arithmetic, not a float.** A foot is 304.8mm,
 so ft→mm→sqft can never be exact in binary. A 12ft × 8ft blind that computes as
@@ -392,13 +533,37 @@ The two engines must agree bit for bit — see §9.4.
 
 ## 4.4 Golden tests
 
-Live in `shared/pricing-fixtures.json`, run by both Dart and Python suites.
+Live in `shared/pricing-fixtures.json`, run by **both** the Dart and Python
+suites. CLAUDE.md hard rule 3: every case lives there once and both sides load
+it. **CI fails a section that only one suite loads**, so the contract cannot
+quietly become one-sided.
 
-All six below are `stage = estimate`. **Final-stage cases must be added before
-Phase 6**, since that path rounds quantity differently and is currently untested.
-Worked example for the fixture: a night curtain measured on site at 12ft 4in
-(37592 tenths of a mm) bills `37592/3048 = 37/3 = 12.3333 ft × RM46 =
-56733.33 sen → RM 567.33`, against RM 598.00 quoted at 13ft.
+The file now carries a section per rule, not only the six original line cases:
+
+| Section | Covers |
+|---|---|
+| `cases` | One line priced, estimate stage — the golden table below |
+| `quote_total_cases` | Category subtotals, the RM300 floor, delivery |
+| `rate_lock_cases` | Which version and discount price a line (§6.1) |
+| `lock_grant_cases` | When a deposit opens a lock (fair-only, B1) |
+| `customer_key_cases` | What identifies a returning customer (B9) |
+| `order_status_cases` | Every legal and refused transition (§6.6) |
+| `price_override_cases` | Admin override rules (§6.5) |
+| `final_pricing_cases` | Repricing a measured order at the held card |
+| `einvoice_threshold_cases` | The RM10,000 rule (§10) |
+| `buyer_details_cases` | What counts as having the buyer's details (§10.3) |
+
+**Expectations are derived from this spec, never from an engine.** The
+final-pricing figures were worked out from §4.3's formula with exact rational
+arithmetic before either engine ran, so three-way agreement is evidence rather
+than a tautology.
+
+Worked example, and the one that shows the two stages apart: a night curtain
+measured on site at 12ft 4in (37592 tenths of a mm) bills
+`37592/3048 = 37/3 = 12.3333 ft × RM46 = 56733.33 sen → RM 567.33`, against
+**RM 598.00** quoted at a rounded-up 13ft.
+
+The six below are all `stage = estimate`.
 
 | variant | W | H | band | billed | rate | total |
 |---|---|---|---|---|---|---|
@@ -413,56 +578,125 @@ Worked example for the fixture: a night curtain measured on site at 12ft 4in
 
 # 5. UNITS
 
-## 5.1 Do not guess unit from magnitude
+The person typing is a part-timer hired last week, standing up, in a loud hall,
+with a customer waiting. **The unit system has to be robust against them, not
+dependent on them.**
 
-Rejected design. `84` is a plausible inch drop and a plausible cm width. `180`
-likewise. The ambiguous band 50–300 is where most real input lands. A wrong guess
-produces a wrong price with no visible error.
+## 5.1 The pipeline: parse → normalise → validate → suggest → confirm
 
-## 5.2 What ships
+Five stages, and each one is somewhere different in the code:
+
+| Stage | What it does | Where |
+|---|---|---|
+| **Parse** | Text → a value and a unit, or a refusal | `core/length_parser.dart` |
+| **Normalise** | That value → canonical `_tmm` | `core/length.dart` |
+| **Validate** | Is this physically plausible here? | `core/dimension_warnings.dart` |
+| **Suggest** | Offer the likely correction | UI, from the validator's output |
+| **Confirm** | The **person** decides | UI |
+
+Two rules hold the whole thing together:
+
+1. **The pricing engine only ever receives canonical `_tmm`.** It never sees a
+   string, a unit, a suggestion or a warning. Parsing is not pricing.
+2. **Nothing is silently corrected.** The system may say "that looks wrong, did
+   you mean X?" and make X one tap away. It may never quietly become X. A
+   silent correction is a wrong price with no visible error, which is the exact
+   failure §5.2 exists to prevent.
+
+## 5.2 Do not guess unit from magnitude
+
+Rejected design, and it stays rejected. `84` is a plausible inch drop and a
+plausible cm width. `180` likewise. The ambiguous band 50–300 is where most real
+input lands. A wrong guess produces a wrong price with no visible error.
+
+Magnitude drives **warnings** (§5.4). It never drives interpretation.
+
+## 5.3 What ships
 
 - Per-field **default unit**, set by admin
 - **Always-visible tappable unit chip** beside every dimension field
 - **Suffix parsing** overrides the chip
 - Magnitude used **only as a soft warning**, never as a decision
 
-## 5.3 Parser
+### Parser
 
-`Length? parseLength(String input, LengthUnit defaultUnit)` -> mm
+`Length? parseLength(String input, LengthUnit defaultUnit)` → `Length` (`_tmm`)
 
-| Input | mm | note |
+**Parses to tenths of a millimetre, not millimetres.** Rounding to whole
+millimetres on parse is the bug the `_tmm` invariant exists to prevent: a foot
+is 304.8mm, so `12ft → 3658mm → 12.0013ft → ceil 13ft` overcharges RM46 on one
+window. In tenths every accepted unit is an exact integer, so nothing rounds on
+the way in. See CLAUDE.md.
+
+| Input | tmm | note |
 |---|---|---|
 | `84` | per chip | bare number |
-| `84in` `84"` `84 inch` | 2134 | |
-| `7ft` `7'` `7尺` | 2134 | |
-| `7'6` `7'6"` `7ft6` `7ft 6in` `7尺6寸` | 2286 | **must work** — how the trade talks |
-| `2400mm` | 2400 | |
-| `2.4m` `2.4米` | 2400 | |
-| `240cm` | 2400 | |
-| `7.5ft` | 2286 | |
-| `12'0` | 3658 | |
+| `84in` `84"` `84 inch` | 21336 | |
+| `7ft` `7'` `7尺` | 21336 | |
+| `7'6` `7'6"` `7ft6` `7ft 6in` `7尺6寸` | 22860 | **must work** — how the trade talks |
+| `8000mm` | 80000 | |
+| `2400mm` | 24000 | |
+| `2.4m` `2.4米` | 24000 | |
+| `240cm` | 24000 | |
+| `7.5ft` | 22860 | |
+| `12'0` | 36576 | |
+| `96in` | 24384 | |
+| `8ft` `8'` | 24384 | |
 | empty | null | |
-| `abc` `7''6` `-5` | null -> inline error | **never fall back to a guess** |
+| `abc` `7''6` `-5` | null → inline error | **never fall back to a guess** |
 
-Round to nearest mm on parse. Chinese numerals not parsed — out of scope.
+Chinese numerals are not parsed — out of scope.
 
-## 5.4 Soft warnings
+## 5.4 Plausibility validation
 
-Non-blocking, one-tap fix. Thresholds in config, not code.
+Non-blocking, one tap to fix, and **configurable rather than a pile of
+hardcoded guesses**.
 
-| Condition | Message |
+A plausible curtain drop is not a plausible flooring run, and a plausible
+wallpaper width is not a plausible motor. So a plausible range is a property of
+**the field, in its product category**, carried on the rate card next to the
+rates it belongs with — the same place `BAND_EDGE_WARN_TMM` and
+`MIN_DEPOSIT_SEN` already live (hard rule 1: config, not code). A category with
+no configured range warns on nothing, which is the safe default: a missing
+config must not invent a limit that blocks a real order.
+
+| Condition | Behaviour |
 |---|---|
-| >3000mm with chip on `in` | 2400 寸 = 61 米，是不是要打 mm？ + [改成 mm] |
-| <300mm curtain drop | 高度只有 30cm，确认吗？ |
-| Within `BAND_EDGE_WARN_TMM` (default 76mm ≈ 3in) of a band boundary | 刚刚超过 10 尺，请确认尺寸 + shows both prices |
+| Outside the configured plausible range for this field and category | Strong warning naming the likely unit, with a one-tap switch |
+| Suspiciously large for the chip's unit | `2400 寸 = 61 米，是不是要打 mm？` + `[改成 mm]` |
+| Suspiciously small for the field | `高度只有 30cm，确认吗？` |
+| Within `BAND_EDGE_WARN_TMM` (default 76mm ≈ 3in) of a band boundary | Warns and **shows both prices** |
 
-The band-edge warning is the highest-value validation in the app. On a 12ft
-curtain, `10ft 1in` vs `9ft 11in` is a RM144 swing.
+### The worked example: `8000in`
+
+A part-timer means `8000mm` — 8 metres, a wide sliding door — and the chip is
+on inches, or they typed the suffix. `8000in` is **203 metres**. No curtain, no
+window and no floor in this business is 203 metres.
+
+What must happen:
+
+- **Parse succeeds.** `8000in` is well-formed input; refusing it as a parse
+  error would say "that is not a number", which is not the problem.
+- **Validation flags it hard**, because it is far outside the plausible range
+  for that field in that category.
+- **The suggestion is specific**: *"203m is not a curtain width. Did you mean
+  8000mm?"* with `[改成 mm]` beside it.
+- **The person confirms.** If they insist, it is allowed — but they have seen
+  the number in metres and pressed past it.
+
+Never silently reinterpret the unit. The customer is watching the total; a
+number that changes itself is worse than a number that argues.
+
+**The band-edge warning is still the highest-value validation in the app.** On a
+12ft curtain, `10ft 1in` vs `9ft 11in` is a RM144 swing.
 
 ## 5.5 Display
 
 Show entered value **and** billed value: `12尺 4寸 -> 按 13 尺计`.
 Never show more precision than was entered.
+
+`Length.mm` exists as a **display accessor only**. Never feed it back into a
+length or a price.
 
 ---
 
@@ -476,7 +710,7 @@ standard price, if only one RM300 was paid.
 ```sql
 category_locks
   id uuid PK
-  customer_id
+  customer_key            text        -- see below: NOT a customer_id yet
   category                enum(curtain, flooring, wallpaper)
   deposit_payment_id      uuid
   held_rate_card_version  int
@@ -484,8 +718,26 @@ category_locks
   held_discount_pct       numeric(5,2)    -- denormalised; promos rows may change
   held_until              date            -- deposit date + 12 months
   status                  enum(active, expired, cancelled, refunded)
-  UNIQUE(customer_id, category) WHERE status = 'active'
+  UNIQUE(customer_key, category) WHERE status = 'active'
 ```
+
+### What a lock hangs on
+
+`customer_key`, not `customer_id`. **There is no `customers` table yet** (§13
+B9), so the key is the customer's **phone number, normalised** — digits only,
+`+60` folded to a leading `0`, and refused under nine digits — falling back to
+the quote id when there is no usable phone.
+
+This is not a shortcut, it is the answer to a bug that had already shipped. The
+lock was keyed on the **quote id**, which meant the twelve-month hold could
+never be used: the customer deposits at the fair, returns in March, a new quote
+is started with a new id, and they are quoted the standard rate — *more* than
+the hold they paid for, after the app promised it until next August.
+
+The same normalised phone keys the measurement queue (C10), so one customer with
+three units is one trip. **Keep the normalisation in one function**
+(`pricing/customer_key.dart`, mirrored in Python). When B9 is answered and a real
+customer record exists, that function is the single place this changes.
 
 `family` and deposit category are **different fields**. Blinds and tracks have
 their own rates but ride the curtain deposit. Keep the mapping in one function.
@@ -496,7 +748,7 @@ def deposit_category(family):
             'flooring': 'flooring', 'wallpaper': 'wallpaper'}[family]
 
 def price_basis_for(line, order):
-    lock = active_lock(order.customer_id, deposit_category(line.family))
+    lock = active_lock(customer_key(order), deposit_category(line.family))
     if lock:                                    # fair customer, within 12 months
         return lock.held_rate_card_version, lock.held_discount_pct
     if order.channel == 'fair':                 # fair, no deposit yet
@@ -546,11 +798,12 @@ fairs are leaving on the table.
 
 ```sql
 orders
-  id uuid PK
-  order_no                  text          -- SERVER-issued {branch}-{yymm}-{seq}
-  customer_id
+  id uuid PK                              -- client-generated, never waits on sync
+  order_no                  text NULL     -- SERVER-issued {branch}-{yymm}-{seq}
+  quote_id                  uuid          -- the estimate this came from, never consumed
+  customer_name, customer_phone           -- until B9 gives us a customers table
   channel                   enum(showroom, home_visit, fair, referral, phone)
-  project_id, unit_type_id  uuid NULL
+  project_id, unit_type_id  uuid NULL     -- Phase 8, see section 11
   pinned_rate_card_version  int
   delivery_zone_id          uuid NULL
   delivery_charge_sen       int DEFAULT 0
@@ -558,33 +811,63 @@ orders
                                  material_selected, in_production, ready,
                                  installed, closed, cancelled)
   estimate_total_sen        int
-  final_total_sen           int NULL
+  final_total_sen           int NULL      -- NULL until EVERY line has priced
   deposit_paid_sen, balance_due_sen
   has_unmeasured_lines      bool
+  -- buyer details for an e-invoice; see section 10.3
+  buyer_tin, buyer_id_type, buyer_id_number
+  buyer_address_line1, buyer_address_line2
+  buyer_city, buyer_state, buyer_postcode, buyer_msic_code
+  einvoice_requested        bool DEFAULT false
   created_by, created_at, synced_at
 
 order_lines
   id, order_id, sort_order
+  quote_line_id             uuid          -- the trail back to the estimate
   family, variant, layer, material_key, fulfilment
   category_lock_id          uuid NULL     -- which lock priced this, null = none
   parent_line_id            uuid NULL     -- add-ons attach to their parent
   room, label
+
+  -- WHAT WAS QUOTED. Never overwritten.
   est_width_tmm, est_height_tmm
-  final_width_tmm, final_height_tmm         -- NULL until measured
-  is_site_measured          bool DEFAULT false
-  measured_by, measured_at
-  billed_qty numeric, billed_unit text
+  billed_qty text, billed_unit text       -- exact rational as text, never a float
   applied_rule_id, applied_band_label
   applied_rate_card_version int
-  applied_discount_pct      numeric(5,2)
+  applied_discount_pct      text          -- exact rational as text
   standard_rate_sen         int           -- before discount, printed on the quote
   rate_sen, line_total_sen
+  material_deferred         bool          -- quoted at the dearest option (B7)
+
+  -- WHAT THE TAPE PRICED. NULL until measured. Written BESIDE the above.
+  final_width_tmm, final_height_tmm
+  is_site_measured          bool DEFAULT false
+  measured_by, measured_at
+  final_billed_qty text, final_billed_unit text
+  final_rule_id, final_band_label         -- a measured drop can change the band
+  final_rate_sen            int
+  final_line_total_sen      int
+
   photo_ids                 uuid[]
   is_overridden             bool
 
 order_events                              -- APPEND ONLY
   id, order_id, event, note, by_user, at, synced_at
 ```
+
+**Estimate and final live side by side, never one over the other.** Six pairs of
+columns say the same thing six times because the alternative is losing the
+answer to *"but you quoted me RM598"*. The variance report needs both; so does a
+customer conversation a year later.
+
+**A line records the rule, band, version and discount that priced it.** A year
+on, a customer asks why a curtain cost RM552 and the answer must not require
+reconstructing which card was in force that afternoon — by then it may have been
+superseded twice.
+
+**An order total is absent, not partial.** `final_total_sen` stays NULL until
+every line has priced. A total that quietly excluded an unmeasured window would
+be a balance somebody collects and a window nobody bills for.
 
 **Estimate and final are both kept.** The variance report by salesperson tells
 the boss who is guessing badly and needs retraining.
@@ -605,6 +888,45 @@ rule — *"anything on a legal document: null until sync, shown as 'pending sync
 never fabricated on-device"* — is the stronger constraint, and it is the same
 mechanism receipt numbers already use. The order's **id** stays a
 client-generated UUID, so nothing waits on a server to exist.
+
+### Quotation and order are different records
+
+A **quotation** is a reference estimate (§8.5). It is cheap, it is expected to be
+edited, and it binds nobody.
+
+A **confirmed order** is a commercial record. Money has changed hands. It is read
+by the measurement team, the workshop, the accounts person and, eventually, a
+customer arguing about a number.
+
+Three rules keep them apart, and none is negotiable:
+
+1. **Order lines are copies, not references.** Editing an old quote cannot change
+   a confirmed order, and measuring an order cannot change the estimate it came
+   from.
+2. **The quote is referenced, never consumed.** `orders.quote_id` points back at
+   it and it is left exactly as it was. Client, Sep 2026: *"the quote should be
+   recorded as reference to the order, so have rough estimate of what to do."*
+3. **A future developer must be able to answer "why did this customer pay this
+   amount?" from stored data alone** — without the rate card of the day, without
+   the app, and without asking anybody. Everything the answer needs is on the
+   order.
+
+### Quotation revisions
+
+A quote is edited freely **before** it becomes an order. After that it is
+frozen, because it is the reference the order was built from.
+
+When a customer wants changes to a **confirmed** order, that is not an edit to
+the original quote. It is either:
+
+- a change recorded against the order itself — a price override (§6.5), a
+  re-measurement (new dimensions on the same line, the old ones kept), or a
+  material choice; each with its own audit row; or
+- a **new** quote and a **new** order, if the change is large enough that the
+  first one is being replaced rather than adjusted.
+
+**Never mutate a confirmed order's history to make it match a new conversation.**
+A remeasure is new dimensions on the same order, not a rewind (§6.6).
 
 **A line whose lock disagrees with the priced version refuses conversion.**
 If a line's `category_lock` holds version 55 and the quote on screen was priced
@@ -661,6 +983,73 @@ log plus a weekly review screen, not the gate. Individual PINs so the log names 
 person, and build the "overrides this week" screen — without it the log is never
 read and the control does not exist.
 
+## 6.6 The order lifecycle is the authority
+
+```
+confirmed -> measurement_booked -> measured -> material_selected
+          -> in_production -> ready -> installed -> closed
+```
+
+`cancelled` is reachable from anywhere up to and including `ready`. `closed` and
+`cancelled` are terminal.
+
+**No shortcuts and no backwards moves.** `order_events` is append-only and the
+history it accumulates is what somebody reads a year later: a skipped step is a
+lie in it, and a rewound one silently overwrites a visit that really happened.
+A remeasure is new dimensions on the same order, not a return to
+`measurement_booked`.
+
+Every transition is decided in **one** place — `advanceOrder`, mirrored on both
+engines and pinned by `order_status_cases`. Four things belong to that decision
+and nowhere else:
+
+| | |
+|---|---|
+| **Allowed transitions** | The edge exists, or it does not |
+| **Required data** | `measured` needs every line that wanted a visit to have final dimensions. `material_selected` needs every deferred material chosen (B7). Cancelling needs a reason of at least four trimmed characters. Past a final total over RM10,000, the buyer's details (§10.4) |
+| **Authorisation** | Which role may make this move. **Open — §13 C8.** The pipeline currently enforces *what* can happen, not *who* may do it |
+| **Auditability** | Every move writes an `order_events` row naming the person and the time |
+
+**The UI is never the authority.** A screen may hide a button it knows will be
+refused, and the refusal must still happen if the call is made anyway — from
+another screen, from a queued outbox row, from a future integration. §10.4 says
+this in the strongest form: *"Enforce in the state machine, not the UI."*
+
+**Cancelling touches no money.** §13 B3 is unanswered, so the deposit stays
+exactly where it is and nothing computes a forfeit, a refund or a credit.
+
+## 6.7 What must be traceable
+
+Business traceability, not logging. The question these answer is *"who changed
+this, when, and why"* — asked months later, usually about money.
+
+Every one of these is **append-only**. Corrections are new rows with a reason,
+never edits or deletes:
+
+| Event | Where |
+|---|---|
+| Order status changes | `order_events` |
+| Payments and refunds | `payments` |
+| Price overrides | `price_overrides`, with a mandatory reason and a named admin |
+| Deposit prompt answers | `deposit_prompts` — which button was pressed (§6.2) |
+| Rate card publication | `rate_cards`, versioned; rows never updated in place |
+| Site measurements | On the line, beside the estimate, with who and when |
+| Material choices | On the line |
+| Stock movements | `stock_movements` (Phase 9) |
+| Quote revisions | See §6.3 |
+| Customer identity changes | When B9 gives us a customer record |
+| Property library changes | Version bump, not an edit (Phase 8) |
+| Floor plan approval or rejection | With the reviewer's name (Phase 8) |
+| Permission-sensitive actions | Adding, deactivating or re-enabling a user |
+
+**A record that cannot say who did something is not an audit trail**, it is a
+note that something changed. `price_overrides.admin_user_id` is NOT NULL on both
+sides for exactly this reason.
+
+**And it only counts if somebody reads it.** §6.5 is blunt about this: an offline
+PIN is bypassable and one shared admin password reaches every part-timer within a
+month. What actually controls abuse is the weekly review screen, not the gate.
+
 ---
 
 # 7. DATA MODEL — remaining tables
@@ -675,12 +1064,18 @@ users
   is_active       bool DEFAULT true
   created_at, deactivated_at NULL
 
-customers
+customers                        -- NOT BUILT YET. See section 13 B9.
   id uuid PK
   name, phone, email NULL
   tier            enum(standard, mvp) DEFAULT 'standard'
-  -- buyer/compliance fields: see section 10
   created_by, created_at
+
+  -- Today a quote and an order carry a free-text name and phone, and a rate
+  -- lock hangs on the NORMALISED PHONE (section 6.1). Buyer/compliance fields
+  -- currently live on `orders`, not here (section 10.3). When this table
+  -- arrives, both move -- and an order keeps a SNAPSHOT of what was true when
+  -- it was issued, because a customer moving house must not rewrite an old
+  -- invoice.
 
 photos
   id uuid PK
@@ -712,18 +1107,23 @@ devices
 
 ```sql
 CREATE INDEX ON orders (status, created_at);
-CREATE INDEX ON orders (customer_id);
+CREATE INDEX ON orders (customer_phone);          -- customer_id once B9 lands
 CREATE INDEX ON orders (channel, created_at);
 CREATE INDEX ON order_lines (order_id, sort_order);
+CREATE INDEX ON category_locks (customer_key, status);   -- the handset lookup
 CREATE INDEX ON category_locks (held_until) WHERE status = 'active';
 CREATE INDEX ON pricing_rules (rate_card_version, family, variant)
   WHERE superseded_at IS NULL;                    -- the hot lookup
-CREATE UNIQUE INDEX ON category_locks (customer_id, category)
+CREATE UNIQUE INDEX ON category_locks (customer_key, category)
   WHERE status = 'active';
 ```
 
 That last one is a **constraint**, not an optimisation. It stops a customer
-accumulating two active curtain locks.
+accumulating two active curtain locks — and it is why two handsets each taking a
+deposit for one category needs an answer rather than a crash (§13 B10).
+
+It must be declared as a **partial** unique index on both dialects. A bare unique
+index would also forbid keeping the superseded rows, which CLAUDE.md requires.
 
 ---
 
@@ -857,6 +1257,28 @@ outbox
   **Write the double-submit test before the endpoint.**
 - Never block the UI on sync.
 
+### Payment idempotency is the dangerous one
+
+A duplicated quote is noise. **A duplicated payment is money that does not
+exist**, and it is found weeks later by an accounts person reconciling a bank
+statement against a system that says the customer paid twice.
+
+- A payment is idempotent on the **device-generated payment id**. Ten retries
+  make one row.
+- The **receipt number is server-issued** and the same retry hands back the
+  *same* number — the customer may already be holding paper with it printed on.
+  Until it arrives the app shows `pending sync` and **never fabricates one**.
+- Same rule for `order_no`, for the same reason: `{branch}-{yymm}-{seq}` has no
+  per-device component, so two part-timers offline at one fair would both mint
+  `MLK-2608-0007`.
+- A status change is keyed on the **event id**, not the order id — an order
+  walks the pipeline many times and each step must be separately idempotent.
+
+**Nothing is ever rejected outright once money has been taken.** An order
+arriving with a status or an override the server would not allow is accepted,
+the offending part is left out, and what was dropped is named in the response.
+Losing the sale to protect a status field is the wrong trade.
+
 ## 9.3 Conflict policy
 
 | Data | Rule |
@@ -921,20 +1343,52 @@ is standing there. That gap is why Phase 7 exists.
 ## 10.3 Buyer detail capture
 
 ```sql
-customers  -- additional columns
-  tin                 text NULL
-  id_type             enum(nric, brn, passport, army) NULL
-  id_number           text NULL
-  address_line1, address_line2, city, state, postcode, country
-  msic_code           text NULL        -- business buyers only
+orders  -- additional columns. On the ORDER, not on a customer, until B9.
+  buyer_tin           text NULL
+  buyer_id_type       enum(nric, brn, passport, army) NULL
+  buyer_id_number     text NULL
+  buyer_address_line1, buyer_address_line2
+  buyer_city, buyer_state, buyer_postcode
+  buyer_msic_code     text NULL        -- business buyers only
   einvoice_requested  bool DEFAULT false
 ```
+
+They live on the order because there is no `customers` table yet (§13 B9). When
+one arrives they move — and **the order keeps a snapshot**, because what was true
+when the invoice was issued is not what is true after the customer moves house.
 
 - Optional by default. Most walk-ins are General Public.
 - **When the running total crosses the threshold, the wizard stops and requires
   buyer details.** Not a warning. A required step.
 - Also required whenever the customer asks for an e-invoice, at any value.
-- **Threshold lives in config, not code.** It will change.
+- **Threshold lives in config, not code.** It will change. Both figures sit on
+  the rate card, so changing one is a card publish — no rebuild, no deploy — and
+  it reaches every handset the way a price change does.
+
+### What counts as "having the details"
+
+**A rule, never a flag somebody ticks.** A tick box gets ticked by anyone in a
+hurry, and the row it ticks is what SQL Account has to build a real e-invoice
+from. The rule reads the actual fields:
+
+| Needed | Satisfied by |
+|---|---|
+| A name | `orders.customer_name`, non-blank after trimming |
+| **One** identifier | A TIN, **or** an ID number **with** its type |
+| A postal address | Line 1, city, state and postcode, all non-blank |
+
+An ID number with no type does not count: an IC, a passport and a business
+registration are different fields on the invoice, and guessing which one a bare
+number is puts the wrong thing on a document the customer keeps. Line 2, country
+and MSIC are optional.
+
+**Everything outstanding is reported at once**, so somebody collects it in one
+conversation. A form that reveals one missing field at a time is a customer asked
+three times.
+
+**Open: §13 C13** — which fields MyInvois actually rejects a submission for. The
+rule above is the conservative reading and errs toward asking for slightly too
+much, because §10.2's penalty is for missing details rather than for spare ones.
 
 ## 10.4 The timing trap
 
@@ -943,9 +1397,23 @@ estimated at RM8,500 settles at RM11,200.
 
 Evaluate the threshold **twice**:
 1. **At the fair, on the estimate** — prompt from **RM8,000**, not RM10,000, so
-   borderline orders are captured while the customer is present.
+   borderline orders are captured while the customer is present. Below the legal
+   line this only *asks*. Refusing a RM300 deposit over paperwork the order does
+   not yet need would lose the sale.
 2. **At final pricing** — if crossed, the order **cannot reach invoicing status**
    until buyer details exist. Enforce in the state machine, not the UI.
+
+The RM8,000 margin belongs to the **estimate alone**. An estimate is rough and
+the margin buys a chance to ask; a final is exact, so an order that measured
+under the line is under it, and asking then is friction with no compliance behind
+it. An estimate that crossed and then measured back under is let through — the
+commoner direction, since the quote rounds every quantity up.
+
+**Which step is "invoicing" is open — §13 C12.** There is no `invoicing` status.
+The guard currently bites from `material_selected`, the first step after a final
+total exists, while the measurer has only just left the house. Cancelling is
+never blocked: it has nothing to do with invoicing, and refusing it would leave
+an over-threshold order trapped with no way out.
 
 ## 10.5 Handoff
 
@@ -975,11 +1443,27 @@ and keep something that works. 50% on start, 50% on acceptance.
 | 6 | Site Measurement | 71 | RM 3,000 |
 | 7 | SQL Account & e-Invoice | 60 | RM 2,500 |
 | | **Total** | **882** | **RM 37,000** |
-| 8 | Project Library | — | Stage 2 |
+| 8 | Property / Project Library | — | Stage 2 |
 | 9 | Inventory | — | Stage 2 |
 
 Maintenance ladder (starts at Phase 3 — nothing to host before then):
 RM150 (P2) → RM450 (P3–4) → RM750 (P5) → RM950 (P6–7). 12-month minimum.
+
+### Where we are, and what comes next
+
+| | |
+|---|---|
+| **Done** | Phases 1–5. Every acceptance criterion names a test |
+| **Now** | **Phase 6** — finish site measurement and stabilise it |
+| **Next** | Phase 7, SQL Account export and the compliance handover |
+| **Later** | Phase 8, the Property / Project / Unit Library |
+| **Later still** | Assisted floor-plan digitisation (a Phase 8 extension) |
+| **V2** | The customer-facing ecosystem and AI visualisation (§2.5) |
+
+**Nothing below Phase 7 is a current requirement.** They are written down so
+today's decisions do not make them expensive, not so they get built early.
+Bringing Phase 8 forward is a commercial decision, not a technical one — say so
+rather than quietly reordering.
 
 ---
 
@@ -1215,11 +1699,28 @@ along or cancel one. The pipeline enforces what can happen, not who may do it.
   outstanding balances aged, declined category deposits
 - Keyboard nav, URL-encoded filters, bulk select
 
-**Acceptance**
-- [ ] Publishing shows exactly which products move and by how much before commit
-- [ ] Order board loads 500 orders without pagination lag
-- [ ] Every filter state is reachable by URL
-- [ ] Deactivating a user requires typing their name
+**Acceptance** — all four met, each with a named test.
+- [x] Publishing shows exactly which products move and by how much before commit
+  — two steps, and the second is unreachable until a preview has been seen. The
+  diff is computed **on the server**, so the thing that shows what will change is
+  the thing that decides what lands.
+- [x] Order board loads 500 orders without pagination lag
+  — `test_board_scale.py`. It asserts the cause rather than a wall-clock number:
+  **the statement count does not grow with the board.** Ten orders and five
+  hundred cost the same round trips. Writing it found two queries reading the
+  whole table to answer a question about one page.
+- [x] Every filter state is reachable by URL
+  — checked through a **real router** on the order board, the measurement queue
+  and the reports. A filter held in a component field passes every behavioural
+  assertion and still fails this the moment somebody pastes the link.
+- [x] Deactivating a user requires typing their name
+  — `people.spec.ts`. Sessions never expire (§12), so deactivating is the only
+  thing that stops the handset in a leaver's pocket, and doing it to the wrong
+  person locks somebody out mid-fair.
+
+**Two things the dashboard deliberately does not have yet:** a session that
+survives a page refresh (a token in `localStorage` on a shared office machine is
+one the next person inherits), and any Malay or Chinese (§13 C9).
 
 ---
 
@@ -1236,11 +1737,45 @@ along or cancel one. The pipeline enforces what can happen, not who may do it.
 - Balance calculation, revised order document
 - Threshold re-check per section 10.4
 
+**Done so far**
+- The final-pricing engines, both sides, against `final_pricing_cases`. A line
+  reprices at the version and discount **it** recorded — never the active card,
+  never the order's pinned version, because a line's lock is its own. When the
+  held card is not to hand it **refuses**: falling back to today's is exactly
+  what the RM300 was taken to prevent, and it is the fallback that looks most
+  reasonable.
+- Quantity is exact here; the quote rounded up and the bill does not.
+- A line the tape has not reached, and a material nobody chose, both refuse. A
+  refused line stops the **order** total, not just its own.
+- A final **above** its estimate is flagged, not refused — §8.5's promise is
+  about rounding, not about the customer's own wrong dimensions.
+- The measurement repository: the tape stored beside the estimate, the whole
+  order repriced on every measurement, the balance following the total and never
+  negative (B4 is unanswered).
+- The RM10,000 rule, both engines, enforced in the state machine (§10.4), with
+  the buyer's details captured on the order and a completeness rule rather than
+  a flag.
+
+**Still to build**
+- The measurement screen itself — working through an order's lines with the
+  estimate and the fair photo beside the field.
+- The revised order document.
+
 **Acceptance**
-- [ ] A measured order reprices at the old card even after two rate publishes
-- [ ] Variance visible to the measurer before they leave the house
-- [ ] An order crossing RM10,000 cannot advance without buyer details
+- [x] A measured order reprices at the old card even after two rate publishes
+  — fixture `final-reprices-at-the-held-card-not-todays`, loaded by both
+  engines, with the active card two versions newer.
+- [x] Variance visible to the measurer before they leave the house
+  — `repriceOrder` returns it per line and per order, and `outstandingOf` says
+  what still stands between the order and a bill, with the reason for each.
+  **Needs the screen before this is true in the customer's house.**
+- [x] An order crossing RM10,000 cannot advance without buyer details
+  — `order_status_cases`, `status-over-threshold-cannot-leave-measured`, plus
+  the repository tests. Enforced in `advanceOrder`, not in a screen.
 - [ ] Works fully offline in a house with no signal
+  — nothing in the measurement path touches the network and every card it needs
+  was pulled before the visit. **Not yet asserted end to end**, and it should be
+  the same shape of test as the offline-PDF one in Phase 2.
 
 ---
 
@@ -1249,33 +1784,71 @@ along or cancel one. The pipeline enforces what can happen, not who may do it.
 
 Read section 10 in full first. Those legal constraints are not optional.
 
+**Already delivered in Phase 6**, because §10.4 puts the second threshold check
+at final pricing and Phase 6 is where final pricing lives. Do not re-quote or
+rebuild these:
+
+- Buyer detail capture: TIN, ID type and number, address, MSIC, and the rule for
+  what counts as complete (§10.3)
+- The **RM10,000 threshold gate**, prompting from RM8,000, evaluated at both the
+  estimate and the final, enforced in the state machine
+- Both figures config-driven, on the rate card
+
 **In**
-- Buyer detail capture: TIN, ID type and number, address, MSIC
-- **RM10,000 threshold gate**, prompting from RM8,000, enforced at estimate and
-  final pricing
-- Config-driven threshold
 - SQL Account export behind an adapter interface
 - Export screen in the dashboard, date-ranged, re-export option
 - Document labelling audit
+- Buyer-detail capture **screens** — the handset form the measurer fills in, and
+  the dashboard equivalent for the office. The rule and the storage exist; the
+  UI does not
+- Whatever C13 changes about which fields are mandatory
 
 **Out**
 **No MyInvois integration. No LHDN submission. No certificate handling.**
 
 **Acceptance**
-- [ ] An order crossing the threshold cannot reach invoicing without buyer details
+- [x] An order crossing the threshold cannot reach invoicing without buyer details
+  — delivered in Phase 6. `order_status_cases`, and enforced in `advanceOrder`
+  rather than in a screen. **Which step counts as invoicing is §13 C12**, open.
+- [x] Threshold change is a config edit, not a deployment
+  — both figures live on the rate card, so changing one is a card publish and
+  reaches every handset the way a price change does.
 - [ ] Export imports into SQL Account without manual correction
 - [ ] Re-exporting the same range does not create duplicates
 - [ ] No printed document uses "Tax Invoice" or "e-Invoice", or displays anything
       resembling a UIN or validation QR
-- [ ] Threshold change is a config edit, not a deployment
+      — a CI check greps the Dart and ARB sources for it today, and a widget test
+      renders the real PDF and reads the text back. Ticked when the export and
+      any Phase 7 document are covered too.
 
-**Blocked on** a sample SQL Account import template, and the accountant's ruling
-on E2.
+**Blocked on** a sample SQL Account import template (E1), the accountant's ruling
+on E2, and C12 and C13.
 
 ---
 
-## PHASE 8 — Project Library and Floor Plans
+## PHASE 8 — Property / Project / Unit Library
 **Stage 2 · quoted after Phase 5 has run live two months**
+
+### The workflow this is for
+
+```
+Development  ->  Unit Type  ->  verified stored measurements  ->  quotation
+```
+
+A salesperson hears *"ABC Development, Type B"*, picks the development, picks the
+unit type, and the known windows, rooms, skirting runs and floor plan load. They
+choose products and a reference quotation exists in seconds.
+
+This is worth building for developments the company quotes **repeatedly**. Slow
+for customer one, very fast from customer two.
+
+### The line that must never blur
+
+**Reference property measurements are NOT site measurements.**
+
+The library accelerates *quoting*. Actual site measurement remains production
+truth. A plan-sourced line is a better-informed estimate, not a measured one, and
+it must reach production only through the same site visit every other line takes.
 
 **Manage this expectation before selling it.** "Upload a floor plan, get an
 instant quotation" is not something to promise. Developer plans usually do not
@@ -1315,20 +1888,91 @@ So the promise to make is **"we digitise your repeat projects once and quote
 them in seconds after that"**, never "upload a plan and get a price".
 
 ```sql
-projects      id, name, developer, area, version int, updated_at
-unit_types    id, project_id, name, floor_count
-openings      id, unit_type_id, label, room, floor,
+projects      id, name, developer, area, updated_at
+unit_types    id, project_id, name, floor_count,
+              variant_of uuid NULL        -- 'Type A mirror' points at 'Type A'
+              status enum(draft, pending_review, approved, superseded)
+
+unit_type_versions            -- a plan changes; history does not
+              id, unit_type_id, version int, approved_by, approved_at, note
+
+openings      id, unit_type_version_id, label, room, floor,
               nominal_w_tmm, nominal_h_tmm, sort_order
-rooms         id, unit_type_id, name, nominal_area_mm2, skirting_run_tmm, floor
-floor_plans   id, unit_type_id, file_ref, scale_tmm_per_px, uploaded_by
+rooms         id, unit_type_version_id, name,
+              nominal_area_mm2, skirting_run_tmm, floor
+floor_plans   id, unit_type_version_id, file_ref,   -- the ORIGINAL document
+              scale_tmm_per_px, uploaded_by, uploaded_at
 ```
 
-**Instantiate, never reference.** Copy values into the order line. Editing a
-project later must not mutate an issued order.
+### Versioning
 
-Any plan-sourced line is `is_site_measured = false` and prints
-`参考尺寸，未现场丈量`. **Never let a plan-derived dimension reach production
-without a site measurement.** Enforce in the state machine.
+A unit type has **versions**. A new approved version applies to future
+quotations and **never** touches an existing order. Version 2 of ABC Type B does
+not rewrite what somebody was quoted against version 1 last March.
+
+Variants — `Type A mirror`, `end lot`, `corner`, `A1` — are their own unit types
+with a `variant_of` pointer. **A simple explicit relationship, not an inheritance
+system.** A mirrored unit that shares nine openings and differs in one is easier
+to read, and safer to price from, as its own list than as a diff.
+
+### Provenance: never copy a number and lose where it came from
+
+**Instantiate, never reference.** Values are copied into the order line, exactly
+as order lines are copies of quote lines (§6.3). But a copy without provenance is
+a number nobody can explain, so each dimension carries where it came from:
+
+```sql
+order_lines   -- additional columns, Phase 8
+  measurement_source     enum(manual, project_library, site_measurement)
+  source_project_id      uuid NULL
+  source_unit_type_id    uuid NULL
+  source_version         int NULL
+```
+
+`measurement_source` matters beyond bookkeeping: it is what lets the pipeline
+tell a plan-derived dimension from a measured one, and the state machine already
+refuses `measured` for lines with no final dimensions (§6.6). **The enum is the
+architectural decision to make early** — adding a third source later to a
+boolean `is_site_measured` is a migration across every order ever written.
+
+Any plan-sourced line prints `参考尺寸，未现场丈量`. **Never let a plan-derived
+dimension reach production without a site measurement.**
+
+### The floor-plan submission workflow
+
+Two routes in, one gate. Quality control is the point.
+
+```
+ADMIN            upload -> draft -> verify -> approved -> library
+PART-TIMER       submit -> pending_review -> admin verifies / corrects
+                        -> approved -> library
+                        -> or rejected, with a reason
+```
+
+**A part-timer's submission is never searchable or quotable until an admin has
+approved it.** This is deliberately two-step: a plan digitised in a hurry at a
+fair, wrong by a factor of the scale, produces a confident wrong number on every
+quote after it. Approval and rejection are both audited with the reviewer's name
+(§6.7).
+
+**Keep the original document.** The uploaded plan is stored as source material
+alongside the structured measurements extracted from it, so a disputed dimension
+can be checked against what was actually submitted.
+
+### Future: assisted digitisation
+
+**Not Phase 8, and not something to promise.** Documented here so the data model
+above does not preclude it:
+
+```
+uploaded plan -> AI extracts rooms, openings, dimensions -> CONFIDENCE per value
+              -> human verification -> approved version -> library
+```
+
+The extraction proposes; **a person still approves**, and the approval is what
+writes an `approved` version. AI output must never become production truth on
+its own — which is the same rule the part-timer route already follows, so the
+workflow needs no new concept, only a new source of drafts.
 
 **Sequencing.** This stays Stage 2, after Phase 5 has run live two months, and
 that ordering is not arbitrary: a project library is only worth building once
@@ -1468,10 +2112,8 @@ orders, supplier management and costing come later.
 - ~~**A11.**~~ **ANSWERED — final pricing is EXACT, no round-up.** 12ft 4in
   measured on site bills 37/3 = 12.3333ft at RM46 = RM567.33, against RM598.00 quoted.
   The quote rounds up, the bill does not. See §4.3 `stage`.
-- `[BLOCKING P6]` **A11a.** Follow-on: does `min_qty` still apply at the final
-  stage? A site-measured 12 sqft roller against a printed "Min 18sqft" — 18 or
-  12? Assumed **18** (a commercial floor, not a rounding artefact) and written
-  into §4.3 as an assumption. Confirm before Phase 6.
+- ~~**A11a.**~~ **SUPERSEDED BY A21**, which asks the same question with the
+  worked numbers attached. Do not answer both.
 - **A12.** Does the fair promo % **stack on top of** an MVP flat rate? RM46 →
   MVP RM40 → then also 20% off? Or is MVP the floor, whichever is lower? Not
   Phase 1, but it is the same shape of silent-money question as A4.
@@ -1598,8 +2240,9 @@ orders, supplier management and costing come later.
 - ~~**B7.**~~ **ANSWERED — every product defers material to measurement.** At a
   fair the job is to lock the deposit, not to settle the specification.
 
-  This overrides the note in §4.1 that material "cannot be deferred past
-  deposit" for products whose material moves the rate. Seven variants do:
+  §4.1 previously said material "cannot be deferred past deposit" for products
+  whose material moves the rate. This answer overrode that, and §4.1 now reads
+  the same way. Seven variants have material-dependent rates:
   `zebra_blackout` (J/BL RM12 vs TBL RM15), `outdoor_zip_manual` and
   `outdoor_zip_motor` (1% RM55 vs 0% RM60), `fauxwood` (50mm RM27 vs 63mm RM29),
   `ultra_light_timber` (50mm RM26 vs 63mm RM30), `outdoor_roller_motor` (Somfy
@@ -1776,7 +2419,112 @@ orders, supplier management and costing come later.
 - Blinds and tracks ride the `curtain` RM300 deposit ✓
 - RM300 covers unlimited windows within its category ✓
 - Promo and lock are fair-only; showroom pays standard ✓
-- Promo is a percentage off one standard list ✓
+- ~~Promo is a percentage off one standard list~~ — **superseded by the supplied
+  list.** The fair card carries the printed fair prices directly, and the
+  standard card is *derived from it* by markup. Two published lists, and the date
+  picks one (§3, A3, A3a). The discount percentage stays in the model, pinned on
+  every lock and line, and is currently zero on both cards.
 - No Tap to Pay. Record payments only, existing terminal stays ✓
 - SQL Account is the sole e-invoice issuer of record ✓
 - Backend is FastAPI ✓
+
+---
+
+# 14. ARCHITECTURE, BOUNDARIES, EXTENSIBILITY
+
+Enough direction to stop this becoming a monolith. **Not a licence to build
+abstractions nobody needs.** No microservices, no message bus, no framework
+migration. One Flutter app, one FastAPI service, one Angular dashboard, one
+Postgres — as CLAUDE.md says, that is the right shape for one developer
+supporting one client.
+
+What this section buys is that a future feature can be added **beside** what
+exists rather than threaded through it.
+
+## 14.1 Domains
+
+Conceptually separate, whatever the folder layout:
+
+auth & authorisation · customers · products & catalogue · pricing ·
+quotations · orders · payments · measurements · materials · property library ·
+documents · synchronisation · audit
+
+A domain owns its rules. Another domain calls it rather than reimplementing it.
+
+## 14.2 Four things that live in exactly one place
+
+These are the ones that have already gone wrong, or would be expensive to
+untangle:
+
+| Rule | Home | Why one place |
+|---|---|---|
+| **Pricing** | `pricing/`, pure, on both sides, one shared fixture file | Two engines already disagree-check each other (§9.4). A third copy in a screen would not be checked by anything |
+| **Order transitions** | `advanceOrder`, both sides, one fixture section | §6.6. A screen that decides its own transitions is a screen that skips a step nobody notices |
+| **Authorisation** | One place per side | A permission checked in two files eventually disagrees with itself, and the disagreement favours whoever wrote the second one |
+| **Unit parsing** | `core/`, separate from pricing | The engine takes canonical `_tmm` and nothing else (§5.1) |
+
+## 14.3 Business logic does not live in the UI
+
+A screen collects input, calls a rule, and renders what comes back.
+
+The test: **could this rule be exercised with no UI at all?** For pricing, the
+lifecycle, the threshold and the unit parser, the answer is yes today, and every
+one of them has tests that run without a widget. Keep it that way — it is also
+what makes the two engines checkable against one shared fixture file.
+
+## 14.4 Reference data and transactions are different kinds of thing
+
+| | Reference | Transaction |
+|---|---|---|
+| Examples | Rate cards, promos, product rules, delivery zones, materials, property library | Quotes, orders, payments, measurements, events |
+| Written by | Admin, centrally | Anybody, on any handset, offline |
+| Sync | Versioned, replaced wholesale, server wins | Idempotent push, client wins, server appends |
+| Used by a transaction how | **Copied in, with its version recorded** | — |
+
+**A transaction never dynamically references mutable reference data.** It
+snapshots what it used. This is why an order line records its rule, band, version
+and discount (§6.3), why a lock pins both version and percentage (§6.1), and why
+a property-library dimension will be copied with its `source_version` (Phase 8).
+
+Changing a price, a plan or a promo must never silently change what somebody was
+already quoted or charged.
+
+## 14.5 Generated content is never production truth
+
+For the AI directions in §2.5 and Phase 8, one boundary:
+
+```
+customer image / uploaded plan
+   -> storage
+   -> AI service
+   -> a PROPOSAL, with confidence
+   -> human review
+   -> approved record
+```
+
+A generated visualisation is a picture. An extracted dimension is a draft. **A
+person's approval is what makes either real**, and nothing generated flows into
+pricing, measurements, order lines or production paperwork without passing
+through that approval. The AI service stays outside the pricing and order
+domains entirely — it proposes to a review queue, it does not write to an order.
+
+## 14.6 Extensibility principle
+
+> Add a feature as a new capability in the domain that owns it, not by threading
+> unrelated logic through an existing screen.
+
+**Prefer:**
+stable ids · versioned reference data · immutable transaction snapshots ·
+one home per rule · auditable state changes · config over constants
+
+**Avoid:**
+a service that does everything · a screen that does everything · branching on a
+product *name* rather than a stable key · a business constant compiled into the
+app · a second copy of a pricing rule · a permission checked in two places · a
+business rule that only exists inside a widget
+
+**Stable identifiers, not display strings.** Pricing already matches on
+`variant`, `material_key`, `layer` and `fulfilment`, and every label is a
+`{zh, en, ms}` map. That is what lets a customer-facing catalogue (§2.5) layer
+its own presentation on the same keys later, and what stops a renamed product
+silently repricing.

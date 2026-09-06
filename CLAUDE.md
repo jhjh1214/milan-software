@@ -299,7 +299,37 @@ the file. `ci.yml` stopped parsing and nothing ran. Author that content with the
 Write tool, and **verify a workflow before pushing**: parse it, extract the
 step's `run:` back out of the parsed YAML, and execute it.
 
-**Next in Phase 6** — site measurement on the device. It is what makes the
+**The RM10,000 rule is in**, both engines and the state machine. Checked twice
+per §10.4: at the fair on the estimate it *asks* from RM8,000, and after
+measurement it *blocks*. The margin belongs to the estimate alone — an estimate
+is rough, a final is exact. Both figures are config **on the rate card**, so
+changing one is a card publish, and a card published before this defaults to the
+law rather than to no check at all.
+
+Buyer details live on the **order** (schema v12), not a customer record, because
+there is no customer table yet (B9). Completeness is a **rule, not a flag**: a
+name, one identifier (a TIN, or an ID *with* its type), and a full address.
+Everything missing is reported at once, so somebody collects it in one
+conversation.
+
+§13 gained **C12** (which pipeline step is "invoicing" — the guard bites from
+`material_selected`) and **C13** (which buyer fields MyInvois actually rejects).
+
+**SPEC.md is now the authoritative product direction**, reviewed end to end and
+brought in line with what was actually built. New §2 (what the product is, and
+the V1/V2 boundary) and §14 (architecture, boundaries, extensibility). §5 rewritten
+around parse → normalise → validate → suggest → confirm, with the parser table
+corrected to `_tmm` — it had promised millimetres, which is the rounding bug the
+invariant exists to prevent. §6.6 (the lifecycle is the authority) and §6.7 (what
+must be traceable) are new. Phase 8 is now the Property / Project / Unit Library,
+with provenance, versioning and a two-step floor-plan review; AI extraction is
+documented as a future extension that proposes to a human, never production
+truth.
+
+**Next in Phase 6** — the measurement screen itself, and the revised order
+document. The engines, the repository and the compliance guard are done; what is
+missing is the UI a measurer uses in the house, and an end-to-end assertion that
+the whole measurement path works with no signal. It is what makes the
 variance report and the outstanding-balances report show anything: both have
 columns that stay empty until an order has a final price, and both say so on
 screen rather than showing a table that looks like a failed query.
