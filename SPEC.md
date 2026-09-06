@@ -371,6 +371,32 @@ surface the charge before the total, never after the customer has agreed a numbe
 Basis `per_roll`, coverage 14ft x 10ft, sold as a BOGO pair. Round up to whole
 bundles. Pattern-repeat wastage still unanswered.
 
+### Stairs and landings are counted, not measured by area
+`per_piece`: the quantity on the line is the number of steps. A landing is a
+separate line at its own rate. Both band on the **width** of the step, at 5ft
+(§13 A22, and A1's fencepost — exactly 5ft is the cheaper band).
+
+### A row may exist before its price does
+A row can be added as soon as its *shape* is known — the basis, the bands, the
+deposit category — with the rate still to come. Such a row carries
+`provisional: true` and a `rate_sen` of 0, and **both engines refuse to price
+it**. They raise the same "no applicable rate" the engine raises for an
+incomplete rate; they never quote the zero.
+
+This is not a soft warning. A placeholder that reaches a customer is worse than
+a product that is not on the list yet, because RM0 is a number somebody acts on
+— and "this product has no price yet" and "this product is free" must never be
+the same state in the data.
+
+Supplying the rate is a **data edit** (hard rule 1): the admin types the number
+into the price list, and the same edit clears the flag. The two never move
+apart, because a row with a real rate that was still flagged would be accepted
+on screen and refused by the engine, with nothing on either side saying why.
+
+The stair and landing rows are the current example. `provisional` also exists on
+the card as a whole, meaning something different: that the entire card is a
+stand-in built from spec examples rather than the client's real list.
+
 ## 4.2 Schema
 
 ```sql
@@ -402,6 +428,8 @@ pricing_rules
   band_min_tmm       int                 -- INCLUSIVE, tenths of a mm
   band_max_tmm       int NULL            -- EXCLUSIVE, tenths of a mm
   rate_sen           int
+  provisional        bool DEFAULT false  -- rate is a PLACEHOLDER, not a price;
+                                         -- the engine refuses to quote the row
   mvp_rate_sen       int NULL            -- FLAT tier price
   min_qty            numeric NULL        -- minimum BILLED quantity
   min_charge_sen     int NULL            -- different concept, both may be null
@@ -518,12 +546,17 @@ variance report must subtract this known bias before it can say anything about a
 salesperson's guessing. A line quoted at 13ft and billed at 12.33ft is not a bad
 estimate.
 
-**`min_qty` applies at BOTH stages — see §13 A21, which is open.** "Min 18 sqft"
-is printed on the price list as a commercial floor, not a rounding artefact, so a
-site-measured 9 sqft roller blind still bills 18. Both engines do this and a
-fixture pins it. It is the reading the printed list supports and it is not in
-tension with §8.5, because the estimate applies the same floor — but it is worth
-having in writing, since the other reading bills RM81 where this bills RM162.
+**`min_qty` applies at BOTH stages, and that is now a placeholder for a
+conditional rule — see §13 A21.** "Min 18 sqft" is printed on the price list as
+a commercial floor, not a rounding artefact, so a site-measured 9 sqft roller
+blind currently still bills 18. Both engines do this and a fixture pins it.
+
+A21 is answered in principle: the floor is a property of the **job**, not the
+line, and a small blind inside a house of curtains should bill what it measures.
+The order-of-operations questions that answer raises are A21a–A21d and they move
+money, so the unconditional floor stays in force until they are settled. On a
+**quotation** it stays unconditional either way: quoting below a floor the final
+might apply would break §8.5 in the one direction it may not break.
 
 **`rawQty` must be exact rational arithmetic, not a float.** A foot is 304.8mm,
 so ft→mm→sqft can never be exact in binary. A 12ft × 8ft blind that computes as
@@ -627,10 +660,23 @@ Two consequences beyond the label:
 - **The short-drop warning is drop-only.** 300mm of floor is a strip at a
   doorway, a real thing somebody orders. Questioning it teaches people to tap
   past warnings, including the one that matters.
-- **Nothing in flooring bands.** Every flooring row is unbanded, so its second
-  dimension never selects a rate. Skirting is the one row charged `per_ft_width`
-   — it follows the wall, so it is a running length and has no second dimension
-  at all.
+- **No flooring row bands on its second dimension.** A floor's length never
+  selects a rate, so nothing a part-timer measures across a room can change the
+  price per square foot. Stairs are the one flooring rate that bands at all,
+  and it bands on the **width** of the step (§13 A22) — the first dimension,
+  and the one already on screen.
+
+Skirting and stairs are the two flooring rows that are not an area:
+
+| Row | Charged | Second dimension |
+|---|---|---|
+| room, SPC, vinyl, laminate | `per_sqft` | length |
+| skirting | `per_ft_width` — it follows the wall | none |
+| stair step, stair landing | `per_piece` — one at a time | none |
+
+A staircase is quantified in **steps**, not feet, and a landing is counted
+separately from the steps that reach it. Both still take a width, because the
+width selects the band; it never multiplies (§4.3, rule 5).
 
 `secondDimensionOf(family)` is the single place this is decided, and the
 plausible ranges on the rate card are named for what they are — `drop_*`,
@@ -2082,7 +2128,10 @@ orders, supplier management and costing come later.
 - ~~**A2a / A2b.**~~ **ANSWERED — the MITC Mega Home Expo Aug 2026 list was
   supplied and is transcribed in full** to `shared/rate-card-fair-2026-08.json`:
   77 rows across curtain, blind, track, flooring, wallpaper, add-on and service,
-  plus both delivery zones and three product rules.
+  plus both delivery zones and three product rules. (The card file now holds 81:
+  the four stair and landing placeholders of A22 were added afterwards and are
+  not on the printed list. 77 remains the count of *sellable* rows, and a test
+  asserts both numbers separately.)
 
   PDF text extraction flattened the two-column layout and orphaned five labels
   from four prices. The page was re-rendered at 300dpi and read visually, which
@@ -2123,21 +2172,65 @@ orders, supplier management and costing come later.
   → round → multiply) or the **line total** (multiply → discount → round)?
   Differs by sen per line and real money across a house.
   *Retagged from P1: Phase 1 builds no discount and no golden case exercises one.*
-- `[BLOCKING P6]` **A21.** **Does a printed minimum quantity survive the tape?**
-  §4.3 has carried this as *"assumption pending confirmation — `min_qty`
-  applies at both stages. Confirm before Phase 6."* This is Phase 6.
+- ~~**A21.**~~ **ANSWERED IN PRINCIPLE, AND THE PRINCIPLE IS CONDITIONAL.**
+  **Does a printed minimum quantity survive the tape?** §4.3 carried this as
+  *"assumption pending confirmation — `min_qty` applies at both stages."*
 
-  Both engines apply it at both stages, so a 3ft × 3ft roller blind measures
-  9 sqft and bills 18. That is the reading the printed list supports: "Min 18
-  sqft" sits on the price list as a commercial floor next to the rate, not as a
-  rounding note. The other reading — exact tape, no floor — bills RM81 where
-  this bills RM162, and it is the customer-favourable one.
+  The client's answer: *"bill what it actually measures only if they are doing
+  other stuff too like more blinds and curtains and total exceeds RM300, else
+  just bill minimum sqft."*
 
-  It is **not** in tension with §8.5: the estimate applies the same floor, so
-  the final still lands at or below it. What is at stake is only whether a
-  small window is charged at the printed minimum or at what it measures, and
-  the answer is worth having in writing before the first invoice rather than
-  after.
+  So the minimum is **not** a property of the line. It is a floor on the *job*.
+  A single small roller blind on its own bills its printed 18 sqft — the
+  minimum exists so a one-window callout is worth doing at all. The same blind
+  inside a house of curtains bills the 9 sqft it measures, because the job
+  already clears the floor and the minimum has nothing left to protect.
+
+  This applies **at final pricing only**. A quotation still applies `min_qty`
+  unconditionally: it rounds up throughout, and quoting below a floor that the
+  final might then apply would break the §8.5 promise in the one direction it
+  may not break.
+
+  Four things this answer does not settle, each recorded rather than guessed
+  because each moves money. **Until they are answered both engines keep
+  applying `min_qty` at both stages** — the conservative reading, and the one
+  already built and fixture-tested.
+
+  - `[BLOCKING P6]` **A21a. Which total is the RM300 measured against?** The
+    whole order, or the deposit category the line belongs to? A house of
+    curtains plus one small blind is one order but two categories, and the two
+    readings disagree about that blind.
+  - `[BLOCKING P6]` **A21b. Is the total computed with the minimums applied or
+    without?** This is circular: the minimums decide the total, and the total
+    decides whether the minimums apply. It needs a stated order of operations
+    — most likely "sum the exact-tape totals first, then decide" — or an order
+    of exactly RM300 flips between two answers depending on which pass ran.
+  - `[BLOCKING P6]` **A21c. Is exactly RM300 above the line or on it?** "Exceeds
+    RM300" reads as strictly greater. Worth confirming, because RM300 is also
+    the deposit figure and a customer paying exactly one deposit is not a rare
+    case — it is the common one.
+  - `[BLOCKING P6]` **A21d. What happens when waiving the minimum drops the
+    final below the deposit already taken?** This is §13 **B4** arriving from a
+    new direction. §8.4 stops a *quotation* showing less than the deposit; a
+    final is a different document and B4 is still open.
+- `[BLOCKING P6]` **A22. What are the stair and landing rates?** The shape is
+  known and built: a staircase is charged **per step**, a landing separately
+  and at a different rate, and both depend on how wide the step is. The client
+  put the width break at *"like 5ft width or below is one rate, then above is
+  one more expensive"*, so the card carries four rows — step and landing,
+  narrow and wide — banded at 5ft with exactly 5ft on the cheaper side (A1).
+
+  The four numbers are missing. The rows are marked `provisional` and carry a
+  rate of 0, and **both engines refuse to price a provisional row** rather than
+  quoting the placeholder: RM0 in front of a customer is worse than a product
+  that is not on the list yet. The handset shows the same "no complete rate,
+  tell the office" message it already shows for an incomplete rate.
+
+  Answering this is a **data edit** and needs no release — the admin types the
+  four rates into the price list and the same edit clears the placeholder flag.
+  Two related questions the four numbers will probably raise: whether the
+  landing width break is the same 5ft as the step's, and whether a staircase
+  carries a minimum number of steps the way SPC carries a minimum area.
 - **A5.** One discount % for everything, or different per family?
 - **A6.** Is "Sgp Pleat" a heading bundled with a rod, or standalone fabric?
 - **A7.** Wallpaper pattern-repeat wastage: absorbed already, or added per range?
