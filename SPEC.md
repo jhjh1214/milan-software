@@ -1756,9 +1756,11 @@ one the next person inherits), and any Malay or Chinese (§13 C9).
   the buyer's details captured on the order and a completeness rule rather than
   a flag.
 
+- The measurement screen: an order's lines worked through one at a time, the
+  estimate beside the field being typed into, the fair photo on each row, the
+  material chosen here, and the variance visible without leaving the screen.
+
 **Still to build**
-- The measurement screen itself — working through an order's lines with the
-  estimate and the fair photo beside the field.
 - The revised order document.
 
 **Acceptance**
@@ -1766,16 +1768,16 @@ one the next person inherits), and any Malay or Chinese (§13 C9).
   — fixture `final-reprices-at-the-held-card-not-todays`, loaded by both
   engines, with the active card two versions newer.
 - [x] Variance visible to the measurer before they leave the house
-  — `repriceOrder` returns it per line and per order, and `outstandingOf` says
-  what still stands between the order and a bill, with the reason for each.
-  **Needs the screen before this is true in the customer's house.**
+  — on the screen, per line and for the order, the moment a tape is recorded.
+  `measure_screen_test.dart` drives it the way a measurer would.
 - [x] An order crossing RM10,000 cannot advance without buyer details
   — `order_status_cases`, `status-over-threshold-cannot-leave-measured`, plus
   the repository tests. Enforced in `advanceOrder`, not in a screen.
-- [ ] Works fully offline in a house with no signal
-  — nothing in the measurement path touches the network and every card it needs
-  was pulled before the visit. **Not yet asserted end to end**, and it should be
-  the same shape of test as the offline-PDF one in Phase 2.
+- [x] Works fully offline in a house with no signal
+  — the whole flow runs under an `HttpOverrides` that **throws on every
+  socket**, and the tape is verified in the database afterwards. Stronger than
+  the source scan the offline-PDF test uses: any code path that dials out fails
+  the test rather than going unnoticed.
 
 ---
 

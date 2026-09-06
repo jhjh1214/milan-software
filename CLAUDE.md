@@ -326,10 +326,33 @@ with provenance, versioning and a two-step floor-plan review; AI extraction is
 documented as a future extension that proposes to a human, never production
 truth.
 
-**Next in Phase 6** — the measurement screen itself, and the revised order
-document. The engines, the repository and the compliance guard are done; what is
-missing is the UI a measurer uses in the house, and an end-to-end assertion that
-the whole measurement path works with no signal. It is what makes the
+**The measurement screen is in**, and with it Phase 6's fourth criterion. An
+order's lines worked through one at a time, the estimate beside the field being
+typed into, the fair photo on each row, the material chosen here, the variance
+visible without leaving the screen. The order total is **absent, not zero**
+until every line prices, and what is outstanding says *why* for each.
+
+**Offline is proved, not asserted.** The whole flow runs under an
+`HttpOverrides` that throws on every socket, and the tape is checked in the
+database afterwards — stronger than the source scan the PDF test uses.
+
+**Two real bugs, both found by building the screen.** The sheet rendered
+`9' × 12'` for a 12ft-wide window: **gen-l10n orders positional placeholders
+alphabetically**, so `height` came first — on the one screen whose job is
+catching a wrong dimension. A message with two placeholders has an order you
+did not choose; compose the string at the call site instead. And the order
+screen's line rows fell below the 800×600 test fold once a button was added, so
+both UI tests now use a phone-shaped surface.
+
+**Two earlier spec-alignment items also turned out to be hiding defects.** The
+parser table test read `.mm`, so it could not tell an exact tenth from one
+rounded through millimetres — forcing that rounding left it green. And `8000in`
+typed with the suffix produced **no warning at all**, because an explicit unit
+exempted the value from every plausibility check; that exemption now covers only
+the "did you mean a smaller unit" nudge, and ranges are per category and per
+field off the card.
+
+**Next in Phase 6** — the revised order document, and then Phase 7. It is what makes the
 variance report and the outstanding-balances report show anything: both have
 columns that stay empty until an order has a final price, and both say so on
 screen rather than showing a table that looks like a failed query.
