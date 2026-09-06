@@ -125,6 +125,7 @@ class _Body extends ConsumerWidget {
           to: next,
           at: ref.read(todayProvider),
           byUserId: ref.read(credentialsProvider).valueOrNull?.user.id,
+          thresholds: ref.read(thresholdsProvider),
         );
 
     _refresh(ref);

@@ -411,6 +411,51 @@ void main() {
     });
   });
 
+  group('buyer detail cases', () {
+    // SPEC.md §10.3. What counts as having the buyer's details, which is the
+    // only thing that clears the RM10,000 block.
+    for (final raw
+        in (jsonDecode(File(_findFixtures()).readAsStringSync())
+                as Map<String, dynamic>)['buyer_details_cases']
+            as List<dynamic>) {
+      final c = raw as Map<String, dynamic>;
+
+      test('${c['id']} — ${c['why']}', () {
+        final b = c['buyer'] as Map<String, dynamic>;
+        final buyer = BuyerDetails(
+          name: b['name'] as String?,
+          tin: b['tin'] as String?,
+          idType: b['id_type'] as String?,
+          idNumber: b['id_number'] as String?,
+          addressLine1: b['address_line1'] as String?,
+          addressLine2: b['address_line2'] as String?,
+          city: b['city'] as String?,
+          state: b['state'] as String?,
+          postcode: b['postcode'] as String?,
+        );
+
+        final expected = c['expect'] as Map<String, dynamic>;
+        expect(buyerDetailsComplete(buyer), expected['complete']);
+        expect(
+          missingBuyerDetails(buyer).map((m) => m.wire).toList(),
+          expected['missing'],
+          reason: 'everything outstanding, named at once and in order',
+        );
+      });
+    }
+
+    test('every missing piece is exercised by a case', () {
+      final seen = <String>{
+        for (final raw in fixtures['buyer_details_cases'] as List)
+          ...(((raw as Map<String, dynamic>)['expect']
+                      as Map<String, dynamic>)['missing']
+                  as List)
+              .cast<String>(),
+      };
+      expect(seen, {for (final m in BuyerDetailsMissing.values) m.wire});
+    });
+  });
+
   group('quote total cases', () {
     for (final raw
         in (jsonDecode(File(_findFixtures()).readAsStringSync())

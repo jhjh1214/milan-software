@@ -22,10 +22,14 @@ import pytest
 from app.core.length import Length
 from app.core.money import Money
 from app.pricing.einvoice_threshold import (
+    BuyerDetails,
+    BuyerDetailsMissing,
     ThresholdConfig,
     ThresholdReason,
     ThresholdStage,
+    buyer_details_complete,
     check_threshold,
+    missing_buyer_details,
 )
 from app.pricing.engine import (
     LineRequest,
@@ -327,12 +331,37 @@ def test_every_threshold_reason_is_exercised() -> None:
     assert seen == {reason.value for reason in ThresholdReason}
 
 
+@pytest.mark.parametrize(
+    "case",
+    FIXTURES["buyer_details_cases"],
+    ids=[c["id"] for c in FIXTURES["buyer_details_cases"]],
+)
+def test_buyer_details_case(case: dict) -> None:
+    """SPEC.md §10.3. What counts as having the buyer's details."""
+    buyer = BuyerDetails(**case["buyer"])
+
+    assert buyer_details_complete(buyer) is case["expect"]["complete"]
+    assert [m.value for m in missing_buyer_details(buyer)] == case["expect"]["missing"]
+
+
+def test_every_missing_piece_is_exercised() -> None:
+    # A branch nothing covers is one that will be wrong the first time it
+    # fires, and it fires on a legal obligation.
+    seen = {
+        missing
+        for case in FIXTURES["buyer_details_cases"]
+        for missing in case["expect"]["missing"]
+    }
+    assert seen == {m.value for m in BuyerDetailsMissing}
+
+
 def test_the_fixture_file_is_not_empty() -> None:
     # A green suite over an empty contract proves nothing.
     assert len(FIXTURES["cases"]) >= 20
     assert len(FIXTURES["quote_total_cases"]) >= 5
     assert len(FIXTURES["final_pricing_cases"]) >= 10
     assert len(FIXTURES["einvoice_threshold_cases"]) >= 12
+    assert len(FIXTURES["buyer_details_cases"]) >= 10
 
 
 def test_the_card_is_the_real_price_list() -> None:

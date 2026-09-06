@@ -10,6 +10,7 @@ import 'package:drift/drift.dart';
 
 import '../core/money.dart';
 import '../pricing/conversion.dart';
+import '../pricing/einvoice_threshold.dart';
 import '../pricing/order_status.dart';
 import '../pricing/price_override.dart';
 import 'database.dart';
@@ -168,6 +169,7 @@ class OrderRepository {
     required String orderId,
     required OrderStatus to,
     required DateTime at,
+    required ThresholdConfig thresholds,
     String? byUserId,
     String? reason,
   }) => _db.transaction(() async {
@@ -181,6 +183,29 @@ class OrderRepository {
       from: OrderStatus.fromWire(order.status),
       to: to,
       reason: reason,
+      // §10.4, enforced here rather than in a screen. Checked against the
+      // FINAL total where one exists and the estimate otherwise: an order not
+      // yet measured has not crossed anything, and using the estimate as if it
+      // had would hold jobs the tape will bring back under the line.
+      //
+      // The thresholds come from the caller because they live on the rate
+      // card (§10.3), and this file has no business reading one.
+      //
+      // The stage cannot change what this call decides *here*, because the
+      // only stage-sensitive branch is the RM8,000 fair prompt and that one
+      // asks without blocking — so `blocksAdvance` is stage-independent
+      // today. It is passed correctly anyway: `mustCapture` is what a screen
+      // reads, and a caller that hard-coded the stage would be wrong the
+      // moment the two thresholds meet.
+      threshold: checkThreshold(
+        total: Money.sen(order.finalTotalSen ?? order.estimateTotalSen),
+        stage: order.finalTotalSen == null
+            ? ThresholdStage.estimate
+            : ThresholdStage.finalPricing,
+        config: thresholds,
+        buyerDetailsComplete: buyerDetailsComplete(buyerDetailsOf(order)),
+        einvoiceRequested: order.einvoiceRequested,
+      ),
       lines: [
         for (final l in lines)
           OrderLineState(
@@ -356,4 +381,73 @@ class OrderRepository {
   /// Orders still waiting for their number, shown as "pending sync".
   Future<List<OrderRow>> awaitingOrderNo() =>
       (_db.select(_db.orders)..where((o) => o.orderNo.isNull())).get();
+
+  /// Reads the buyer details off an order row. §10.3.
+  ///
+  /// A function rather than a stored flag: what counts as complete is a rule
+  /// (`pricing/einvoice_threshold.dart`), and a boolean column beside it would
+  /// be a second answer that drifts the first time somebody edits a field
+  /// without recomputing it.
+  static BuyerDetails buyerDetailsOf(OrderRow order) => BuyerDetails(
+    name: order.customerName,
+    tin: order.buyerTin,
+    idType: order.buyerIdType,
+    idNumber: order.buyerIdNumber,
+    addressLine1: order.buyerAddressLine1,
+    addressLine2: order.buyerAddressLine2,
+    city: order.buyerCity,
+    state: order.buyerState,
+    postcode: order.buyerPostcode,
+  );
+
+  /// Records what was captured about the buyer. §10.3.
+  ///
+  /// Every field is optional and passing null leaves what is there: a screen
+  /// that saves one section must not blank another. Trimmed on the way in, so
+  /// a tabbed-through field is stored as absent rather than as a space that
+  /// satisfies a legal requirement it does not meet.
+  ///
+  /// The customer's name lives on the order already and is updated here too,
+  /// because an e-invoice needs the buyer's legal name and a fair may have
+  /// recorded "Ah Lian's mother".
+  Future<void> recordBuyerDetails({
+    required String orderId,
+    String? name,
+    String? tin,
+    String? idType,
+    String? idNumber,
+    String? addressLine1,
+    String? addressLine2,
+    String? city,
+    String? state,
+    String? postcode,
+    String? msicCode,
+    bool? einvoiceRequested,
+  }) async {
+    Value<String?> keep(String? v) =>
+        v == null ? const Value.absent() : Value(_trimmedOrNull(v));
+
+    await (_db.update(_db.orders)..where((o) => o.id.equals(orderId))).write(
+      OrdersCompanion(
+        customerName: keep(name),
+        buyerTin: keep(tin),
+        buyerIdType: keep(idType),
+        buyerIdNumber: keep(idNumber),
+        buyerAddressLine1: keep(addressLine1),
+        buyerAddressLine2: keep(addressLine2),
+        buyerCity: keep(city),
+        buyerState: keep(state),
+        buyerPostcode: keep(postcode),
+        buyerMsicCode: keep(msicCode),
+        einvoiceRequested: einvoiceRequested == null
+            ? const Value.absent()
+            : Value(einvoiceRequested),
+      ),
+    );
+  }
+
+  static String? _trimmedOrNull(String value) {
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
 }

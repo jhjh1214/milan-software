@@ -1693,6 +1693,24 @@ orders, supplier management and costing come later.
 
   Cancelling is deliberately never blocked: it has nothing to do with
   invoicing, and refusing it would leave an over-threshold order trapped.
+- `[BLOCKING P7]` **C13.** **Which buyer fields does MyInvois actually
+  reject a submission for?** §10.3 lists the columns to capture but not which
+  are mandatory, and only the accountant who files these knows.
+
+  The system currently treats a buyer record as complete when it has a **name**,
+  **one identifier** (a TIN, or an ID with its type — a number with no type
+  cannot be filed) and a **postal address** (line 1, city, state, postcode).
+  Line 2, country and MSIC are optional; country because every buyer here is
+  Malaysian until one is not, MSIC because it is business-buyer only.
+
+  That is the conservative reading: it asks for the minimum any invoice needs
+  and errs toward asking for too much, because §10.2's penalty is for missing
+  details rather than for spare ones. But asking for a field MyInvois does not
+  want is friction at the exact moment a customer is being asked to hand over
+  an IC number, and missing one it does want is a rejected submission weeks
+  later when nobody remembers the order.
+
+  Answering this changes one function on each engine and its fixtures.
 - **C8.** Who may move an order along, and who may cancel one? The pipeline
   enforces *what* can happen, not *who* may do it — no role check is wired to it
   yet. A part-timer marking a job installed, or cancelling one, is the kind of

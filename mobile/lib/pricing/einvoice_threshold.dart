@@ -163,3 +163,87 @@ ThresholdCheck checkThreshold({
 
   return ThresholdCheck.none;
 }
+
+/// What the invoice needs about the buyer. SPEC.md §10.3.
+///
+/// Optional by default: most walk-ins are General Public and never fill any of
+/// this in. It becomes required when the threshold rule says so.
+class BuyerDetails {
+  const BuyerDetails({
+    this.name,
+    this.tin,
+    this.idType,
+    this.idNumber,
+    this.addressLine1,
+    this.addressLine2,
+    this.city,
+    this.state,
+    this.postcode,
+  });
+
+  final String? name;
+
+  /// Tax identification number. Either this or an ID satisfies the identifier.
+  final String? tin;
+
+  /// `nric`, `brn`, `passport` or `army`. Needed *with* [idNumber]: a number
+  /// with no type cannot be filed, because an IC, a passport and a business
+  /// registration are different fields on the invoice.
+  final String? idType;
+  final String? idNumber;
+
+  final String? addressLine1;
+
+  /// Optional. Plenty of addresses are one line, and requiring a second would
+  /// make staff type something to get past it.
+  final String? addressLine2;
+
+  final String? city;
+  final String? state;
+  final String? postcode;
+
+  static const BuyerDetails none = BuyerDetails();
+}
+
+/// What is still missing from a buyer record.
+enum BuyerDetailsMissing {
+  name('name'),
+
+  /// Neither a TIN nor a complete ID.
+  identifier('identifier'),
+
+  /// Line 1, city, state or postcode is blank.
+  address('address');
+
+  const BuyerDetailsMissing(this.wire);
+
+  final String wire;
+}
+
+bool _filled(String? value) => value != null && value.trim().isNotEmpty;
+
+/// Everything still outstanding, in a fixed order.
+///
+/// All of it at once, so somebody collects it in one conversation. A form that
+/// reveals one missing field at a time is a customer asked three times.
+List<BuyerDetailsMissing> missingBuyerDetails(BuyerDetails buyer) => [
+  if (!_filled(buyer.name)) BuyerDetailsMissing.name,
+  if (!_filled(buyer.tin) &&
+      !(_filled(buyer.idType) && _filled(buyer.idNumber)))
+    BuyerDetailsMissing.identifier,
+  if (!_filled(buyer.addressLine1) ||
+      !_filled(buyer.city) ||
+      !_filled(buyer.state) ||
+      !_filled(buyer.postcode))
+    BuyerDetailsMissing.address,
+];
+
+/// Whether the buyer record is enough to issue an e-invoice from. §10.3.
+///
+/// A rule rather than a flag somebody sets: a tick box gets ticked by anyone in
+/// a hurry, and the row it ticks is what SQL Account has to build a real
+/// e-invoice from. §13 C13 asks the accountant which fields MyInvois actually
+/// rejects; until then this asks for the minimum any invoice needs, erring
+/// toward too much because §10.2's penalty is for missing details.
+bool buyerDetailsComplete(BuyerDetails buyer) =>
+    missingBuyerDetails(buyer).isEmpty;

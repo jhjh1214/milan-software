@@ -241,6 +241,39 @@ class Orders extends Table {
   /// Against the **estimate** until the tape comes out, so it can only fall.
   IntColumn get balanceDueSen => integer().withDefault(const Constant(0))();
 
+  // Buyer details, for an e-invoice. §10.3.
+  //
+  // Optional by default and null for most orders: most walk-ins are General
+  // Public and never need any of this. They become required when the total
+  // crosses RM10,000 (§10.2) or when the customer asks (§10.3), and the rule
+  // for what counts as complete lives in `pricing/einvoice_threshold.dart`
+  // rather than in a flag anybody can tick.
+  //
+  // Held on the order rather than on a customer record because there is no
+  // customer table yet -- §13 B9's open half. When one arrives these move, and
+  // the order keeps a snapshot: what was true when the invoice was issued is
+  // not what is true when somebody moves house.
+  TextColumn get buyerTin => text().nullable()();
+
+  /// `nric`, `brn`, `passport` or `army`. Stored with its number or not at
+  /// all -- a number with no type cannot be filed.
+  TextColumn get buyerIdType => text().nullable()();
+  TextColumn get buyerIdNumber => text().nullable()();
+
+  TextColumn get buyerAddressLine1 => text().nullable()();
+  TextColumn get buyerAddressLine2 => text().nullable()();
+  TextColumn get buyerCity => text().nullable()();
+  TextColumn get buyerState => text().nullable()();
+  TextColumn get buyerPostcode => text().nullable()();
+
+  /// Business buyers only.
+  TextColumn get buyerMsicCode => text().nullable()();
+
+  /// The customer asked for an e-invoice. §10.3: required at any value, so
+  /// this is a reason to capture details on its own, not only a preference.
+  BoolColumn get einvoiceRequested =>
+      boolean().withDefault(const Constant(false))();
+
   /// True while any line is still on the sizes entered at the fair.
   BoolColumn get hasUnmeasuredLines =>
       boolean().withDefault(const Constant(true))();
@@ -586,7 +619,7 @@ class AppDatabase extends _$AppDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -658,6 +691,21 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(orderLines, orderLines.finalBandLabel);
         await m.addColumn(orderLines, orderLines.finalRateSen);
         await m.addColumn(orderLines, orderLines.finalLineTotalSen);
+      }
+      // v12: buyer details for an e-invoice (§10.3). Nullable and empty on
+      // every existing row, which is the honest state: nobody was asked,
+      // because until now there was nowhere to put the answer.
+      if (from < 12) {
+        await m.addColumn(orders, orders.buyerTin);
+        await m.addColumn(orders, orders.buyerIdType);
+        await m.addColumn(orders, orders.buyerIdNumber);
+        await m.addColumn(orders, orders.buyerAddressLine1);
+        await m.addColumn(orders, orders.buyerAddressLine2);
+        await m.addColumn(orders, orders.buyerCity);
+        await m.addColumn(orders, orders.buyerState);
+        await m.addColumn(orders, orders.buyerPostcode);
+        await m.addColumn(orders, orders.buyerMsicCode);
+        await m.addColumn(orders, orders.einvoiceRequested);
       }
     },
     beforeOpen: (details) async {

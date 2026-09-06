@@ -153,3 +153,82 @@ def check_threshold(
         )
 
     return NONE
+
+
+@dataclass(frozen=True)
+class BuyerDetails:
+    """What the invoice needs about the buyer. SPEC.md §10.3.
+
+    Optional by default: most walk-ins are General Public and never fill any of
+    this in. It becomes required when the threshold rule says so.
+    """
+
+    name: str | None = None
+
+    #: Tax identification number. Either this or an ID satisfies the
+    #: identifier.
+    tin: str | None = None
+
+    #: ``nric``, ``brn``, ``passport`` or ``army``. Needed *with*
+    #: ``id_number``: a number with no type cannot be filed, because an IC, a
+    #: passport and a business registration are different fields on the
+    #: invoice.
+    id_type: str | None = None
+    id_number: str | None = None
+
+    address_line1: str | None = None
+    #: Optional. Plenty of addresses are one line, and requiring a second would
+    #: make staff type something to get past it.
+    address_line2: str | None = None
+    city: str | None = None
+    state: str | None = None
+    postcode: str | None = None
+
+
+class BuyerDetailsMissing(Enum):
+    """What is still missing from a buyer record."""
+
+    NAME = "name"
+    #: Neither a TIN nor a complete ID.
+    IDENTIFIER = "identifier"
+    #: Line 1, city, state or postcode is blank.
+    ADDRESS = "address"
+
+
+def _filled(value: str | None) -> bool:
+    return value is not None and value.strip() != ""
+
+
+def missing_buyer_details(buyer: BuyerDetails) -> list[BuyerDetailsMissing]:
+    """Everything still outstanding, in a fixed order.
+
+    All of it at once, so somebody collects it in one conversation. A form that
+    reveals one missing field at a time is a customer asked three times.
+    """
+    missing = []
+    if not _filled(buyer.name):
+        missing.append(BuyerDetailsMissing.NAME)
+    if not _filled(buyer.tin) and not (
+        _filled(buyer.id_type) and _filled(buyer.id_number)
+    ):
+        missing.append(BuyerDetailsMissing.IDENTIFIER)
+    if not (
+        _filled(buyer.address_line1)
+        and _filled(buyer.city)
+        and _filled(buyer.state)
+        and _filled(buyer.postcode)
+    ):
+        missing.append(BuyerDetailsMissing.ADDRESS)
+    return missing
+
+
+def buyer_details_complete(buyer: BuyerDetails) -> bool:
+    """Whether the buyer record is enough to issue an e-invoice from. §10.3.
+
+    A rule rather than a flag somebody sets: a tick box gets ticked by anyone
+    in a hurry, and the row it ticks is what SQL Account has to build a real
+    e-invoice from. §13 C13 asks the accountant which fields MyInvois actually
+    rejects; until then this asks for the minimum any invoice needs, erring
+    toward too much because §10.2's penalty is for missing details.
+    """
+    return not missing_buyer_details(buyer)

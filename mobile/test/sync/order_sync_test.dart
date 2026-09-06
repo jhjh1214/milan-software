@@ -16,6 +16,8 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:milan_quote/data/database.dart';
 import 'package:milan_quote/data/order_repository.dart';
+import 'package:milan_quote/core/money.dart';
+import 'package:milan_quote/pricing/einvoice_threshold.dart';
 import 'package:milan_quote/pricing/order_status.dart';
 import 'package:milan_quote/sync/api_client.dart';
 import 'package:milan_quote/sync/order_payload.dart';
@@ -29,6 +31,18 @@ const credentials = Credentials(
 );
 
 final at = DateTime.utc(2026, 8, 29, 14);
+
+/// The RM10,000 figures the pipeline is handed. SPEC.md §10.3: they live on
+/// the rate card, so a caller passes them rather than the repository reading
+/// one.
+///
+/// These are the real values, not a disabled stand-in. Every order in this
+/// file is a few hundred ringgit, so the guard never fires -- and if one ever
+/// grows past RM10,000 the test should notice.
+const _thresholds = ThresholdConfig(
+  threshold: Money.sen(1000000),
+  prompt: Money.sen(800000),
+);
 
 void main() {
   late AppDatabase db;
@@ -251,6 +265,7 @@ void main() {
     Future<String> advance(OrderStatus to, {String? reason}) async {
       final before = await orders.historyOf(orderId);
       await orders.advanceStatus(
+        thresholds: _thresholds,
         orderId: orderId,
         to: to,
         at: at,

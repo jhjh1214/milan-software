@@ -127,6 +127,24 @@ void main() {
         'user_version',
       );
 
+  /// Undoes exactly what v12 added: the buyer's details for an e-invoice.
+  Future<void> undoV12(AppDatabase db) async {
+    for (final column in const [
+      'buyer_tin',
+      'buyer_id_type',
+      'buyer_id_number',
+      'buyer_address_line1',
+      'buyer_address_line2',
+      'buyer_city',
+      'buyer_state',
+      'buyer_postcode',
+      'buyer_msic_code',
+      'einvoice_requested',
+    ]) {
+      await db.customStatement('ALTER TABLE orders DROP COLUMN $column');
+    }
+  }
+
   /// Undoes exactly what v11 added: the six columns for what the tape priced.
   ///
   /// `ALTER TABLE ... DROP COLUMN` rather than a rebuild, so what is left is
@@ -156,6 +174,7 @@ void main() {
   /// that already has them -- which throws, and is exactly the failure this
   /// suite exists to catch, arriving as a false one.
   Future<void> windBackTo(AppDatabase db, int version) async {
+    if (version < 12) await undoV12(db);
     if (version < 11) await undoV11(db);
     if (version < 10) await undoV10(db);
     await db.customStatement('PRAGMA user_version = $version');
@@ -163,7 +182,7 @@ void main() {
 
   test('a fresh database opens at the current version', () async {
     final db = await open();
-    expect(await userVersion(db), 11);
+    expect(await userVersion(db), 12);
     expect(await tablesIn(db), contains('price_overrides'));
     await db.close();
   });
@@ -189,7 +208,7 @@ void main() {
     final after = await open();
     expect(
       await userVersion(after),
-      11,
+      12,
       reason: 'every step from 9 should have run, and recorded itself',
     );
     expect(
@@ -283,7 +302,7 @@ void main() {
     await first.close();
 
     final second = await open();
-    expect(await userVersion(second), 11);
+    expect(await userVersion(second), 12);
     expect(await tablesIn(second), contains('price_overrides'));
     await second.close();
   });
@@ -316,7 +335,7 @@ void main() {
       final after = await open();
       expect(
         await userVersion(after),
-        11,
+        12,
         reason: 'the upgrade should have run and recorded itself',
       );
 
@@ -386,7 +405,89 @@ void main() {
       await first.close();
 
       final second = await open();
-      expect(await userVersion(second), 11);
+      expect(await userVersion(second), 12);
+      await second.close();
+    });
+  });
+
+  group('v11 → v12 — the buyer\'s details (§10.3)', () {
+    test('the order already on the handset survives it', () async {
+      final before = await open();
+      await seedOrderLine(before);
+      await windBackTo(before, 11);
+      await before.close();
+
+      final after = await open();
+      expect(await userVersion(after), 12);
+
+      final order = await (after.select(
+        after.orders,
+      )..where((o) => o.id.equals('o-1'))).getSingle();
+
+      expect(
+        order.estimateTotalSen,
+        96000,
+        reason: 'the money on an order in the field is untouched',
+      );
+      expect(
+        order.buyerTin,
+        null,
+        reason: 'nobody was asked, because there was nowhere to put the answer',
+      );
+      expect(
+        order.einvoiceRequested,
+        isFalse,
+        reason: 'a bool column with no value must not read as true',
+      );
+
+      await after.close();
+    });
+
+    test('the new columns are writable', () async {
+      // A migration that adds a column of the wrong type passes a "does it
+      // exist" check and fails on the first write, which is in front of a
+      // customer reading out their IC number.
+      final before = await open();
+      await seedOrderLine(before);
+      await windBackTo(before, 11);
+      await before.close();
+
+      final after = await open();
+      await (after.update(
+        after.orders,
+      )..where((o) => o.id.equals('o-1'))).write(
+        const OrdersCompanion(
+          buyerTin: Value('C12345678901'),
+          buyerIdType: Value('nric'),
+          buyerIdNumber: Value('880101105566'),
+          buyerAddressLine1: Value('12 Jalan Merdeka'),
+          buyerCity: Value('Melaka'),
+          buyerState: Value('Melaka'),
+          buyerPostcode: Value('75000'),
+          buyerMsicCode: Value('47591'),
+          einvoiceRequested: Value(true),
+        ),
+      );
+
+      final order = await (after.select(
+        after.orders,
+      )..where((o) => o.id.equals('o-1'))).getSingle();
+
+      expect(order.buyerIdNumber, '880101105566');
+      expect(order.buyerPostcode, '75000');
+      expect(order.einvoiceRequested, isTrue);
+
+      await after.close();
+    });
+
+    test('running the upgrade twice does not throw', () async {
+      // `addColumn` is not idempotent. A loosened guard fails with a duplicate
+      // column name, on launch, on a handset that already migrated.
+      final first = await open();
+      await first.close();
+
+      final second = await open();
+      expect(await userVersion(second), 12);
       await second.close();
     });
   });

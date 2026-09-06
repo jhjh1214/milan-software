@@ -8,10 +8,12 @@ library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/length.dart';
+import '../../core/money.dart';
 import '../../data/database.dart';
 import '../../data/quote_repository.dart';
 import '../../data/rate_card_store.dart';
 import '../../data/settings_repository.dart';
+import '../../pricing/einvoice_threshold.dart';
 import '../../pricing/engine.dart';
 import '../../pricing/models.dart';
 import '../../pricing/rate_lock.dart' show Channel;
@@ -84,6 +86,21 @@ final channelProvider = Provider<Channel>(
 final rateCardProvider = FutureProvider<RateCard>(
   (ref) async => (await ref.watch(activeRateCardProvider.future)).card,
 );
+
+/// The RM10,000 figures in force, off the card. SPEC.md §10.3: config, not
+/// code, so a change reaches every handset by publishing a card.
+///
+/// Falls back to the law rather than to no check at all while the card is
+/// still loading — a screen that renders before the pull finishes must not be
+/// a screen where the threshold is off.
+final thresholdsProvider = Provider<ThresholdConfig>((ref) {
+  final card = ref.watch(rateCardProvider).valueOrNull;
+  return card?.config.thresholds ??
+      const ThresholdConfig(
+        threshold: Money.sen(1000000),
+        prompt: Money.sen(800000),
+      );
+});
 
 /// The user's chosen language. Per user, not per device — SPEC.md §8.3.
 final languageProvider = StateProvider<String>((ref) => 'zh');

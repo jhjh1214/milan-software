@@ -2895,5 +2895,336 @@
         "reason": null
       }
     }
+  ],
+  "_buyer_details_purpose": "SPEC.md §10.3. What counts as having the buyer's details, which is the only thing that clears the RM10,000 block. Deliberately a rule of its own rather than a boolean somebody sets: a flag can be ticked by anyone in a hurry, and the row it ticks is what SQL Account has to issue a real e-invoice from. §13 C13 asks the accountant which fields MyInvois actually rejects; until then this requires a name, ONE identifier (a TIN or an ID with its type), and a postal address -- the minimum any invoice needs, and erring toward asking for too much, because §10.2's penalty is for missing details rather than for spare ones.",
+  "_buyer_details_fields": "`name` comes off the order, which already has one. `tin` is the tax identification number; `id_type` is one of nric, brn, passport, army and `id_number` is the number itself -- both are needed together, since a number with no type cannot be filed. The address is line 1, city, state and postcode; line 2 and country are optional, country because every buyer here is Malaysian until one is not.",
+  "buyer_details_cases": [
+    {
+      "id": "buyer-nothing-captured-is-not-complete",
+      "source": "SPEC.md §10.3",
+      "why": "The starting state of every walk-in. Most are General Public and never need more (§10.3).",
+      "buyer": {
+        "name": null,
+        "tin": null,
+        "id_type": null,
+        "id_number": null,
+        "address_line1": null,
+        "address_line2": null,
+        "city": null,
+        "state": null,
+        "postcode": null
+      },
+      "expect": {
+        "complete": false,
+        "missing": [
+          "name",
+          "identifier",
+          "address"
+        ]
+      }
+    },
+    {
+      "id": "buyer-a-tin-and-an-address-is-complete",
+      "source": "SPEC.md §10.3",
+      "why": "A business buyer. A TIN is the identifier MyInvois wants, and no ID number is needed beside it.",
+      "buyer": {
+        "name": "Syarikat Maju Sdn Bhd",
+        "tin": "C12345678901",
+        "id_type": null,
+        "id_number": null,
+        "address_line1": "12 Jalan Merdeka",
+        "address_line2": null,
+        "city": "Melaka",
+        "state": "Melaka",
+        "postcode": "75000"
+      },
+      "expect": {
+        "complete": true,
+        "missing": []
+      }
+    },
+    {
+      "id": "buyer-an-ic-and-an-address-is-complete",
+      "source": "SPEC.md §10.3",
+      "why": "The ordinary case here: a Malaysian buying curtains for their own house, who has an IC and no TIN.",
+      "buyer": {
+        "name": "Ah Lian",
+        "tin": null,
+        "id_type": "nric",
+        "id_number": "880101105566",
+        "address_line1": "12 Jalan Merdeka",
+        "address_line2": null,
+        "city": "Melaka",
+        "state": "Melaka",
+        "postcode": "75000"
+      },
+      "expect": {
+        "complete": true,
+        "missing": []
+      }
+    },
+    {
+      "id": "buyer-an-id-number-with-no-type-is-not-an-identifier",
+      "source": "SPEC.md §10.3",
+      "why": "A number with no type cannot be filed -- an IC, a passport and a business registration are different fields on the invoice, and guessing which one a bare number is would put the wrong thing on a document the customer keeps.",
+      "buyer": {
+        "name": "Ah Lian",
+        "tin": null,
+        "id_type": null,
+        "id_number": "880101105566",
+        "address_line1": "12 Jalan Merdeka",
+        "address_line2": null,
+        "city": "Melaka",
+        "state": "Melaka",
+        "postcode": "75000"
+      },
+      "expect": {
+        "complete": false,
+        "missing": [
+          "identifier"
+        ]
+      }
+    },
+    {
+      "id": "buyer-a-type-with-no-number-is-not-an-identifier",
+      "source": "SPEC.md §10.3",
+      "why": "The other half of the same rule.",
+      "buyer": {
+        "name": "Ah Lian",
+        "tin": null,
+        "id_type": "nric",
+        "id_number": null,
+        "address_line1": "12 Jalan Merdeka",
+        "address_line2": null,
+        "city": "Melaka",
+        "state": "Melaka",
+        "postcode": "75000"
+      },
+      "expect": {
+        "complete": false,
+        "missing": [
+          "identifier"
+        ]
+      }
+    },
+    {
+      "id": "buyer-an-identifier-with-no-address-is-not-complete",
+      "source": "SPEC.md §10.3",
+      "why": "An invoice needs somewhere to send it.",
+      "buyer": {
+        "name": "Ah Lian",
+        "tin": null,
+        "id_type": "nric",
+        "id_number": "880101105566",
+        "address_line1": null,
+        "address_line2": null,
+        "city": null,
+        "state": null,
+        "postcode": null
+      },
+      "expect": {
+        "complete": false,
+        "missing": [
+          "address"
+        ]
+      }
+    },
+    {
+      "id": "buyer-a-half-written-address-is-not-complete",
+      "source": "SPEC.md §10.3",
+      "why": "A street with no postcode is the address somebody stops typing halfway through, and it is the one that fails at submission weeks later when nobody remembers the order.",
+      "buyer": {
+        "name": "Ah Lian",
+        "tin": null,
+        "id_type": "nric",
+        "id_number": "880101105566",
+        "address_line1": "12 Jalan Merdeka",
+        "address_line2": null,
+        "city": "Melaka",
+        "state": null,
+        "postcode": null
+      },
+      "expect": {
+        "complete": false,
+        "missing": [
+          "address"
+        ]
+      }
+    },
+    {
+      "id": "buyer-no-name-is-not-complete",
+      "source": "SPEC.md §10.3",
+      "why": "The order can carry a phone and no name -- a fair takes deposits fast. An invoice cannot.",
+      "buyer": {
+        "name": null,
+        "tin": "C12345678901",
+        "id_type": null,
+        "id_number": null,
+        "address_line1": "12 Jalan Merdeka",
+        "address_line2": null,
+        "city": "Melaka",
+        "state": "Melaka",
+        "postcode": "75000"
+      },
+      "expect": {
+        "complete": false,
+        "missing": [
+          "name"
+        ]
+      }
+    },
+    {
+      "id": "buyer-whitespace-is-not-a-name",
+      "source": "SPEC.md §10.3",
+      "why": "A field somebody tabbed through. Trimmed before it is judged, so a space does not satisfy a legal requirement.",
+      "buyer": {
+        "name": "   ",
+        "tin": "C12345678901",
+        "id_type": null,
+        "id_number": null,
+        "address_line1": "12 Jalan Merdeka",
+        "address_line2": null,
+        "city": "Melaka",
+        "state": "Melaka",
+        "postcode": "75000"
+      },
+      "expect": {
+        "complete": false,
+        "missing": [
+          "name"
+        ]
+      }
+    },
+    {
+      "id": "buyer-whitespace-is-not-an-identifier",
+      "source": "SPEC.md §10.3",
+      "why": "Same rule, on the field that matters most.",
+      "buyer": {
+        "name": "Ah Lian",
+        "tin": "  ",
+        "id_type": null,
+        "id_number": null,
+        "address_line1": "12 Jalan Merdeka",
+        "address_line2": null,
+        "city": "Melaka",
+        "state": "Melaka",
+        "postcode": "75000"
+      },
+      "expect": {
+        "complete": false,
+        "missing": [
+          "identifier"
+        ]
+      }
+    },
+    {
+      "id": "buyer-line-two-is-optional",
+      "source": "SPEC.md §10.3",
+      "why": "Plenty of addresses are one line. Requiring a second would make staff type something to get past it.",
+      "buyer": {
+        "name": "Ah Lian",
+        "tin": "C12345678901",
+        "id_type": null,
+        "id_number": null,
+        "address_line1": "12 Jalan Merdeka",
+        "address_line2": null,
+        "city": "Melaka",
+        "state": "Melaka",
+        "postcode": "75000"
+      },
+      "expect": {
+        "complete": true,
+        "missing": []
+      }
+    },
+    {
+      "id": "buyer-every-missing-piece-is-named-at-once",
+      "source": "SPEC.md §10.3",
+      "why": "So somebody collects them in one conversation rather than three. A form that reveals one missing field at a time is a customer asked three times.",
+      "buyer": {
+        "name": "Ah Lian",
+        "tin": null,
+        "id_type": null,
+        "id_number": null,
+        "address_line1": null,
+        "address_line2": null,
+        "city": null,
+        "state": null,
+        "postcode": null
+      },
+      "expect": {
+        "complete": false,
+        "missing": [
+          "identifier",
+          "address"
+        ]
+      }
+    },
+    {
+      "id": "buyer-a-missing-postcode-alone-is-not-complete",
+      "source": "SPEC.md §10.3",
+      "why": "Every other field filled and no postcode. Each part of the address is checked on its own: an invoice with a street, a city and a state but no postcode is rejected at submission weeks later, when nobody remembers the order.",
+      "buyer": {
+        "name": "Ah Lian",
+        "tin": "C12345678901",
+        "id_type": null,
+        "id_number": null,
+        "address_line1": "12 Jalan Merdeka",
+        "address_line2": null,
+        "city": "Melaka",
+        "state": "Melaka",
+        "postcode": null
+      },
+      "expect": {
+        "complete": false,
+        "missing": [
+          "address"
+        ]
+      }
+    },
+    {
+      "id": "buyer-a-missing-city-alone-is-not-complete",
+      "source": "SPEC.md §10.3",
+      "why": "Same rule, the other field somebody skips on a familiar street.",
+      "buyer": {
+        "name": "Ah Lian",
+        "tin": "C12345678901",
+        "id_type": null,
+        "id_number": null,
+        "address_line1": "12 Jalan Merdeka",
+        "address_line2": null,
+        "city": null,
+        "state": "Melaka",
+        "postcode": "75000"
+      },
+      "expect": {
+        "complete": false,
+        "missing": [
+          "address"
+        ]
+      }
+    },
+    {
+      "id": "buyer-a-missing-state-alone-is-not-complete",
+      "source": "SPEC.md §10.3",
+      "why": "And the third, so no single part of the address is unchecked.",
+      "buyer": {
+        "name": "Ah Lian",
+        "tin": "C12345678901",
+        "id_type": null,
+        "id_number": null,
+        "address_line1": "12 Jalan Merdeka",
+        "address_line2": null,
+        "city": "Melaka",
+        "state": null,
+        "postcode": "75000"
+      },
+      "expect": {
+        "complete": false,
+        "missing": [
+          "address"
+        ]
+      }
+    }
   ]
 }

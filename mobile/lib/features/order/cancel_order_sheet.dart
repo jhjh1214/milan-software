@@ -75,6 +75,7 @@ Future<bool> showCancelOrderSheet(
         at: ref.read(todayProvider),
         byUserId: ref.read(credentialsProvider).valueOrNull?.user.id,
         reason: reason,
+        thresholds: ref.read(thresholdsProvider),
       );
 
   if (!result.isAllowed) {
