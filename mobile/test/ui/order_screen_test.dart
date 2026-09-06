@@ -120,6 +120,15 @@ void main() {
     Locale? locale,
     Credentials? signedInAs,
   }) async {
+    // A phone, not the 800x600 default. The order screen is a working list —
+    // status, actions, lines, history — and on the default surface the lines
+    // fall below the fold, which is a test artefact rather than anything a
+    // person holding a handset would meet.
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(
       ProviderScope(
         overrides: [

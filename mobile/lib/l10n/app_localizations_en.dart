@@ -218,6 +218,88 @@ class LEn extends L {
   }
 
   @override
+  String get measureTitle => 'Site measurement';
+
+  @override
+  String get measureEstimated => 'Quoted';
+
+  @override
+  String get measureFinal => 'After measurement';
+
+  @override
+  String get measureNotYetPriced => 'Not yet priced';
+
+  @override
+  String get measureEstimatedSize => 'Quoted';
+
+  @override
+  String get measureMeasuredSize => 'Measured';
+
+  @override
+  String get measureThis => 'Measure';
+
+  @override
+  String get measureAgain => 'Measure again';
+
+  @override
+  String measureQuotedAs(Object size) {
+    return 'Quoted as $size';
+  }
+
+  @override
+  String measureWasQuoted(Object size) {
+    return 'Quoted $size';
+  }
+
+  @override
+  String get measureChooseMaterial => 'Choose the material';
+
+  @override
+  String measureUnderEstimate(Object amount) {
+    return '$amount below the quote';
+  }
+
+  @override
+  String measureOverEstimate(Object amount) {
+    return '$amount ABOVE the quote — check the sizes';
+  }
+
+  @override
+  String measureOutstanding(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count lines still to finish',
+      one: '1 line still to finish',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get measureRefusedNotMeasured => 'Not measured yet.';
+
+  @override
+  String get measureRefusedMaterial => 'Material not chosen yet.';
+
+  @override
+  String get measureRefusedNoCard =>
+      'This handset does not have the price list this line was quoted from. Connect once and try again — it will not be priced at today\'s rates.';
+
+  @override
+  String get measureRefusedNoRate =>
+      'No rate on the held list matches this line.';
+
+  @override
+  String get measureRefusedZero =>
+      'That is not a measurement. Check the number.';
+
+  @override
+  String get measureRefusedTerminal => 'This order is closed or cancelled.';
+
+  @override
+  String get measureRefusedNoLine => 'That line is not on this order.';
+
+  @override
   String warnBandBothPrices(String lower, String lowerPrice, String upper) {
     return 'Up to $lower: $lowerPrice · Over $upper';
   }

@@ -215,6 +215,85 @@ class LZh extends L {
   }
 
   @override
+  String get measureTitle => '现场丈量';
+
+  @override
+  String get measureEstimated => '报价';
+
+  @override
+  String get measureFinal => '丈量后';
+
+  @override
+  String get measureNotYetPriced => '还未定价';
+
+  @override
+  String get measureEstimatedSize => '报价尺寸';
+
+  @override
+  String get measureMeasuredSize => '实量尺寸';
+
+  @override
+  String get measureThis => '丈量';
+
+  @override
+  String get measureAgain => '重新丈量';
+
+  @override
+  String measureQuotedAs(Object size) {
+    return '报价尺寸 $size';
+  }
+
+  @override
+  String measureWasQuoted(Object size) {
+    return '报价 $size';
+  }
+
+  @override
+  String get measureChooseMaterial => '选择材质';
+
+  @override
+  String measureUnderEstimate(Object amount) {
+    return '比报价低 $amount';
+  }
+
+  @override
+  String measureOverEstimate(Object amount) {
+    return '比报价高 $amount — 请核对尺寸';
+  }
+
+  @override
+  String measureOutstanding(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '还有 $count 项未完成',
+      one: '还有 1 项未完成',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get measureRefusedNotMeasured => '还未丈量。';
+
+  @override
+  String get measureRefusedMaterial => '还未选材质。';
+
+  @override
+  String get measureRefusedNoCard => '这台手机没有这项报价时用的价目表。连一次网再试，不会按今天的价钱算。';
+
+  @override
+  String get measureRefusedNoRate => '锁定的价目表里没有对应这项的价钱。';
+
+  @override
+  String get measureRefusedZero => '这不是一个尺寸，请检查数字。';
+
+  @override
+  String get measureRefusedTerminal => '这单已关闭或已取消。';
+
+  @override
+  String get measureRefusedNoLine => '这一项不属于这单。';
+
+  @override
   String warnBandBothPrices(String lower, String lowerPrice, String upper) {
     return '$lower 以内 $lowerPrice · 超过 $upper';
   }

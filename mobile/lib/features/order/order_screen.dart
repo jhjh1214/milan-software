@@ -31,6 +31,7 @@ import '../../core/money.dart';
 import '../../data/database.dart';
 import '../../l10n/app_localizations.dart';
 import '../../pricing/order_status.dart';
+import '../measure/measure_screen.dart' show MeasureScreen;
 import '../../ui/theme.dart';
 import '../../sync/sync_state.dart';
 import '../quote/confirm_order.dart';
@@ -170,6 +171,25 @@ class _Body extends ConsumerWidget {
           )
         else
           Text(l.orderNothingLeft, style: AppText.body),
+
+        // §11 Phase 6. Offered from the moment the order is confirmed rather
+        // than only at `measured`: the measurement steps are a pipeline
+        // formality, and somebody standing in a house with a tape should not
+        // have to advance a status first to record what they can already see.
+        if (!status.isTerminal) ...[
+          const SizedBox(height: Space.md),
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(Touch.min),
+            ),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => MeasureScreen(orderId: order.id),
+              ),
+            ),
+            child: Text(l.measureTitle),
+          ),
+        ],
 
         if (canCancel) ...[
           const SizedBox(height: Space.md),

@@ -217,6 +217,87 @@ class LMs extends L {
   }
 
   @override
+  String get measureTitle => 'Pengukuran di tapak';
+
+  @override
+  String get measureEstimated => 'Sebut harga';
+
+  @override
+  String get measureFinal => 'Selepas diukur';
+
+  @override
+  String get measureNotYetPriced => 'Belum berharga';
+
+  @override
+  String get measureEstimatedSize => 'Disebut harga';
+
+  @override
+  String get measureMeasuredSize => 'Diukur';
+
+  @override
+  String get measureThis => 'Ukur';
+
+  @override
+  String get measureAgain => 'Ukur semula';
+
+  @override
+  String measureQuotedAs(Object size) {
+    return 'Disebut harga $size';
+  }
+
+  @override
+  String measureWasQuoted(Object size) {
+    return 'Sebut harga $size';
+  }
+
+  @override
+  String get measureChooseMaterial => 'Pilih bahan';
+
+  @override
+  String measureUnderEstimate(Object amount) {
+    return '$amount lebih rendah daripada sebut harga';
+  }
+
+  @override
+  String measureOverEstimate(Object amount) {
+    return '$amount LEBIH TINGGI daripada sebut harga — semak ukuran';
+  }
+
+  @override
+  String measureOutstanding(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count baris belum selesai',
+      one: '1 baris belum selesai',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get measureRefusedNotMeasured => 'Belum diukur.';
+
+  @override
+  String get measureRefusedMaterial => 'Bahan belum dipilih.';
+
+  @override
+  String get measureRefusedNoCard =>
+      'Telefon ini tiada senarai harga yang digunakan untuk baris ini. Sambung sekali dan cuba lagi — ia tidak akan dikira pada harga hari ini.';
+
+  @override
+  String get measureRefusedNoRate =>
+      'Tiada kadar dalam senarai terkunci yang sepadan dengan baris ini.';
+
+  @override
+  String get measureRefusedZero => 'Itu bukan ukuran. Sila semak nombornya.';
+
+  @override
+  String get measureRefusedTerminal => 'Pesanan ini ditutup atau dibatalkan.';
+
+  @override
+  String get measureRefusedNoLine => 'Baris itu bukan pada pesanan ini.';
+
+  @override
   String warnBandBothPrices(String lower, String lowerPrice, String upper) {
     return 'Sehingga $lower: $lowerPrice · Melebihi $upper';
   }

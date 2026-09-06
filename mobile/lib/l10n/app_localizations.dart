@@ -458,6 +458,132 @@ abstract class L {
   /// **'这是 {size}，请确认尺寸和单位'**
   String warnImplausibleSize(Object size);
 
+  /// No description provided for @measureTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'现场丈量'**
+  String get measureTitle;
+
+  /// No description provided for @measureEstimated.
+  ///
+  /// In zh, this message translates to:
+  /// **'报价'**
+  String get measureEstimated;
+
+  /// No description provided for @measureFinal.
+  ///
+  /// In zh, this message translates to:
+  /// **'丈量后'**
+  String get measureFinal;
+
+  /// No description provided for @measureNotYetPriced.
+  ///
+  /// In zh, this message translates to:
+  /// **'还未定价'**
+  String get measureNotYetPriced;
+
+  /// No description provided for @measureEstimatedSize.
+  ///
+  /// In zh, this message translates to:
+  /// **'报价尺寸'**
+  String get measureEstimatedSize;
+
+  /// No description provided for @measureMeasuredSize.
+  ///
+  /// In zh, this message translates to:
+  /// **'实量尺寸'**
+  String get measureMeasuredSize;
+
+  /// No description provided for @measureThis.
+  ///
+  /// In zh, this message translates to:
+  /// **'丈量'**
+  String get measureThis;
+
+  /// No description provided for @measureAgain.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新丈量'**
+  String get measureAgain;
+
+  /// No description provided for @measureQuotedAs.
+  ///
+  /// In zh, this message translates to:
+  /// **'报价尺寸 {size}'**
+  String measureQuotedAs(Object size);
+
+  /// No description provided for @measureWasQuoted.
+  ///
+  /// In zh, this message translates to:
+  /// **'报价 {size}'**
+  String measureWasQuoted(Object size);
+
+  /// No description provided for @measureChooseMaterial.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择材质'**
+  String get measureChooseMaterial;
+
+  /// No description provided for @measureUnderEstimate.
+  ///
+  /// In zh, this message translates to:
+  /// **'比报价低 {amount}'**
+  String measureUnderEstimate(Object amount);
+
+  /// No description provided for @measureOverEstimate.
+  ///
+  /// In zh, this message translates to:
+  /// **'比报价高 {amount} — 请核对尺寸'**
+  String measureOverEstimate(Object amount);
+
+  /// No description provided for @measureOutstanding.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count, plural, =1{还有 1 项未完成} other{还有 {count} 项未完成}}'**
+  String measureOutstanding(num count);
+
+  /// No description provided for @measureRefusedNotMeasured.
+  ///
+  /// In zh, this message translates to:
+  /// **'还未丈量。'**
+  String get measureRefusedNotMeasured;
+
+  /// No description provided for @measureRefusedMaterial.
+  ///
+  /// In zh, this message translates to:
+  /// **'还未选材质。'**
+  String get measureRefusedMaterial;
+
+  /// No description provided for @measureRefusedNoCard.
+  ///
+  /// In zh, this message translates to:
+  /// **'这台手机没有这项报价时用的价目表。连一次网再试，不会按今天的价钱算。'**
+  String get measureRefusedNoCard;
+
+  /// No description provided for @measureRefusedNoRate.
+  ///
+  /// In zh, this message translates to:
+  /// **'锁定的价目表里没有对应这项的价钱。'**
+  String get measureRefusedNoRate;
+
+  /// No description provided for @measureRefusedZero.
+  ///
+  /// In zh, this message translates to:
+  /// **'这不是一个尺寸，请检查数字。'**
+  String get measureRefusedZero;
+
+  /// No description provided for @measureRefusedTerminal.
+  ///
+  /// In zh, this message translates to:
+  /// **'这单已关闭或已取消。'**
+  String get measureRefusedTerminal;
+
+  /// No description provided for @measureRefusedNoLine.
+  ///
+  /// In zh, this message translates to:
+  /// **'这一项不属于这单。'**
+  String get measureRefusedNoLine;
+
   /// No description provided for @warnBandBothPrices.
   ///
   /// In zh, this message translates to:

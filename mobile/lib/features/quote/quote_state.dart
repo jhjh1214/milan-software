@@ -102,6 +102,29 @@ final thresholdsProvider = Provider<ThresholdConfig>((ref) {
       );
 });
 
+/// Every published card this handset is holding, keyed by version.
+///
+/// What final pricing needs (§11 Phase 6): a measured line reprices at the
+/// version **it** recorded, and if that version is not among these it refuses
+/// rather than falling back to today's card. Falling back is exactly what the
+/// RM300 was taken to prevent.
+///
+/// Both lists, not just the active one. An order taken at a fair pinned the
+/// fair card; the handset is very likely on the standard list by the time
+/// somebody goes out to measure it.
+///
+/// If both lists happen to sit at the same version the map holds one entry,
+/// which is correct — they would be the same card.
+final heldCardsProvider = FutureProvider<Map<int, RateCard>>((ref) async {
+  final store = ref.watch(rateCardStoreProvider);
+  final cards = <int, RateCard>{};
+  for (final list in PriceList.values) {
+    final card = await store.load(list);
+    cards[card.version] = card;
+  }
+  return cards;
+});
+
 /// The user's chosen language. Per user, not per device — SPEC.md §8.3.
 final languageProvider = StateProvider<String>((ref) => 'zh');
 
