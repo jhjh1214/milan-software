@@ -15,11 +15,12 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 **Phases 1-6 complete. Phase 7 in progress** — Flutter app,
 FastAPI backend, Postgres, and sync between them.
 
-**Phase 7 so far.** The buyer-detail capture screens, both sides, and the sync
-between them. **What is left is blocked**: the SQL Account export needs a sample
-import template (§13 **E1**) and the accountant's ruling on **E2**, and §13
-**C12** and **C13** decide where the guard bites and which fields MyInvois
-actually rejects. Do not guess any of the four.
+**Phase 7 so far.** The buyer-detail capture screens, both sides, the sync
+between them, and the document labelling audit. **Only the export is left, and
+it is blocked**: it needs a sample import template (§13 **E1**) and the
+accountant's ruling on **E2**, and §13 **C12** and **C13** decide where the
+guard bites and which fields MyInvois actually rejects. Do not guess any of the
+four. Everything else on Phase 7's "In" list is built.
 
 - **The handset form.** Without it an order over RM10,000 was *stuck* —
   `advanceOrder` refused to move it and nothing could supply what the refusal
@@ -35,6 +36,25 @@ actually rejects. Do not guess any of the four.
   rather than letting the last arrival win.
 - **The read side**, so the office can see what is on file and what is missing
   before it telephones anybody. Same rule as the handset, never a second answer.
+- **The office can now correct them, not only read them.** It runs the export,
+  so it is who finds out weeks later that an IC number was mistyped. The form
+  sends **only what somebody changed** — a measurer can be capturing a TIN at a
+  house while the office types an address at a desk, and a payload carrying
+  every field would silently undo whichever landed first. An emptied box goes
+  up as `""`, the server's explicit clear, which is the one thing a handset
+  cannot express. A `stale` refusal arrives as a **200** and reads as a
+  failure, keeping the form open: saying "saved" there would tell somebody a
+  legal requirement was met when it was not.
+- **The document labelling audit.** `tool/check_labelling.py` replaces a shell
+  grep that could see only English, looked only at `mobile/lib`, and never
+  looked for a UIN or a QR at all. Now every ARB value in **zh, en and ms**,
+  the handset source, every dashboard template and heading, and the rate card's
+  own `{zh, en, ms}` labels — the one printable surface an admin edits with
+  nobody reviewing it. The rule is that the phrase must **be** the string, not
+  appear in it: *"the customer asked for an e-invoice"* is correct copy, and
+  banning the phrase would delete the screen the rule exists for. It fails when
+  a surface matched **no files**, and its self-test plants each violation and
+  fails if the audit stays quiet.
 
 A latent outbox bug found on the way: `_enqueue` matched on the entity id alone,
 and an order push and a buyer capture are both keyed on the **order id** — so
@@ -44,7 +64,21 @@ order never went up. Now matched on the kind as well.
 §13 gained **C14**: a field *cleared* on a handset stays on the server, because
 the device stores a blank as null and null on the wire means "leave it". Merging
 fails toward keeping too much and replacing fails toward losing a colleague's
-work; §10.2's penalty is for **missing** details, not spare ones.
+work; §10.2's penalty is for **missing** details, not spare ones. **Half of it
+is now answered** — the office form sends the empty string, so the correction
+exists somewhere. Still open: a handset cannot clear, and nothing records
+**who** typed a buyer field (§6.7 defers that to B9's customer record). C8
+gained the same question about who may edit these at all; the endpoint accepts
+any signed-in user, deliberately, rather than inventing a role rule.
+
+**`(ngSubmit)` in a component that does not import `FormsModule` does nothing.**
+Angular does not error on an unknown event name on a DOM element — it binds a
+listener for an event called "ngSubmit", which nothing fires. The **Add
+somebody** button had shipped that way: the form rendered, the button enabled
+itself correctly, and clicking it did nothing. Nothing caught it because every
+test on that screen called `add()` directly, so the unit was right and only the
+wiring to it was wrong. Drive a form through the DOM in its test, and
+`dashboard/tools/check-templates.mjs` now fails the binding in CI.
 
 Built and green on the device: `Length`, `Money`, `Rational`, the unit parser,
 the soft warnings, the pricing engine over the real 77-row fair card, the custom
@@ -55,8 +89,8 @@ trilingual PDF.
 
 Built and green on the server: the Python engine passing the same fixtures, the
 sync endpoints, Alembic migrations with a test that they match the models, users
-and roles, and rate card publishing. **817 Dart tests, 622 Python tests, 159 dashboard tests.** 100%
-coverage on `Length`, `Money` and `Rational`.
+and roles, and rate card publishing. **817 Dart tests, 622 Python tests,
+171 dashboard tests.** 100% coverage on `Length`, `Money` and `Rational`.
 
 **Prices are server-owned now.** One card is published and pulled by every
 handset. On-device editing is read-only except for an admin, and an admin's
@@ -294,7 +328,8 @@ design invites, because `held_until` comes from a table keyed on a string
 Measured for the record: 500 orders, three lines each, holds on a third —
 median 11.5 ms against in-process SQLite.
 
-**Every dashboard screen now has a spec.** 149 dashboard tests.
+**Every dashboard screen now has a spec.** (149 at the end of Phase 5; the
+current count is above.)
 
 **Phase 6 has started, fixtures-first.** 13 `final_pricing_cases` in
 `shared/pricing-fixtures.json`, then both engines against them. Every
