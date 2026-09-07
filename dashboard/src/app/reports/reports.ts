@@ -29,10 +29,13 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 
 import { Api } from '../api/api';
+import { commonMessage, failureOf, type Failure } from '../i18n/failure';
+import { Text } from '../i18n/text';
 import { formatDate, formatSen } from '../api/money';
 import { summariseDeposits, takeRate } from './deposits';
 import type { CategoryDeclines } from './deposits';
 import type {
+  AgeingBucket,
   BalancesReport,
   DepositPromptsOut,
   FairReport,
@@ -90,7 +93,40 @@ export class Reports {
   );
 
   protected readonly loading = signal(false);
-  protected readonly failure = signal<string | null>(null);
+  protected readonly failure = signal<Failure | null>(null);
+
+  /** The words, as a signal: switching language re-renders every report. */
+  protected readonly t = inject(Text).strings;
+
+  /** Chosen at render time, so a failure on screen follows the language. */
+  protected message(failure: Failure): string {
+    // §6.5 and §11 make the reports admin-only on the server. Said plainly
+    // rather than shown as an empty table, which reads as "nothing happened".
+    if (failure.status === 403) return this.t().reports.notAdmin;
+    if (failure.status === null) return this.t().reports.wentWrong;
+    return commonMessage(this.t(), failure);
+  }
+
+  /**
+   * One ageing band, in words. §13 C11: days since the deposit, never overdue.
+   *
+   * Built from the range the server sends rather than from a label it used to
+   * send, so the wire carries a fact and the screen carries the wording.
+   */
+  protected bucketLabel(bucket: AgeingBucket): string {
+    const words = this.t().reports;
+    return bucket.days_to === null
+      ? words.bucketOver(bucket.days_from - 1)
+      : words.bucketRange(bucket.days_from, bucket.days_to - 1);
+  }
+
+  /** A deposit category, in words. §6.2. */
+  protected categoryLabel(category: string): string {
+    const words = this.t().reports;
+    if (category === 'curtain') return words.categoryCurtain;
+    if (category === 'flooring') return words.categoryFlooring;
+    return words.categoryWallpaper;
+  }
 
   protected readonly variance = signal<VarianceReport | null>(null);
   protected readonly fairs = signal<FairReport | null>(null);
@@ -114,7 +150,7 @@ export class Reports {
         this.loading.set(false);
       },
       error: (err: unknown) => {
-        this.failure.set(describe(err));
+        this.failure.set(failureOf(err));
         this.loading.set(false);
       },
     });
@@ -191,17 +227,7 @@ export class Reports {
 
   /** What to call a salesperson the order never named. */
   protected nameOf(name: string | null): string {
-    return name ?? 'Nobody recorded';
+    return name ?? this.t().reports.nobodyRecorded;
   }
 }
 
-function describe(err: unknown): string {
-  if (typeof err === 'object' && err !== null && 'status' in err) {
-    const status = (err as { status: number }).status;
-    if (status === 401) return 'Signed out. Sign in again.';
-    if (status === 403) return 'Only an admin can read the reports.';
-    if (status === 0) return 'No answer from the server.';
-    return `The server answered ${status}.`;
-  }
-  return 'Something went wrong.';
-}

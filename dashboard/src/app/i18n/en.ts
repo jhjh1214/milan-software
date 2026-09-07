@@ -277,4 +277,89 @@ export const EN: Strings = {
     refusedUnknown: 'Not saved — the server has no record of this order yet.',
     refusedOther: (reason) => `Not saved — the server refused it (${reason}).`,
   },
+
+  reports: {
+    title: 'Reports',
+    variance: 'Estimate vs final',
+    fairs: 'Fair performance',
+    balances: 'Outstanding balances',
+    deposits: 'Declined deposits',
+    notAdmin: 'Only an admin can read the reports.',
+    wentWrong: 'Something went wrong.',
+
+    varianceBias:
+      'A quotation rounds every quantity up and the final bill uses the exact ' +
+      'tape, so every honest estimate comes in high. What this shows is who is ' +
+      'much further out than everybody else — not who is out at all.',
+    nothingPricedYet:
+      'Nothing has been finally priced yet, so there is nothing to compare. ' +
+      'Final prices are set at site measurement.',
+    varianceCaption: 'Estimate against final price, by salesperson',
+    salesperson: 'Salesperson',
+    priced: 'Priced',
+    awaiting: 'Awaiting',
+    estimated: 'Estimated',
+    final: 'Final',
+    varianceColumn: 'Variance',
+    overEstimate: 'Over estimate',
+    nobodyRecorded: 'Nobody recorded',
+
+    noFairsYet: 'No orders have come from a fair yet.',
+    fairsCaption: 'What each fair did',
+    fair: 'Fair',
+    dates: 'Dates',
+    orders: 'Orders',
+    quoted: 'Quoted',
+    depositsTaken: 'Deposits taken',
+    ratesHeld: 'Rates held',
+    noPromotion: 'No promotion on the card',
+
+    agedFromDeposit:
+      'Aged from the deposit, which is the only date this system knows. ' +
+      'Nothing here is overdue.',
+    allEstimated:
+      'Every total below is still a quotation — the most that could be owed, ' +
+      'not a bill.',
+    someEstimated:
+      'Some totals are still quotations, marked below; a quotation is the most ' +
+      'that could be owed, not a bill.',
+    bucketRange: (from, to) => `${from}-${to} days`,
+    bucketOver: (from) => `Over ${from} days`,
+    bucketOrders: (orders) => `${orders} order${orders === 1 ? '' : 's'}`,
+    outstandingOfWhich: (total, estimated) =>
+      `Outstanding ${total}, of which ${estimated} is still estimated`,
+    nothingOutstanding: 'Nothing is outstanding.',
+    balancesCaption: 'Outstanding balances',
+    order: 'Order',
+    customer: 'Customer',
+    stage: 'Stage',
+    sinceDeposit: 'Since deposit',
+    total: 'Total',
+    paid: 'Paid',
+    balance: 'Balance',
+    days: (days) => `${days} days`,
+    estimateMark: 'est.',
+    pendingSync: 'pending sync',
+    noName: 'No name',
+
+    last: 'Last',
+    weeks: (weeks) => `${weeks} weeks`,
+    declinesNote:
+      'What was quoted in a category and not deposited on. A dismissal is kept ' +
+      'apart from a refusal: “they said no” and “nobody asked properly” are ' +
+      'different problems.',
+    declinesCaption: 'Declined category deposits',
+    category: 'Category',
+    categoryCurtain: 'Curtains',
+    categoryFlooring: 'Flooring',
+    categoryWallpaper: 'Wallpaper',
+    asked: 'Asked',
+    collected: 'Collected',
+    declined: 'Declined',
+    linesRemoved: 'Lines removed',
+    dismissed: 'Dismissed',
+    takeRate: 'Take rate',
+    leftOnTheTable: 'Left on the table',
+    takeRateOf: (taken, asked) => `${taken} of ${asked}`,
+  },
 };

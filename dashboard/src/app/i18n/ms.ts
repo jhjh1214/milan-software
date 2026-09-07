@@ -287,4 +287,91 @@ export const MS: Strings = {
     refusedUnknown: 'Tidak disimpan — pelayan belum ada rekod pesanan ini.',
     refusedOther: (reason) => `Tidak disimpan — pelayan menolaknya (${reason}).`,
   },
+
+  reports: {
+    title: 'Laporan',
+    variance: 'Anggaran lawan harga akhir',
+    fairs: 'Prestasi pesta jualan',
+    balances: 'Baki belum dijelaskan',
+    deposits: 'Deposit yang tidak diambil',
+    notAdmin: 'Hanya admin boleh membaca laporan.',
+    wentWrong: 'Ada sesuatu yang tidak kena.',
+
+    varianceBias:
+      'Sebut harga membundarkan setiap kuantiti ke atas dan bil akhir ' +
+      'menggunakan ukuran sebenar, jadi setiap anggaran yang jujur akan ' +
+      'kelihatan tinggi. Yang ditunjukkan di sini ialah siapa yang jauh lebih ' +
+      'tersasar daripada orang lain — bukan siapa yang tersasar.',
+    nothingPricedYet:
+      'Belum ada harga akhir, jadi tiada apa untuk dibandingkan. Harga akhir ' +
+      'ditetapkan semasa ukuran di tapak.',
+    varianceCaption: 'Anggaran berbanding harga akhir, mengikut jurujual',
+    salesperson: 'Jurujual',
+    priced: 'Sudah berharga',
+    awaiting: 'Menunggu',
+    estimated: 'Dianggarkan',
+    final: 'Akhir',
+    varianceColumn: 'Perbezaan',
+    overEstimate: 'Melebihi anggaran',
+    nobodyRecorded: 'Tiada direkodkan',
+
+    noFairsYet: 'Belum ada pesanan daripada pesta jualan.',
+    fairsCaption: 'Apa yang dicapai oleh setiap pesta jualan',
+    fair: 'Pesta jualan',
+    dates: 'Tarikh',
+    orders: 'Pesanan',
+    quoted: 'Disebut harga',
+    depositsTaken: 'Deposit diterima',
+    ratesHeld: 'Harga dikunci',
+    noPromotion: 'Tiada promosi pada senarai harga',
+
+    agedFromDeposit:
+      'Dikira dari tarikh deposit, satu-satunya tarikh yang sistem ini tahu. ' +
+      'Tiada apa-apa di sini yang tertunggak.',
+    allEstimated:
+      'Setiap jumlah di bawah masih sebut harga — jumlah paling banyak yang ' +
+      'mungkin terhutang, bukan bil.',
+    someEstimated:
+      'Sebahagian jumlah masih sebut harga, ditanda di bawah; sebut harga ' +
+      'ialah jumlah paling banyak yang mungkin terhutang, bukan bil.',
+    bucketRange: (from, to) => `${from}-${to} hari`,
+    bucketOver: (from) => `Melebihi ${from} hari`,
+    bucketOrders: (orders) => `${orders} pesanan`,
+    outstandingOfWhich: (total, estimated) =>
+      `Belum dijelaskan ${total}, ${estimated} daripadanya masih anggaran`,
+    nothingOutstanding: 'Tiada baki belum dijelaskan.',
+    balancesCaption: 'Baki belum dijelaskan',
+    order: 'Pesanan',
+    customer: 'Pelanggan',
+    stage: 'Peringkat',
+    sinceDeposit: 'Sejak deposit',
+    total: 'Jumlah',
+    paid: 'Dibayar',
+    balance: 'Baki',
+    days: (days) => `${days} hari`,
+    estimateMark: 'angg.',
+    pendingSync: 'menunggu penyegerakan',
+    noName: 'Tiada nama',
+
+    last: 'Sepanjang',
+    weeks: (weeks) => `${weeks} minggu`,
+    declinesNote:
+      'Apa yang disebut harga dalam sesuatu kategori tetapi tidak dideposit. ' +
+      'Yang tidak dijawab diasingkan daripada yang ditolak: “mereka kata ' +
+      'tidak” dan “tiada sesiapa bertanya dengan betul” adalah dua masalah ' +
+      'yang berbeza.',
+    declinesCaption: 'Deposit kategori yang tidak diambil',
+    category: 'Kategori',
+    categoryCurtain: 'Langsir',
+    categoryFlooring: 'Lantai',
+    categoryWallpaper: 'Kertas dinding',
+    asked: 'Ditanya',
+    collected: 'Diterima',
+    declined: 'Ditolak',
+    linesRemoved: 'Baris dibuang',
+    dismissed: 'Tidak dijawab',
+    takeRate: 'Kadar berjaya',
+    leftOnTheTable: 'Nilai terlepas',
+    takeRateOf: (taken, asked) => `${taken} daripada ${asked}`,
+  },
 };

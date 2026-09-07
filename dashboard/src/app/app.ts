@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { Session } from './auth/session';
@@ -24,9 +24,20 @@ import { Text } from './i18n/text';
 export class App {
   protected readonly session = inject(Session);
   private readonly router = inject(Router);
+  private readonly text = inject(Text);
 
   /** The words, as a signal: switching language re-renders the bar. */
-  protected readonly t = inject(Text).strings;
+  protected readonly t = this.text.strings;
+
+  constructor() {
+    // `index.html` carries no `lang`, because which language this page speaks
+    // is decided at runtime from the signed-in person's account (§13 C9). A
+    // fixed one in the markup would tell a screen reader the wrong thing two
+    // thirds of the time; this keeps it true as somebody switches.
+    effect(() => {
+      document.documentElement.lang = this.text.language();
+    });
+  }
 
   protected signOut(): void {
     this.session.signOut();

@@ -27,6 +27,7 @@ import type {
   OutstandingBalance,
   SalespersonVariance,
 } from '../api/types';
+import { Text } from '../i18n/text';
 import { PERIODS, Reports, panelFrom, weeksFrom } from './reports';
 
 const salesperson = (
@@ -61,10 +62,10 @@ const balance = (over: Partial<OutstandingBalance> = {}): OutstandingBalance => 
 const balances = (over: Partial<BalancesReport> = {}): BalancesReport => ({
   balances: [balance()],
   buckets: [
-    { label: '0-30 days', orders: 1, balance_sen: 25200 },
-    { label: '31-60 days', orders: 0, balance_sen: 0 },
-    { label: '61-90 days', orders: 0, balance_sen: 0 },
-    { label: 'Over 90 days', orders: 0, balance_sen: 0 },
+    { days_from: 0, days_to: 31, orders: 1, balance_sen: 25200 },
+    { days_from: 31, days_to: 61, orders: 0, balance_sen: 0 },
+    { days_from: 61, days_to: 91, orders: 0, balance_sen: 0 },
+    { days_from: 91, days_to: null, orders: 0, balance_sen: 0 },
   ],
   total_balance_sen: 25200,
   estimated_balance_sen: 25200,
@@ -105,6 +106,7 @@ describe('Reports', () => {
   let http: HttpTestingController;
   let harness: RouterTestingHarness;
   let router: Router;
+  let i18n: Text;
 
   beforeEach(async () => {
     TestBed.configureTestingModule({
@@ -116,6 +118,10 @@ describe('Reports', () => {
     });
     http = TestBed.inject(HttpTestingController);
     router = TestBed.inject(Router);
+    i18n = TestBed.inject(Text);
+    // Pinned rather than assumed: the dashboard defaults to Chinese (§13 C9)
+    // and nobody is signed in here.
+    i18n.pick('en');
     harness = await RouterTestingHarness.create();
   });
 
@@ -318,7 +324,8 @@ describe('Reports', () => {
       });
 
       expect(text()).toContain('RM 960.00');
-      expect(text()).toContain('flooring');
+      // The category in words, not the wire value it is keyed on.
+      expect(text()).toContain('Flooring');
     });
 
     it('shows no take rate at all where nobody answered', async () => {
@@ -433,6 +440,72 @@ describe('Reports', () => {
         .flush({ rows: [salesperson()], nothing_priced_yet: false });
       harness.detectChanges();
       expect(text()).toContain('Ah Meng');
+    });
+  });
+
+  describe('in the other two languages', () => {
+    // SPEC.md §13 C9. Two sentences here are the whole point of the reports
+    // they sit on, and both are the kind somebody acts on: §8.5's warning that
+    // the variance column is biased by design, and §13 C11's insistence that
+    // nothing on the balances report is overdue.
+
+    it('warns that the variance column is biased, in Chinese', async () => {
+      // Read cold, and in any language, the table accuses honest people of
+      // padding their quotes. The warning is worth nothing to a reader who
+      // cannot read it.
+      i18n.pick('zh');
+      await open('/reports', '/api/reports/variance', {
+        rows: [salesperson()],
+        nothing_priced_yet: false,
+      });
+
+      expect(text()).toContain('估价对实价');
+      expect(text()).toContain('每个数量都往上进位');
+      expect(text()).not.toContain('rounds every quantity up');
+    });
+
+    it('says nothing is overdue, in Malay', async () => {
+      // §13 C11. There is no invoice date and no payment terms in this
+      // system, so it reports days since the deposit and lets the reader
+      // conclude. A Malay reader given an English caveat has been given a
+      // number and no caveat.
+      i18n.pick('ms');
+      await open('/reports?report=balances', '/api/reports/balances', balances());
+
+      expect(text()).toContain('Tiada apa-apa di sini yang tertunggak');
+      expect(text()).not.toContain('Nothing here is overdue');
+    });
+
+    it('the ageing bands are worded here, not on the wire', async () => {
+      // The server sends the range and the screen says the words. An English
+      // label on the wire would have been the one English string on the page.
+      i18n.pick('ms');
+      await open('/reports?report=balances', '/api/reports/balances', balances());
+
+      expect(text()).toContain('0-30 hari');
+      expect(text()).toContain('Melebihi 90 hari');
+      expect(text()).not.toContain('0-30 days');
+    });
+
+    it('a quotation is still marked as one in Chinese', async () => {
+      // §8.5 makes a quoted total an upper bound rather than a debt. The mark
+      // is what stops a book overstating what is collectable.
+      i18n.pick('zh');
+      await open('/reports?report=balances', '/api/reports/balances', balances());
+
+      expect(text()).toContain('还是估价');
+      expect(harness.routeNativeElement!.querySelector('.estimated')).not.toBeNull();
+    });
+
+    it('a refusal is not shown as an empty report, in any language', async () => {
+      i18n.pick('ms');
+      await harness.navigateByUrl('/reports');
+      http
+        .expectOne((r) => r.url === '/api/reports/variance')
+        .flush({ detail: 'no' }, { status: 403, statusText: 'Forbidden' });
+      harness.detectChanges();
+
+      expect(text()).toContain('Hanya admin boleh membaca laporan');
     });
   });
 

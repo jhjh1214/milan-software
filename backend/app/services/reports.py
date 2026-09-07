@@ -67,11 +67,14 @@ OWING_STATUSES: tuple[str, ...] = (
 #: Days since the deposit. The 30/60/90 shape is the ordinary accounting one,
 #: so a bookkeeper reads it without being taught; the label says "since deposit"
 #: because that is the only date the system actually knows.
-BUCKETS: tuple[tuple[str, int, int | None], ...] = (
-    ("0-30 days", 0, 31),
-    ("31-60 days", 31, 61),
-    ("61-90 days", 61, 91),
-    ("Over 90 days", 91, None),
+#: Half-open day ranges, ``[low, high)``. Numbers rather than labels: the
+#: dashboard speaks three languages (SPEC.md 13 C9) and the words belong to
+#: whichever one the reader has chosen, not to this file.
+BUCKETS: tuple[tuple[int, int | None], ...] = (
+    (0, 31),
+    (31, 61),
+    (61, 91),
+    (91, None),
 )
 
 
@@ -273,12 +276,13 @@ def outstanding_balances(session: Session, *, now: datetime) -> BalancesReport:
 
     buckets = [
         AgeingBucket(
-            label=label,
+            days_from=low,
+            days_to=high,
             orders=len(rows),
             balance_sen=sum(row.balance_sen for row in rows),
         )
-        for label, rows in (
-            (label, _in_bucket(balances, low, high)) for label, low, high in BUCKETS
+        for low, high, rows in (
+            (low, high, _in_bucket(balances, low, high)) for low, high in BUCKETS
         )
     ]
 

@@ -1,8 +1,14 @@
 <!doctype html>
-<html lang="en">
+<!-- No `lang` on the html element: which language this page speaks is decided
+     at runtime from the signed-in person's account (§13 C9), so a fixed one
+     here would be a lie to a screen reader two thirds of the time. The App
+     component sets it once it knows. -->
+<html>
 <head>
   <meta charset="utf-8">
-  <title>Dashboard</title>
+  <!-- The company name, not a word. It is the same in all three languages and
+       it is what somebody looks for in a row of browser tabs. -->
+  <title>Milan</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/x-icon" href="favicon.ico">

@@ -849,9 +849,20 @@ class OutstandingBalance(BaseModel):
 
 
 class AgeingBucket(BaseModel):
-    """Days since the deposit, not days overdue. §13 C11."""
+    """Days since the deposit, not days overdue. §13 C11.
 
-    label: str
+    The **range**, not a label. It used to carry ``"0-30 days"`` and the
+    dashboard printed it -- which made this endpoint the place a piece of
+    English lived, on a screen that now speaks Chinese and Malay as well
+    (§13 C9). The reader's own words are the reader's client's business; what
+    the server knows is the window.
+
+    Half-open, ``[days_from, days_to)``, so one order lands in exactly one
+    bucket rather than in two or in neither. ``days_to`` is null on the last.
+    """
+
+    days_from: int
+    days_to: int | None = None
     orders: int
     balance_sen: int
 

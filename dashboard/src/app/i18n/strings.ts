@@ -341,6 +341,79 @@ export interface BuyerStrings {
   readonly refusedOther: (reason: string) => string;
 }
 
+/** The four reports. §11 Phase 5, §6.2, §8.5, §13 C11. */
+export interface ReportsStrings {
+  readonly title: string;
+  readonly variance: string;
+  readonly fairs: string;
+  readonly balances: string;
+  readonly deposits: string;
+  readonly notAdmin: string;
+  readonly wentWrong: string;
+
+  /** §8.5. Said BEFORE the table: read cold it accuses honest people. */
+  readonly varianceBias: string;
+  readonly nothingPricedYet: string;
+  readonly varianceCaption: string;
+  readonly salesperson: string;
+  readonly priced: string;
+  readonly awaiting: string;
+  readonly estimated: string;
+  readonly final: string;
+  readonly varianceColumn: string;
+  readonly overEstimate: string;
+  readonly nobodyRecorded: string;
+
+  readonly noFairsYet: string;
+  readonly fairsCaption: string;
+  readonly fair: string;
+  readonly dates: string;
+  readonly orders: string;
+  readonly quoted: string;
+  readonly depositsTaken: string;
+  readonly ratesHeld: string;
+  readonly noPromotion: string;
+
+  /** §13 C11. Nothing on this report is ever called overdue. */
+  readonly agedFromDeposit: string;
+  readonly allEstimated: string;
+  readonly someEstimated: string;
+  readonly bucketRange: (from: number, to: number) => string;
+  readonly bucketOver: (from: number) => string;
+  readonly bucketOrders: (orders: number) => string;
+  readonly outstandingOfWhich: (total: string, estimated: string) => string;
+  readonly nothingOutstanding: string;
+  readonly balancesCaption: string;
+  readonly order: string;
+  readonly customer: string;
+  readonly stage: string;
+  readonly sinceDeposit: string;
+  readonly total: string;
+  readonly paid: string;
+  readonly balance: string;
+  readonly days: (days: number) => string;
+  readonly estimateMark: string;
+  readonly pendingSync: string;
+  readonly noName: string;
+
+  readonly last: string;
+  readonly weeks: (weeks: number) => string;
+  readonly declinesNote: string;
+  readonly declinesCaption: string;
+  readonly category: string;
+  readonly categoryCurtain: string;
+  readonly categoryFlooring: string;
+  readonly categoryWallpaper: string;
+  readonly asked: string;
+  readonly collected: string;
+  readonly declined: string;
+  readonly linesRemoved: string;
+  readonly dismissed: string;
+  readonly takeRate: string;
+  readonly leftOnTheTable: string;
+  readonly takeRateOf: (taken: number, asked: number) => string;
+}
+
 export interface SignInStrings {
   readonly phone: string;
   readonly pin: string;
@@ -368,4 +441,5 @@ export interface Strings {
   readonly publish: PublishStrings;
   readonly order: OrderStrings;
   readonly buyer: BuyerStrings;
+  readonly reports: ReportsStrings;
 }

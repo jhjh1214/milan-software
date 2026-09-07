@@ -1,8 +1,8 @@
 <header class="reports-head">
-  <h1>Reports</h1>
+  <h1>{{ t().reports.title }}</h1>
 </header>
 
-<nav class="tabs" aria-label="Reports">
+<nav class="tabs" [attr.aria-label]="t().reports.title">
   @for (p of panels; track p) {
     <button
       type="button"
@@ -11,22 +11,22 @@
       (click)="showPanel(p)"
     >
       @switch (p) {
-        @case ('variance') { Estimate vs final }
-        @case ('fairs') { Fair performance }
-        @case ('balances') { Outstanding balances }
-        @default { Declined deposits }
+        @case ('variance') { {{ t().reports.variance }} }
+        @case ('fairs') { {{ t().reports.fairs }} }
+        @case ('balances') { {{ t().reports.balances }} }
+        @default { {{ t().reports.deposits }} }
       }
     </button>
   }
 </nav>
 
-@if (failure(); as message) {
+@if (failure(); as failed) {
   <p class="failure" role="alert">
-    {{ message }}
-    <button type="button" (click)="retry()">Try again</button>
+    {{ message(failed) }}
+    <button type="button" (click)="retry()">{{ t().common.tryAgain }}</button>
   </p>
 } @else if (loading()) {
-  <p class="loading" role="status">Loading…</p>
+  <p class="loading" role="status">{{ t().common.loading }}</p>
 } @else {
   @switch (panel()) {
     @case ('variance') {
@@ -35,32 +35,25 @@
              design: a quotation rounds every quantity up and the bill uses the
              exact tape, so an honest estimate always comes in high. Somebody
              who reads the numbers without this reads it as fraud. -->
-        <p class="note">
-          A quotation rounds every quantity up and the final bill uses the exact
-          tape, so every honest estimate comes in high. What this shows is who
-          is much further out than everybody else — not who is out at all.
-        </p>
+        <p class="note">{{ t().reports.varianceBias }}</p>
 
         @if (report.nothing_priced_yet) {
-          <p class="empty">
-            Nothing has been finally priced yet, so there is nothing to compare.
-            Final prices are set at site measurement.
-          </p>
+          <p class="empty">{{ t().reports.nothingPricedYet }}</p>
         }
 
         <table>
           <caption class="visually-hidden">
-            Estimate against final price, by salesperson
+            {{ t().reports.varianceCaption }}
           </caption>
           <thead>
             <tr>
-              <th scope="col">Salesperson</th>
-              <th scope="col" class="num">Priced</th>
-              <th scope="col" class="num">Awaiting</th>
-              <th scope="col" class="num">Estimated</th>
-              <th scope="col" class="num">Final</th>
-              <th scope="col" class="num">Variance</th>
-              <th scope="col" class="num">Over estimate</th>
+              <th scope="col">{{ t().reports.salesperson }}</th>
+              <th scope="col" class="num">{{ t().reports.priced }}</th>
+              <th scope="col" class="num">{{ t().reports.awaiting }}</th>
+              <th scope="col" class="num">{{ t().reports.estimated }}</th>
+              <th scope="col" class="num">{{ t().reports.final }}</th>
+              <th scope="col" class="num">{{ t().reports.varianceColumn }}</th>
+              <th scope="col" class="num">{{ t().reports.overEstimate }}</th>
             </tr>
           </thead>
           <tbody>
@@ -88,24 +81,26 @@
     @case ('fairs') {
       @if (fairs(); as report) {
         @if (report.fairs.length === 0) {
-          <p class="empty">No orders have come from a fair yet.</p>
+          <p class="empty">{{ t().reports.noFairsYet }}</p>
         } @else {
           <table>
-            <caption class="visually-hidden">What each fair did</caption>
+            <caption class="visually-hidden">
+              {{ t().reports.fairsCaption }}
+            </caption>
             <thead>
               <tr>
-                <th scope="col">Fair</th>
-                <th scope="col">Dates</th>
-                <th scope="col" class="num">Orders</th>
-                <th scope="col" class="num">Quoted</th>
-                <th scope="col" class="num">Deposits taken</th>
-                <th scope="col" class="num">Rates held</th>
+                <th scope="col">{{ t().reports.fair }}</th>
+                <th scope="col">{{ t().reports.dates }}</th>
+                <th scope="col" class="num">{{ t().reports.orders }}</th>
+                <th scope="col" class="num">{{ t().reports.quoted }}</th>
+                <th scope="col" class="num">{{ t().reports.depositsTaken }}</th>
+                <th scope="col" class="num">{{ t().reports.ratesHeld }}</th>
               </tr>
             </thead>
             <tbody>
               @for (fair of report.fairs; track fair.promo_code) {
                 <tr>
-                  <td>{{ fair.promo_code ?? 'No promotion on the card' }}</td>
+                  <td>{{ fair.promo_code ?? t().reports.noPromotion }}</td>
                   <td>
                     @if (fair.valid_from) {
                       {{ fair.valid_from }} – {{ fair.valid_to }}
@@ -132,63 +127,73 @@
         <!-- §13 C11. Nothing here is overdue: the system has no invoice date
              and no payment terms, so it cannot know when a balance falls due. -->
         <p class="note">
-          Aged from the deposit, which is the only date this system knows.
-          Nothing here is overdue.
+          {{ t().reports.agedFromDeposit }}
           @if (estimatedShare() === 'all') {
-            Every total below is still a quotation — the most that could be
-            owed, not a bill.
+            {{ t().reports.allEstimated }}
           } @else if (estimatedShare() === 'some') {
-            Some totals are still quotations, marked below; a quotation is the
-            most that could be owed, not a bill.
+            {{ t().reports.someEstimated }}
           }
         </p>
 
         <ul class="buckets">
-          @for (bucket of report.buckets; track bucket.label) {
+          @for (bucket of report.buckets; track bucket.days_from) {
             <li>
-              <span class="bucket-label">{{ bucket.label }}</span>
+              <!-- The server sends the range, not the words: an English label
+                   on the wire would be the one English string on a Malay
+                   screen. -->
+              <span class="bucket-label">{{ bucketLabel(bucket) }}</span>
               <span class="bucket-total">{{ money(bucket.balance_sen) }}</span>
               <span class="bucket-count">
-                {{ bucket.orders }} order{{ bucket.orders === 1 ? '' : 's' }}
+                {{ t().reports.bucketOrders(bucket.orders) }}
               </span>
             </li>
           }
         </ul>
 
         <p class="total">
-          Outstanding {{ money(report.total_balance_sen) }}, of which
-          {{ money(report.estimated_balance_sen) }} is still estimated
+          {{
+            t().reports.outstandingOfWhich(
+              money(report.total_balance_sen),
+              money(report.estimated_balance_sen)
+            )
+          }}
         </p>
 
         @if (report.balances.length === 0) {
-          <p class="empty">Nothing is outstanding.</p>
+          <p class="empty">{{ t().reports.nothingOutstanding }}</p>
         } @else {
           <table>
-            <caption class="visually-hidden">Outstanding balances</caption>
+            <caption class="visually-hidden">
+              {{ t().reports.balancesCaption }}
+            </caption>
             <thead>
               <tr>
-                <th scope="col">Order</th>
-                <th scope="col">Customer</th>
-                <th scope="col">Stage</th>
-                <th scope="col" class="num">Since deposit</th>
-                <th scope="col" class="num">Total</th>
-                <th scope="col" class="num">Paid</th>
-                <th scope="col" class="num">Balance</th>
+                <th scope="col">{{ t().reports.order }}</th>
+                <th scope="col">{{ t().reports.customer }}</th>
+                <th scope="col">{{ t().reports.stage }}</th>
+                <th scope="col" class="num">{{ t().reports.sinceDeposit }}</th>
+                <th scope="col" class="num">{{ t().reports.total }}</th>
+                <th scope="col" class="num">{{ t().reports.paid }}</th>
+                <th scope="col" class="num">{{ t().reports.balance }}</th>
               </tr>
             </thead>
             <tbody>
               @for (row of report.balances; track row.order_id) {
                 <tr>
                   <td class="reference" [class.pending]="row.order_no === null">
-                    {{ row.order_no ?? 'pending sync' }}
+                    {{ row.order_no ?? t().reports.pendingSync }}
                   </td>
-                  <td>{{ row.customer_name || 'No name' }}</td>
-                  <td>{{ row.status.replaceAll('_', ' ') }}</td>
-                  <td class="num">{{ row.days_since_deposit }} days</td>
+                  <td>{{ row.customer_name || t().reports.noName }}</td>
+                  <td>{{ t().status[row.status] }}</td>
+                  <td class="num">
+                    {{ t().reports.days(row.days_since_deposit) }}
+                  </td>
                   <td class="num">
                     {{ money(row.total_sen) }}
                     @if (row.is_estimate) {
-                      <span class="estimated">est.</span>
+                      <span class="estimated">
+                        {{ t().reports.estimateMark }}
+                      </span>
                     }
                   </td>
                   <td class="num">{{ money(row.deposit_paid_sen) }}</td>
@@ -203,8 +208,10 @@
 
     @default {
       @if (declines(); as rows) {
-        <nav class="periods" aria-label="Period">
-          <span class="filter-label" id="weeks-label">Last</span>
+        <nav class="periods" [attr.aria-label]="t().reports.last">
+          <span class="filter-label" id="weeks-label">
+            {{ t().reports.last }}
+          </span>
           <div role="group" aria-labelledby="weeks-label">
             @for (w of periods; track w) {
               <button
@@ -213,37 +220,35 @@
                 [attr.aria-pressed]="weeks() === w"
                 (click)="showWeeks(w)"
               >
-                {{ w }} weeks
+                {{ t().reports.weeks(w) }}
               </button>
             }
           </div>
         </nav>
 
         <!-- §6.2. The point is not the count, it is what was left behind. -->
-        <p class="note">
-          What was quoted in a category and not deposited on. A dismissal is
-          kept apart from a refusal: “they said no” and “nobody asked properly”
-          are different problems.
-        </p>
+        <p class="note">{{ t().reports.declinesNote }}</p>
 
         <table>
-          <caption class="visually-hidden">Declined category deposits</caption>
+          <caption class="visually-hidden">
+            {{ t().reports.declinesCaption }}
+          </caption>
           <thead>
             <tr>
-              <th scope="col">Category</th>
-              <th scope="col" class="num">Asked</th>
-              <th scope="col" class="num">Collected</th>
-              <th scope="col" class="num">Declined</th>
-              <th scope="col" class="num">Lines removed</th>
-              <th scope="col" class="num">Dismissed</th>
-              <th scope="col" class="num">Take rate</th>
-              <th scope="col" class="num">Left on the table</th>
+              <th scope="col">{{ t().reports.category }}</th>
+              <th scope="col" class="num">{{ t().reports.asked }}</th>
+              <th scope="col" class="num">{{ t().reports.collected }}</th>
+              <th scope="col" class="num">{{ t().reports.declined }}</th>
+              <th scope="col" class="num">{{ t().reports.linesRemoved }}</th>
+              <th scope="col" class="num">{{ t().reports.dismissed }}</th>
+              <th scope="col" class="num">{{ t().reports.takeRate }}</th>
+              <th scope="col" class="num">{{ t().reports.leftOnTheTable }}</th>
             </tr>
           </thead>
           <tbody>
             @for (row of rows; track row.category) {
               <tr>
-                <td class="category">{{ row.category }}</td>
+                <td class="category">{{ categoryLabel(row.category) }}</td>
                 <td class="num">{{ row.asked }}</td>
                 <td class="num">{{ row.collected }}</td>
                 <td class="num">{{ row.declined }}</td>
@@ -253,7 +258,7 @@
                   <!-- Nobody answering is not a take rate of zero, and showing
                        it as one would libel a quiet afternoon. -->
                   @if (rate(row); as r) {
-                    {{ r[0] }} of {{ r[1] }}
+                    {{ t().reports.takeRateOf(r[0], r[1]) }}
                   } @else {
                     —
                   }

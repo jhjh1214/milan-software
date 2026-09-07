@@ -144,6 +144,20 @@ describe('App', () => {
       expect(text()).not.toContain('Sign out');
     });
 
+    it('tells the browser which language the page is in', () => {
+      // index.html carries no `lang`, because it cannot know. A fixed one in
+      // the markup would tell a screen reader the wrong thing two thirds of
+      // the time — and this is the attribute that decides how a screen reader
+      // pronounces the page.
+      session.user.set({ id: 'u1', name: 'Boss', role: 'admin', language: 'ms' });
+      fixture.detectChanges();
+      expect(document.documentElement.lang).toBe('ms');
+
+      languages()[0].click();
+      fixture.detectChanges();
+      expect(document.documentElement.lang).toBe('zh');
+    });
+
     it('each language names itself, in itself', () => {
       // Never translated: somebody who cannot read the current language has
       // to be able to find the way out of it.

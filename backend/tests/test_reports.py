@@ -410,12 +410,12 @@ class TestOutstandingBalances:
 
             report = outstanding_balances(session, now=NOW)
 
-            counts = {b.label: b.orders for b in report.buckets}
+            counts = {(b.days_from, b.days_to): b.orders for b in report.buckets}
             assert counts == {
-                "0-30 days": 2,
-                "31-60 days": 2,
-                "61-90 days": 2,
-                "Over 90 days": 2,
+                (0, 31): 2,
+                (31, 61): 2,
+                (61, 91): 2,
+                (91, None): 2,
             }
             assert sum(counts.values()) == len(report.balances)
 

@@ -430,8 +430,17 @@ export interface OutstandingBalance {
   readonly is_estimate: boolean;
 }
 
+/**
+ * One ageing band. §13 C11: days since the deposit, never days overdue.
+ *
+ * The **range**, not a label. The server used to send `"0-30 days"` and this
+ * screen printed it, which made the API the place a piece of English lived —
+ * on a dashboard that now speaks three languages. Half-open,
+ * `[days_from, days_to)`; `days_to` is null on the last band.
+ */
 export interface AgeingBucket {
-  readonly label: string;
+  readonly days_from: number;
+  readonly days_to: number | null;
   readonly orders: number;
   readonly balance_sen: number;
 }

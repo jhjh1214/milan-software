@@ -660,11 +660,15 @@ class TestTheReports:
 
         # Four buckets whatever the data, so a quiet month is not a differently
         # shaped report from a busy one.
-        assert [b["label"] for b in body["buckets"]] == [
-            "0-30 days",
-            "31-60 days",
-            "61-90 days",
-            "Over 90 days",
+        #
+        # Ranges, not labels. The words are the reader's client's business:
+        # the dashboard speaks three languages (SPEC.md 13 C9) and an English
+        # label here would have been the one English string on a Malay screen.
+        assert [(b["days_from"], b["days_to"]) for b in body["buckets"]] == [
+            (0, 31),
+            (31, 61),
+            (61, 91),
+            (91, None),
         ]
 
 
