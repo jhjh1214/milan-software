@@ -24,6 +24,7 @@ import { RouterTestingHarness } from '@angular/router/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { OrderSummary } from '../api/types';
+import { Text } from '../i18n/text';
 import { OrderBoard } from './order-board';
 
 const card = (over: Partial<OrderSummary> = {}): OrderSummary => ({
@@ -46,6 +47,7 @@ describe('OrderBoard', () => {
   let http: HttpTestingController;
   let harness: RouterTestingHarness;
   let router: Router;
+  let i18n: Text;
 
   beforeEach(async () => {
     TestBed.configureTestingModule({
@@ -57,6 +59,11 @@ describe('OrderBoard', () => {
     });
     http = TestBed.inject(HttpTestingController);
     router = TestBed.inject(Router);
+    i18n = TestBed.inject(Text);
+    // The dashboard defaults to Chinese (§13 C9) and nobody is signed in here,
+    // so the language is pinned rather than assumed. What these tests are about
+    // is the board, and a wall of Chinese assertions would hide that.
+    i18n.pick('en');
     harness = await RouterTestingHarness.create();
   });
 
@@ -157,7 +164,7 @@ describe('OrderBoard', () => {
         'button[aria-pressed="true"]',
       );
       expect(pressed.length).toBe(1);
-      expect(pressed[0].textContent!.trim()).toBe('ready');
+      expect(pressed[0].textContent!.trim()).toBe('Ready to install');
     });
   });
 
@@ -259,6 +266,63 @@ describe('OrderBoard', () => {
       again.flush({ orders: [card()], total: 1 });
       harness.detectChanges();
       expect(text()).toContain('MLK-2608-0001');
+    });
+  });
+
+  describe('in the other two languages', () => {
+    // SPEC.md §13 C9. Not a spot check on one word: what would actually go
+    // wrong is a screen that is half translated, so this looks at the words
+    // that come from three different places — the heading, the lifecycle
+    // labels shared with the handset, and a sentence built from numbers.
+
+    it('says the whole board in Chinese', async () => {
+      i18n.pick('zh');
+      await open('/orders?status=ready', [card({ status: 'ready' })], 512);
+
+      expect(text()).toContain('订单');
+      expect(text()).toContain('显示 1 张，共 512 张');
+      expect(text()).toContain('待安装');
+      expect(text()).toContain('展会');
+      expect(text()).not.toContain('Showing');
+      expect(text()).not.toContain('Ready to install');
+    });
+
+    it('says the whole board in Malay', async () => {
+      i18n.pick('ms');
+      await open('/orders?status=ready', [card({ status: 'ready' })], 512);
+
+      expect(text()).toContain('Pesanan');
+      expect(text()).toContain('Menunjukkan 1 daripada 512');
+      expect(text()).toContain('Sedia dipasang');
+      expect(text()).toContain('Pesta jualan');
+      expect(text()).not.toContain('Showing');
+    });
+
+    it('an order with no number says so in the reader’s language', async () => {
+      // Never invented on the device (CLAUDE.md: IDs are client-generated,
+      // order numbers are not), so this sentence is on the screen often.
+      i18n.pick('ms');
+      await open('/orders', [card({ order_no: null })]);
+
+      expect(text()).toContain('Menunggu penyegerakan');
+      expect(text()).not.toContain('Pending sync');
+    });
+
+    it('a failure already on screen follows a language change', async () => {
+      // The failure is held as a status rather than as a rendered sentence.
+      // Otherwise it freezes in whichever language the server answered in —
+      // on the line telling somebody why they cannot see their work.
+      await harness.navigateByUrl('/orders');
+      http
+        .expectOne((r) => r.url === '/api/orders')
+        .flush({ detail: 'no' }, { status: 500, statusText: 'Server Error' });
+      harness.detectChanges();
+      expect(text()).toContain('The server answered 500');
+
+      i18n.pick('zh');
+      harness.detectChanges();
+      expect(text()).toContain('服务器回应 500');
+      expect(text()).not.toContain('The server answered');
     });
   });
 });

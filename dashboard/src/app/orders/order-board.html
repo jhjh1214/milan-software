@@ -1,27 +1,27 @@
 <header class="board-head">
-  <h1>Orders</h1>
+  <h1>{{ t().board.title }}</h1>
 
   <!-- Says what is being shown out of what matches. A board that cannot say
        "50 of 512" leaves somebody guessing whether their filter did anything. -->
   <p class="count" role="status">
     @if (loading()) {
-      Loading…
+      {{ t().common.loading }}
     } @else {
-      Showing {{ orders().length }} of {{ total() }}
+      {{ t().board.showing(orders().length, total()) }}
     }
   </p>
 </header>
 
-<nav class="filters" aria-label="Filters">
+<nav class="filters" [attr.aria-label]="t().board.stage">
   <div class="filter-group">
-    <span class="filter-label" id="status-label">Stage</span>
+    <span class="filter-label" id="status-label">{{ t().board.stage }}</span>
     <div role="group" aria-labelledby="status-label">
       <button
         type="button"
         [class.on]="status() === null"
         (click)="filterBy('status', null)"
       >
-        All
+        {{ t().board.all }}
       </button>
       @for (s of statuses; track s) {
         <button
@@ -30,21 +30,24 @@
           [attr.aria-pressed]="status() === s"
           (click)="filterBy('status', s)"
         >
-          {{ s.replaceAll('_', ' ') }}
+          <!-- The lifecycle word, not the wire value with its underscores
+               swapped for spaces. §6.6 names these and the handset says the
+               same thing about the same job. -->
+          {{ t().status[s] }}
         </button>
       }
     </div>
   </div>
 
   <div class="filter-group">
-    <span class="filter-label" id="channel-label">Where from</span>
+    <span class="filter-label" id="channel-label">{{ t().board.whereFrom }}</span>
     <div role="group" aria-labelledby="channel-label">
       <button
         type="button"
         [class.on]="channel() === null"
         (click)="filterBy('channel', null)"
       >
-        All
+        {{ t().board.all }}
       </button>
       @for (c of channels; track c) {
         <button
@@ -53,22 +56,22 @@
           [attr.aria-pressed]="channel() === c"
           (click)="filterBy('channel', c)"
         >
-          {{ c.replaceAll('_', ' ') }}
+          {{ t().channel[c] }}
         </button>
       }
     </div>
   </div>
 </nav>
 
-@if (failure(); as message) {
+@if (failure(); as failed) {
   <!-- Said out loud, with a way back. A board that silently shows nothing is
        indistinguishable from a quiet week, and somebody would act on that. -->
   <p class="failure" role="alert">
-    {{ message }}
-    <button type="button" (click)="retry()">Try again</button>
+    {{ message(failed) }}
+    <button type="button" (click)="retry()">{{ t().common.tryAgain }}</button>
   </p>
 } @else if (!loading() && orders().length === 0) {
-  <p class="empty">Nothing matches these filters.</p>
+  <p class="empty">{{ t().board.nothingMatches }}</p>
 } @else {
   <ul class="cards">
     @for (order of orders(); track order.id) {
@@ -76,24 +79,32 @@
         <a [routerLink]="['/orders', order.id]">
           <div class="card-head">
             <span class="reference" [class.pending]="order.order_no === null">
-              {{ reference(order) }}
+              {{ order.order_no ?? t().board.pendingSync }}
             </span>
-            <span class="stage">{{ order.status.replaceAll('_', ' ') }}</span>
+            <span class="stage">{{ t().status[order.status] }}</span>
           </div>
 
-          <p class="customer">{{ order.customer_name || 'No name' }}</p>
+          <p class="customer">
+            {{ order.customer_name || t().board.noName }}
+          </p>
 
           <p class="total">{{ money(order.estimate_total_sen) }}</p>
-          <p class="deposit">{{ money(order.deposit_paid_sen) }} taken</p>
+          <p class="deposit">
+            {{ money(order.deposit_paid_sen) }} {{ t().board.taken }}
+          </p>
 
           @if (order.held_until) {
             <!-- The reason the board is sorted this way. A hold that runs out
                  unused is a customer who paid RM300 and got nothing. -->
-            <p class="hold">Rate held to {{ date(order.held_until) }}</p>
+            <p class="hold">
+              {{ t().board.rateHeldTo(date(order.held_until)) }}
+            </p>
           }
 
           @if (order.has_unmeasured_lines) {
-            <p class="flag">{{ order.line_count }} still to measure</p>
+            <p class="flag">
+              {{ t().board.stillToMeasure(order.line_count) }}
+            </p>
           }
         </a>
       </li>

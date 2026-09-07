@@ -36,6 +36,14 @@ export const ZH: Strings = {
     cancelled: '已取消',
   },
 
+  channel: {
+    fair: '展会',
+    showroom: '门市',
+    home_visit: '上门',
+    referral: '介绍',
+    phone: '电话',
+  },
+
   nav: {
     orders: '订单',
     measurement: '量尺',
@@ -56,5 +64,21 @@ export const ZH: Strings = {
     throttled: '试太多次了。等一下再试。',
     offline: '服务器没有回应。',
     server: '登入时出了点问题。',
+  },
+
+  board: {
+    title: '订单',
+    showing: (shown, total) => `显示 ${shown} 张，共 ${total} 张`,
+    stage: '进度',
+    whereFrom: '来源',
+    all: '全部',
+    nothingMatches: '没有订单符合这些条件。',
+    pendingSync: '订单号等同步',
+    noName: '没写名字',
+    taken: '已收',
+    rateHeldTo: (date) => `价格锁到 ${date}`,
+    stillToMeasure: (lines) => `还有 ${lines} 项要量`,
+    signedOut: '已登出。重新登入才能看订单。',
+    wentWrong: '载入订单时出了点问题。',
   },
 };

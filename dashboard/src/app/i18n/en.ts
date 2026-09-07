@@ -34,6 +34,14 @@ export const EN: Strings = {
     cancelled: 'Cancelled',
   },
 
+  channel: {
+    fair: 'Fair',
+    showroom: 'Showroom',
+    home_visit: 'Home visit',
+    referral: 'Referral',
+    phone: 'Phone',
+  },
+
   nav: {
     orders: 'Orders',
     measurement: 'Measurement',
@@ -54,5 +62,21 @@ export const EN: Strings = {
     throttled: 'Too many tries. Wait a moment and try again.',
     offline: 'No answer from the server.',
     server: 'Something went wrong signing in.',
+  },
+
+  board: {
+    title: 'Orders',
+    showing: (shown, total) => `Showing ${shown} of ${total}`,
+    stage: 'Stage',
+    whereFrom: 'Where from',
+    all: 'All',
+    nothingMatches: 'Nothing matches these filters.',
+    pendingSync: 'Pending sync',
+    noName: 'No name',
+    taken: 'taken',
+    rateHeldTo: (date) => `Rate held to ${date}`,
+    stillToMeasure: (lines) => `${lines} still to measure`,
+    signedOut: 'Signed out. Sign in again to see the board.',
+    wentWrong: 'Something went wrong loading the board.',
   },
 };

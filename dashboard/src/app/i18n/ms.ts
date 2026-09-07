@@ -36,6 +36,14 @@ export const MS: Strings = {
     cancelled: 'Dibatalkan',
   },
 
+  channel: {
+    fair: 'Pesta jualan',
+    showroom: 'Bilik pameran',
+    home_visit: 'Lawatan rumah',
+    referral: 'Rujukan',
+    phone: 'Telefon',
+  },
+
   nav: {
     orders: 'Pesanan',
     measurement: 'Ukuran',
@@ -56,5 +64,21 @@ export const MS: Strings = {
     throttled: 'Terlalu banyak cubaan. Tunggu sekejap dan cuba lagi.',
     offline: 'Tiada jawapan dari pelayan.',
     server: 'Ada masalah semasa log masuk.',
+  },
+
+  board: {
+    title: 'Pesanan',
+    showing: (shown, total) => `Menunjukkan ${shown} daripada ${total}`,
+    stage: 'Peringkat',
+    whereFrom: 'Dari mana',
+    all: 'Semua',
+    nothingMatches: 'Tiada pesanan yang sepadan dengan tapisan ini.',
+    pendingSync: 'Menunggu penyegerakan',
+    noName: 'Tiada nama',
+    taken: 'diterima',
+    rateHeldTo: (date) => `Harga dikunci hingga ${date}`,
+    stillToMeasure: (lines) => `${lines} lagi belum diukur`,
+    signedOut: 'Sudah log keluar. Log masuk semula untuk melihat pesanan.',
+    wentWrong: 'Ada masalah semasa memuatkan pesanan.',
   },
 };

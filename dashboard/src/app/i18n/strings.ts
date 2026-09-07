@@ -98,6 +98,33 @@ export interface NavStrings {
   readonly language: string;
 }
 
+/** Where an order came from. §6.3. */
+export interface ChannelStrings {
+  readonly fair: string;
+  readonly showroom: string;
+  readonly home_visit: string;
+  readonly referral: string;
+  readonly phone: string;
+}
+
+export interface BoardStrings {
+  readonly title: string;
+  /** "Showing 50 of 512". Two numbers, so a function rather than a template. */
+  readonly showing: (shown: number, total: number) => string;
+  readonly stage: string;
+  readonly whereFrom: string;
+  readonly all: string;
+  readonly nothingMatches: string;
+  /** An order pushed from a handset that has not synced. Never invented. */
+  readonly pendingSync: string;
+  readonly noName: string;
+  readonly taken: string;
+  readonly rateHeldTo: (date: string) => string;
+  readonly stillToMeasure: (lines: number) => string;
+  readonly signedOut: string;
+  readonly wentWrong: string;
+}
+
 export interface SignInStrings {
   readonly phone: string;
   readonly pin: string;
@@ -114,6 +141,8 @@ export interface SignInStrings {
 export interface Strings {
   readonly common: CommonStrings;
   readonly status: StatusStrings;
+  readonly channel: ChannelStrings;
   readonly nav: NavStrings;
   readonly signIn: SignInStrings;
+  readonly board: BoardStrings;
 }

@@ -23,6 +23,8 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 
 import { Api } from '../api/api';
+import { commonMessage, failureOf, type Failure } from '../i18n/failure';
+import { Text } from '../i18n/text';
 import { formatDate, formatSen, urgencyOf, type Urgency } from '../api/money';
 import { PIPELINE, type Channel, type OrderStatus, type OrderSummary } from '../api/types';
 
@@ -59,7 +61,17 @@ export class OrderBoard {
    * shows nothing is indistinguishable from a quiet week, and the office would
    * make decisions on it.
    */
-  protected readonly failure = signal<string | null>(null);
+  protected readonly failure = signal<Failure | null>(null);
+
+  /** The words, as a signal: switching language re-renders the board. */
+  protected readonly t = inject(Text).strings;
+
+  /** Chosen at render time, so a failure on screen follows the language. */
+  protected message(failure: Failure): string {
+    if (failure.status === 401) return this.t().board.signedOut;
+    if (failure.status === null) return this.t().board.wentWrong;
+    return commonMessage(this.t(), failure);
+  }
 
   /** The filters, read from the URL so the URL is the only place they live. */
   private readonly params = toSignal(this.route.queryParamMap, {
@@ -101,7 +113,7 @@ export class OrderBoard {
         error: (err: unknown) => {
           this.orders.set([]);
           this.total.set(0);
-          this.failure.set(describe(err));
+          this.failure.set(failureOf(err));
           this.loading.set(false);
         },
       });
@@ -126,19 +138,4 @@ export class OrderBoard {
   protected urgency(order: OrderSummary): Urgency {
     return urgencyOf(order.held_until);
   }
-
-  /** What the board says about an order with no number yet. */
-  protected reference(order: OrderSummary): string {
-    return order.order_no ?? 'Pending sync';
-  }
-}
-
-function describe(err: unknown): string {
-  if (typeof err === 'object' && err !== null && 'status' in err) {
-    const status = (err as { status: number }).status;
-    if (status === 401) return 'Signed out. Sign in again to see the board.';
-    if (status === 0) return 'No answer from the server.';
-    return `The server answered ${status}.`;
-  }
-  return 'Something went wrong loading the board.';
 }
