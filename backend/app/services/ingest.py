@@ -54,6 +54,11 @@ from ..models.db import (
     RateCardVersion,
     User,
 )
+from ..pricing.einvoice_threshold import (
+    BuyerDetails,
+    buyer_details_complete,
+    missing_buyer_details,
+)
 from ..pricing.engine import (
     LineRequest,
     NoApplicableRate,
@@ -67,11 +72,6 @@ from ..pricing.models import (
     Layer,
     PricingStage,
     RateCard,
-)
-from ..pricing.einvoice_threshold import (
-    BuyerDetails,
-    buyer_details_complete,
-    missing_buyer_details,
 )
 from ..pricing.order_status import (
     OrderLineState,
@@ -626,9 +626,7 @@ def _merged(current: str | None, incoming: str | None) -> str | None:
     return trimmed or None
 
 
-def push_buyer_details(
-    session: Session, payload: BuyerDetailsIn
-) -> BuyerDetailsResult:
+def push_buyer_details(session: Session, payload: BuyerDetailsIn) -> BuyerDetailsResult:
     """Records what was captured about the buyer. SPEC.md §10.3, §11 Phase 7.
 
     Its own endpoint rather than a field on the order push, because an order is

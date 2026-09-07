@@ -124,23 +124,15 @@ def price_line(
     card: RateCard,
     stage: PricingStage,
     tier: CustomerTier = CustomerTier.STANDARD,
-    apply_min_qty: bool = True,
 ) -> PricedLine:
     """Prices one line. §4.3.
 
     **Height selects the band. Height never multiplies.** For ``per_ft_width``
     only width is charged -- the single most likely thing to get wrong.
 
-    ``apply_min_qty`` exists for §13 A21. A printed minimum is a floor on the
-    JOB, not on the line, and whether this job clears it is an ORDER-level
-    question this function cannot see -- so ``reprice_order`` prices once with
-    the minimum suppressed to get the exact subtotal, then decides.
-
-    It defaults to True, so nothing that does not know about the rule can waive
-    a minimum by omission. And it is only ever passed False at final pricing:
-    on a quotation the minimum is unconditional, because quoting below a floor
-    the final might then apply would break §8.5 in the one direction it may not
-    break.
+    A printed ``min_qty`` applies on a **quotation only** (§13 A21). At final
+    pricing it is replaced by the RM300 per-category deposit floor that
+    ``total_quote`` and ``reprice_order`` apply.
     """
     if request.quantity < 1:
         raise ValueError(f"quantity must be at least 1: {request.quantity}")
@@ -214,14 +206,22 @@ def price_line(
 
     # 7. Minimum billed quantity, BEFORE the rate multiplies.
     #
+    #    **Quotation only** (§13 A21). At final pricing the printed minimum is
+    #    replaced by the RM300 per-category deposit floor.
+    #
+    #    Applying it at both stages produced an inversion the client rejected:
+    #    a 12 sqft timber blind billed RM360 (its printed 18 sqft) while a
+    #    LARGER 15 sqft one billed RM300. A smaller window costing more is not
+    #    a rule anybody can explain at a counter. Billing the exact tape and
+    #    flooring the job at RM300 is monotonic by construction.
+    #
     #    Per WINDOW, not per line: three identical small blinds each meet the
-    #    minimum separately, then step 11 multiplies. Waived only when the
-    #    caller has established the job clears the threshold (§13 A21).
-    min_qty = rule.min_qty if apply_min_qty else None
+    #    minimum separately on the quotation, then step 11 multiplies.
+    min_qty = rule.min_qty if stage is PricingStage.ESTIMATE else None
     after_min = raw_qty if min_qty is None else max(raw_qty, min_qty)
     min_qty_applied = min_qty is not None and after_min != raw_qty
     min_qty_waived = (
-        not apply_min_qty
+        stage is PricingStage.FINAL
         and rule.min_qty is not None
         and raw_qty < rule.min_qty
     )
@@ -455,7 +455,16 @@ def total_quote(
     floor = Money(card.config.min_deposit_sen)
 
     for cat, raw in subtotals.items():
-        floored = raw.max(floor) if stage is PricingStage.ESTIMATE else raw
+        # Both stages, since §13 A21d. It used to be the estimate's alone, on
+        # the reasoning that a final is exact -- but a final that came in under
+        # the RM300 already deposited is a bill the customer has overpaid,
+        # which is the same complaint §8.4 exists to prevent one document
+        # earlier.
+        #
+        # It is also what replaces `min_qty` at final pricing, and what keeps
+        # the arithmetic monotonic: flat at RM300 below the floor, the exact
+        # tape above it, so a billed total never falls as a window grows.
+        floored = raw.max(floor)
         uplift[cat] = floored - raw
         total = total + floored
 

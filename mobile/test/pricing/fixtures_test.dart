@@ -326,18 +326,11 @@ void main() {
         // §13 A21. Asserted only where a case states them, so the thirteen
         // cases written before the rule existed are not silently given a
         // default that would pass whatever the engine did.
-        if (expected.containsKey('exact_subtotal_sen')) {
-          expect(
-            result.exactSubtotal?.sen,
-            expected['exact_subtotal_sen'],
-            reason: 'the subtotal the waiver decision was made on (A21b)',
-          );
-        }
         if (expected.containsKey('min_qty_waived')) {
           expect(
             result.minQtyWaived,
             expected['min_qty_waived'],
-            reason: 'whether the job cleared the threshold (A21a, A21c)',
+            reason: 'a printed minimum that final pricing did not apply (A21)',
           );
         }
         if (expected.containsKey('category_floor_uplift_sen')) {

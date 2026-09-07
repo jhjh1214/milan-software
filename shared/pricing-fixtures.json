@@ -34,7 +34,10 @@
       "min_deposit_sen": 30000,
       "rate_card_version": 101,
       "promo_pct": "0",
-      "expect": {"granted": false, "refused_because": "not_a_fair"}
+      "expect": {
+        "granted": false,
+        "refused_because": "not_a_fair"
+      }
     },
     {
       "id": "grant-a-home-visit-deposit-opens-nothing",
@@ -47,7 +50,10 @@
       "min_deposit_sen": 30000,
       "rate_card_version": 101,
       "promo_pct": "0",
-      "expect": {"granted": false, "refused_because": "not_a_fair"}
+      "expect": {
+        "granted": false,
+        "refused_because": "not_a_fair"
+      }
     },
     {
       "id": "grant-a-phone-deposit-opens-nothing",
@@ -60,7 +66,10 @@
       "min_deposit_sen": 30000,
       "rate_card_version": 101,
       "promo_pct": "0",
-      "expect": {"granted": false, "refused_because": "not_a_fair"}
+      "expect": {
+        "granted": false,
+        "refused_because": "not_a_fair"
+      }
     },
     {
       "id": "grant-a-referral-deposit-opens-nothing",
@@ -73,7 +82,10 @@
       "min_deposit_sen": 30000,
       "rate_card_version": 101,
       "promo_pct": "0",
-      "expect": {"granted": false, "refused_because": "not_a_fair"}
+      "expect": {
+        "granted": false,
+        "refused_because": "not_a_fair"
+      }
     },
     {
       "id": "grant-short-payment-opens-nothing",
@@ -86,7 +98,10 @@
       "min_deposit_sen": 30000,
       "rate_card_version": 1,
       "promo_pct": "0",
-      "expect": {"granted": false, "refused_because": "below_minimum"}
+      "expect": {
+        "granted": false,
+        "refused_because": "below_minimum"
+      }
     },
     {
       "id": "grant-overpayment-still-opens-one-lock",
@@ -242,7 +257,10 @@
       "why": "The base case. The shop collects a phone; two quotes with the same phone are the same customer coming back.",
       "phone": "0123456789",
       "quote_id": "q-1",
-      "expect": {"key": "phone:0123456789", "from_phone": true}
+      "expect": {
+        "key": "phone:0123456789",
+        "from_phone": true
+      }
     },
     {
       "id": "key-punctuation-is-ignored",
@@ -250,7 +268,10 @@
       "why": "One person types 012-345 6789 in August and 0123456789 in March. Treating those as two customers loses the hold they paid for.",
       "phone": "012-345 6789",
       "quote_id": "q-1",
-      "expect": {"key": "phone:0123456789", "from_phone": true}
+      "expect": {
+        "key": "phone:0123456789",
+        "from_phone": true
+      }
     },
     {
       "id": "key-brackets-and-dots-too",
@@ -258,7 +279,10 @@
       "why": "The same, in the other shapes people write.",
       "phone": " (012) 345.6789 ",
       "quote_id": "q-1",
-      "expect": {"key": "phone:0123456789", "from_phone": true}
+      "expect": {
+        "key": "phone:0123456789",
+        "from_phone": true
+      }
     },
     {
       "id": "key-a-plus-60-country-code-is-a-leading-zero",
@@ -266,7 +290,10 @@
       "why": "+60 12 345 6789 and 012 345 6789 are one number. A customer who gave the international form at the fair and the local one in the showroom must not lose their hold.",
       "phone": "+60 12-345 6789",
       "quote_id": "q-1",
-      "expect": {"key": "phone:0123456789", "from_phone": true}
+      "expect": {
+        "key": "phone:0123456789",
+        "from_phone": true
+      }
     },
     {
       "id": "key-a-bare-60-prefix-too",
@@ -274,7 +301,10 @@
       "why": "The same number with the plus dropped, which is how it arrives from a pasted contact.",
       "phone": "60123456789",
       "quote_id": "q-1",
-      "expect": {"key": "phone:0123456789", "from_phone": true}
+      "expect": {
+        "key": "phone:0123456789",
+        "from_phone": true
+      }
     },
     {
       "id": "key-a-leading-zero-is-kept-once",
@@ -282,7 +312,10 @@
       "why": "060... is not a country code with a zero in front of it. Stripping one here would turn a real number into somebody else's.",
       "phone": "0601234567",
       "quote_id": "q-1",
-      "expect": {"key": "phone:0601234567", "from_phone": true}
+      "expect": {
+        "key": "phone:0601234567",
+        "from_phone": true
+      }
     },
     {
       "id": "key-no-phone-falls-back-to-the-quote",
@@ -290,7 +323,10 @@
       "why": "A walk-in who gives no number. The lock still works within the quote it was bought on, which is no worse than the behaviour this replaces, and it never matches somebody else.",
       "phone": null,
       "quote_id": "q-1",
-      "expect": {"key": "quote:q-1", "from_phone": false}
+      "expect": {
+        "key": "quote:q-1",
+        "from_phone": false
+      }
     },
     {
       "id": "key-an-empty-phone-is-no-phone",
@@ -298,7 +334,10 @@
       "why": "A field that was opened and left alone.",
       "phone": "   ",
       "quote_id": "q-1",
-      "expect": {"key": "quote:q-1", "from_phone": false}
+      "expect": {
+        "key": "quote:q-1",
+        "from_phone": false
+      }
     },
     {
       "id": "key-a-fragment-is-not-a-phone",
@@ -306,7 +345,10 @@
       "why": "Somebody typed four digits and moved on. A key built from a fragment would collide with every other four-digit fragment and hand one customer another's held prices, so it is refused and the quote id is used instead.",
       "phone": "0123",
       "quote_id": "q-1",
-      "expect": {"key": "quote:q-1", "from_phone": false}
+      "expect": {
+        "key": "quote:q-1",
+        "from_phone": false
+      }
     },
     {
       "id": "key-eight-digits-is-still-a-fragment",
@@ -314,7 +356,10 @@
       "why": "The edge of the nine-digit floor, from below.",
       "phone": "01234567",
       "quote_id": "q-1",
-      "expect": {"key": "quote:q-1", "from_phone": false}
+      "expect": {
+        "key": "quote:q-1",
+        "from_phone": false
+      }
     },
     {
       "id": "key-nine-digits-is-a-phone",
@@ -322,7 +367,10 @@
       "why": "The same edge from above, so the floor cannot drift by one without a test noticing. An 03 landline is nine digits.",
       "phone": "0312345678",
       "quote_id": "q-1",
-      "expect": {"key": "phone:0312345678", "from_phone": true}
+      "expect": {
+        "key": "phone:0312345678",
+        "from_phone": true
+      }
     },
     {
       "id": "key-letters-are-not-digits",
@@ -330,7 +378,10 @@
       "why": "A name typed into the phone field. What is left after stripping is not a number, so it is not used as one.",
       "phone": "call the office",
       "quote_id": "q-1",
-      "expect": {"key": "quote:q-1", "from_phone": false}
+      "expect": {
+        "key": "quote:q-1",
+        "from_phone": false
+      }
     },
     {
       "id": "key-two-quotes-one-phone-are-one-customer",
@@ -338,7 +389,10 @@
       "why": "The whole point. The August quote and the March quote produce the same key, so the hold bought at the fair prices the line added months later.",
       "phone": "0123456789",
       "quote_id": "q-in-march",
-      "expect": {"key": "phone:0123456789", "from_phone": true}
+      "expect": {
+        "key": "phone:0123456789",
+        "from_phone": true
+      }
     }
   ],
   "_price_override_purpose": "SPEC.md §6.5. An admin moving a line's total by hand, and the audit row that is the actual control. The spec is blunt about why: 'An offline PIN is bypassable, and one shared admin password reaches every part-timer within a month. The real control is the audit log plus a weekly review screen, not the gate.' Both engines load these cases because the server re-validates an override before it accepts one -- an override the server refuses would otherwise leave a handset showing a price nothing else agrees with.",
@@ -353,7 +407,10 @@
       "admin_user_id": "u-boss",
       "is_admin": true,
       "order_is_terminal": false,
-      "expect": {"applied": true, "after_sen": 50000}
+      "expect": {
+        "applied": true,
+        "after_sen": 50000
+      }
     },
     {
       "id": "override-may-move-a-line-up",
@@ -365,7 +422,10 @@
       "admin_user_id": "u-boss",
       "is_admin": true,
       "order_is_terminal": false,
-      "expect": {"applied": true, "after_sen": 55200}
+      "expect": {
+        "applied": true,
+        "after_sen": 55200
+      }
     },
     {
       "id": "override-to-zero-is-allowed",
@@ -377,7 +437,10 @@
       "admin_user_id": "u-boss",
       "is_admin": true,
       "order_is_terminal": false,
-      "expect": {"applied": true, "after_sen": 0}
+      "expect": {
+        "applied": true,
+        "after_sen": 0
+      }
     },
     {
       "id": "override-a-negative-total-is-not-a-price",
@@ -389,7 +452,10 @@
       "admin_user_id": "u-boss",
       "is_admin": true,
       "order_is_terminal": false,
-      "expect": {"applied": false, "refused_because": "negative_total"}
+      "expect": {
+        "applied": false,
+        "refused_because": "negative_total"
+      }
     },
     {
       "id": "override-staff-may-not",
@@ -401,7 +467,10 @@
       "admin_user_id": "u-ah-lian",
       "is_admin": false,
       "order_is_terminal": false,
-      "expect": {"applied": false, "refused_because": "not_an_admin"}
+      "expect": {
+        "applied": false,
+        "refused_because": "not_an_admin"
+      }
     },
     {
       "id": "override-nobody-signed-in-may-not",
@@ -413,7 +482,10 @@
       "admin_user_id": null,
       "is_admin": true,
       "order_is_terminal": false,
-      "expect": {"applied": false, "refused_because": "not_an_admin"}
+      "expect": {
+        "applied": false,
+        "refused_because": "not_an_admin"
+      }
     },
     {
       "id": "override-needs-a-reason",
@@ -425,7 +497,10 @@
       "admin_user_id": "u-boss",
       "is_admin": true,
       "order_is_terminal": false,
-      "expect": {"applied": false, "refused_because": "no_reason"}
+      "expect": {
+        "applied": false,
+        "refused_because": "no_reason"
+      }
     },
     {
       "id": "override-three-characters-is-not-a-reason",
@@ -437,7 +512,10 @@
       "admin_user_id": "u-boss",
       "is_admin": true,
       "order_is_terminal": false,
-      "expect": {"applied": false, "refused_because": "no_reason"}
+      "expect": {
+        "applied": false,
+        "refused_because": "no_reason"
+      }
     },
     {
       "id": "override-four-characters-is",
@@ -449,7 +527,10 @@
       "admin_user_id": "u-boss",
       "is_admin": true,
       "order_is_terminal": false,
-      "expect": {"applied": true, "after_sen": 50000}
+      "expect": {
+        "applied": true,
+        "after_sen": 50000
+      }
     },
     {
       "id": "override-whitespace-is-not-a-reason",
@@ -461,7 +542,10 @@
       "admin_user_id": "u-boss",
       "is_admin": true,
       "order_is_terminal": false,
-      "expect": {"applied": false, "refused_because": "no_reason"}
+      "expect": {
+        "applied": false,
+        "refused_because": "no_reason"
+      }
     },
     {
       "id": "override-changing-nothing-writes-nothing",
@@ -473,7 +557,10 @@
       "admin_user_id": "u-boss",
       "is_admin": true,
       "order_is_terminal": false,
-      "expect": {"applied": false, "refused_because": "no_change"}
+      "expect": {
+        "applied": false,
+        "refused_because": "no_change"
+      }
     },
     {
       "id": "override-a-finished-order-is-not-repriced",
@@ -485,7 +572,10 @@
       "admin_user_id": "u-boss",
       "is_admin": true,
       "order_is_terminal": true,
-      "expect": {"applied": false, "refused_because": "order_finished"}
+      "expect": {
+        "applied": false,
+        "refused_because": "order_finished"
+      }
     },
     {
       "id": "override-authority-is-checked-before-the-reason",
@@ -497,7 +587,10 @@
       "admin_user_id": "u-ah-lian",
       "is_admin": false,
       "order_is_terminal": false,
-      "expect": {"applied": false, "refused_because": "not_an_admin"}
+      "expect": {
+        "applied": false,
+        "refused_because": "not_an_admin"
+      }
     }
   ],
   "_order_status_purpose": "SPEC.md §6.3. The pipeline an order walks after the deposit confirms it, and the guards on each step. Both engines load these cases, because the server re-validates every transition a handset pushes: a status that moved on one device and was refused on the server would leave the two disagreeing about whether a job is in production.",
@@ -510,8 +603,17 @@
       "why": "The first step of the normal path. Nothing to guard: booking a visit asserts nothing about the job.",
       "from": "confirmed",
       "to": "measurement_booked",
-      "lines": [{"needs_measuring": true, "has_final_dimensions": false, "material_deferred": true, "material_chosen": false}],
-      "expect": {"allowed": true}
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": false,
+          "material_deferred": true,
+          "material_chosen": false
+        }
+      ],
+      "expect": {
+        "allowed": true
+      }
     },
     {
       "id": "status-measurement-booked-to-measured",
@@ -520,10 +622,22 @@
       "from": "measurement_booked",
       "to": "measured",
       "lines": [
-        {"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": false},
-        {"needs_measuring": false, "has_final_dimensions": false, "material_deferred": false, "material_chosen": false}
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": true,
+          "material_chosen": false
+        },
+        {
+          "needs_measuring": false,
+          "has_final_dimensions": false,
+          "material_deferred": false,
+          "material_chosen": false
+        }
       ],
-      "expect": {"allowed": true}
+      "expect": {
+        "allowed": true
+      }
     },
     {
       "id": "status-measured-refused-while-a-window-is-still-unmeasured",
@@ -532,10 +646,23 @@
       "from": "measurement_booked",
       "to": "measured",
       "lines": [
-        {"needs_measuring": true, "has_final_dimensions": true, "material_deferred": false, "material_chosen": true},
-        {"needs_measuring": true, "has_final_dimensions": false, "material_deferred": false, "material_chosen": true}
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": false,
+          "material_chosen": true
+        },
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": false,
+          "material_deferred": false,
+          "material_chosen": true
+        }
       ],
-      "expect": {"allowed": false, "refused_because": "lines_not_measured"}
+      "expect": {
+        "allowed": false,
+        "refused_because": "lines_not_measured"
+      }
     },
     {
       "id": "status-measured-to-material-selected",
@@ -544,10 +671,22 @@
       "from": "measured",
       "to": "material_selected",
       "lines": [
-        {"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true},
-        {"needs_measuring": true, "has_final_dimensions": true, "material_deferred": false, "material_chosen": false}
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": true,
+          "material_chosen": true
+        },
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": false,
+          "material_chosen": false
+        }
       ],
-      "expect": {"allowed": true}
+      "expect": {
+        "allowed": true
+      }
     },
     {
       "id": "status-material-selected-refused-while-one-line-still-defers",
@@ -556,10 +695,23 @@
       "from": "measured",
       "to": "material_selected",
       "lines": [
-        {"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true},
-        {"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": false}
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": true,
+          "material_chosen": true
+        },
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": true,
+          "material_chosen": false
+        }
       ],
-      "expect": {"allowed": false, "refused_because": "material_not_chosen"}
+      "expect": {
+        "allowed": false,
+        "refused_because": "material_not_chosen"
+      }
     },
     {
       "id": "status-material-selected-to-in-production",
@@ -567,8 +719,17 @@
       "why": "Cutting starts.",
       "from": "material_selected",
       "to": "in_production",
-      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true}],
-      "expect": {"allowed": true}
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": true,
+          "material_chosen": true
+        }
+      ],
+      "expect": {
+        "allowed": true
+      }
     },
     {
       "id": "status-in-production-to-ready",
@@ -576,8 +737,17 @@
       "why": "Made, and waiting on an installation slot.",
       "from": "in_production",
       "to": "ready",
-      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true}],
-      "expect": {"allowed": true}
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": true,
+          "material_chosen": true
+        }
+      ],
+      "expect": {
+        "allowed": true
+      }
     },
     {
       "id": "status-ready-to-installed",
@@ -585,8 +755,17 @@
       "why": "Fitted in the customer's house.",
       "from": "ready",
       "to": "installed",
-      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true}],
-      "expect": {"allowed": true}
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": true,
+          "material_chosen": true
+        }
+      ],
+      "expect": {
+        "allowed": true
+      }
     },
     {
       "id": "status-installed-to-closed",
@@ -594,8 +773,17 @@
       "why": "Paid up and done. The last transition there is.",
       "from": "installed",
       "to": "closed",
-      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true}],
-      "expect": {"allowed": true}
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": true,
+          "material_chosen": true
+        }
+      ],
+      "expect": {
+        "allowed": true
+      }
     },
     {
       "id": "status-a-step-may-not-be-skipped",
@@ -603,8 +791,18 @@
       "why": "confirmed straight to in_production would mean cutting material for dimensions nobody took. Each skipped step is also a lie in the append-only history somebody reads a year later.",
       "from": "confirmed",
       "to": "in_production",
-      "lines": [{"needs_measuring": true, "has_final_dimensions": false, "material_deferred": true, "material_chosen": false}],
-      "expect": {"allowed": false, "refused_because": "not_a_transition"}
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": false,
+          "material_deferred": true,
+          "material_chosen": false
+        }
+      ],
+      "expect": {
+        "allowed": false,
+        "refused_because": "not_a_transition"
+      }
     },
     {
       "id": "status-measurement-may-not-be-skipped-even-when-nothing-needs-measuring",
@@ -612,8 +810,18 @@
       "why": "A supply-only order still passes through the visit steps, because nothing-needs-measuring is a judgement about the lines while the pipeline is a record of what happened. Refusing here is the conservative reading; whether supply-only orders skip ahead is SPEC.md §13 C7, to answer rather than guess.",
       "from": "confirmed",
       "to": "material_selected",
-      "lines": [{"needs_measuring": false, "has_final_dimensions": false, "material_deferred": false, "material_chosen": false}],
-      "expect": {"allowed": false, "refused_because": "not_a_transition"}
+      "lines": [
+        {
+          "needs_measuring": false,
+          "has_final_dimensions": false,
+          "material_deferred": false,
+          "material_chosen": false
+        }
+      ],
+      "expect": {
+        "allowed": false,
+        "refused_because": "not_a_transition"
+      }
     },
     {
       "id": "status-does-not-go-backwards",
@@ -621,8 +829,18 @@
       "why": "A remeasure is new dimensions on the same order, not a rewind. Rewinding would let a second visit overwrite the first with no record that either happened.",
       "from": "measured",
       "to": "measurement_booked",
-      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": false, "material_chosen": true}],
-      "expect": {"allowed": false, "refused_because": "not_a_transition"}
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": false,
+          "material_chosen": true
+        }
+      ],
+      "expect": {
+        "allowed": false,
+        "refused_because": "not_a_transition"
+      }
     },
     {
       "id": "status-in-production-does-not-go-back-to-measured",
@@ -630,8 +848,18 @@
       "why": "The same rule one step further along, where the material has already been cut.",
       "from": "in_production",
       "to": "measured",
-      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true}],
-      "expect": {"allowed": false, "refused_because": "not_a_transition"}
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": true,
+          "material_chosen": true
+        }
+      ],
+      "expect": {
+        "allowed": false,
+        "refused_because": "not_a_transition"
+      }
     },
     {
       "id": "status-staying-put-is-not-an-error",
@@ -639,8 +867,18 @@
       "why": "Two part-timers tapping the same button on one order, or one tapping twice on a slow handset. It writes nothing, and it is not a failure to show anybody.",
       "from": "measured",
       "to": "measured",
-      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": false, "material_chosen": true}],
-      "expect": {"allowed": false, "refused_because": "already_there"}
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": false,
+          "material_chosen": true
+        }
+      ],
+      "expect": {
+        "allowed": false,
+        "refused_because": "already_there"
+      }
     },
     {
       "id": "status-tapping-closed-again-is-not-an-error",
@@ -648,8 +886,18 @@
       "why": "Staying put is answered before terminal, so a second tap on a finished order is the same quiet no-op it is anywhere else in the pipeline rather than an error about the order being closed. The distinction only shows up here, which is why it is written down.",
       "from": "closed",
       "to": "closed",
-      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true}],
-      "expect": {"allowed": false, "refused_because": "already_there"}
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": true,
+          "material_chosen": true
+        }
+      ],
+      "expect": {
+        "allowed": false,
+        "refused_because": "already_there"
+      }
     },
     {
       "id": "status-closed-is-terminal",
@@ -657,8 +905,18 @@
       "why": "Reopening a closed order would put a second ending on a job that already ended.",
       "from": "closed",
       "to": "installed",
-      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true}],
-      "expect": {"allowed": false, "refused_because": "terminal"}
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": true,
+          "material_chosen": true
+        }
+      ],
+      "expect": {
+        "allowed": false,
+        "refused_because": "terminal"
+      }
     },
     {
       "id": "status-cancelled-is-terminal",
@@ -666,8 +924,18 @@
       "why": "A cancelled order that comes back is a new order. Un-cancelling one would leave the deposit attached to a history that says it was refunded.",
       "from": "cancelled",
       "to": "confirmed",
-      "lines": [{"needs_measuring": true, "has_final_dimensions": false, "material_deferred": true, "material_chosen": false}],
-      "expect": {"allowed": false, "refused_because": "terminal"}
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": false,
+          "material_deferred": true,
+          "material_chosen": false
+        }
+      ],
+      "expect": {
+        "allowed": false,
+        "refused_because": "terminal"
+      }
     },
     {
       "id": "status-cancel-from-confirmed",
@@ -676,8 +944,17 @@
       "from": "confirmed",
       "to": "cancelled",
       "reason": "customer changed their mind",
-      "lines": [{"needs_measuring": true, "has_final_dimensions": false, "material_deferred": true, "material_chosen": false}],
-      "expect": {"allowed": true}
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": false,
+          "material_deferred": true,
+          "material_chosen": false
+        }
+      ],
+      "expect": {
+        "allowed": true
+      }
     },
     {
       "id": "status-cancel-from-in-production",
@@ -686,8 +963,17 @@
       "from": "in_production",
       "to": "cancelled",
       "reason": "supplier discontinued the fabric",
-      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true}],
-      "expect": {"allowed": true}
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": true,
+          "material_chosen": true
+        }
+      ],
+      "expect": {
+        "allowed": true
+      }
     },
     {
       "id": "status-cancel-needs-a-reason",
@@ -696,8 +982,18 @@
       "from": "confirmed",
       "to": "cancelled",
       "reason": "",
-      "lines": [{"needs_measuring": true, "has_final_dimensions": false, "material_deferred": true, "material_chosen": false}],
-      "expect": {"allowed": false, "refused_because": "no_reason"}
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": false,
+          "material_deferred": true,
+          "material_chosen": false
+        }
+      ],
+      "expect": {
+        "allowed": false,
+        "refused_because": "no_reason"
+      }
     },
     {
       "id": "status-cancel-reason-may-not-be-three-characters",
@@ -706,8 +1002,18 @@
       "from": "ready",
       "to": "cancelled",
       "reason": "n/a",
-      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true}],
-      "expect": {"allowed": false, "refused_because": "no_reason"}
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": true,
+          "material_chosen": true
+        }
+      ],
+      "expect": {
+        "allowed": false,
+        "refused_because": "no_reason"
+      }
     },
     {
       "id": "status-cancel-reason-of-only-spaces-is-not-a-reason",
@@ -716,8 +1022,18 @@
       "from": "confirmed",
       "to": "cancelled",
       "reason": "     ",
-      "lines": [{"needs_measuring": true, "has_final_dimensions": false, "material_deferred": true, "material_chosen": false}],
-      "expect": {"allowed": false, "refused_because": "no_reason"}
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": false,
+          "material_deferred": true,
+          "material_chosen": false
+        }
+      ],
+      "expect": {
+        "allowed": false,
+        "refused_because": "no_reason"
+      }
     },
     {
       "id": "status-an-installed-order-is-not-cancelled",
@@ -726,8 +1042,18 @@
       "from": "installed",
       "to": "cancelled",
       "reason": "customer unhappy with the colour",
-      "lines": [{"needs_measuring": true, "has_final_dimensions": true, "material_deferred": true, "material_chosen": true}],
-      "expect": {"allowed": false, "refused_because": "not_a_transition"}
+      "lines": [
+        {
+          "needs_measuring": true,
+          "has_final_dimensions": true,
+          "material_deferred": true,
+          "material_chosen": true
+        }
+      ],
+      "expect": {
+        "allowed": false,
+        "refused_because": "not_a_transition"
+      }
     },
     {
       "id": "status-an-order-with-no-lines-still-cancels",
@@ -737,7 +1063,9 @@
       "to": "cancelled",
       "reason": "raised in error",
       "lines": [],
-      "expect": {"allowed": true}
+      "expect": {
+        "allowed": true
+      }
     },
     {
       "id": "status-over-threshold-cannot-leave-measured",
@@ -900,8 +1228,17 @@
           "status": "active"
         }
       ],
-      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
-      "expect": {"basis": "held", "rate_card_version": 1, "discount_pct": "0", "lock_id": "lock-curtain"}
+      "line": {
+        "family": "curtain",
+        "deposit_category_override": null,
+        "parent_family": null
+      },
+      "expect": {
+        "basis": "held",
+        "rate_card_version": 1,
+        "discount_pct": "0",
+        "lock_id": "lock-curtain"
+      }
     },
     {
       "id": "lock-a-flooring-line-never-rides-a-curtain-lock",
@@ -922,8 +1259,17 @@
           "status": "active"
         }
       ],
-      "line": {"family": "flooring", "deposit_category_override": null, "parent_family": null},
-      "expect": {"basis": "fair_current", "rate_card_version": 1, "discount_pct": "0", "lock_id": null}
+      "line": {
+        "family": "flooring",
+        "deposit_category_override": null,
+        "parent_family": null
+      },
+      "expect": {
+        "basis": "fair_current",
+        "rate_card_version": 1,
+        "discount_pct": "0",
+        "lock_id": null
+      }
     },
     {
       "id": "lock-a-flooring-line-outside-a-fair-falls-to-standard",
@@ -944,8 +1290,17 @@
           "status": "active"
         }
       ],
-      "line": {"family": "flooring", "deposit_category_override": null, "parent_family": null},
-      "expect": {"basis": "standard_pinned", "rate_card_version": 101, "discount_pct": "0", "lock_id": null}
+      "line": {
+        "family": "flooring",
+        "deposit_category_override": null,
+        "parent_family": null
+      },
+      "expect": {
+        "basis": "standard_pinned",
+        "rate_card_version": 101,
+        "discount_pct": "0",
+        "lock_id": null
+      }
     },
     {
       "id": "lock-a-blind-rides-the-curtain-deposit",
@@ -966,8 +1321,17 @@
           "status": "active"
         }
       ],
-      "line": {"family": "blind", "deposit_category_override": null, "parent_family": null},
-      "expect": {"basis": "held", "rate_card_version": 1, "discount_pct": "0", "lock_id": "lock-curtain"}
+      "line": {
+        "family": "blind",
+        "deposit_category_override": null,
+        "parent_family": null
+      },
+      "expect": {
+        "basis": "held",
+        "rate_card_version": 1,
+        "discount_pct": "0",
+        "lock_id": "lock-curtain"
+      }
     },
     {
       "id": "lock-a-track-rides-the-curtain-deposit",
@@ -988,8 +1352,17 @@
           "status": "active"
         }
       ],
-      "line": {"family": "track", "deposit_category_override": null, "parent_family": null},
-      "expect": {"basis": "held", "rate_card_version": 1, "discount_pct": "0", "lock_id": "lock-curtain"}
+      "line": {
+        "family": "track",
+        "deposit_category_override": null,
+        "parent_family": null
+      },
+      "expect": {
+        "basis": "held",
+        "rate_card_version": 1,
+        "discount_pct": "0",
+        "lock_id": "lock-curtain"
+      }
     },
     {
       "id": "lock-wallpaper-is-its-own-category",
@@ -1010,8 +1383,17 @@
           "status": "active"
         }
       ],
-      "line": {"family": "wallpaper", "deposit_category_override": null, "parent_family": null},
-      "expect": {"basis": "held", "rate_card_version": 1, "discount_pct": "0", "lock_id": "lock-wallpaper"}
+      "line": {
+        "family": "wallpaper",
+        "deposit_category_override": null,
+        "parent_family": null
+      },
+      "expect": {
+        "basis": "held",
+        "rate_card_version": 1,
+        "discount_pct": "0",
+        "lock_id": "lock-wallpaper"
+      }
     },
     {
       "id": "lock-a-service-uses-the-category-its-rule-names",
@@ -1032,8 +1414,17 @@
           "status": "active"
         }
       ],
-      "line": {"family": "service", "deposit_category_override": "flooring", "parent_family": null},
-      "expect": {"basis": "held", "rate_card_version": 1, "discount_pct": "0", "lock_id": "lock-flooring"}
+      "line": {
+        "family": "service",
+        "deposit_category_override": "flooring",
+        "parent_family": null
+      },
+      "expect": {
+        "basis": "held",
+        "rate_card_version": 1,
+        "discount_pct": "0",
+        "lock_id": "lock-flooring"
+      }
     },
     {
       "id": "lock-an-addon-follows-the-line-it-attaches-to",
@@ -1054,8 +1445,17 @@
           "status": "active"
         }
       ],
-      "line": {"family": "addon", "deposit_category_override": null, "parent_family": "blind"},
-      "expect": {"basis": "held", "rate_card_version": 1, "discount_pct": "0", "lock_id": "lock-curtain"}
+      "line": {
+        "family": "addon",
+        "deposit_category_override": null,
+        "parent_family": "blind"
+      },
+      "expect": {
+        "basis": "held",
+        "rate_card_version": 1,
+        "discount_pct": "0",
+        "lock_id": "lock-curtain"
+      }
     },
     {
       "id": "lock-an-addon-on-flooring-does-not-ride-a-curtain-lock",
@@ -1076,8 +1476,17 @@
           "status": "active"
         }
       ],
-      "line": {"family": "addon", "deposit_category_override": null, "parent_family": "flooring"},
-      "expect": {"basis": "fair_current", "rate_card_version": 1, "discount_pct": "0", "lock_id": null}
+      "line": {
+        "family": "addon",
+        "deposit_category_override": null,
+        "parent_family": "flooring"
+      },
+      "expect": {
+        "basis": "fair_current",
+        "rate_card_version": 1,
+        "discount_pct": "0",
+        "lock_id": null
+      }
     },
     {
       "id": "lock-at-a-fair-with-no-deposit-yet-uses-todays-card",
@@ -1089,8 +1498,17 @@
       "current_promo_pct": "0",
       "order_pinned_rate_card_version": 101,
       "locks": [],
-      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
-      "expect": {"basis": "fair_current", "rate_card_version": 1, "discount_pct": "0", "lock_id": null}
+      "line": {
+        "family": "curtain",
+        "deposit_category_override": null,
+        "parent_family": null
+      },
+      "expect": {
+        "basis": "fair_current",
+        "rate_card_version": 1,
+        "discount_pct": "0",
+        "lock_id": null
+      }
     },
     {
       "id": "lock-a-showroom-walk-in-uses-the-orders-pinned-version",
@@ -1102,8 +1520,17 @@
       "current_promo_pct": "0",
       "order_pinned_rate_card_version": 101,
       "locks": [],
-      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
-      "expect": {"basis": "standard_pinned", "rate_card_version": 101, "discount_pct": "0", "lock_id": null}
+      "line": {
+        "family": "curtain",
+        "deposit_category_override": null,
+        "parent_family": null
+      },
+      "expect": {
+        "basis": "standard_pinned",
+        "rate_card_version": 101,
+        "discount_pct": "0",
+        "lock_id": null
+      }
     },
     {
       "id": "lock-a-home-visit-is-not-a-fair",
@@ -1115,8 +1542,17 @@
       "current_promo_pct": "0",
       "order_pinned_rate_card_version": 101,
       "locks": [],
-      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
-      "expect": {"basis": "standard_pinned", "rate_card_version": 101, "discount_pct": "0", "lock_id": null}
+      "line": {
+        "family": "curtain",
+        "deposit_category_override": null,
+        "parent_family": null
+      },
+      "expect": {
+        "basis": "standard_pinned",
+        "rate_card_version": 101,
+        "discount_pct": "0",
+        "lock_id": null
+      }
     },
     {
       "id": "lock-expired-yesterday-is-not-a-lock",
@@ -1137,8 +1573,17 @@
           "status": "active"
         }
       ],
-      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
-      "expect": {"basis": "standard_pinned", "rate_card_version": 101, "discount_pct": "0", "lock_id": null}
+      "line": {
+        "family": "curtain",
+        "deposit_category_override": null,
+        "parent_family": null
+      },
+      "expect": {
+        "basis": "standard_pinned",
+        "rate_card_version": 101,
+        "discount_pct": "0",
+        "lock_id": null
+      }
     },
     {
       "id": "lock-on-its-final-day-still-holds",
@@ -1159,8 +1604,17 @@
           "status": "active"
         }
       ],
-      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
-      "expect": {"basis": "held", "rate_card_version": 1, "discount_pct": "0", "lock_id": "lock-curtain"}
+      "line": {
+        "family": "curtain",
+        "deposit_category_override": null,
+        "parent_family": null
+      },
+      "expect": {
+        "basis": "held",
+        "rate_card_version": 1,
+        "discount_pct": "0",
+        "lock_id": "lock-curtain"
+      }
     },
     {
       "id": "lock-cancelled-is-not-a-lock",
@@ -1181,8 +1635,17 @@
           "status": "cancelled"
         }
       ],
-      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
-      "expect": {"basis": "standard_pinned", "rate_card_version": 101, "discount_pct": "0", "lock_id": null}
+      "line": {
+        "family": "curtain",
+        "deposit_category_override": null,
+        "parent_family": null
+      },
+      "expect": {
+        "basis": "standard_pinned",
+        "rate_card_version": 101,
+        "discount_pct": "0",
+        "lock_id": null
+      }
     },
     {
       "id": "lock-refunded-is-not-a-lock",
@@ -1203,8 +1666,17 @@
           "status": "refunded"
         }
       ],
-      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
-      "expect": {"basis": "standard_pinned", "rate_card_version": 101, "discount_pct": "0", "lock_id": null}
+      "line": {
+        "family": "curtain",
+        "deposit_category_override": null,
+        "parent_family": null
+      },
+      "expect": {
+        "basis": "standard_pinned",
+        "rate_card_version": 101,
+        "discount_pct": "0",
+        "lock_id": null
+      }
     },
     {
       "id": "lock-pins-the-percentage-not-only-the-version",
@@ -1225,8 +1697,17 @@
           "status": "active"
         }
       ],
-      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
-      "expect": {"basis": "held", "rate_card_version": 1, "discount_pct": "1/10", "lock_id": "lock-curtain"}
+      "line": {
+        "family": "curtain",
+        "deposit_category_override": null,
+        "parent_family": null
+      },
+      "expect": {
+        "basis": "held",
+        "rate_card_version": 1,
+        "discount_pct": "1/10",
+        "lock_id": "lock-curtain"
+      }
     },
     {
       "id": "lock-an-unlocked-fair-line-takes-todays-percentage",
@@ -1238,8 +1719,17 @@
       "current_promo_pct": "1/5",
       "order_pinned_rate_card_version": 101,
       "locks": [],
-      "line": {"family": "flooring", "deposit_category_override": null, "parent_family": null},
-      "expect": {"basis": "fair_current", "rate_card_version": 1, "discount_pct": "1/5", "lock_id": null}
+      "line": {
+        "family": "flooring",
+        "deposit_category_override": null,
+        "parent_family": null
+      },
+      "expect": {
+        "basis": "fair_current",
+        "rate_card_version": 1,
+        "discount_pct": "1/5",
+        "lock_id": null
+      }
     },
     {
       "id": "lock-the-showroom-never-takes-a-promo-percentage",
@@ -1251,8 +1741,17 @@
       "current_promo_pct": "1/5",
       "order_pinned_rate_card_version": 101,
       "locks": [],
-      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
-      "expect": {"basis": "standard_pinned", "rate_card_version": 101, "discount_pct": "0", "lock_id": null}
+      "line": {
+        "family": "curtain",
+        "deposit_category_override": null,
+        "parent_family": null
+      },
+      "expect": {
+        "basis": "standard_pinned",
+        "rate_card_version": 101,
+        "discount_pct": "0",
+        "lock_id": null
+      }
     },
     {
       "id": "lock-two-categories-held-a-curtain-line-takes-the-curtain-one",
@@ -1281,8 +1780,17 @@
           "status": "active"
         }
       ],
-      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
-      "expect": {"basis": "held", "rate_card_version": 1, "discount_pct": "0", "lock_id": "lock-curtain"}
+      "line": {
+        "family": "curtain",
+        "deposit_category_override": null,
+        "parent_family": null
+      },
+      "expect": {
+        "basis": "held",
+        "rate_card_version": 1,
+        "discount_pct": "0",
+        "lock_id": "lock-curtain"
+      }
     },
     {
       "id": "lock-two-categories-held-a-flooring-line-takes-the-flooring-one",
@@ -1311,8 +1819,17 @@
           "status": "active"
         }
       ],
-      "line": {"family": "flooring", "deposit_category_override": null, "parent_family": null},
-      "expect": {"basis": "held", "rate_card_version": 55, "discount_pct": "1/20", "lock_id": "lock-flooring"}
+      "line": {
+        "family": "flooring",
+        "deposit_category_override": null,
+        "parent_family": null
+      },
+      "expect": {
+        "basis": "held",
+        "rate_card_version": 55,
+        "discount_pct": "1/20",
+        "lock_id": "lock-flooring"
+      }
     },
     {
       "id": "lock-one-expired-one-live-does-not-borrow-the-live-one",
@@ -1341,8 +1858,17 @@
           "status": "active"
         }
       ],
-      "line": {"family": "curtain", "deposit_category_override": null, "parent_family": null},
-      "expect": {"basis": "standard_pinned", "rate_card_version": 101, "discount_pct": "0", "lock_id": null}
+      "line": {
+        "family": "curtain",
+        "deposit_category_override": null,
+        "parent_family": null
+      },
+      "expect": {
+        "basis": "standard_pinned",
+        "rate_card_version": 101,
+        "discount_pct": "0",
+        "lock_id": null
+      }
     }
   ],
   "cases": [
@@ -1587,9 +2113,9 @@
       }
     },
     {
-      "id": "final-stage-min-qty-still-applies",
-      "source": "Open question A11a — ASSUMED, awaiting confirmation",
-      "why": "A site-measured 3ft x 4ft roller still bills the printed 18 sqft minimum, because a minimum quantity is a commercial floor and not a rounding artefact.",
+      "id": "final-stage-min-qty-does-not-apply",
+      "source": "SPEC.md 13 A21 -- ANSWERED, then corrected by the client",
+      "why": "A site-measured 3ft x 4ft roller bills the 12 sqft it MEASURES, not the printed 18 sqft minimum. The minimum is a quotation device; at final pricing the RM300 per-category deposit floor is what stops a small job billing under the deposit, and it applies to the ORDER rather than to this line. Applying both produced an inversion the client rejected -- a 12 sqft blind billing more than a 15 sqft one. See final_pricing_cases for the order-level pair that pins it.",
       "stage": "final",
       "tier": "standard",
       "line": {
@@ -1603,11 +2129,11 @@
       },
       "expect": {
         "rule_id": "roller-blackout",
-        "billed_qty": "18",
+        "billed_qty": "12",
         "billed_unit": "sqft",
-        "min_qty_applied": true,
+        "min_qty_applied": false,
         "rate_sen": 900,
-        "total_sen": 16200
+        "total_sen": 10800
       }
     },
     {
@@ -1729,7 +2255,10 @@
         "rate_sen": 1500,
         "total_sen": 45000,
         "material_deferred": true,
-        "material_options": ["jbl", "tbl"]
+        "material_options": [
+          "jbl",
+          "tbl"
+        ]
       }
     },
     {
@@ -1780,7 +2309,10 @@
         "rate_sen": 6000,
         "total_sen": 180000,
         "material_deferred": true,
-        "material_options": ["openness_0pct", "openness_1pct"]
+        "material_options": [
+          "openness_0pct",
+          "openness_1pct"
+        ]
       }
     },
     {
@@ -1960,10 +2492,16 @@
       "source": "SPEC.md §4.3, answered this phase",
       "why": "A single small roller blind quotes RM162, below the RM300 deposit. The quote shows RM300 with the uplift on its own row, never folded into the line.",
       "stage": "estimate",
-      "line_totals_sen": { "curtain": 16200 },
+      "line_totals_sen": {
+        "curtain": 16200
+      },
       "expect": {
-        "category_subtotals_sen": { "curtain": 16200 },
-        "category_floor_uplift_sen": { "curtain": 13800 },
+        "category_subtotals_sen": {
+          "curtain": 16200
+        },
+        "category_floor_uplift_sen": {
+          "curtain": 13800
+        },
         "total_sen": 30000
       }
     },
@@ -1972,10 +2510,16 @@
       "source": "SPEC.md §4.3",
       "why": "Above RM300 the floor is inert.",
       "stage": "estimate",
-      "line_totals_sen": { "curtain": 55200 },
+      "line_totals_sen": {
+        "curtain": 55200
+      },
       "expect": {
-        "category_subtotals_sen": { "curtain": 55200 },
-        "category_floor_uplift_sen": { "curtain": 0 },
+        "category_subtotals_sen": {
+          "curtain": 55200
+        },
+        "category_floor_uplift_sen": {
+          "curtain": 0
+        },
         "total_sen": 55200
       }
     },
@@ -1984,10 +2528,19 @@
       "source": "Open question B8 — ASSUMED, diverges from per-order in Phase 2",
       "why": "Curtain RM250 plus flooring RM200 quotes RM600 under per-category, RM450 under per-order. Phase 1 carries one category only, so the readings agree here.",
       "stage": "estimate",
-      "line_totals_sen": { "curtain": 25000, "flooring": 20000 },
+      "line_totals_sen": {
+        "curtain": 25000,
+        "flooring": 20000
+      },
       "expect": {
-        "category_subtotals_sen": { "curtain": 25000, "flooring": 20000 },
-        "category_floor_uplift_sen": { "curtain": 5000, "flooring": 10000 },
+        "category_subtotals_sen": {
+          "curtain": 25000,
+          "flooring": 20000
+        },
+        "category_floor_uplift_sen": {
+          "curtain": 5000,
+          "flooring": 10000
+        },
         "total_sen": 60000
       }
     },
@@ -1997,10 +2550,16 @@
       "why": "A RM162 blind floors to the RM300 deposit, and a RM100 transport charge is added on top of that, giving RM400. Travel is not a product, so the per-category floor must not drag it up to RM600.",
       "stage": "estimate",
       "delivery_zone_id": "zone-muar",
-      "line_totals_sen": { "curtain": 16200 },
+      "line_totals_sen": {
+        "curtain": 16200
+      },
       "expect": {
-        "category_subtotals_sen": { "curtain": 16200 },
-        "category_floor_uplift_sen": { "curtain": 13800 },
+        "category_subtotals_sen": {
+          "curtain": 16200
+        },
+        "category_floor_uplift_sen": {
+          "curtain": 13800
+        },
         "delivery_charge_sen": 10000,
         "total_sen": 40000
       }
@@ -2011,10 +2570,16 @@
       "why": "The larger of the two zones, on a normal quote.",
       "stage": "estimate",
       "delivery_zone_id": "zone-kl",
-      "line_totals_sen": { "curtain": 55200 },
+      "line_totals_sen": {
+        "curtain": 55200
+      },
       "expect": {
-        "category_subtotals_sen": { "curtain": 55200 },
-        "category_floor_uplift_sen": { "curtain": 0 },
+        "category_subtotals_sen": {
+          "curtain": 55200
+        },
+        "category_floor_uplift_sen": {
+          "curtain": 0
+        },
         "delivery_charge_sen": 30000,
         "total_sen": 85200
       }
@@ -2024,31 +2589,42 @@
       "source": "SPEC.md §4.1",
       "why": "Only the two printed outstation zones charge. Everything else is local and free.",
       "stage": "estimate",
-      "line_totals_sen": { "curtain": 55200 },
+      "line_totals_sen": {
+        "curtain": 55200
+      },
       "expect": {
-        "category_subtotals_sen": { "curtain": 55200 },
-        "category_floor_uplift_sen": { "curtain": 0 },
+        "category_subtotals_sen": {
+          "curtain": 55200
+        },
+        "category_floor_uplift_sen": {
+          "curtain": 0
+        },
         "delivery_charge_sen": 0,
         "total_sen": 55200
       }
     },
     {
-      "id": "floor-does-not-apply-at-final-pricing",
-      "source": "SPEC.md §4.3",
-      "why": "Final pricing is what it is. A quote of RM300 that measures down to RM240 lands in open question B4, not in a silent floor.",
+      "id": "floor-applies-at-final-pricing-too",
+      "source": "SPEC.md 4.3, 8.4, 13 A21d",
+      "why": "A job that measures down to RM240 still bills the RM300 already deposited. The floor used to be the estimate's alone, on the reasoning that a final is exact -- but a final under the deposit is a bill the customer has overpaid, which is the same complaint 8.4 exists to prevent one document earlier. It is also what replaces min_qty at final pricing (A21), and what keeps the billed total monotonic: flat at RM300 below the floor, the exact tape above it.",
       "stage": "final",
-      "line_totals_sen": { "curtain": 24000 },
+      "line_totals_sen": {
+        "curtain": 24000
+      },
       "expect": {
-        "category_subtotals_sen": { "curtain": 24000 },
-        "category_floor_uplift_sen": { "curtain": 0 },
-        "total_sen": 24000
+        "category_subtotals_sen": {
+          "curtain": 24000
+        },
+        "category_floor_uplift_sen": {
+          "curtain": 6000
+        },
+        "total_sen": 30000
       }
     }
   ],
   "_final_pricing_purpose": "SPEC.md §11 Phase 6. Repricing a measured order. Every line prices at the card version and discount IT recorded, never at today's -- that is the phase's first acceptance criterion, and the reason a rate lock is worth RM300. Quantity is EXACT here: the quote rounded up and the bill does not. A line the tape has not reached, a material nobody chose, or a card version not to hand refuses; it never falls back, because every fallback is a number on an invoice nobody can explain a year later.",
   "_final_pricing_versions": "`available_card_versions` lists which published cards the caller holds. Only version 1 exists as a file (rate-card-fair-2026-08.json); `active_rate_card_version` being higher is how a case says two publishes have happened since the deposit.",
-  "_final_pricing_min_qty": "SPEC.md §13 A21, answered. At FINAL PRICING a printed minimum quantity is a floor on the JOB, not on the line. The order of operations is fixed and the order matters: (1) price every line exactly, with no minimum, from the tape; (2) sum those across the WHOLE ORDER -- A21a, not per deposit category; (3) if that sum is at least the waiver threshold, waive `min_qty` on every line and keep the exact prices -- A21c, exactly the threshold counts as clearing it; (4) otherwise apply `min_qty` as the quotation does; (5) then apply the per-category deposit floor of §8.4 to the resulting subtotals -- A21d, so waiving can never bill below the deposit already taken. Step 2 uses the EXACT prices and never the minimum-applied ones (A21b): the other reading is circular, because the minimums are what step 3 decides. On a QUOTATION `min_qty` stays unconditional -- quoting below a floor the final might then apply would break §8.5's promise in the one direction it may not break.",
-  "_final_pricing_min_qty_threshold": "The threshold is `config.min_qty_waiver_sen` on the rate card, defaulting to `min_deposit_sen` (RM300) when a card does not carry it. Config rather than a literal, because CLAUDE.md forbids a price living in code and because a card published before this rule existed must still behave. It is compared against the sum of exact LINE totals only: the delivery zone charge is travel rather than product (§4.3) and is excluded, so a customer 100km away cannot clear a threshold that an identical order in town does not.",
+  "_final_pricing_min_qty": "SPEC.md 13 A21, answered and then CORRECTED by the client. A printed minimum quantity applies on a QUOTATION only. At final pricing every line bills the exact tape and the order is floored at the RM300 per-category deposit (8.4): a job may never come to less than the deposit already taken. The first answer applied min_qty at both stages and waived it once the job cleared RM300. That produced an inversion the client rejected -- a 12 sqft timber blind billed RM360 (its printed 18 sqft) while a LARGER 15 sqft one billed RM300 -- and a smaller window costing more is not a rule anybody can explain at a counter. The rule now in force is monotonic by construction: flat at RM300 below the floor, the exact tape above it, so a billed total never falls as a window grows.",
   "final_pricing_cases": [
     {
       "id": "final-reprices-at-the-held-card-not-todays",
@@ -2268,9 +2844,9 @@
       }
     },
     {
-      "id": "final-still-honours-the-printed-minimum-quantity",
+      "id": "final-a-small-job-bills-the-deposit-not-the-printed-minimum",
       "source": "SPEC.md §4.3, §13 A16",
-      "why": "A 3ft x 3ft roller measures 9 sqft. Exact is RM81, which does not clear RM300, so the printed 18 sqft minimum stands and the LINE bills RM162 -- 'Min 18 sqft' is a commercial floor on the price list, not a rounding artefact, and the tape does not remove it. The ORDER then bills RM300, because §8.4's per-category deposit floor now applies at final pricing too (§13 A21d) and RM162 is under the RM300 already taken. Written before A21 was answered and updated when it was: the line figure was always right, and the order figure changed.",
+      "why": "A 3ft x 3ft roller measures 9 sqft. At final pricing the printed 18 sqft minimum does NOT apply -- it is a quotation device -- so the LINE bills its exact RM81. The ORDER then bills RM300, because the per-category deposit floor (SPEC.md 8.4) applies here too: a job may never come to less than the deposit already taken. Rewritten when the client rejected applying min_qty at both stages; see the pair of timber cases below for why.",
       "active_rate_card_version": 1,
       "available_card_versions": [
         1
@@ -2298,18 +2874,17 @@
           {
             "id": "l1",
             "priced_at_version": 1,
-            "final_total_sen": 16200,
-            "variance_sen": -1800,
+            "final_total_sen": 8100,
+            "variance_sen": -9900,
             "over_estimate": false,
             "refusal": null,
-            "billed_qty": "18",
+            "billed_qty": "9",
             "billed_unit": "sqft",
-            "min_qty_waived": false
+            "min_qty_waived": true
           }
         ],
-        "exact_subtotal_sen": 8100,
-        "min_qty_waived": false,
-        "category_floor_uplift_sen": 13800,
+        "min_qty_waived": true,
+        "category_floor_uplift_sen": 21900,
         "estimate_total_sen": 30000,
         "final_total_sen": 30000,
         "variance_sen": 0,
@@ -2688,9 +3263,9 @@
       }
     },
     {
-      "id": "final-min-qty-applies-when-the-job-is-small",
+      "id": "final-a-12-sqft-blind-and-a-15-sqft-blind-both-bill-the-floor",
       "source": "SPEC.md §13 A21 / A21a-A21c",
-      "why": "The printed minimum is a floor on the JOB, not on the line. This job is one small timber blind: 3ft x 4ft is 12 sqft exact at RM20 = RM240, which does not clear RM300, so the printed 18 sqft minimum stands and it bills RM360. The minimum exists so a one-window callout is worth doing at all, and here there is nothing else for it to ride along with.",
+      "why": "READ THIS BESIDE THE CASE BELOW. 3ft x 4ft is 12 sqft exact at RM20 = RM240, under the RM300 floor, so the order bills RM300. The next case is a LARGER 15 sqft window and also bills RM300. Under the earlier reading -- min_qty at both stages -- this smaller window billed RM360 and the larger one RM300, and a smaller window costing more is not a rule anybody can explain at a counter. Billing the exact tape and flooring the job is monotonic by construction.",
       "active_rate_card_version": 1,
       "available_card_versions": [
         1
@@ -2718,26 +3293,25 @@
           {
             "id": "l1",
             "priced_at_version": 1,
-            "final_total_sen": 36000,
-            "variance_sen": 0,
+            "final_total_sen": 24000,
+            "variance_sen": -12000,
             "over_estimate": false,
             "refusal": null,
-            "min_qty_waived": false
+            "min_qty_waived": true
           }
         ],
-        "exact_subtotal_sen": 24000,
-        "min_qty_waived": false,
-        "category_floor_uplift_sen": 0,
+        "min_qty_waived": true,
+        "category_floor_uplift_sen": 6000,
         "estimate_total_sen": 36000,
-        "final_total_sen": 36000,
-        "variance_sen": 0,
+        "final_total_sen": 30000,
+        "variance_sen": -6000,
         "is_complete": true
       }
     },
     {
-      "id": "final-min-qty-waived-at-exactly-the-threshold",
+      "id": "final-a-bigger-window-never-costs-less-than-a-smaller-one",
       "source": "SPEC.md §13 A21c",
-      "why": "3ft x 5ft is 15 sqft exact at RM20 = RM300.00, to the sen. A21c: exactly RM300 counts as clearing the floor, so the minimum is waived and it bills RM300 rather than the printed 18 sqft's RM360. READ THIS BESIDE THE CASE ABOVE: the SMALLER 12 sqft window bills RM360 and this larger 15 sqft one bills RM300. That inversion is not a bug -- it is what any threshold on top of any minimum produces, and it is pinned here so nobody 'fixes' it later without deciding to.",
+      "why": "3ft x 5ft is 15 sqft exact at RM20 = RM300.00, to the sen, so the floor is met exactly and nothing is added. The case above is a SMALLER window and bills the same RM300. That is the point: the floor is flat below RM300 and the exact tape above it, so the billed total never falls as a window grows.",
       "active_rate_card_version": 1,
       "available_card_versions": [
         1
@@ -2772,7 +3346,6 @@
             "min_qty_waived": true
           }
         ],
-        "exact_subtotal_sen": 30000,
         "min_qty_waived": true,
         "category_floor_uplift_sen": 0,
         "estimate_total_sen": 36000,
@@ -2782,9 +3355,9 @@
       }
     },
     {
-      "id": "final-min-qty-waived-when-there-is-other-work",
+      "id": "final-a-small-blind-beside-real-work-bills-what-it-measures",
       "source": "SPEC.md §13 A21 / A21a",
-      "why": "The client's own words: bill what it actually measures if they are doing other stuff too. A 12ft night curtain at RM552 plus one 3ft x 4ft roller blind. A21a: the WHOLE ORDER is what clears RM300, so the exact subtotal is 552 + 108 = RM660 and the blind bills its measured 12 sqft at RM108 rather than the printed minimum's RM162. The quotation charged RM714; the bill is RM660.",
+      "why": "A 12ft night curtain at RM552 plus one 3ft x 4ft roller blind. The blind bills its measured 12 sqft at RM108 rather than the printed minimum's RM162, and the job is well clear of the RM300 floor so nothing is added. The quotation charged RM714; the bill is RM660.",
       "active_rate_card_version": 1,
       "available_card_versions": [
         1
@@ -2844,7 +3417,6 @@
             "min_qty_waived": true
           }
         ],
-        "exact_subtotal_sen": 66000,
         "min_qty_waived": true,
         "category_floor_uplift_sen": 0,
         "estimate_total_sen": 71400,
@@ -2854,9 +3426,9 @@
       }
     },
     {
-      "id": "final-min-qty-waived-across-identical-windows",
+      "id": "final-identical-windows-each-bill-their-own-exact-tape",
       "source": "SPEC.md §13 A21 / A21b",
-      "why": "Three identical 3ft x 4ft roller blinds on one line. The minimum applies PER WINDOW, so the quotation charged 3 x 18 sqft = RM486. Exact is 3 x 12 sqft = RM324, which clears RM300 on its own, so all three bill exactly: RM324. A21b: the RM300 is measured against the EXACT subtotal (RM324), never against the subtotal with minimums already applied (RM486) -- the second reading is circular, because the minimums are what the answer decides.",
+      "why": "Three identical 3ft x 4ft roller blinds on one line. The minimum applied PER WINDOW on the quotation, so it charged 3 x 18 sqft = RM486. The bill is 3 x 12 sqft = RM324, clear of the RM300 floor, so that is what it comes to.",
       "active_rate_card_version": 1,
       "available_card_versions": [
         1
@@ -2891,7 +3463,6 @@
             "min_qty_waived": true
           }
         ],
-        "exact_subtotal_sen": 32400,
         "min_qty_waived": true,
         "category_floor_uplift_sen": 0,
         "estimate_total_sen": 48600,
@@ -2903,7 +3474,7 @@
     {
       "id": "final-never-bills-below-the-deposit-taken",
       "source": "SPEC.md §13 A21d, §8.4",
-      "why": "A21d. One 3ft x 4ft roller blind alone. Exact is RM108, which does not clear RM300, so the printed 18 sqft minimum applies and it bills RM162 -- and RM162 is still under the RM300 deposit the customer already paid for the curtain category. The same per-category floor the quotation applies (§8.4) now applies at final pricing too, so the order bills RM300: exactly what they deposited, and nothing is refunded. The line still records its own RM162; the RM138 is an order-level uplift, visible rather than smeared across the lines.",
+      "why": "SPEC.md 13 A21d. One 3ft x 4ft roller blind alone bills its exact RM108, which is under the RM300 the customer already deposited for the curtain category. The same per-category floor the quotation applies (8.4) applies here, so the order bills RM300: exactly what they paid, and nothing is refunded. The LINE still records its own RM108 -- the RM192 is an order-level uplift, visible rather than smeared across the lines.",
       "active_rate_card_version": 1,
       "available_card_versions": [
         1
@@ -2931,16 +3502,15 @@
           {
             "id": "l1",
             "priced_at_version": 1,
-            "final_total_sen": 16200,
-            "variance_sen": 0,
+            "final_total_sen": 10800,
+            "variance_sen": -5400,
             "over_estimate": false,
             "refusal": null,
-            "min_qty_waived": false
+            "min_qty_waived": true
           }
         ],
-        "exact_subtotal_sen": 10800,
-        "min_qty_waived": false,
-        "category_floor_uplift_sen": 13800,
+        "min_qty_waived": true,
+        "category_floor_uplift_sen": 19200,
         "estimate_total_sen": 30000,
         "final_total_sen": 30000,
         "variance_sen": 0,

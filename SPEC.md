@@ -546,19 +546,19 @@ variance report must subtract this known bias before it can say anything about a
 salesperson's guessing. A line quoted at 13ft and billed at 12.33ft is not a bad
 estimate.
 
-**`min_qty` is unconditional on a quotation and CONDITIONAL at final pricing —
-§13 A21, answered.** "Min 18 sqft" is printed on the price list as a commercial
-floor, not a rounding artefact, but it is a floor on the **job** rather than on
-the line.
+**`min_qty` applies on a QUOTATION ONLY — §13 A21, answered.** "Min 18 sqft" is
+printed on the price list as a commercial floor, not a rounding artefact, and on
+a quotation it always applies.
 
-On a **quotation** it always applies. Quoting below a floor the final might then
-apply would break §8.5 in the one direction it may not break.
+At **final pricing** it does not. Every line bills the exact tape, and §8.4's
+RM300 per-category deposit floor — which applies at **both** stages — is what
+stops a small job billing under the deposit already taken.
 
-At **final pricing** it applies only when the job does not clear the threshold.
-A small blind on its own bills its printed 18 sqft; the same blind inside a
-house of curtains bills the 12 sqft it measures. The full order of operations,
-and the four sub-answers that fix it, are in §13 A21 — read them before touching
-this, because the sequence is what stops the rule being circular.
+That is deliberate and it is what keeps the billed total **monotonic**: flat at
+RM300 below the floor, the exact tape above it, so a bigger window can never
+come out cheaper than a smaller one. Applying `min_qty` at both stages made a
+12 sqft blind bill more than a 15 sqft one, and the client rejected it. See §13
+A21 for the numbers.
 
 **`rawQty` must be exact rational arithmetic, not a float.** A foot is 304.8mm,
 so ft→mm→sqft can never be exact in binary. A 12ft × 8ft blind that computes as
@@ -2231,29 +2231,38 @@ orders, supplier management and costing come later.
     direction only: a final that lands under the deposit bills the deposit. It
     says nothing about a customer who cancels.
 
-  **The order of operations, and the order matters:**
+  **Then the client corrected it**, and the correction is what is built.
 
-  1. Price every line exactly from the tape, with **no** minimum.
-  2. Sum those across the **whole order** (A21a). Delivery is excluded — it is
-     travel, not product (§4.3), so a customer 100km away must not clear a
-     threshold an identical order in town does not.
-  3. If that sum is **at least** the threshold (A21c), waive `min_qty` on every
-     line and keep the exact prices.
-  4. Otherwise apply `min_qty` exactly as the quotation does.
-  5. Apply §8.4's per-category deposit floor to the resulting subtotals (A21d).
+  The first answer applied `min_qty` at final pricing and waived it once the
+  job cleared RM300. That produced an inversion: a 3ft × 4ft timber blind
+  (12 sqft, RM240 exact) billed **RM360** — its printed 18 sqft — while a
+  **larger** 3ft × 5ft one (15 sqft, RM300 exact) billed **RM300**. A smaller
+  window costing more is not a rule anybody can explain at a counter.
 
-  Step 2 uses the figures from step 1 and never those from step 4 (A21b).
+  > *"quote 300 as long if they are lower they 300, dont make it so that lower
+  > sqft more expensive than higher sqft"*
 
-  The threshold is `config.min_qty_waiver_sen` on the rate card, defaulting to
-  `min_deposit_sen` when a card does not carry it — config rather than a
-  literal, and defaulted so a card published before this rule still behaves.
+  **The rule in force, and it is simpler than what it replaced:**
 
-  **One consequence, pinned in a fixture so nobody quietly "fixes" it.** A
-  3ft × 4ft timber blind (12 sqft, RM240 exact) bills **RM360**, and a larger
-  3ft × 5ft one (15 sqft, RM300 exact) bills **RM300**. The smaller window
-  costs more. That inversion is what any threshold sitting on top of any
-  minimum produces; it is not a defect, and changing it means changing the
-  rule rather than the code.
+  1. A printed `min_qty` applies on a **quotation only**.
+  2. At final pricing every line bills the **exact tape**, with no minimum.
+  3. The order is floored at §8.4's **RM300 per deposit category** — which now
+     applies at both stages, not just the estimate (A21d).
+
+  That is monotonic by construction: flat at RM300 below the floor, the exact
+  tape above it, so a billed total can never fall as a window grows. There is
+  no threshold to configure and no two-pass ordering to get wrong, because
+  there is nothing left to decide.
+
+  A21a, A21b and A21c were answers to a question the correction dissolves —
+  there is no longer a waiver, so there is nothing to measure a threshold
+  against. They are recorded above because the reasoning behind A21d survives
+  them.
+
+  **Checked as a property, not by example.** A sweep over every sellable row on
+  the card, at 3ft wide by 1–25ft, confirms 1,650 sizes with **no inversion**;
+  `engine_test.dart` pins the same walk for the timber blind that produced the
+  original complaint.
 
   **The estimate side is floored too.** The quotation the customer holds
   already had §8.4's floor applied, but as an order-level uplift — so a sum of

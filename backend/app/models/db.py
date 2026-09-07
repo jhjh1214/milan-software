@@ -443,12 +443,8 @@ class Order(Base):
     #: all -- a number with no type cannot be filed.
     buyer_id_type: Mapped[str | None] = mapped_column(String(16), nullable=True)
     buyer_id_number: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    buyer_address_line1: Mapped[str | None] = mapped_column(
-        String(160), nullable=True
-    )
-    buyer_address_line2: Mapped[str | None] = mapped_column(
-        String(160), nullable=True
-    )
+    buyer_address_line1: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    buyer_address_line2: Mapped[str | None] = mapped_column(String(160), nullable=True)
     buyer_city: Mapped[str | None] = mapped_column(String(80), nullable=True)
     buyer_state: Mapped[str | None] = mapped_column(String(80), nullable=True)
     buyer_postcode: Mapped[str | None] = mapped_column(String(16), nullable=True)

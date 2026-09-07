@@ -147,23 +147,15 @@ class FinalPricing {
     required this.finalTotal,
     required this.isComplete,
     this.minQtyWaived = false,
-    this.exactSubtotal,
+
     this.categoryFloorUplift = Money.zero,
   });
 
   final List<FinalLine> lines;
 
-  /// True when the job cleared the threshold and every printed minimum was
-  /// stood down. §13 A21.
+  /// True when at least one line had a printed minimum that final pricing did
+  /// not apply. §13 A21 -- reported, never acted on.
   final bool minQtyWaived;
-
-  /// What the lines came to with no minimum applied — the number the waiver
-  /// decision was actually made on (A21b). Null until the order fully prices.
-  ///
-  /// Kept because a rule that turns on a comparison is unreadable without the
-  /// figure it compared: "RM324, which cleared RM300" is a sentence somebody
-  /// can check, and "the minimums were waived" is not.
-  final Money? exactSubtotal;
 
   /// What §8.4's per-category deposit floor added on top of the lines. A21d.
   ///
@@ -206,49 +198,16 @@ FinalPricing repriceOrder({
   required Map<int, RateCard> cards,
   CustomerTier tier = CustomerTier.standard,
 }) {
-  // §13 A21, in the order the answer fixes — and the order matters.
+  // §13 A21. One pass: every line bills the exact tape, with **no** printed
+  // minimum. The minimum is a quotation device; at final pricing the RM300
+  // per-category deposit floor below is what stops a small job billing less
+  // than the deposit already taken.
   //
-  // Pass 1 prices every line from the tape with NO minimum, which gives the
-  // exact subtotal. Pass 2 decides. The threshold is measured against the
-  // exact prices and never against the minimum-applied ones (A21b): the other
-  // reading is circular, because the minimums are what the decision produces.
-  final exact = [
-    for (final line in lines)
-      _repriceLine(line, cards, tier, applyMinQty: false),
-  ];
-
-  // A21a: the WHOLE order, not the deposit category. A house of curtains and
-  // one small blind is one job, and the blind rides along with it.
-  //
-  // Only lines that actually priced contribute. A refused line has no number,
-  // and treating a missing one as zero would drag a job under the threshold
-  // and bill minimums the customer should not have paid — which is the same
-  // failure as a total that quietly excluded a window, one step earlier.
-  final exactSubtotal = exact.fold<Money>(
-    Money.zero,
-    (sum, line) => sum + (line.finalTotal ?? Money.zero),
-  );
-
-  // The threshold is config on the card, and every line's card may differ.
-  // Taking the LOWEST of them is the customer-favourable reading, and the
-  // only one that does not depend on which line happens to be first.
-  final threshold = _waiverThreshold(lines, cards);
-
-  // A21c: exactly the threshold clears it. RM300 is also the deposit figure,
-  // so an order landing on it is the common case rather than a corner one.
-  final everyLinePriced =
-      exact.isNotEmpty && exact.every((l) => l.refusal == null);
-  final waived =
-      everyLinePriced &&
-      threshold != null &&
-      exactSubtotal.sen >= threshold.sen;
-
-  final priced = waived
-      ? exact
-      : [
-          for (final line in lines)
-            _repriceLine(line, cards, tier, applyMinQty: true),
-        ];
+  // That is what keeps the arithmetic monotonic. Applying `min_qty` here as
+  // well produced an inversion the client rejected: a 12 sqft blind billed
+  // RM360 while a LARGER 15 sqft one billed RM300. Flooring the job instead
+  // means a bigger window can never come out cheaper than a smaller one.
+  final priced = [for (final line in lines) _repriceLine(line, cards, tier)];
 
   // An order with no lines has not been priced. Zero is a total somebody could
   // act on, and "RM0.00 due" is a worse answer than "not priced".
@@ -267,8 +226,10 @@ FinalPricing repriceOrder({
 
   return FinalPricing(
     lines: priced,
-    minQtyWaived: waived,
-    exactSubtotal: complete ? exactSubtotal : null,
+    // True when at least one line HAD a printed minimum that final pricing did
+    // not apply. Reported rather than acted on: what stops a small job billing
+    // under the deposit is the floor below, not this.
+    minQtyWaived: priced.any((l) => l.priced?.minQtyWaived ?? false),
     categoryFloorUplift: uplift,
     estimateTotal: estimate,
     // The lines, plus whatever the per-category deposit floor added on top.
@@ -285,23 +246,6 @@ FinalPricing repriceOrder({
         : null,
     isComplete: complete,
   );
-}
-
-/// The lowest waiver threshold among the cards this order's lines priced at.
-///
-/// Lines can sit on different card versions — a lock is per line — and those
-/// cards can carry different config. The lowest is the customer-favourable
-/// reading and the only one that does not depend on line order. Null when no
-/// line could name its card, in which case nothing is waived.
-Money? _waiverThreshold(List<MeasuredLine> lines, Map<int, RateCard> cards) {
-  Money? lowest;
-  for (final line in lines) {
-    final card = cards[line.appliedRateCardVersion];
-    if (card == null) continue;
-    final value = card.config.minQtyWaiver;
-    if (lowest == null || value.sen < lowest.sen) lowest = value;
-  }
-  return lowest;
 }
 
 /// §8.4's per-category deposit floor, now applied at final pricing too.
@@ -376,9 +320,8 @@ Money _categoryFloorUplift(
 FinalLine _repriceLine(
   MeasuredLine line,
   Map<int, RateCard> cards,
-  CustomerTier tier, {
-  required bool applyMinQty,
-}) {
+  CustomerTier tier,
+) {
   FinalLine refuse(FinalPricingRefusal why) =>
       FinalLine(id: line.id, estimateTotal: line.estimateTotal, refusal: why);
 
@@ -408,7 +351,6 @@ FinalLine _repriceLine(
       card: card,
       stage: PricingStage.finalPricing,
       tier: tier,
-      applyMinQty: applyMinQty,
     );
 
     return FinalLine(

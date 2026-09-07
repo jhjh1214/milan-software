@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:milan_quote/core/length.dart';
 import 'package:milan_quote/core/rational.dart';
+import 'package:milan_quote/core/money.dart';
 import 'package:milan_quote/pricing/engine.dart';
 import 'package:milan_quote/pricing/models.dart';
 
@@ -574,7 +575,14 @@ void main() {
       expect(totals.anyFloorApplied, isTrue);
     });
 
-    test('does not apply at final pricing', () {
+    test('applies at final pricing too, so a bill never lands under it', () {
+      // §13 A21d. It used to be the estimate's alone, on the reasoning that a
+      // final is exact — but a final under the RM300 already deposited is a
+      // bill the customer has overpaid, which is the same complaint §8.4
+      // exists to prevent one document earlier.
+      //
+      // At final the line bills its exact 12 sqft (RM108) rather than the
+      // printed 18 sqft minimum, and the floor takes the order to RM300.
       final line = priceLine(
         request: LineRequest(
           variant: 'roller_blackout',
@@ -584,13 +592,53 @@ void main() {
         card: card,
         stage: PricingStage.finalPricing,
       );
+      expect(line.total.sen, 10800, reason: 'the exact tape, not the minimum');
+      expect(line.minQtyApplied, isFalse);
+      expect(line.minQtyWaived, isTrue);
+
       final totals = totalQuote(
         lines: [line],
         card: card,
         stage: PricingStage.finalPricing,
       );
-      expect(totals.total.sen, 16200);
-      expect(totals.anyFloorApplied, isFalse);
+      expect(totals.total.sen, 30000);
+      expect(totals.categoryFloorUplift[DepositCategory.curtain]!.sen, 19200);
+      expect(totals.anyFloorApplied, isTrue);
+    });
+
+    test('a bigger window never bills less than a smaller one', () {
+      // The property the client asked for, checked directly rather than
+      // inferred from two examples. Under the earlier reading a 12 sqft timber
+      // blind billed RM360 and a LARGER 15 sqft one billed RM300.
+      Money billed(int widthFt, int heightFt) {
+        final line = priceLine(
+          request: LineRequest(
+            variant: 'timber_25mm',
+            width: ft(widthFt),
+            height: ft(heightFt),
+          ),
+          card: card,
+          stage: PricingStage.finalPricing,
+        );
+        return totalQuote(
+          lines: [line],
+          card: card,
+          stage: PricingStage.finalPricing,
+        ).total;
+      }
+
+      var previous = Money.zero;
+      for (var h = 1; h <= 12; h++) {
+        final total = billed(3, h);
+        expect(
+          total.sen,
+          greaterThanOrEqualTo(previous.sen),
+          reason: '3ft x ${h}ft bills less than 3ft x ${h - 1}ft',
+        );
+        previous = total;
+      }
+      expect(billed(3, 4).sen, 30000);
+      expect(billed(3, 5).sen, 30000);
     });
   });
 

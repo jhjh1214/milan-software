@@ -270,16 +270,10 @@ def test_final_pricing_case(case: dict) -> None:
     # §13 A21. Asserted only where a case states them, so the cases written
     # before the rule existed are not silently given a default that would pass
     # whatever the engine did.
-    if "exact_subtotal_sen" in expected:
-        assert (
-            None if result.exact_subtotal is None else result.exact_subtotal.sen
-        ) == expected["exact_subtotal_sen"], (
-            "the subtotal the waiver decision was made on (A21b)"
-        )
     if "min_qty_waived" in expected:
-        assert result.min_qty_waived is expected["min_qty_waived"], (
-            "whether the job cleared the threshold (A21a, A21c)"
-        )
+        assert (
+            result.min_qty_waived is expected["min_qty_waived"]
+        ), "a printed minimum that final pricing did not apply (A21)"
     if "category_floor_uplift_sen" in expected:
         assert (
             result.category_floor_uplift.sen == expected["category_floor_uplift_sen"]
@@ -438,7 +432,7 @@ def test_a_stair_bands_on_width_at_five_feet() -> None:
 
     assert narrow.band_max_tmm == 15241
     assert wide.band_min_tmm == 15241
-    assert 5 * 3048 < narrow.band_max_tmm, "exactly 5ft is the narrow rate"
+    assert narrow.band_max_tmm > 5 * 3048, "exactly 5ft is the narrow rate"
 
 
 def test_skirting_is_four_ringgit_a_running_foot() -> None:

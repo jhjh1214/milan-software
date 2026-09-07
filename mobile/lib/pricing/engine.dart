@@ -167,17 +167,6 @@ PricedLine priceLine({
   required RateCard card,
   required PricingStage stage,
   CustomerTier tier = CustomerTier.standard,
-  // §13 A21. A printed minimum is a floor on the JOB, not on the line, and
-  // whether this job clears it is an ORDER-level question this function cannot
-  // see. So the decision is made by `repriceOrder`, which prices once with the
-  // minimum suppressed to get the exact subtotal and then decides.
-  //
-  // Defaults to true, so nothing that does not know about the rule can waive a
-  // minimum by omission. And it is only ever passed false at final pricing: on
-  // a quotation the minimum is unconditional, because quoting below a floor
-  // the final might then apply would break §8.5 in the one direction it may
-  // not break.
-  bool applyMinQty = true,
 }) {
   if (request.quantity < 1) {
     throw ArgumentError.value(
@@ -268,20 +257,32 @@ PricedLine priceLine({
   // 4. Wastage. Not on the Phase 1 card; the step exists so the Python engine
   //    mirrors the same ordering when flooring and wallpaper arrive.
 
-  // 5. Minimum billed quantity, BEFORE the rate multiplies.
+  // 5. Minimum billed quantity, BEFORE the rate multiplies. §13 A21.
+  //
+  // **Quotation only.** The printed "min 18 sqft" is a commercial floor on a
+  // quotation, and at final pricing it is replaced by the RM300 per-category
+  // deposit floor that `totalQuote` and `repriceOrder` apply.
+  //
+  // Applying it at both stages produced an inversion the client rejected: a
+  // 12 sqft timber blind billed RM360 (its printed 18 sqft) while a LARGER
+  // 15 sqft one billed RM300. A smaller window costing more is not a rule
+  // anybody can explain at a counter. Billing the exact tape and flooring the
+  // job at RM300 is monotonic by construction — a bigger window can never
+  // come out cheaper than a smaller one.
   //
   // Per WINDOW, not per line: three identical small blinds each meet the
-  // minimum separately, then step 8 multiplies. Waived only when the caller
-  // has established the job clears the threshold (§13 A21).
-  final minQty = applyMinQty ? rule.minQty : null;
+  // minimum separately on the quotation, then step 8 multiplies.
+  final minQty = stage == PricingStage.estimate ? rule.minQty : null;
   final afterMin = minQty == null ? rawQty : rawQty.max(minQty);
   final minQtyApplied = minQty != null && afterMin != rawQty;
 
-  // True when a minimum existed and this call was told to stand it down. The
-  // document and the variance report both need to say WHY a line came in
-  // below its printed rate, and "the job cleared RM300" is the reason.
+  // True when this line HAD a printed minimum and final pricing did not apply
+  // it. The revised order document and the variance report both need to say
+  // WHY a line came in below its printed rate.
   final minQtyWaived =
-      !applyMinQty && rule.minQty != null && rawQty < rule.minQty!;
+      stage == PricingStage.finalPricing &&
+      rule.minQty != null &&
+      rawQty < rule.minQty!;
 
   // 5b. Stage rounding. A quotation rounds up to a whole unit (A10); final
   //     pricing bills the measured quantity exactly (A11).
@@ -588,7 +589,15 @@ QuoteTotals totalQuote({
 
   for (final entry in subtotals.entries) {
     final raw = entry.value;
-    final floored = stage == PricingStage.estimate ? raw.max(floor) : raw;
+    // Both stages, since §13 A21d. It used to be the estimate's alone, on the
+    // reasoning that a final is exact — but a final that came in under the
+    // RM300 already deposited is a bill the customer has overpaid, which is
+    // the same complaint §8.4 exists to prevent one document earlier.
+    //
+    // It is also what replaces `min_qty` at final pricing, and what keeps the
+    // arithmetic monotonic: flat at RM300 below the floor, the exact tape
+    // above it, so a billed total never falls as a window grows.
+    final floored = raw.max(floor);
     uplift[entry.key] = floored - raw;
     total = total + floored;
   }

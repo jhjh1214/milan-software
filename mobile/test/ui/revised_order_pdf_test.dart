@@ -268,11 +268,11 @@ void main() {
     testWidgets('the deposit floor is a visible row, not a silent gap', (
       tester,
     ) async {
-      // §13 A21d. One small blind alone: RM108 exact, RM162 with its printed
-      // minimum, floored to the RM300 already deposited. Without a row saying
-      // so, the lines add to RM162 and the total says RM300 — on the one
-      // document whose job is letting a customer check the arithmetic against
-      // the paper they already hold.
+      // §13 A21d. One small blind alone: RM108 exact — the printed 18 sqft
+      // minimum is a quotation device — floored to the RM300 already
+      // deposited. Without a row saying so, the lines add to RM108 and the
+      // total says RM300 — on the one document whose job is letting a customer
+      // check the arithmetic against the paper they already hold.
       final small = repriceOrder(
         lines: [
           MeasuredLine(
@@ -286,12 +286,12 @@ void main() {
         ],
         cards: {card.version: card},
       );
-      expect(small.categoryFloorUplift.sen, 13800);
+      expect(small.categoryFloorUplift.sen, 19200);
       expect(small.finalTotal!.sen, 30000);
       expect(
         small.lines.single.finalTotal!.sen,
-        16200,
-        reason: 'the LINE still says what the product cost',
+        10800,
+        reason: 'the LINE still says what the product measured and cost',
       );
 
       final l = await load(tester, 'en');

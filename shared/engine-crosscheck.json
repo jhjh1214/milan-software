@@ -15147,9 +15147,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roman-track",
-   "billed_qty": "20",
+   "billed_qty": "12",
    "rate_sen": 2500,
-   "total_sen": 50000
+   "total_sen": 30000
   },
   {
    "variant": "roman_track",
@@ -15847,9 +15847,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roman-track",
-   "billed_qty": "20",
+   "billed_qty": "500/381",
    "rate_sen": 2500,
-   "total_sen": 50000
+   "total_sen": 3281
   },
   {
    "variant": "roman_track",
@@ -15875,9 +15875,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roman-track",
-   "billed_qty": "20",
+   "billed_qty": "375/127",
    "rate_sen": 2500,
-   "total_sen": 50000
+   "total_sen": 7382
   },
   {
    "variant": "roman_track",
@@ -15903,9 +15903,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roman-track",
-   "billed_qty": "20",
+   "billed_qty": "1250/381",
    "rate_sen": 2500,
-   "total_sen": 50000
+   "total_sen": 8202
   },
   {
    "variant": "roman_track",
@@ -15931,9 +15931,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roman-track",
-   "billed_qty": "20",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 2500,
-   "total_sen": 50000
+   "total_sen": 8202
   },
   {
    "variant": "roman_track",
@@ -15959,9 +15959,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roman-track",
-   "billed_qty": "20",
+   "billed_qty": "20125/4572",
    "rate_sen": 2500,
-   "total_sen": 50000
+   "total_sen": 11004
   },
   {
    "variant": "zebra_blackout",
@@ -15987,9 +15987,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-blackout-jbl",
-   "billed_qty": "18",
+   "billed_qty": "12",
    "rate_sen": 1200,
-   "total_sen": 21600
+   "total_sen": 14400
   },
   {
    "variant": "zebra_blackout",
@@ -16687,9 +16687,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-blackout-jbl",
-   "billed_qty": "18",
+   "billed_qty": "500/381",
    "rate_sen": 1200,
-   "total_sen": 21600
+   "total_sen": 1575
   },
   {
    "variant": "zebra_blackout",
@@ -16715,9 +16715,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-blackout-jbl",
-   "billed_qty": "18",
+   "billed_qty": "375/127",
    "rate_sen": 1200,
-   "total_sen": 21600
+   "total_sen": 3543
   },
   {
    "variant": "zebra_blackout",
@@ -16743,9 +16743,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-blackout-jbl",
-   "billed_qty": "18",
+   "billed_qty": "1250/381",
    "rate_sen": 1200,
-   "total_sen": 21600
+   "total_sen": 3937
   },
   {
    "variant": "zebra_blackout",
@@ -16771,9 +16771,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-blackout-jbl",
-   "billed_qty": "18",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 1200,
-   "total_sen": 21600
+   "total_sen": 3937
   },
   {
    "variant": "zebra_blackout",
@@ -16799,9 +16799,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-blackout-jbl",
-   "billed_qty": "18",
+   "billed_qty": "20125/4572",
    "rate_sen": 1200,
-   "total_sen": 21600
+   "total_sen": 5282
   },
   {
    "variant": "zebra_blackout",
@@ -16827,9 +16827,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-blackout-tbl",
-   "billed_qty": "18",
+   "billed_qty": "12",
    "rate_sen": 1500,
-   "total_sen": 27000
+   "total_sen": 18000
   },
   {
    "variant": "zebra_blackout",
@@ -17527,9 +17527,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-blackout-tbl",
-   "billed_qty": "18",
+   "billed_qty": "500/381",
    "rate_sen": 1500,
-   "total_sen": 27000
+   "total_sen": 1969
   },
   {
    "variant": "zebra_blackout",
@@ -17555,9 +17555,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-blackout-tbl",
-   "billed_qty": "18",
+   "billed_qty": "375/127",
    "rate_sen": 1500,
-   "total_sen": 27000
+   "total_sen": 4429
   },
   {
    "variant": "zebra_blackout",
@@ -17583,9 +17583,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-blackout-tbl",
-   "billed_qty": "18",
+   "billed_qty": "1250/381",
    "rate_sen": 1500,
-   "total_sen": 27000
+   "total_sen": 4921
   },
   {
    "variant": "zebra_blackout",
@@ -17611,9 +17611,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-blackout-tbl",
-   "billed_qty": "18",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 1500,
-   "total_sen": 27000
+   "total_sen": 4921
   },
   {
    "variant": "zebra_blackout",
@@ -17639,9 +17639,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-blackout-tbl",
-   "billed_qty": "18",
+   "billed_qty": "20125/4572",
    "rate_sen": 1500,
-   "total_sen": 27000
+   "total_sen": 6603
   },
   {
    "variant": "zebra_non_blackout",
@@ -17667,9 +17667,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-non-blackout",
-   "billed_qty": "18",
+   "billed_qty": "12",
    "rate_sen": 900,
-   "total_sen": 16200
+   "total_sen": 10800
   },
   {
    "variant": "zebra_non_blackout",
@@ -18367,9 +18367,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-non-blackout",
-   "billed_qty": "18",
+   "billed_qty": "500/381",
    "rate_sen": 900,
-   "total_sen": 16200
+   "total_sen": 1181
   },
   {
    "variant": "zebra_non_blackout",
@@ -18395,9 +18395,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-non-blackout",
-   "billed_qty": "18",
+   "billed_qty": "375/127",
    "rate_sen": 900,
-   "total_sen": 16200
+   "total_sen": 2657
   },
   {
    "variant": "zebra_non_blackout",
@@ -18423,9 +18423,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-non-blackout",
-   "billed_qty": "18",
+   "billed_qty": "1250/381",
    "rate_sen": 900,
-   "total_sen": 16200
+   "total_sen": 2953
   },
   {
    "variant": "zebra_non_blackout",
@@ -18451,9 +18451,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-non-blackout",
-   "billed_qty": "18",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 900,
-   "total_sen": 16200
+   "total_sen": 2953
   },
   {
    "variant": "zebra_non_blackout",
@@ -18479,9 +18479,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-non-blackout",
-   "billed_qty": "18",
+   "billed_qty": "20125/4572",
    "rate_sen": 900,
-   "total_sen": 16200
+   "total_sen": 3962
   },
   {
    "variant": "zebra_cartoon",
@@ -18507,9 +18507,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-cartoon",
-   "billed_qty": "18",
+   "billed_qty": "12",
    "rate_sen": 1600,
-   "total_sen": 28800
+   "total_sen": 19200
   },
   {
    "variant": "zebra_cartoon",
@@ -19207,9 +19207,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-cartoon",
-   "billed_qty": "18",
+   "billed_qty": "500/381",
    "rate_sen": 1600,
-   "total_sen": 28800
+   "total_sen": 2100
   },
   {
    "variant": "zebra_cartoon",
@@ -19235,9 +19235,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-cartoon",
-   "billed_qty": "18",
+   "billed_qty": "375/127",
    "rate_sen": 1600,
-   "total_sen": 28800
+   "total_sen": 4724
   },
   {
    "variant": "zebra_cartoon",
@@ -19263,9 +19263,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-cartoon",
-   "billed_qty": "18",
+   "billed_qty": "1250/381",
    "rate_sen": 1600,
-   "total_sen": 28800
+   "total_sen": 5249
   },
   {
    "variant": "zebra_cartoon",
@@ -19291,9 +19291,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-cartoon",
-   "billed_qty": "18",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 1600,
-   "total_sen": 28800
+   "total_sen": 5250
   },
   {
    "variant": "zebra_cartoon",
@@ -19319,9 +19319,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "zebra-cartoon",
-   "billed_qty": "18",
+   "billed_qty": "20125/4572",
    "rate_sen": 1600,
-   "total_sen": 28800
+   "total_sen": 7043
   },
   {
    "variant": "roller_blackout",
@@ -19347,9 +19347,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-blackout",
-   "billed_qty": "18",
+   "billed_qty": "12",
    "rate_sen": 900,
-   "total_sen": 16200
+   "total_sen": 10800
   },
   {
    "variant": "roller_blackout",
@@ -20047,9 +20047,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-blackout",
-   "billed_qty": "18",
+   "billed_qty": "500/381",
    "rate_sen": 900,
-   "total_sen": 16200
+   "total_sen": 1181
   },
   {
    "variant": "roller_blackout",
@@ -20075,9 +20075,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-blackout",
-   "billed_qty": "18",
+   "billed_qty": "375/127",
    "rate_sen": 900,
-   "total_sen": 16200
+   "total_sen": 2657
   },
   {
    "variant": "roller_blackout",
@@ -20103,9 +20103,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-blackout",
-   "billed_qty": "18",
+   "billed_qty": "1250/381",
    "rate_sen": 900,
-   "total_sen": 16200
+   "total_sen": 2953
   },
   {
    "variant": "roller_blackout",
@@ -20131,9 +20131,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-blackout",
-   "billed_qty": "18",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 900,
-   "total_sen": 16200
+   "total_sen": 2953
   },
   {
    "variant": "roller_blackout",
@@ -20159,9 +20159,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-blackout",
-   "billed_qty": "18",
+   "billed_qty": "20125/4572",
    "rate_sen": 900,
-   "total_sen": 16200
+   "total_sen": 3962
   },
   {
    "variant": "roller_blackout_shantung",
@@ -20187,9 +20187,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-blackout-shantung",
-   "billed_qty": "18",
+   "billed_qty": "12",
    "rate_sen": 1200,
-   "total_sen": 21600
+   "total_sen": 14400
   },
   {
    "variant": "roller_blackout_shantung",
@@ -20887,9 +20887,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-blackout-shantung",
-   "billed_qty": "18",
+   "billed_qty": "500/381",
    "rate_sen": 1200,
-   "total_sen": 21600
+   "total_sen": 1575
   },
   {
    "variant": "roller_blackout_shantung",
@@ -20915,9 +20915,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-blackout-shantung",
-   "billed_qty": "18",
+   "billed_qty": "375/127",
    "rate_sen": 1200,
-   "total_sen": 21600
+   "total_sen": 3543
   },
   {
    "variant": "roller_blackout_shantung",
@@ -20943,9 +20943,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-blackout-shantung",
-   "billed_qty": "18",
+   "billed_qty": "1250/381",
    "rate_sen": 1200,
-   "total_sen": 21600
+   "total_sen": 3937
   },
   {
    "variant": "roller_blackout_shantung",
@@ -20971,9 +20971,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-blackout-shantung",
-   "billed_qty": "18",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 1200,
-   "total_sen": 21600
+   "total_sen": 3937
   },
   {
    "variant": "roller_blackout_shantung",
@@ -20999,9 +20999,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-blackout-shantung",
-   "billed_qty": "18",
+   "billed_qty": "20125/4572",
    "rate_sen": 1200,
-   "total_sen": 21600
+   "total_sen": 5282
   },
   {
    "variant": "roller_non_blackout_shantung",
@@ -21027,9 +21027,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-non-blackout-shantung",
-   "billed_qty": "18",
+   "billed_qty": "12",
    "rate_sen": 1000,
-   "total_sen": 18000
+   "total_sen": 12000
   },
   {
    "variant": "roller_non_blackout_shantung",
@@ -21727,9 +21727,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-non-blackout-shantung",
-   "billed_qty": "18",
+   "billed_qty": "500/381",
    "rate_sen": 1000,
-   "total_sen": 18000
+   "total_sen": 1312
   },
   {
    "variant": "roller_non_blackout_shantung",
@@ -21755,9 +21755,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-non-blackout-shantung",
-   "billed_qty": "18",
+   "billed_qty": "375/127",
    "rate_sen": 1000,
-   "total_sen": 18000
+   "total_sen": 2953
   },
   {
    "variant": "roller_non_blackout_shantung",
@@ -21783,9 +21783,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-non-blackout-shantung",
-   "billed_qty": "18",
+   "billed_qty": "1250/381",
    "rate_sen": 1000,
-   "total_sen": 18000
+   "total_sen": 3281
   },
   {
    "variant": "roller_non_blackout_shantung",
@@ -21811,9 +21811,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-non-blackout-shantung",
-   "billed_qty": "18",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 1000,
-   "total_sen": 18000
+   "total_sen": 3281
   },
   {
    "variant": "roller_non_blackout_shantung",
@@ -21839,9 +21839,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-non-blackout-shantung",
-   "billed_qty": "18",
+   "billed_qty": "20125/4572",
    "rate_sen": 1000,
-   "total_sen": 18000
+   "total_sen": 4402
   },
   {
    "variant": "roller_printing",
@@ -21867,9 +21867,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-printing",
-   "billed_qty": "18",
+   "billed_qty": "12",
    "rate_sen": 1700,
-   "total_sen": 30600
+   "total_sen": 20400
   },
   {
    "variant": "roller_printing",
@@ -22567,9 +22567,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-printing",
-   "billed_qty": "18",
+   "billed_qty": "500/381",
    "rate_sen": 1700,
-   "total_sen": 30600
+   "total_sen": 2231
   },
   {
    "variant": "roller_printing",
@@ -22595,9 +22595,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-printing",
-   "billed_qty": "18",
+   "billed_qty": "375/127",
    "rate_sen": 1700,
-   "total_sen": 30600
+   "total_sen": 5020
   },
   {
    "variant": "roller_printing",
@@ -22623,9 +22623,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-printing",
-   "billed_qty": "18",
+   "billed_qty": "1250/381",
    "rate_sen": 1700,
-   "total_sen": 30600
+   "total_sen": 5577
   },
   {
    "variant": "roller_printing",
@@ -22651,9 +22651,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-printing",
-   "billed_qty": "18",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 1700,
-   "total_sen": 30600
+   "total_sen": 5578
   },
   {
    "variant": "roller_printing",
@@ -22679,9 +22679,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-printing",
-   "billed_qty": "18",
+   "billed_qty": "20125/4572",
    "rate_sen": 1700,
-   "total_sen": 30600
+   "total_sen": 7483
   },
   {
    "variant": "timber_25mm",
@@ -22707,9 +22707,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-25",
-   "billed_qty": "18",
+   "billed_qty": "12",
    "rate_sen": 2000,
-   "total_sen": 36000
+   "total_sen": 24000
   },
   {
    "variant": "timber_25mm",
@@ -23407,9 +23407,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-25",
-   "billed_qty": "18",
+   "billed_qty": "500/381",
    "rate_sen": 2000,
-   "total_sen": 36000
+   "total_sen": 2625
   },
   {
    "variant": "timber_25mm",
@@ -23435,9 +23435,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-25",
-   "billed_qty": "18",
+   "billed_qty": "375/127",
    "rate_sen": 2000,
-   "total_sen": 36000
+   "total_sen": 5906
   },
   {
    "variant": "timber_25mm",
@@ -23463,9 +23463,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-25",
-   "billed_qty": "18",
+   "billed_qty": "1250/381",
    "rate_sen": 2000,
-   "total_sen": 36000
+   "total_sen": 6562
   },
   {
    "variant": "timber_25mm",
@@ -23491,9 +23491,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-25",
-   "billed_qty": "18",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 2000,
-   "total_sen": 36000
+   "total_sen": 6562
   },
   {
    "variant": "timber_25mm",
@@ -23519,9 +23519,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-25",
-   "billed_qty": "18",
+   "billed_qty": "20125/4572",
    "rate_sen": 2000,
-   "total_sen": 36000
+   "total_sen": 8804
   },
   {
    "variant": "timber_35mm",
@@ -23547,9 +23547,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-35",
-   "billed_qty": "18",
+   "billed_qty": "12",
    "rate_sen": 2100,
-   "total_sen": 37800
+   "total_sen": 25200
   },
   {
    "variant": "timber_35mm",
@@ -24247,9 +24247,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-35",
-   "billed_qty": "18",
+   "billed_qty": "500/381",
    "rate_sen": 2100,
-   "total_sen": 37800
+   "total_sen": 2756
   },
   {
    "variant": "timber_35mm",
@@ -24275,9 +24275,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-35",
-   "billed_qty": "18",
+   "billed_qty": "375/127",
    "rate_sen": 2100,
-   "total_sen": 37800
+   "total_sen": 6201
   },
   {
    "variant": "timber_35mm",
@@ -24303,9 +24303,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-35",
-   "billed_qty": "18",
+   "billed_qty": "1250/381",
    "rate_sen": 2100,
-   "total_sen": 37800
+   "total_sen": 6890
   },
   {
    "variant": "timber_35mm",
@@ -24331,9 +24331,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-35",
-   "billed_qty": "18",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 2100,
-   "total_sen": 37800
+   "total_sen": 6890
   },
   {
    "variant": "timber_35mm",
@@ -24359,9 +24359,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-35",
-   "billed_qty": "18",
+   "billed_qty": "20125/4572",
    "rate_sen": 2100,
-   "total_sen": 37800
+   "total_sen": 9244
   },
   {
    "variant": "timber_50mm",
@@ -24387,9 +24387,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-50",
-   "billed_qty": "18",
+   "billed_qty": "12",
    "rate_sen": 2200,
-   "total_sen": 39600
+   "total_sen": 26400
   },
   {
    "variant": "timber_50mm",
@@ -25087,9 +25087,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-50",
-   "billed_qty": "18",
+   "billed_qty": "500/381",
    "rate_sen": 2200,
-   "total_sen": 39600
+   "total_sen": 2887
   },
   {
    "variant": "timber_50mm",
@@ -25115,9 +25115,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-50",
-   "billed_qty": "18",
+   "billed_qty": "375/127",
    "rate_sen": 2200,
-   "total_sen": 39600
+   "total_sen": 6496
   },
   {
    "variant": "timber_50mm",
@@ -25143,9 +25143,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-50",
-   "billed_qty": "18",
+   "billed_qty": "1250/381",
    "rate_sen": 2200,
-   "total_sen": 39600
+   "total_sen": 7218
   },
   {
    "variant": "timber_50mm",
@@ -25171,9 +25171,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-50",
-   "billed_qty": "18",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 2200,
-   "total_sen": 39600
+   "total_sen": 7218
   },
   {
    "variant": "timber_50mm",
@@ -25199,9 +25199,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-50",
-   "billed_qty": "18",
+   "billed_qty": "20125/4572",
    "rate_sen": 2200,
-   "total_sen": 39600
+   "total_sen": 9684
   },
   {
    "variant": "timber_ballchain",
@@ -25227,9 +25227,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-ballchain",
-   "billed_qty": "18",
+   "billed_qty": "12",
    "rate_sen": 2500,
-   "total_sen": 45000
+   "total_sen": 30000
   },
   {
    "variant": "timber_ballchain",
@@ -25927,9 +25927,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-ballchain",
-   "billed_qty": "18",
+   "billed_qty": "500/381",
    "rate_sen": 2500,
-   "total_sen": 45000
+   "total_sen": 3281
   },
   {
    "variant": "timber_ballchain",
@@ -25955,9 +25955,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-ballchain",
-   "billed_qty": "18",
+   "billed_qty": "375/127",
    "rate_sen": 2500,
-   "total_sen": 45000
+   "total_sen": 7382
   },
   {
    "variant": "timber_ballchain",
@@ -25983,9 +25983,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-ballchain",
-   "billed_qty": "18",
+   "billed_qty": "1250/381",
    "rate_sen": 2500,
-   "total_sen": 45000
+   "total_sen": 8202
   },
   {
    "variant": "timber_ballchain",
@@ -26011,9 +26011,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-ballchain",
-   "billed_qty": "18",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 2500,
-   "total_sen": 45000
+   "total_sen": 8202
   },
   {
    "variant": "timber_ballchain",
@@ -26039,9 +26039,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "timber-ballchain",
-   "billed_qty": "18",
+   "billed_qty": "20125/4572",
    "rate_sen": 2500,
-   "total_sen": 45000
+   "total_sen": 11004
   },
   {
    "variant": "lantex_pully_50mm",
@@ -26067,9 +26067,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "lantex-pully",
-   "billed_qty": "20",
+   "billed_qty": "12",
    "rate_sen": 1700,
-   "total_sen": 34000
+   "total_sen": 20400
   },
   {
    "variant": "lantex_pully_50mm",
@@ -26767,9 +26767,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "lantex-pully",
-   "billed_qty": "20",
+   "billed_qty": "500/381",
    "rate_sen": 1700,
-   "total_sen": 34000
+   "total_sen": 2231
   },
   {
    "variant": "lantex_pully_50mm",
@@ -26795,9 +26795,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "lantex-pully",
-   "billed_qty": "20",
+   "billed_qty": "375/127",
    "rate_sen": 1700,
-   "total_sen": 34000
+   "total_sen": 5020
   },
   {
    "variant": "lantex_pully_50mm",
@@ -26823,9 +26823,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "lantex-pully",
-   "billed_qty": "20",
+   "billed_qty": "1250/381",
    "rate_sen": 1700,
-   "total_sen": 34000
+   "total_sen": 5577
   },
   {
    "variant": "lantex_pully_50mm",
@@ -26851,9 +26851,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "lantex-pully",
-   "billed_qty": "20",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 1700,
-   "total_sen": 34000
+   "total_sen": 5578
   },
   {
    "variant": "lantex_pully_50mm",
@@ -26879,9 +26879,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "lantex-pully",
-   "billed_qty": "20",
+   "billed_qty": "20125/4572",
    "rate_sen": 1700,
-   "total_sen": 34000
+   "total_sen": 7483
   },
   {
    "variant": "lantex_chain_50mm",
@@ -26907,9 +26907,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "lantex-chain",
-   "billed_qty": "20",
+   "billed_qty": "12",
    "rate_sen": 2200,
-   "total_sen": 44000
+   "total_sen": 26400
   },
   {
    "variant": "lantex_chain_50mm",
@@ -27607,9 +27607,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "lantex-chain",
-   "billed_qty": "20",
+   "billed_qty": "500/381",
    "rate_sen": 2200,
-   "total_sen": 44000
+   "total_sen": 2887
   },
   {
    "variant": "lantex_chain_50mm",
@@ -27635,9 +27635,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "lantex-chain",
-   "billed_qty": "20",
+   "billed_qty": "375/127",
    "rate_sen": 2200,
-   "total_sen": 44000
+   "total_sen": 6496
   },
   {
    "variant": "lantex_chain_50mm",
@@ -27663,9 +27663,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "lantex-chain",
-   "billed_qty": "20",
+   "billed_qty": "1250/381",
    "rate_sen": 2200,
-   "total_sen": 44000
+   "total_sen": 7218
   },
   {
    "variant": "lantex_chain_50mm",
@@ -27691,9 +27691,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "lantex-chain",
-   "billed_qty": "20",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 2200,
-   "total_sen": 44000
+   "total_sen": 7218
   },
   {
    "variant": "lantex_chain_50mm",
@@ -27719,9 +27719,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "lantex-chain",
-   "billed_qty": "20",
+   "billed_qty": "20125/4572",
    "rate_sen": 2200,
-   "total_sen": 44000
+   "total_sen": 9684
   },
   {
    "variant": "shangri_la",
@@ -27747,9 +27747,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "shangri-la",
-   "billed_qty": "18",
+   "billed_qty": "12",
    "rate_sen": 2200,
-   "total_sen": 39600
+   "total_sen": 26400
   },
   {
    "variant": "shangri_la",
@@ -28447,9 +28447,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "shangri-la",
-   "billed_qty": "18",
+   "billed_qty": "500/381",
    "rate_sen": 2200,
-   "total_sen": 39600
+   "total_sen": 2887
   },
   {
    "variant": "shangri_la",
@@ -28475,9 +28475,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "shangri-la",
-   "billed_qty": "18",
+   "billed_qty": "375/127",
    "rate_sen": 2200,
-   "total_sen": 39600
+   "total_sen": 6496
   },
   {
    "variant": "shangri_la",
@@ -28503,9 +28503,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "shangri-la",
-   "billed_qty": "18",
+   "billed_qty": "1250/381",
    "rate_sen": 2200,
-   "total_sen": 39600
+   "total_sen": 7218
   },
   {
    "variant": "shangri_la",
@@ -28531,9 +28531,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "shangri-la",
-   "billed_qty": "18",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 2200,
-   "total_sen": 39600
+   "total_sen": 7218
   },
   {
    "variant": "shangri_la",
@@ -28559,9 +28559,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "shangri-la",
-   "billed_qty": "18",
+   "billed_qty": "20125/4572",
    "rate_sen": 2200,
-   "total_sen": 39600
+   "total_sen": 9684
   },
   {
    "variant": "itf_timber",
@@ -32787,9 +32787,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-chicks-lo",
-   "billed_qty": "20",
+   "billed_qty": "12",
    "rate_sen": 1000,
-   "total_sen": 20000
+   "total_sen": 12000
   },
   {
    "variant": "outdoor_wooden_chicks",
@@ -33487,9 +33487,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-chicks-lo",
-   "billed_qty": "20",
+   "billed_qty": "500/381",
    "rate_sen": 1000,
-   "total_sen": 20000
+   "total_sen": 1312
   },
   {
    "variant": "outdoor_wooden_chicks",
@@ -33515,9 +33515,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-chicks-lo",
-   "billed_qty": "20",
+   "billed_qty": "375/127",
    "rate_sen": 1000,
-   "total_sen": 20000
+   "total_sen": 2953
   },
   {
    "variant": "outdoor_wooden_chicks",
@@ -33543,9 +33543,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-chicks-lo",
-   "billed_qty": "20",
+   "billed_qty": "1250/381",
    "rate_sen": 1000,
-   "total_sen": 20000
+   "total_sen": 3281
   },
   {
    "variant": "outdoor_wooden_chicks",
@@ -33571,9 +33571,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-chicks-hi",
-   "billed_qty": "20",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 1100,
-   "total_sen": 22000
+   "total_sen": 3609
   },
   {
    "variant": "outdoor_wooden_chicks",
@@ -33599,9 +33599,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-chicks-hi",
-   "billed_qty": "20",
+   "billed_qty": "20125/4572",
    "rate_sen": 1100,
-   "total_sen": 22000
+   "total_sen": 4842
   },
   {
    "variant": "outdoor_roller_fabric",
@@ -33627,9 +33627,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-roller-fabric",
-   "billed_qty": "20",
+   "billed_qty": "12",
    "rate_sen": 1500,
-   "total_sen": 30000
+   "total_sen": 18000
   },
   {
    "variant": "outdoor_roller_fabric",
@@ -34327,9 +34327,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-roller-fabric",
-   "billed_qty": "20",
+   "billed_qty": "500/381",
    "rate_sen": 1500,
-   "total_sen": 30000
+   "total_sen": 1969
   },
   {
    "variant": "outdoor_roller_fabric",
@@ -34355,9 +34355,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-roller-fabric",
-   "billed_qty": "20",
+   "billed_qty": "375/127",
    "rate_sen": 1500,
-   "total_sen": 30000
+   "total_sen": 4429
   },
   {
    "variant": "outdoor_roller_fabric",
@@ -34383,9 +34383,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-roller-fabric",
-   "billed_qty": "20",
+   "billed_qty": "1250/381",
    "rate_sen": 1500,
-   "total_sen": 30000
+   "total_sen": 4921
   },
   {
    "variant": "outdoor_roller_fabric",
@@ -34411,9 +34411,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-roller-fabric",
-   "billed_qty": "20",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 1500,
-   "total_sen": 30000
+   "total_sen": 4921
   },
   {
    "variant": "outdoor_roller_fabric",
@@ -34439,9 +34439,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-roller-fabric",
-   "billed_qty": "20",
+   "billed_qty": "20125/4572",
    "rate_sen": 1500,
-   "total_sen": 30000
+   "total_sen": 6603
   },
   {
    "variant": "outdoor_zip_manual",
@@ -34467,9 +34467,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-manual-1",
-   "billed_qty": "30",
+   "billed_qty": "12",
    "rate_sen": 5500,
-   "total_sen": 165000
+   "total_sen": 66000
   },
   {
    "variant": "outdoor_zip_manual",
@@ -34495,9 +34495,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-manual-1",
-   "billed_qty": "30",
+   "billed_qty": "27",
    "rate_sen": 5500,
-   "total_sen": 165000
+   "total_sen": 148500
   },
   {
    "variant": "outdoor_zip_manual",
@@ -35167,9 +35167,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-manual-1",
-   "billed_qty": "30",
+   "billed_qty": "500/381",
    "rate_sen": 5500,
-   "total_sen": 165000
+   "total_sen": 7218
   },
   {
    "variant": "outdoor_zip_manual",
@@ -35195,9 +35195,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-manual-1",
-   "billed_qty": "30",
+   "billed_qty": "375/127",
    "rate_sen": 5500,
-   "total_sen": 165000
+   "total_sen": 16240
   },
   {
    "variant": "outdoor_zip_manual",
@@ -35223,9 +35223,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-manual-1",
-   "billed_qty": "30",
+   "billed_qty": "1250/381",
    "rate_sen": 5500,
-   "total_sen": 165000
+   "total_sen": 18045
   },
   {
    "variant": "outdoor_zip_manual",
@@ -35251,9 +35251,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-manual-1",
-   "billed_qty": "30",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 5500,
-   "total_sen": 165000
+   "total_sen": 18045
   },
   {
    "variant": "outdoor_zip_manual",
@@ -35279,9 +35279,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-manual-1",
-   "billed_qty": "30",
+   "billed_qty": "20125/4572",
    "rate_sen": 5500,
-   "total_sen": 165000
+   "total_sen": 24210
   },
   {
    "variant": "outdoor_zip_manual",
@@ -35307,9 +35307,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-manual-0",
-   "billed_qty": "30",
+   "billed_qty": "12",
    "rate_sen": 6000,
-   "total_sen": 180000
+   "total_sen": 72000
   },
   {
    "variant": "outdoor_zip_manual",
@@ -35335,9 +35335,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-manual-0",
-   "billed_qty": "30",
+   "billed_qty": "27",
    "rate_sen": 6000,
-   "total_sen": 180000
+   "total_sen": 162000
   },
   {
    "variant": "outdoor_zip_manual",
@@ -36007,9 +36007,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-manual-0",
-   "billed_qty": "30",
+   "billed_qty": "500/381",
    "rate_sen": 6000,
-   "total_sen": 180000
+   "total_sen": 7874
   },
   {
    "variant": "outdoor_zip_manual",
@@ -36035,9 +36035,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-manual-0",
-   "billed_qty": "30",
+   "billed_qty": "375/127",
    "rate_sen": 6000,
-   "total_sen": 180000
+   "total_sen": 17717
   },
   {
    "variant": "outdoor_zip_manual",
@@ -36063,9 +36063,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-manual-0",
-   "billed_qty": "30",
+   "billed_qty": "1250/381",
    "rate_sen": 6000,
-   "total_sen": 180000
+   "total_sen": 19685
   },
   {
    "variant": "outdoor_zip_manual",
@@ -36091,9 +36091,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-manual-0",
-   "billed_qty": "30",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 6000,
-   "total_sen": 180000
+   "total_sen": 19686
   },
   {
    "variant": "outdoor_zip_manual",
@@ -36119,9 +36119,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-manual-0",
-   "billed_qty": "30",
+   "billed_qty": "20125/4572",
    "rate_sen": 6000,
-   "total_sen": 180000
+   "total_sen": 26411
   },
   {
    "variant": "outdoor_zip_motor",
@@ -36147,9 +36147,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-motor-1",
-   "billed_qty": "45",
+   "billed_qty": "12",
    "rate_sen": 5500,
-   "total_sen": 247500
+   "total_sen": 66000
   },
   {
    "variant": "outdoor_zip_motor",
@@ -36175,9 +36175,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-motor-1",
-   "billed_qty": "45",
+   "billed_qty": "27",
    "rate_sen": 5500,
-   "total_sen": 247500
+   "total_sen": 148500
   },
   {
    "variant": "outdoor_zip_motor",
@@ -36203,9 +36203,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-motor-1",
-   "billed_qty": "45",
+   "billed_qty": "30",
    "rate_sen": 5500,
-   "total_sen": 247500
+   "total_sen": 165000
   },
   {
    "variant": "outdoor_zip_motor",
@@ -36231,9 +36231,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-motor-1",
-   "billed_qty": "45",
+   "billed_qty": "30481/1016",
    "rate_sen": 5500,
-   "total_sen": 247500
+   "total_sen": 165005
   },
   {
    "variant": "outdoor_zip_motor",
@@ -36259,9 +36259,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-motor-1",
-   "billed_qty": "45",
+   "billed_qty": "161/4",
    "rate_sen": 5500,
-   "total_sen": 247500
+   "total_sen": 221375
   },
   {
    "variant": "outdoor_zip_motor",
@@ -36847,9 +36847,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-motor-1",
-   "billed_qty": "45",
+   "billed_qty": "500/381",
    "rate_sen": 5500,
-   "total_sen": 247500
+   "total_sen": 7218
   },
   {
    "variant": "outdoor_zip_motor",
@@ -36875,9 +36875,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-motor-1",
-   "billed_qty": "45",
+   "billed_qty": "375/127",
    "rate_sen": 5500,
-   "total_sen": 247500
+   "total_sen": 16240
   },
   {
    "variant": "outdoor_zip_motor",
@@ -36903,9 +36903,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-motor-1",
-   "billed_qty": "45",
+   "billed_qty": "1250/381",
    "rate_sen": 5500,
-   "total_sen": 247500
+   "total_sen": 18045
   },
   {
    "variant": "outdoor_zip_motor",
@@ -36931,9 +36931,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-motor-1",
-   "billed_qty": "45",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 5500,
-   "total_sen": 247500
+   "total_sen": 18045
   },
   {
    "variant": "outdoor_zip_motor",
@@ -36959,9 +36959,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-motor-1",
-   "billed_qty": "45",
+   "billed_qty": "20125/4572",
    "rate_sen": 5500,
-   "total_sen": 247500
+   "total_sen": 24210
   },
   {
    "variant": "outdoor_zip_motor",
@@ -36987,9 +36987,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-motor-0",
-   "billed_qty": "45",
+   "billed_qty": "12",
    "rate_sen": 6000,
-   "total_sen": 270000
+   "total_sen": 72000
   },
   {
    "variant": "outdoor_zip_motor",
@@ -37015,9 +37015,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-motor-0",
-   "billed_qty": "45",
+   "billed_qty": "27",
    "rate_sen": 6000,
-   "total_sen": 270000
+   "total_sen": 162000
   },
   {
    "variant": "outdoor_zip_motor",
@@ -37043,9 +37043,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-motor-0",
-   "billed_qty": "45",
+   "billed_qty": "30",
    "rate_sen": 6000,
-   "total_sen": 270000
+   "total_sen": 180000
   },
   {
    "variant": "outdoor_zip_motor",
@@ -37071,9 +37071,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-motor-0",
-   "billed_qty": "45",
+   "billed_qty": "30481/1016",
    "rate_sen": 6000,
-   "total_sen": 270000
+   "total_sen": 180006
   },
   {
    "variant": "outdoor_zip_motor",
@@ -37099,9 +37099,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-motor-0",
-   "billed_qty": "45",
+   "billed_qty": "161/4",
    "rate_sen": 6000,
-   "total_sen": 270000
+   "total_sen": 241500
   },
   {
    "variant": "outdoor_zip_motor",
@@ -37687,9 +37687,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-motor-0",
-   "billed_qty": "45",
+   "billed_qty": "500/381",
    "rate_sen": 6000,
-   "total_sen": 270000
+   "total_sen": 7874
   },
   {
    "variant": "outdoor_zip_motor",
@@ -37715,9 +37715,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-motor-0",
-   "billed_qty": "45",
+   "billed_qty": "375/127",
    "rate_sen": 6000,
-   "total_sen": 270000
+   "total_sen": 17717
   },
   {
    "variant": "outdoor_zip_motor",
@@ -37743,9 +37743,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-motor-0",
-   "billed_qty": "45",
+   "billed_qty": "1250/381",
    "rate_sen": 6000,
-   "total_sen": 270000
+   "total_sen": 19685
   },
   {
    "variant": "outdoor_zip_motor",
@@ -37771,9 +37771,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-motor-0",
-   "billed_qty": "45",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 6000,
-   "total_sen": 270000
+   "total_sen": 19686
   },
   {
    "variant": "outdoor_zip_motor",
@@ -37799,9 +37799,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "outdoor-zip-motor-0",
-   "billed_qty": "45",
+   "billed_qty": "20125/4572",
    "rate_sen": 6000,
-   "total_sen": 270000
+   "total_sen": 26411
   },
   {
    "variant": "dream_blind",
@@ -38667,9 +38667,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "12",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 5760
   },
   {
    "variant": "spc_4mm_1mm",
@@ -38695,9 +38695,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "27",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 12960
   },
   {
    "variant": "spc_4mm_1mm",
@@ -38723,9 +38723,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "30",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 14400
   },
   {
    "variant": "spc_4mm_1mm",
@@ -38751,9 +38751,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "30481/1016",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 14400
   },
   {
    "variant": "spc_4mm_1mm",
@@ -38779,9 +38779,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "161/4",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 19320
   },
   {
    "variant": "spc_4mm_1mm",
@@ -38807,9 +38807,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "48",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 23040
   },
   {
    "variant": "spc_4mm_1mm",
@@ -38835,9 +38835,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "108",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 51840
   },
   {
    "variant": "spc_4mm_1mm",
@@ -38863,9 +38863,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "120",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 57600
   },
   {
    "variant": "spc_4mm_1mm",
@@ -38891,9 +38891,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "30481/254",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 57602
   },
   {
    "variant": "spc_4mm_1mm",
@@ -38919,9 +38919,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "161",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 77280
   },
   {
    "variant": "spc_4mm_1mm",
@@ -38947,9 +38947,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "148/3",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 23680
   },
   {
    "variant": "spc_4mm_1mm",
@@ -38975,9 +38975,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "111",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 53280
   },
   {
    "variant": "spc_4mm_1mm",
@@ -39003,9 +39003,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "370/3",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 59200
   },
   {
    "variant": "spc_4mm_1mm",
@@ -39031,9 +39031,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "1127797/9144",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 59202
   },
   {
    "variant": "spc_4mm_1mm",
@@ -39059,9 +39059,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "5957/36",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 79427
   },
   {
    "variant": "spc_4mm_1mm",
@@ -39087,9 +39087,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "211/3",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 33760
   },
   {
    "variant": "spc_4mm_1mm",
@@ -39115,9 +39115,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "633/4",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 75960
   },
   {
    "variant": "spc_4mm_1mm",
@@ -39143,9 +39143,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "1055/6",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 84400
   },
   {
    "variant": "spc_4mm_1mm",
@@ -39171,9 +39171,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "6431491/36576",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 84403
   },
   {
    "variant": "spc_4mm_1mm",
@@ -39227,9 +39227,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "80",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 38400
   },
   {
    "variant": "spc_4mm_1mm",
@@ -39255,9 +39255,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "180",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 86400
   },
   {
    "variant": "spc_4mm_1mm",
@@ -39367,9 +39367,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "500/381",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 630
   },
   {
    "variant": "spc_4mm_1mm",
@@ -39395,9 +39395,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "375/127",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 1417
   },
   {
    "variant": "spc_4mm_1mm",
@@ -39423,9 +39423,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "1250/381",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 1575
   },
   {
    "variant": "spc_4mm_1mm",
@@ -39451,9 +39451,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 1575
   },
   {
    "variant": "spc_4mm_1mm",
@@ -39479,9 +39479,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-4mm",
-   "billed_qty": "200",
+   "billed_qty": "20125/4572",
    "rate_sen": 480,
-   "total_sen": 96000
+   "total_sen": 2113
   },
   {
    "variant": "spc_5mm_1mm",
@@ -39507,9 +39507,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "12",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 6360
   },
   {
    "variant": "spc_5mm_1mm",
@@ -39535,9 +39535,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "27",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 14310
   },
   {
    "variant": "spc_5mm_1mm",
@@ -39563,9 +39563,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "30",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 15900
   },
   {
    "variant": "spc_5mm_1mm",
@@ -39591,9 +39591,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "30481/1016",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 15901
   },
   {
    "variant": "spc_5mm_1mm",
@@ -39619,9 +39619,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "161/4",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 21333
   },
   {
    "variant": "spc_5mm_1mm",
@@ -39647,9 +39647,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "48",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 25440
   },
   {
    "variant": "spc_5mm_1mm",
@@ -39675,9 +39675,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "108",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 57240
   },
   {
    "variant": "spc_5mm_1mm",
@@ -39703,9 +39703,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "120",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 63600
   },
   {
    "variant": "spc_5mm_1mm",
@@ -39731,9 +39731,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "30481/254",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 63602
   },
   {
    "variant": "spc_5mm_1mm",
@@ -39759,9 +39759,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "161",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 85330
   },
   {
    "variant": "spc_5mm_1mm",
@@ -39787,9 +39787,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "148/3",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 26147
   },
   {
    "variant": "spc_5mm_1mm",
@@ -39815,9 +39815,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "111",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 58830
   },
   {
    "variant": "spc_5mm_1mm",
@@ -39843,9 +39843,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "370/3",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 65367
   },
   {
    "variant": "spc_5mm_1mm",
@@ -39871,9 +39871,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "1127797/9144",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 65369
   },
   {
    "variant": "spc_5mm_1mm",
@@ -39899,9 +39899,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "5957/36",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 87700
   },
   {
    "variant": "spc_5mm_1mm",
@@ -39927,9 +39927,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "211/3",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 37277
   },
   {
    "variant": "spc_5mm_1mm",
@@ -39955,9 +39955,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "633/4",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 83873
   },
   {
    "variant": "spc_5mm_1mm",
@@ -39983,9 +39983,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "1055/6",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 93192
   },
   {
    "variant": "spc_5mm_1mm",
@@ -40011,9 +40011,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "6431491/36576",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 93195
   },
   {
    "variant": "spc_5mm_1mm",
@@ -40067,9 +40067,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "80",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 42400
   },
   {
    "variant": "spc_5mm_1mm",
@@ -40095,9 +40095,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "180",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 95400
   },
   {
    "variant": "spc_5mm_1mm",
@@ -40207,9 +40207,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "500/381",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 696
   },
   {
    "variant": "spc_5mm_1mm",
@@ -40235,9 +40235,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "375/127",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 1565
   },
   {
    "variant": "spc_5mm_1mm",
@@ -40263,9 +40263,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "1250/381",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 1739
   },
   {
    "variant": "spc_5mm_1mm",
@@ -40291,9 +40291,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 1739
   },
   {
    "variant": "spc_5mm_1mm",
@@ -40319,9 +40319,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-5mm",
-   "billed_qty": "200",
+   "billed_qty": "20125/4572",
    "rate_sen": 530,
-   "total_sen": 106000
+   "total_sen": 2333
   },
   {
    "variant": "spc_6mm_1mm",
@@ -40347,9 +40347,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "12",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 7200
   },
   {
    "variant": "spc_6mm_1mm",
@@ -40375,9 +40375,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "27",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 16200
   },
   {
    "variant": "spc_6mm_1mm",
@@ -40403,9 +40403,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "30",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 18000
   },
   {
    "variant": "spc_6mm_1mm",
@@ -40431,9 +40431,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "30481/1016",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 18001
   },
   {
    "variant": "spc_6mm_1mm",
@@ -40459,9 +40459,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "161/4",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 24150
   },
   {
    "variant": "spc_6mm_1mm",
@@ -40487,9 +40487,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "48",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 28800
   },
   {
    "variant": "spc_6mm_1mm",
@@ -40515,9 +40515,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "108",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 64800
   },
   {
    "variant": "spc_6mm_1mm",
@@ -40543,9 +40543,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "120",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 72000
   },
   {
    "variant": "spc_6mm_1mm",
@@ -40571,9 +40571,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "30481/254",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 72002
   },
   {
    "variant": "spc_6mm_1mm",
@@ -40599,9 +40599,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "161",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 96600
   },
   {
    "variant": "spc_6mm_1mm",
@@ -40627,9 +40627,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "148/3",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 29600
   },
   {
    "variant": "spc_6mm_1mm",
@@ -40655,9 +40655,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "111",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 66600
   },
   {
    "variant": "spc_6mm_1mm",
@@ -40683,9 +40683,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "370/3",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 74000
   },
   {
    "variant": "spc_6mm_1mm",
@@ -40711,9 +40711,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "1127797/9144",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 74002
   },
   {
    "variant": "spc_6mm_1mm",
@@ -40739,9 +40739,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "5957/36",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 99283
   },
   {
    "variant": "spc_6mm_1mm",
@@ -40767,9 +40767,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "211/3",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 42200
   },
   {
    "variant": "spc_6mm_1mm",
@@ -40795,9 +40795,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "633/4",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 94950
   },
   {
    "variant": "spc_6mm_1mm",
@@ -40823,9 +40823,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "1055/6",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 105500
   },
   {
    "variant": "spc_6mm_1mm",
@@ -40851,9 +40851,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "6431491/36576",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 105503
   },
   {
    "variant": "spc_6mm_1mm",
@@ -40907,9 +40907,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "80",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 48000
   },
   {
    "variant": "spc_6mm_1mm",
@@ -40935,9 +40935,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "180",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 108000
   },
   {
    "variant": "spc_6mm_1mm",
@@ -41047,9 +41047,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "500/381",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 787
   },
   {
    "variant": "spc_6mm_1mm",
@@ -41075,9 +41075,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "375/127",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 1772
   },
   {
    "variant": "spc_6mm_1mm",
@@ -41103,9 +41103,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "1250/381",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 1969
   },
   {
    "variant": "spc_6mm_1mm",
@@ -41131,9 +41131,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 1969
   },
   {
    "variant": "spc_6mm_1mm",
@@ -41159,9 +41159,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-6mm",
-   "billed_qty": "200",
+   "billed_qty": "20125/4572",
    "rate_sen": 600,
-   "total_sen": 120000
+   "total_sen": 2641
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41187,9 +41187,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "12",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 14400
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41215,9 +41215,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "27",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 32400
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41243,9 +41243,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "30",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 36000
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41271,9 +41271,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "30481/1016",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 36001
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41299,9 +41299,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "161/4",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 48300
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41327,9 +41327,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "48",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 57600
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41355,9 +41355,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "108",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 129600
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41383,9 +41383,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "120",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 144000
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41411,9 +41411,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "30481/254",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 144005
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41439,9 +41439,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "161",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 193200
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41467,9 +41467,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "148/3",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 59200
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41495,9 +41495,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "111",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 133200
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41523,9 +41523,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "370/3",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 148000
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41551,9 +41551,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "1127797/9144",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 148005
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41579,9 +41579,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "5957/36",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 198567
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41607,9 +41607,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "211/3",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 84400
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41635,9 +41635,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "633/4",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 189900
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41663,9 +41663,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "1055/6",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 211000
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41691,9 +41691,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "6431491/36576",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 211007
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41747,9 +41747,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "80",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 96000
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41775,9 +41775,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "180",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 216000
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41887,9 +41887,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "500/381",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 1575
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41915,9 +41915,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "375/127",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 3543
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41943,9 +41943,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "1250/381",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 3937
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41971,9 +41971,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 3937
   },
   {
    "variant": "spc_8mm_hrw",
@@ -41999,9 +41999,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-8mm-hrw",
-   "billed_qty": "200",
+   "billed_qty": "20125/4572",
    "rate_sen": 1200,
-   "total_sen": 240000
+   "total_sen": 5282
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42027,9 +42027,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "12",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 9600
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42055,9 +42055,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "27",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 21600
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42083,9 +42083,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "30",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 24000
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42111,9 +42111,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "30481/1016",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 24001
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42139,9 +42139,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "161/4",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 32200
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42167,9 +42167,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "48",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 38400
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42195,9 +42195,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "108",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 86400
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42223,9 +42223,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "120",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 96000
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42251,9 +42251,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "30481/254",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 96003
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42279,9 +42279,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "161",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 128800
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42307,9 +42307,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "148/3",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 39467
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42335,9 +42335,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "111",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 88800
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42363,9 +42363,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "370/3",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 98667
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42391,9 +42391,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "1127797/9144",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 98670
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42419,9 +42419,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "5957/36",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 132378
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42447,9 +42447,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "211/3",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 56267
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42475,9 +42475,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "633/4",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 126600
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42503,9 +42503,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "1055/6",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 140667
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42531,9 +42531,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "6431491/36576",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 140671
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42587,9 +42587,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "80",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 64000
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42615,9 +42615,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "180",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 144000
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42727,9 +42727,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "500/381",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 1050
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42755,9 +42755,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "375/127",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 2362
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42783,9 +42783,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "1250/381",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 2625
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42811,9 +42811,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 2625
   },
   {
    "variant": "spc_herringbone_5mm_1mm",
@@ -42839,9 +42839,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "spc-herringbone",
-   "billed_qty": "200",
+   "billed_qty": "20125/4572",
    "rate_sen": 800,
-   "total_sen": 160000
+   "total_sen": 3521
   },
   {
    "variant": "laminate_robina_8mm",
@@ -43707,9 +43707,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "12",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 6720
   },
   {
    "variant": "vinyl_5mm_click",
@@ -43735,9 +43735,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "27",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 15120
   },
   {
    "variant": "vinyl_5mm_click",
@@ -43763,9 +43763,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "30",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 16800
   },
   {
    "variant": "vinyl_5mm_click",
@@ -43791,9 +43791,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "30481/1016",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 16801
   },
   {
    "variant": "vinyl_5mm_click",
@@ -43819,9 +43819,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "161/4",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 22540
   },
   {
    "variant": "vinyl_5mm_click",
@@ -43847,9 +43847,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "48",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 26880
   },
   {
    "variant": "vinyl_5mm_click",
@@ -43875,9 +43875,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "108",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 60480
   },
   {
    "variant": "vinyl_5mm_click",
@@ -43903,9 +43903,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "120",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 67200
   },
   {
    "variant": "vinyl_5mm_click",
@@ -43931,9 +43931,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "30481/254",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 67202
   },
   {
    "variant": "vinyl_5mm_click",
@@ -43959,9 +43959,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "161",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 90160
   },
   {
    "variant": "vinyl_5mm_click",
@@ -43987,9 +43987,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "148/3",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 27627
   },
   {
    "variant": "vinyl_5mm_click",
@@ -44015,9 +44015,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "111",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 62160
   },
   {
    "variant": "vinyl_5mm_click",
@@ -44043,9 +44043,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "370/3",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 69067
   },
   {
    "variant": "vinyl_5mm_click",
@@ -44071,9 +44071,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "1127797/9144",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 69069
   },
   {
    "variant": "vinyl_5mm_click",
@@ -44099,9 +44099,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "5957/36",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 92664
   },
   {
    "variant": "vinyl_5mm_click",
@@ -44127,9 +44127,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "211/3",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 39387
   },
   {
    "variant": "vinyl_5mm_click",
@@ -44155,9 +44155,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "633/4",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 88620
   },
   {
    "variant": "vinyl_5mm_click",
@@ -44183,9 +44183,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "1055/6",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 98467
   },
   {
    "variant": "vinyl_5mm_click",
@@ -44211,9 +44211,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "6431491/36576",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 98470
   },
   {
    "variant": "vinyl_5mm_click",
@@ -44267,9 +44267,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "80",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 44800
   },
   {
    "variant": "vinyl_5mm_click",
@@ -44295,9 +44295,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "180",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 100800
   },
   {
    "variant": "vinyl_5mm_click",
@@ -44407,9 +44407,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "500/381",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 735
   },
   {
    "variant": "vinyl_5mm_click",
@@ -44435,9 +44435,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "375/127",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 1654
   },
   {
    "variant": "vinyl_5mm_click",
@@ -44463,9 +44463,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "1250/381",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 1837
   },
   {
    "variant": "vinyl_5mm_click",
@@ -44491,9 +44491,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 1837
   },
   {
    "variant": "vinyl_5mm_click",
@@ -44519,9 +44519,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-5mm-click",
-   "billed_qty": "200",
+   "billed_qty": "20125/4572",
    "rate_sen": 560,
-   "total_sen": 112000
+   "total_sen": 2465
   },
   {
    "variant": "vinyl_3mm",
@@ -44547,9 +44547,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "12",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 5400
   },
   {
    "variant": "vinyl_3mm",
@@ -44575,9 +44575,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "27",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 12150
   },
   {
    "variant": "vinyl_3mm",
@@ -44603,9 +44603,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "30",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 13500
   },
   {
    "variant": "vinyl_3mm",
@@ -44631,9 +44631,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "30481/1016",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 13500
   },
   {
    "variant": "vinyl_3mm",
@@ -44659,9 +44659,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "161/4",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 18113
   },
   {
    "variant": "vinyl_3mm",
@@ -44687,9 +44687,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "48",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 21600
   },
   {
    "variant": "vinyl_3mm",
@@ -44715,9 +44715,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "108",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 48600
   },
   {
    "variant": "vinyl_3mm",
@@ -44743,9 +44743,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "120",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 54000
   },
   {
    "variant": "vinyl_3mm",
@@ -44771,9 +44771,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "30481/254",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 54002
   },
   {
    "variant": "vinyl_3mm",
@@ -44799,9 +44799,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "161",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 72450
   },
   {
    "variant": "vinyl_3mm",
@@ -44827,9 +44827,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "148/3",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 22200
   },
   {
    "variant": "vinyl_3mm",
@@ -44855,9 +44855,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "111",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 49950
   },
   {
    "variant": "vinyl_3mm",
@@ -44883,9 +44883,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "370/3",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 55500
   },
   {
    "variant": "vinyl_3mm",
@@ -44911,9 +44911,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "1127797/9144",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 55502
   },
   {
    "variant": "vinyl_3mm",
@@ -44939,9 +44939,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "5957/36",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 74463
   },
   {
    "variant": "vinyl_3mm",
@@ -44967,9 +44967,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "211/3",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 31650
   },
   {
    "variant": "vinyl_3mm",
@@ -44995,9 +44995,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "633/4",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 71213
   },
   {
    "variant": "vinyl_3mm",
@@ -45023,9 +45023,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "1055/6",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 79125
   },
   {
    "variant": "vinyl_3mm",
@@ -45051,9 +45051,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "6431491/36576",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 79128
   },
   {
    "variant": "vinyl_3mm",
@@ -45107,9 +45107,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "80",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 36000
   },
   {
    "variant": "vinyl_3mm",
@@ -45135,9 +45135,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "180",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 81000
   },
   {
    "variant": "vinyl_3mm",
@@ -45247,9 +45247,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "500/381",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 591
   },
   {
    "variant": "vinyl_3mm",
@@ -45275,9 +45275,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "375/127",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 1329
   },
   {
    "variant": "vinyl_3mm",
@@ -45303,9 +45303,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "1250/381",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 1476
   },
   {
    "variant": "vinyl_3mm",
@@ -45331,9 +45331,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 1476
   },
   {
    "variant": "vinyl_3mm",
@@ -45359,9 +45359,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-si",
-   "billed_qty": "200",
+   "billed_qty": "20125/4572",
    "rate_sen": 450,
-   "total_sen": 90000
+   "total_sen": 1981
   },
   {
    "variant": "vinyl_3mm",
@@ -45387,9 +45387,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "12",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 4560
   },
   {
    "variant": "vinyl_3mm",
@@ -45415,9 +45415,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "27",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 10260
   },
   {
    "variant": "vinyl_3mm",
@@ -45443,9 +45443,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "30",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 11400
   },
   {
    "variant": "vinyl_3mm",
@@ -45471,9 +45471,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "30481/1016",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 11400
   },
   {
    "variant": "vinyl_3mm",
@@ -45499,9 +45499,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "161/4",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 15295
   },
   {
    "variant": "vinyl_3mm",
@@ -45527,9 +45527,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "48",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 18240
   },
   {
    "variant": "vinyl_3mm",
@@ -45555,9 +45555,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "108",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 41040
   },
   {
    "variant": "vinyl_3mm",
@@ -45583,9 +45583,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "120",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 45600
   },
   {
    "variant": "vinyl_3mm",
@@ -45611,9 +45611,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "30481/254",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 45601
   },
   {
    "variant": "vinyl_3mm",
@@ -45639,9 +45639,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "161",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 61180
   },
   {
    "variant": "vinyl_3mm",
@@ -45667,9 +45667,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "148/3",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 18747
   },
   {
    "variant": "vinyl_3mm",
@@ -45695,9 +45695,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "111",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 42180
   },
   {
    "variant": "vinyl_3mm",
@@ -45723,9 +45723,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "370/3",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 46867
   },
   {
    "variant": "vinyl_3mm",
@@ -45751,9 +45751,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "1127797/9144",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 46868
   },
   {
    "variant": "vinyl_3mm",
@@ -45779,9 +45779,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "5957/36",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 62879
   },
   {
    "variant": "vinyl_3mm",
@@ -45807,9 +45807,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "211/3",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 26727
   },
   {
    "variant": "vinyl_3mm",
@@ -45835,9 +45835,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "633/4",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 60135
   },
   {
    "variant": "vinyl_3mm",
@@ -45863,9 +45863,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "1055/6",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 66817
   },
   {
    "variant": "vinyl_3mm",
@@ -45891,9 +45891,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "6431491/36576",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 66819
   },
   {
    "variant": "vinyl_3mm",
@@ -45947,9 +45947,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "80",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 30400
   },
   {
    "variant": "vinyl_3mm",
@@ -45975,9 +45975,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "180",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 68400
   },
   {
    "variant": "vinyl_3mm",
@@ -46087,9 +46087,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "500/381",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 499
   },
   {
    "variant": "vinyl_3mm",
@@ -46115,9 +46115,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "375/127",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 1122
   },
   {
    "variant": "vinyl_3mm",
@@ -46143,9 +46143,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "1250/381",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 1247
   },
   {
    "variant": "vinyl_3mm",
@@ -46171,9 +46171,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 1247
   },
   {
    "variant": "vinyl_3mm",
@@ -46199,9 +46199,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "vinyl-3mm-so",
-   "billed_qty": "200",
+   "billed_qty": "20125/4572",
    "rate_sen": 380,
-   "total_sen": 76000
+   "total_sen": 1673
   },
   {
    "variant": "skirting",
@@ -54627,9 +54627,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-add-box",
-   "billed_qty": "4",
+   "billed_qty": "3",
    "rate_sen": 1000,
-   "total_sen": 4000
+   "total_sen": 3000
   },
   {
    "variant": "roller_add_box",
@@ -54655,9 +54655,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-add-box",
-   "billed_qty": "4",
+   "billed_qty": "3",
    "rate_sen": 1000,
-   "total_sen": 4000
+   "total_sen": 3000
   },
   {
    "variant": "roller_add_box",
@@ -54683,9 +54683,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-add-box",
-   "billed_qty": "4",
+   "billed_qty": "3",
    "rate_sen": 1000,
-   "total_sen": 4000
+   "total_sen": 3000
   },
   {
    "variant": "roller_add_box",
@@ -54711,9 +54711,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-add-box",
-   "billed_qty": "4",
+   "billed_qty": "3",
    "rate_sen": 1000,
-   "total_sen": 4000
+   "total_sen": 3000
   },
   {
    "variant": "roller_add_box",
@@ -54739,9 +54739,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-add-box",
-   "billed_qty": "4",
+   "billed_qty": "3",
    "rate_sen": 1000,
-   "total_sen": 4000
+   "total_sen": 3000
   },
   {
    "variant": "roller_add_box",
@@ -55327,9 +55327,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-add-box",
-   "billed_qty": "4",
+   "billed_qty": "125/381",
    "rate_sen": 1000,
-   "total_sen": 4000
+   "total_sen": 328
   },
   {
    "variant": "roller_add_box",
@@ -55355,9 +55355,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-add-box",
-   "billed_qty": "4",
+   "billed_qty": "125/381",
    "rate_sen": 1000,
-   "total_sen": 4000
+   "total_sen": 328
   },
   {
    "variant": "roller_add_box",
@@ -55383,9 +55383,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-add-box",
-   "billed_qty": "4",
+   "billed_qty": "125/381",
    "rate_sen": 1000,
-   "total_sen": 4000
+   "total_sen": 328
   },
   {
    "variant": "roller_add_box",
@@ -55411,9 +55411,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-add-box",
-   "billed_qty": "4",
+   "billed_qty": "125/381",
    "rate_sen": 1000,
-   "total_sen": 4000
+   "total_sen": 328
   },
   {
    "variant": "roller_add_box",
@@ -55439,9 +55439,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "roller-add-box",
-   "billed_qty": "4",
+   "billed_qty": "125/381",
    "rate_sen": 1000,
-   "total_sen": 4000
+   "total_sen": 328
   },
   {
    "variant": "dismantle_old_spc",
@@ -56307,9 +56307,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "12",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 3600
   },
   {
    "variant": "self_levelling",
@@ -56335,9 +56335,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "27",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 8100
   },
   {
    "variant": "self_levelling",
@@ -56363,9 +56363,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "30",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 9000
   },
   {
    "variant": "self_levelling",
@@ -56391,9 +56391,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "30481/1016",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 9000
   },
   {
    "variant": "self_levelling",
@@ -56419,9 +56419,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "161/4",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 12075
   },
   {
    "variant": "self_levelling",
@@ -56447,9 +56447,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "48",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 14400
   },
   {
    "variant": "self_levelling",
@@ -56475,9 +56475,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "108",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 32400
   },
   {
    "variant": "self_levelling",
@@ -56503,9 +56503,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "120",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 36000
   },
   {
    "variant": "self_levelling",
@@ -56531,9 +56531,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "30481/254",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 36001
   },
   {
    "variant": "self_levelling",
@@ -56559,9 +56559,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "161",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 48300
   },
   {
    "variant": "self_levelling",
@@ -56587,9 +56587,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "148/3",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 14800
   },
   {
    "variant": "self_levelling",
@@ -56615,9 +56615,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "111",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 33300
   },
   {
    "variant": "self_levelling",
@@ -56643,9 +56643,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "370/3",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 37000
   },
   {
    "variant": "self_levelling",
@@ -56671,9 +56671,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "1127797/9144",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 37001
   },
   {
    "variant": "self_levelling",
@@ -56699,9 +56699,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "5957/36",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 49642
   },
   {
    "variant": "self_levelling",
@@ -56727,9 +56727,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "211/3",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 21100
   },
   {
    "variant": "self_levelling",
@@ -56755,9 +56755,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "633/4",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 47475
   },
   {
    "variant": "self_levelling",
@@ -56783,9 +56783,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "1055/6",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 52750
   },
   {
    "variant": "self_levelling",
@@ -56811,9 +56811,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "6431491/36576",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 52752
   },
   {
    "variant": "self_levelling",
@@ -56867,9 +56867,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "80",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 24000
   },
   {
    "variant": "self_levelling",
@@ -56895,9 +56895,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "180",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 54000
   },
   {
    "variant": "self_levelling",
@@ -57007,9 +57007,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "500/381",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 394
   },
   {
    "variant": "self_levelling",
@@ -57035,9 +57035,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "375/127",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 886
   },
   {
    "variant": "self_levelling",
@@ -57063,9 +57063,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "1250/381",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 984
   },
   {
    "variant": "self_levelling",
@@ -57091,9 +57091,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "3810125/1161288",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 984
   },
   {
    "variant": "self_levelling",
@@ -57119,9 +57119,9 @@
    "stage": "final",
    "tier": "standard",
    "rule_id": "self-levelling",
-   "billed_qty": "200",
+   "billed_qty": "20125/4572",
    "rate_sen": 300,
-   "total_sen": 60000
+   "total_sen": 1321
   }
  ]
 }

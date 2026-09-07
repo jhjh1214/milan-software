@@ -157,17 +157,9 @@ class FinalPricing:
     #: True when every line priced, and there was at least one.
     is_complete: bool = False
 
-    #: True when the job cleared the threshold and every printed minimum was
-    #: stood down. §13 A21.
+    #: True when at least one line had a printed minimum that final pricing
+    #: did not apply. §13 A21 -- reported, never acted on.
     min_qty_waived: bool = False
-
-    #: What the lines came to with no minimum applied -- the number the waiver
-    #: decision was actually made on (A21b). None until the order fully prices.
-    #:
-    #: Kept because a rule that turns on a comparison is unreadable without the
-    #: figure it compared: "RM324, which cleared RM300" is a sentence somebody
-    #: can check, and "the minimums were waived" is not.
-    exact_subtotal: Money | None = None
 
     #: What §8.4's per-category deposit floor added on top of the lines. A21d.
     #:
@@ -207,52 +199,27 @@ def reprice_order(
     has. A line whose version is missing refuses; it is never priced at
     another.
     """
-    # §13 A21, in the order the answer fixes -- and the order matters.
+    # §13 A21. One pass: every line bills the exact tape, with NO printed
+    # minimum. The minimum is a quotation device; at final pricing the RM300
+    # per-category deposit floor below is what stops a small job billing less
+    # than the deposit already taken.
     #
-    # Pass 1 prices every line from the tape with NO minimum, which gives the
-    # exact subtotal. Pass 2 decides. The threshold is measured against the
-    # exact prices and never against the minimum-applied ones (A21b): the other
-    # reading is circular, because the minimums are what the decision produces.
-    exact = [_reprice_line(line, cards, tier, apply_min_qty=False) for line in lines]
-
-    # A21a: the WHOLE order, not the deposit category. A house of curtains and
-    # one small blind is one job, and the blind rides along with it.
-    #
-    # Only lines that actually priced contribute. A refused line has no number,
-    # and treating a missing one as zero would drag a job under the threshold
-    # and bill minimums the customer should not have paid.
-    exact_subtotal = sum(
-        (line.final_total for line in exact if line.final_total is not None), ZERO
-    )
-
-    threshold = _waiver_threshold(lines, cards)
-    every_line_priced = bool(exact) and all(line.refusal is None for line in exact)
-
-    # A21c: exactly the threshold clears it. RM300 is also the deposit figure,
-    # so an order landing on it is the common case rather than a corner one.
-    waived = (
-        every_line_priced
-        and threshold is not None
-        and exact_subtotal.sen >= threshold.sen
-    )
-
-    priced = (
-        exact
-        if waived
-        else [_reprice_line(line, cards, tier, apply_min_qty=True) for line in lines]
-    )
+    # That is what keeps the arithmetic monotonic. Applying min_qty here as
+    # well produced an inversion the client rejected: a 12 sqft blind billed
+    # RM360 while a LARGER 15 sqft one billed RM300.
+    priced = [_reprice_line(line, cards, tier) for line in lines]
 
     # An order with no lines has not been priced. Zero is a total somebody could
     # act on, and "RM0.00 due" is a worse answer than "not priced".
     complete = bool(priced) and all(line.refusal is None for line in priced)
 
     uplift = (
-        _category_floor_uplift(priced, cards, lambda l: l.final_total)
+        _category_floor_uplift(priced, cards, lambda line: line.final_total)
         if complete
         else ZERO
     )
     estimate_uplift = (
-        _category_floor_uplift(priced, cards, lambda l: l.estimate_total)
+        _category_floor_uplift(priced, cards, lambda line: line.estimate_total)
         if complete
         else ZERO
     )
@@ -262,8 +229,12 @@ def reprice_order(
     return FinalPricing(
         lines=priced,
         estimate_total=estimate,
-        min_qty_waived=waived,
-        exact_subtotal=exact_subtotal if complete else None,
+        # True when at least one line HAD a printed minimum that final pricing
+        # did not apply. Reported rather than acted on: what stops a small job
+        # billing under the deposit is the floor, not this.
+        min_qty_waived=any(
+            line.priced is not None and line.priced.min_qty_waived for line in priced
+        ),
         category_floor_uplift=uplift,
         # The lines, plus whatever the per-category deposit floor added on top.
         final_total=(
@@ -273,27 +244,6 @@ def reprice_order(
         ),
         is_complete=complete,
     )
-
-
-def _waiver_threshold(
-    lines: list[MeasuredLine], cards: dict[int, RateCard]
-) -> Money | None:
-    """The lowest waiver threshold among the cards this order's lines priced at.
-
-    Lines can sit on different card versions -- a lock is per line -- and those
-    cards can carry different config. The lowest is the customer-favourable
-    reading and the only one that does not depend on line order. None when no
-    line could name its card, in which case nothing is waived.
-    """
-    lowest: Money | None = None
-    for line in lines:
-        card = cards.get(line.applied_rate_card_version)
-        if card is None:
-            continue
-        value = card.config.min_qty_waiver
-        if lowest is None or value.sen < lowest.sen:
-            lowest = value
-    return lowest
 
 
 def _category_floor_uplift(
@@ -369,11 +319,7 @@ def _category_floor_uplift(
 
 
 def _reprice_line(
-    line: MeasuredLine,
-    cards: dict[int, RateCard],
-    tier: CustomerTier,
-    *,
-    apply_min_qty: bool,
+    line: MeasuredLine, cards: dict[int, RateCard], tier: CustomerTier
 ) -> FinalLine:
     def refuse(why: FinalPricingRefusal) -> FinalLine:
         return FinalLine(id=line.id, estimate_total=line.estimate_total, refusal=why)
@@ -405,7 +351,6 @@ def _reprice_line(
             card=card,
             stage=PricingStage.FINAL,
             tier=tier,
-            apply_min_qty=apply_min_qty,
         )
     except NoApplicableRate:
         # One line that cannot be priced must not lose the other five. The
