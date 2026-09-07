@@ -16,7 +16,11 @@
 }
 
 @if (adding()) {
-  <form class="add" (ngSubmit)="add()">
+  <!-- The native `submit`, not `ngSubmit`. `ngSubmit` is NgForm's output and
+       NgForm lives in FormsModule, which this component does not import — so
+       `(ngSubmit)` bound a DOM event that nothing ever fires and the Add
+       button did nothing at all. -->
+  <form class="add" (submit)="submitAdd($event)">
     <div>
       <label for="name">Name</label>
       <input

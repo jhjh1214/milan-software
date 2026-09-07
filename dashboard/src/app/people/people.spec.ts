@@ -190,6 +190,41 @@ describe('People', () => {
   });
 
   describe('adding somebody', () => {
+    it('the button sends it', () => {
+      // Driven through the DOM on purpose. Every other test here calls
+      // `add()`, which is exactly what let the form go out bound to
+      // `(ngSubmit)` without FormsModule — a DOM event nothing ever fires, so
+      // the Add button did nothing and no assertion in this file could tell.
+      load([]);
+      const open = [...fixture.nativeElement.querySelectorAll('button')].find(
+        (b: HTMLButtonElement) => b.textContent?.trim() === 'Add somebody',
+      ) as HTMLButtonElement;
+      open.click();
+      fixture.detectChanges();
+
+      const set = (id: string, value: string): void => {
+        const input = fixture.nativeElement.querySelector(
+          `#${id}`,
+        ) as HTMLInputElement;
+        input.value = value;
+        input.dispatchEvent(new Event('input'));
+        fixture.detectChanges();
+      };
+      set('name', 'Ah Lian');
+      set('phone', '0123456789');
+      set('pin', '4821');
+
+      const add = [...fixture.nativeElement.querySelectorAll('button')].find(
+        (b: HTMLButtonElement) => b.textContent?.trim() === 'Add',
+      ) as HTMLButtonElement;
+      add.click();
+      fixture.detectChanges();
+
+      const req = http.expectOne('/api/people');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body.name).toBe('Ah Lian');
+    });
+
     it('will not send until there is a name, a phone and a PIN', () => {
       load([]);
       expect(component['canAdd']()).toBe(false);

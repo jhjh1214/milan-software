@@ -95,6 +95,12 @@ export class People {
       this.pin().length > 0,
   );
 
+  /** The form's own submit, so Enter in a box adds rather than reloading. */
+  protected submitAdd(event: Event): void {
+    event.preventDefault();
+    this.add();
+  }
+
   protected add(): void {
     if (!this.canAdd()) return;
     this.failure.set(null);
