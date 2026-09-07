@@ -106,4 +106,22 @@ export const ZH: Strings = {
     signedOut: '已登出。重新登入才能看排程。',
     wentWrong: '载入排程时出了点问题。',
   },
+
+  overrides: {
+    title: '人手改过的价格',
+    week: '星期',
+    earlier: '← 上一周',
+    later: '下一周 →',
+    quietWeek: '这一周没有人改过价格。',
+    netForWeek: (changes, net) => `${changes} 笔，合计 ${net}`,
+    caption: (from, to) => `${from} 至 ${to} 之间所有人手改过的价格`,
+    who: '谁改的',
+    from: '原价',
+    to: '改成',
+    change: '差额',
+    why: '原因',
+    when: '时间',
+    notAdmin: '只有管理员可以看改价记录。',
+    wentWrong: '载入改价记录时出了点问题。',
+  },
 };

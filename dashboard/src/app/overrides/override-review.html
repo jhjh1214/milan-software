@@ -1,47 +1,46 @@
 <header class="head">
-  <h1>Prices changed by hand</h1>
+  <h1>{{ t().overrides.title }}</h1>
 
-  <nav class="week" aria-label="Week">
-    <button type="button" (click)="step(-1)">&larr; Earlier</button>
+  <nav class="week" [attr.aria-label]="t().overrides.week">
+    <button type="button" (click)="step(-1)">{{ t().overrides.earlier }}</button>
     <span class="range">
       {{ date(start().toISOString()) }} – {{ date(lastDay()) }}
     </span>
-    <button type="button" (click)="step(1)">Later &rarr;</button>
+    <button type="button" (click)="step(1)">{{ t().overrides.later }}</button>
   </nav>
 </header>
 
-@if (failure(); as message) {
+@if (failure(); as failed) {
   <p class="failure" role="alert">
-    {{ message }}
-    <button type="button" (click)="retry()">Try again</button>
+    {{ message(failed) }}
+    <button type="button" (click)="retry()">{{ t().common.tryAgain }}</button>
   </p>
 } @else if (loading()) {
-  <p class="muted" role="status">Loading…</p>
+  <p class="muted" role="status">{{ t().common.loading }}</p>
 } @else if (rows().length === 0) {
   <!-- Said in words. An empty list reads as "failed to load", and this screen
        has to be trustworthy about a week in which nobody changed anything. -->
-  <p class="empty">Nobody changed a price this week.</p>
+  <p class="empty">{{ t().overrides.quietWeek }}</p>
 } @else {
   <!-- The number to see before reading a single row. A week full of
        individually reasonable-looking changes can still add up to something
        nobody decided. -->
   <p class="net" [class.down]="net() < 0">
-    {{ rows().length }} changes, {{ money(net()) }} net
+    {{ t().overrides.netForWeek(rows().length, money(net())) }}
   </p>
 
   <table>
     <caption class="visually-hidden">
-      Every price moved by hand between
-      {{ date(start().toISOString()) }} and {{ date(lastDay()) }}
+      {{ t().overrides.caption(date(start().toISOString()), date(lastDay())) }}
     </caption>
     <thead>
       <tr>
-        <th scope="col">Who</th>
-        <th scope="col">From</th>
-        <th scope="col">To</th>
-        <th scope="col">Change</th>
-        <th scope="col">Why</th>
-        <th scope="col">When</th>
+        <th scope="col">{{ t().overrides.who }}</th>
+        <th scope="col">{{ t().overrides.from }}</th>
+        <th scope="col">{{ t().overrides.to }}</th>
+        <th scope="col">{{ t().overrides.change }}</th>
+        <th scope="col">{{ t().overrides.why }}</th>
+        <th scope="col">{{ t().overrides.when }}</th>
       </tr>
     </thead>
     <tbody>
@@ -54,7 +53,8 @@
             {{ money(row.after_sen - row.before_sen) }}
           </td>
           <!-- As typed. Summarising it would lose the thing the review exists
-               to read. -->
+               to read — and translating it would be worse: it is what one
+               named person wrote about one price. -->
           <td class="why">{{ row.reason }}</td>
           <td>{{ date(row.at) }}</td>
         </tr>

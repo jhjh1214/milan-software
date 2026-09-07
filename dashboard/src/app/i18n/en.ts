@@ -108,4 +108,23 @@ export const EN: Strings = {
     signedOut: 'Signed out. Sign in again to see the queue.',
     wentWrong: 'Something went wrong loading the queue.',
   },
+
+  overrides: {
+    title: 'Prices changed by hand',
+    week: 'Week',
+    earlier: '← Earlier',
+    later: 'Later →',
+    quietWeek: 'Nobody changed a price this week.',
+    netForWeek: (changes, net) => `${changes} changes, ${net} net`,
+    caption: (from, to) =>
+      `Every price moved by hand between ${from} and ${to}`,
+    who: 'Who',
+    from: 'From',
+    to: 'To',
+    change: 'Change',
+    why: 'Why',
+    when: 'When',
+    notAdmin: 'Only an admin can see the override log.',
+    wentWrong: 'Something went wrong loading the log.',
+  },
 };

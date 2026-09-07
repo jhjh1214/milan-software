@@ -23,6 +23,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 
 import { Api } from '../api/api';
+import { commonMessage, failureOf, type Failure } from '../i18n/failure';
+import { Text } from '../i18n/text';
 import { formatDate, formatSen } from '../api/money';
 import type { PriceOverrideOut } from '../api/types';
 
@@ -51,7 +53,19 @@ export class OverrideReview {
 
   protected readonly rows = signal<readonly PriceOverrideOut[]>([]);
   protected readonly loading = signal(false);
-  protected readonly failure = signal<string | null>(null);
+  protected readonly failure = signal<Failure | null>(null);
+
+  /** The words, as a signal: switching language re-renders the log. */
+  protected readonly t = inject(Text).strings;
+
+  /** Chosen at render time, so a failure on screen follows the language. */
+  protected message(failure: Failure): string {
+    // §6.5 makes this admin-only on the server. Said plainly rather than shown
+    // as an empty week, which would read as "nobody changed anything".
+    if (failure.status === 403) return this.t().overrides.notAdmin;
+    if (failure.status === null) return this.t().overrides.wentWrong;
+    return commonMessage(this.t(), failure);
+  }
 
   private readonly params = toSignal(this.route.queryParamMap, {
     initialValue: null,
@@ -103,7 +117,7 @@ export class OverrideReview {
       },
       error: (err: unknown) => {
         this.rows.set([]);
-        this.failure.set(describe(err));
+        this.failure.set(failureOf(err));
         this.loading.set(false);
       },
     });
@@ -132,17 +146,4 @@ export class OverrideReview {
     last.setUTCDate(last.getUTCDate() - 1);
     return last.toISOString();
   });
-}
-
-function describe(err: unknown): string {
-  if (typeof err === 'object' && err !== null && 'status' in err) {
-    const status = (err as { status: number }).status;
-    // §6.5 makes this admin-only on the server. Said plainly rather than shown
-    // as an empty week, which would read as "nobody changed anything".
-    if (status === 403) return 'Only an admin can see the override log.';
-    if (status === 401) return 'Signed out. Sign in again.';
-    if (status === 0) return 'No answer from the server.';
-    return `The server answered ${status}.`;
-  }
-  return 'Something went wrong loading the log.';
 }

@@ -20,6 +20,7 @@ import { RouterTestingHarness } from '@angular/router/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { PriceOverrideOut } from '../api/types';
+import { Text } from '../i18n/text';
 import { OverrideReview, weekStart } from './override-review';
 
 const row = (over: Partial<PriceOverrideOut> = {}): PriceOverrideOut => ({
@@ -53,6 +54,7 @@ describe('weekStart', () => {
 describe('OverrideReview', () => {
   let fixture: ComponentFixture<OverrideReview>;
   let http: HttpTestingController;
+  let i18n: Text;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -64,6 +66,9 @@ describe('OverrideReview', () => {
     });
     fixture = TestBed.createComponent(OverrideReview);
     http = TestBed.inject(HttpTestingController);
+    i18n = TestBed.inject(Text);
+    // Pinned rather than assumed: the dashboard defaults to Chinese (§13 C9).
+    i18n.pick('en');
   });
 
   const load = (rows: PriceOverrideOut[]): void => {
@@ -152,6 +157,61 @@ describe('OverrideReview', () => {
     expect(text()).toContain('The server answered 500');
     expect(text()).toContain('Try again');
   });
+
+  describe('in the other two languages', () => {
+    // SPEC.md §13 C9. §6.5 is blunt that this screen *is* the control — an
+    // audit log only counts if somebody reads it, and somebody who cannot
+    // read the column headings is not reading it.
+
+    it('says the whole review in Chinese', () => {
+      i18n.pick('zh');
+      load([row()]);
+
+      expect(text()).toContain('人手改过的价格');
+      expect(text()).toContain('1 笔，合计');
+      expect(text()).toContain('原因');
+      expect(text()).not.toContain('Prices changed by hand');
+    });
+
+    it('says the whole review in Malay', () => {
+      i18n.pick('ms');
+      load([row()]);
+
+      expect(text()).toContain('Harga yang diubah dengan tangan');
+      expect(text()).toContain('1 perubahan');
+      expect(text()).toContain('Sebab');
+    });
+
+    it('the reason is shown as typed, never translated', () => {
+      // It is what one named person wrote about one price, and §6.5 makes it
+      // the thing the review exists to read. Rewording it in another language
+      // would put words in their mouth.
+      i18n.pick('ms');
+      load([row({ reason: 'matched a competitor quote' })]);
+
+      expect(text()).toContain('matched a competitor quote');
+    });
+
+    it('a quiet week says so in the reader’s language', () => {
+      // An empty table reads as "failed to load" in any language.
+      i18n.pick('zh');
+      load([]);
+
+      expect(text()).toContain('这一周没有人改过价格');
+    });
+
+    it('a refusal is not shown as a quiet week, in any language', () => {
+      i18n.pick('ms');
+      fixture.detectChanges();
+      http
+        .expectOne((r) => r.url === '/api/overrides')
+        .flush({ detail: 'no' }, { status: 403, statusText: 'Forbidden' });
+      fixture.detectChanges();
+
+      expect(text()).toContain('Hanya admin boleh melihat log');
+      expect(text()).not.toContain('Tiada sesiapa mengubah harga');
+    });
+  });
 });
 
 /**
@@ -172,6 +232,7 @@ describe('OverrideReview: the week arrows', () => {
   let harness: RouterTestingHarness;
   let http: HttpTestingController;
   let router: Router;
+  let i18n: Text;
 
   beforeEach(async () => {
     TestBed.configureTestingModule({
@@ -183,6 +244,8 @@ describe('OverrideReview: the week arrows', () => {
     });
     http = TestBed.inject(HttpTestingController);
     router = TestBed.inject(Router);
+    i18n = TestBed.inject(Text);
+    i18n.pick('en');
     harness = await RouterTestingHarness.create();
   });
 

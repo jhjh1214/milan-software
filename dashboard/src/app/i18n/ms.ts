@@ -111,4 +111,23 @@ export const MS: Strings = {
     signedOut: 'Sudah log keluar. Log masuk semula untuk melihat senarai.',
     wentWrong: 'Ada masalah semasa memuatkan senarai.',
   },
+
+  overrides: {
+    title: 'Harga yang diubah dengan tangan',
+    week: 'Minggu',
+    earlier: '← Lebih awal',
+    later: 'Kemudian →',
+    quietWeek: 'Tiada sesiapa mengubah harga minggu ini.',
+    netForWeek: (changes, net) => `${changes} perubahan, bersih ${net}`,
+    caption: (from, to) =>
+      `Setiap harga yang diubah dengan tangan antara ${from} dan ${to}`,
+    who: 'Siapa',
+    from: 'Dari',
+    to: 'Kepada',
+    change: 'Perubahan',
+    why: 'Sebab',
+    when: 'Bila',
+    notAdmin: 'Hanya admin boleh melihat log perubahan harga.',
+    wentWrong: 'Ada masalah semasa memuatkan log.',
+  },
 };

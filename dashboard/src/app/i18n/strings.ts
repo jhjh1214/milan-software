@@ -159,6 +159,26 @@ export interface QueueStrings {
   readonly wentWrong: string;
 }
 
+/** The weekly override review. §6.5 — this screen *is* the control. */
+export interface OverridesStrings {
+  readonly title: string;
+  readonly week: string;
+  readonly earlier: string;
+  readonly later: string;
+  readonly quietWeek: string;
+  /** "3 changes, RM -132.00 net" — the number to read before any row. */
+  readonly netForWeek: (changes: number, net: string) => string;
+  readonly caption: (from: string, to: string) => string;
+  readonly who: string;
+  readonly from: string;
+  readonly to: string;
+  readonly change: string;
+  readonly why: string;
+  readonly when: string;
+  readonly notAdmin: string;
+  readonly wentWrong: string;
+}
+
 export interface SignInStrings {
   readonly phone: string;
   readonly pin: string;
@@ -180,4 +200,5 @@ export interface Strings {
   readonly signIn: SignInStrings;
   readonly board: BoardStrings;
   readonly queue: QueueStrings;
+  readonly overrides: OverridesStrings;
 }
