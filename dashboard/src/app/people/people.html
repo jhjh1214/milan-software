@@ -1,17 +1,19 @@
 <header class="head">
-  <h1>People</h1>
+  <h1>{{ t().people.title }}</h1>
   @if (!adding()) {
-    <button type="button" class="primary" (click)="openAdd()">Add somebody</button>
+    <button type="button" class="primary" (click)="openAdd()">
+      {{ t().people.addSomebody }}
+    </button>
   }
 </header>
 
-@if (note(); as message) {
-  <p class="note" role="status">{{ message }}</p>
+@if (note(); as what) {
+  <p class="note" role="status">{{ noteText(what) }}</p>
 }
-@if (failure(); as message) {
+@if (failure(); as failed) {
   <p class="failure" role="alert">
-    {{ message }}
-    <button type="button" (click)="retry()">Reload</button>
+    {{ message(failed) }}
+    <button type="button" (click)="retry()">{{ t().common.reload }}</button>
   </p>
 }
 
@@ -22,7 +24,7 @@
        button did nothing at all. -->
   <form class="add" (submit)="submitAdd($event)">
     <div>
-      <label for="name">Name</label>
+      <label for="name">{{ t().people.name }}</label>
       <input
         id="name"
         [value]="name()"
@@ -30,7 +32,7 @@
       />
     </div>
     <div>
-      <label for="phone">Phone</label>
+      <label for="phone">{{ t().people.phone }}</label>
       <input
         id="phone"
         type="tel"
@@ -40,7 +42,7 @@
       />
     </div>
     <div>
-      <label for="pin">PIN</label>
+      <label for="pin">{{ t().people.pin }}</label>
       <input
         id="pin"
         type="password"
@@ -51,35 +53,41 @@
       />
     </div>
     <div>
-      <label for="role">Role</label>
+      <label for="role">{{ t().people.role }}</label>
       <select
         id="role"
         [value]="role()"
         (change)="role.set($any($event.target).value)"
       >
         @for (r of roles; track r) {
-          <option [value]="r">{{ r }}</option>
+          <option [value]="r">{{ t().role[r] }}</option>
         }
       </select>
     </div>
     <div class="actions">
-      <button type="submit" class="primary" [disabled]="!canAdd()">Add</button>
-      <button type="button" (click)="adding.set(false)">Cancel</button>
+      <button type="submit" class="primary" [disabled]="!canAdd()">
+        {{ t().people.add }}
+      </button>
+      <button type="button" (click)="adding.set(false)">
+        {{ t().common.cancel }}
+      </button>
     </div>
   </form>
 }
 
 @if (loading()) {
-  <p class="muted" role="status">Loading…</p>
+  <p class="muted" role="status">{{ t().common.loading }}</p>
 } @else if (people().length > 0) {
   <table>
     <thead>
       <tr>
-        <th scope="col">Name</th>
-        <th scope="col">Phone</th>
-        <th scope="col">Role</th>
-        <th scope="col">Status</th>
-        <th scope="col"><span class="visually-hidden">Actions</span></th>
+        <th scope="col">{{ t().people.name }}</th>
+        <th scope="col">{{ t().people.phone }}</th>
+        <th scope="col">{{ t().people.role }}</th>
+        <th scope="col">{{ t().people.status }}</th>
+        <th scope="col">
+          <span class="visually-hidden">{{ t().people.actions }}</span>
+        </th>
       </tr>
     </thead>
     <tbody>
@@ -87,28 +95,28 @@
         <tr [class.gone]="!person.is_active">
           <td>{{ person.name }}</td>
           <td class="num">{{ person.phone }}</td>
-          <td class="role">{{ person.role }}</td>
+          <td class="role">{{ t().role[person.role] }}</td>
           <td>
             @if (person.is_active) {
-              Active
+              {{ t().people.active }}
             } @else {
               <!-- Leavers stay on the list. A screen that hides them cannot
                    answer "who used to have access". -->
-              Left {{ date(person.deactivated_at) }}
+              {{ t().people.left(date(person.deactivated_at)) }}
             }
           </td>
           <td class="actions">
             @if (isMe(person)) {
               <!-- Locking the last admin out is a mistake nobody can undo from
                    the app. The server refuses it too. -->
-              <span class="muted">You</span>
+              <span class="muted">{{ t().people.you }}</span>
             } @else if (person.is_active) {
               <button type="button" (click)="startDeactivating(person)">
-                Remove access
+                {{ t().people.removeAccess }}
               </button>
             } @else {
               <button type="button" (click)="reactivate(person)">
-                Let back in
+                {{ t().people.letBackIn }}
               </button>
             }
           </td>
@@ -120,15 +128,20 @@
 
 @if (confirming(); as person) {
   <div class="confirm" role="dialog" aria-labelledby="confirm-title">
-    <h2 id="confirm-title">Remove {{ person.name }}'s access?</h2>
-    <p>
-      Their handset signs out the next time it reaches the server. Their quotes
-      and payments stay, and still name them.
-    </p>
+    <h2 id="confirm-title">{{ t().people.removeTitle(person.name) }}</h2>
+    <p>{{ t().people.removeWhat }}</p>
     <!-- §11 Phase 5's acceptance criterion. Not friction for its own sake:
          doing this to the wrong person silently locks somebody out mid-fair,
-         and typing the name is the cheapest way to make the click deliberate. -->
-    <label for="typed">Type <strong>{{ person.name }}</strong> to confirm</label>
+         and typing the name is the cheapest way to make the click deliberate.
+
+         The name sits under the instruction rather than inside it. A sentence
+         with a name embedded needs a different word order in each language and
+         puts markup in the middle of a translated string; this reads the same
+         in all three and keeps the emphasis where it belongs. -->
+    <label for="typed">
+      {{ t().people.typeToConfirm }}
+      <strong>{{ person.name }}</strong>
+    </label>
     <input
       id="typed"
       autocomplete="off"
@@ -142,9 +155,11 @@
         [disabled]="!nameMatches()"
         (click)="deactivate()"
       >
-        Remove access
+        {{ t().people.removeAccess }}
       </button>
-      <button type="button" (click)="cancelDeactivating()">Keep it</button>
+      <button type="button" (click)="cancelDeactivating()">
+        {{ t().people.keepIt }}
+      </button>
     </div>
   </div>
 }

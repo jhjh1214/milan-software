@@ -25,9 +25,27 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 
 import { Api } from '../api/api';
+import { commonMessage, failureOf, type Failure } from '../i18n/failure';
+import { Text } from '../i18n/text';
 import { formatDate } from '../api/money';
 import { Session } from '../auth/session';
 import type { PersonOut, Role } from '../api/types';
+
+/**
+ * What just happened on this screen, before it becomes a sentence.
+ *
+ * A note names a person and sometimes a number of handsets, and somebody may
+ * be reading it out to that person. Composing it at the moment of the click
+ * would freeze it in whichever language was on screen then.
+ */
+type Note =
+  | { readonly kind: 'added'; readonly name: string }
+  | { readonly kind: 'reactivated'; readonly name: string }
+  | {
+      readonly kind: 'deactivated';
+      readonly name: string;
+      readonly handsets: number;
+    };
 
 @Component({
   selector: 'app-people',
@@ -43,8 +61,47 @@ export class People {
 
   protected readonly people = signal<readonly PersonOut[]>([]);
   protected readonly loading = signal(false);
-  protected readonly failure = signal<string | null>(null);
-  protected readonly note = signal<string | null>(null);
+  protected readonly failure = signal<Failure | null>(null);
+
+  /**
+   * What just happened, as what happened rather than as a sentence.
+   *
+   * The same reasoning as a failure: a note composed at the moment of the
+   * click freezes in whichever language was on screen then, and this one
+   * names a person and a number of handsets that somebody may well be
+   * reading out to them.
+   */
+  protected readonly note = signal<Note | null>(null);
+
+  /** The words, as a signal: switching language re-renders the roster. */
+  protected readonly t = inject(Text).strings;
+
+  protected noteText(note: Note): string {
+    const words = this.t().people;
+    switch (note.kind) {
+      case 'added':
+        return words.canSignInNow(note.name);
+      case 'reactivated':
+        return words.canSignInAgain(note.name);
+      default:
+        return note.handsets === 0
+          ? words.cannotSignIn(note.name)
+          : words.cannotSignInAndOut(note.name, note.handsets);
+    }
+  }
+
+  /** Chosen at render time, so a failure on screen follows the language. */
+  protected message(failure: Failure): string {
+    const words = this.t().people;
+    if (failure.status === 409) return words.phoneTaken;
+    // The server refuses a PIN nobody should be issued. Saying which rule it
+    // broke beats "422".
+    if (failure.status === 422) return words.weakPin;
+    if (failure.status === 403) return words.notAdmin;
+    if (failure.status === 404) return words.noSuchPerson;
+    if (failure.status === null) return words.wentWrong;
+    return commonMessage(this.t(), failure);
+  }
 
   /** The new-person form. */
   protected readonly adding = signal(false);
@@ -72,7 +129,7 @@ export class People {
       },
       error: (err: unknown) => {
         this.people.set([]);
-        this.failure.set(describe(err));
+        this.failure.set(failureOf(err));
         this.loading.set(false);
       },
     });
@@ -120,10 +177,10 @@ export class People {
           this.phone.set('');
           this.role.set('parttime');
           this.adding.set(false);
-          this.note.set(`${person.name} can sign in now.`);
+          this.note.set({ kind: 'added', name: person.name });
           this.load();
         },
-        error: (err: unknown) => this.failure.set(describe(err)),
+        error: (err: unknown) => this.failure.set(failureOf(err)),
       });
   }
 
@@ -159,15 +216,14 @@ export class People {
       next: (out) => {
         this.confirming.set(null);
         this.typedName.set('');
-        this.note.set(
-          out.sessions_revoked === 0
-            ? `${person.name} can no longer sign in.`
-            : `${person.name} can no longer sign in. ` +
-              `${out.sessions_revoked} handset(s) signed out.`,
-        );
+        this.note.set({
+          kind: 'deactivated',
+          name: person.name,
+          handsets: out.sessions_revoked,
+        });
         this.load();
       },
-      error: (err: unknown) => this.failure.set(describe(err)),
+      error: (err: unknown) => this.failure.set(failureOf(err)),
     });
   }
 
@@ -177,10 +233,10 @@ export class People {
       next: () => {
         // Said out loud: their old handsets stay signed out, so somebody
         // expecting the phone in the drawer to work again is told otherwise.
-        this.note.set(`${person.name} can sign in again. They will have to.`);
+        this.note.set({ kind: 'reactivated', name: person.name });
         this.load();
       },
-      error: (err: unknown) => this.failure.set(describe(err)),
+      error: (err: unknown) => this.failure.set(failureOf(err)),
     });
   }
 
@@ -190,22 +246,4 @@ export class People {
   }
 
   protected readonly date = formatDate;
-}
-
-function describe(err: unknown): string {
-  if (typeof err === 'object' && err !== null && 'status' in err) {
-    const status = (err as { status: number }).status;
-    if (status === 409) return 'Somebody already signs in with that number.';
-    // The server refuses a PIN nobody should be issued. Saying which rule it
-    // broke beats "422".
-    if (status === 422) {
-      return 'Refused — check the PIN is four or more digits and not obvious.';
-    }
-    if (status === 403) return 'Only an admin can manage people.';
-    if (status === 401) return 'Signed out. Sign in again.';
-    if (status === 404) return 'That person no longer exists.';
-    if (status === 0) return 'No answer from the server.';
-    return `The server answered ${status}.`;
-  }
-  return 'Something went wrong.';
 }

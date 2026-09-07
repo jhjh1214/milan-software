@@ -127,4 +127,43 @@ export const EN: Strings = {
     notAdmin: 'Only an admin can see the override log.',
     wentWrong: 'Something went wrong loading the log.',
   },
+
+  role: {
+    admin: 'Admin',
+    staff: 'Staff',
+    parttime: 'Part-timer',
+  },
+
+  people: {
+    title: 'People',
+    addSomebody: 'Add somebody',
+    name: 'Name',
+    phone: 'Phone',
+    pin: 'PIN',
+    role: 'Role',
+    add: 'Add',
+    status: 'Status',
+    actions: 'Actions',
+    active: 'Active',
+    left: (date) => `Left ${date}`,
+    you: 'You',
+    removeAccess: 'Remove access',
+    letBackIn: 'Let back in',
+    keepIt: 'Keep it',
+    removeTitle: (name) => `Remove ${name}'s access?`,
+    removeWhat:
+      'Their handset signs out the next time it reaches the server. Their ' +
+      'quotes and payments stay, and still name them.',
+    typeToConfirm: 'Type this name to confirm:',
+    canSignInNow: (name) => `${name} can sign in now.`,
+    cannotSignIn: (name) => `${name} can no longer sign in.`,
+    cannotSignInAndOut: (name, handsets) =>
+      `${name} can no longer sign in. ${handsets} handset(s) signed out.`,
+    canSignInAgain: (name) => `${name} can sign in again. They will have to.`,
+    phoneTaken: 'Somebody already signs in with that number.',
+    weakPin: 'Refused — check the PIN is four or more digits and not obvious.',
+    notAdmin: 'Only an admin can manage people.',
+    noSuchPerson: 'That person no longer exists.',
+    wentWrong: 'Something went wrong.',
+  },
 };

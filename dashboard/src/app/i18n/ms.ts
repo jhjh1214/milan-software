@@ -130,4 +130,45 @@ export const MS: Strings = {
     notAdmin: 'Hanya admin boleh melihat log perubahan harga.',
     wentWrong: 'Ada masalah semasa memuatkan log.',
   },
+
+  role: {
+    admin: 'Admin',
+    staff: 'Kakitangan',
+    parttime: 'Separuh masa',
+  },
+
+  people: {
+    title: 'Pengguna',
+    addSomebody: 'Tambah orang',
+    name: 'Nama',
+    phone: 'Nombor telefon',
+    pin: 'PIN',
+    role: 'Peranan',
+    add: 'Tambah',
+    status: 'Status',
+    actions: 'Tindakan',
+    active: 'Aktif',
+    left: (date) => `Berhenti ${date}`,
+    you: 'Anda',
+    removeAccess: 'Tarik balik akses',
+    letBackIn: 'Benarkan semula',
+    keepIt: 'Jangan',
+    removeTitle: (name) => `Tarik balik akses ${name}?`,
+    removeWhat:
+      'Telefon mereka akan log keluar kali seterusnya ia menghubungi pelayan. ' +
+      'Sebut harga dan bayaran mereka kekal, dan masih atas nama mereka.',
+    typeToConfirm: 'Taip nama ini untuk mengesahkan:',
+    canSignInNow: (name) => `${name} boleh log masuk sekarang.`,
+    cannotSignIn: (name) => `${name} tidak boleh log masuk lagi.`,
+    cannotSignInAndOut: (name, handsets) =>
+      `${name} tidak boleh log masuk lagi. ${handsets} telefon telah log keluar.`,
+    canSignInAgain: (name) =>
+      `${name} boleh log masuk semula. Mereka perlu log masuk sekali lagi.`,
+    phoneTaken: 'Nombor itu sudah digunakan oleh orang lain.',
+    weakPin:
+      'Ditolak — pastikan PIN empat digit ke atas dan bukan nombor yang mudah.',
+    notAdmin: 'Hanya admin boleh menguruskan pengguna.',
+    noSuchPerson: 'Orang itu tidak wujud lagi.',
+    wentWrong: 'Ada sesuatu yang tidak kena.',
+  },
 };

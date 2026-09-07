@@ -179,6 +179,53 @@ export interface OverridesStrings {
   readonly wentWrong: string;
 }
 
+/** The three roles. §3. Server-enforced; these are only what to call them. */
+export interface RoleStrings {
+  readonly admin: string;
+  readonly staff: string;
+  readonly parttime: string;
+}
+
+/** Who can sign in, and who used to. §11 Phase 5, §12. */
+export interface PeopleStrings {
+  readonly title: string;
+  readonly addSomebody: string;
+  readonly name: string;
+  readonly phone: string;
+  readonly pin: string;
+  readonly role: string;
+  readonly add: string;
+  readonly status: string;
+  readonly actions: string;
+  readonly active: string;
+  readonly left: (date: string) => string;
+  readonly you: string;
+  readonly removeAccess: string;
+  readonly letBackIn: string;
+  readonly keepIt: string;
+  readonly removeTitle: (name: string) => string;
+  readonly removeWhat: string;
+  /**
+   * The instruction, and the name is shown under it rather than inside it.
+   *
+   * §11 Phase 5's acceptance criterion is that removing access requires typing
+   * the person's name. A sentence with the name embedded in it needs a
+   * different word order in each language and puts markup in the middle of a
+   * translated string; putting the name on its own line reads the same in all
+   * three and keeps the emphasis where it belongs.
+   */
+  readonly typeToConfirm: string;
+  readonly canSignInNow: (name: string) => string;
+  readonly cannotSignIn: (name: string) => string;
+  readonly cannotSignInAndOut: (name: string, handsets: number) => string;
+  readonly canSignInAgain: (name: string) => string;
+  readonly phoneTaken: string;
+  readonly weakPin: string;
+  readonly notAdmin: string;
+  readonly noSuchPerson: string;
+  readonly wentWrong: string;
+}
+
 export interface SignInStrings {
   readonly phone: string;
   readonly pin: string;
@@ -201,4 +248,6 @@ export interface Strings {
   readonly board: BoardStrings;
   readonly queue: QueueStrings;
   readonly overrides: OverridesStrings;
+  readonly role: RoleStrings;
+  readonly people: PeopleStrings;
 }

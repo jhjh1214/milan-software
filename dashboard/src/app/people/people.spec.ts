@@ -19,6 +19,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { Session } from '../auth/session';
 import type { PersonOut } from '../api/types';
+import { Text } from '../i18n/text';
 import { People } from './people';
 
 const person = (over: Partial<PersonOut> = {}): PersonOut => ({
@@ -38,6 +39,7 @@ describe('People', () => {
   let component: People;
   let http: HttpTestingController;
   let session: Session;
+  let i18n: Text;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -47,6 +49,10 @@ describe('People', () => {
     component = fixture.componentInstance;
     http = TestBed.inject(HttpTestingController);
     session = TestBed.inject(Session);
+    i18n = TestBed.inject(Text);
+    // Pinned rather than assumed: the dashboard defaults to Chinese (§13 C9)
+    // and nobody is signed in here.
+    i18n.pick('en');
   });
 
   const load = (people: PersonOut[]): void => {
@@ -436,6 +442,54 @@ describe('People', () => {
       http.expectOne('/api/people/u2/reactivate').flush(person({ id: 'u2' }));
       fixture.detectChanges();
       expect(text()).toContain('They will have to');
+    });
+
+    it('the criterion holds in Malay too', async () => {
+      // §11 Phase 5's acceptance criterion is that removing access requires
+      // typing the person's name — not that it requires typing it in English.
+      // The name goes UNDER the instruction rather than inside it, so the
+      // sentence needs no word order of its own in any of the three.
+      i18n.pick('ms');
+      load([person({ name: 'Ah Lian' }), person({ id: 'u2', name: 'Siti' })]);
+
+      rowButton(1).click();
+      fixture.detectChanges();
+      expect(text()).toContain('Tarik balik akses Siti?');
+      expect(text()).toContain('Taip nama ini untuk mengesahkan');
+      expect(el<HTMLButtonElement>('.confirm .danger').disabled).toBe(true);
+
+      typeName('Siti');
+      expect(el<HTMLButtonElement>('.confirm .danger').disabled).toBe(false);
+      click('.confirm .danger');
+
+      http
+        .expectOne('/api/people/u2/deactivate')
+        .flush({ id: 'u2', sessions_revoked: 2 });
+      http.expectOne('/api/people').flush({ people: [person()] });
+      fixture.detectChanges();
+
+      expect(text()).toContain('2 telefon telah log keluar');
+    });
+
+    it('a note already on screen follows a language change', () => {
+      // The note names a person and a number of handsets, and somebody may be
+      // reading it out to them. Composing it at the click would freeze it.
+      load([person({ name: 'Ah Lian' }), person({ id: 'u2', name: 'Siti' })]);
+      rowButton(1).click();
+      fixture.detectChanges();
+      typeName('Siti');
+      click('.confirm .danger');
+      http
+        .expectOne('/api/people/u2/deactivate')
+        .flush({ id: 'u2', sessions_revoked: 0 });
+      http.expectOne('/api/people').flush({ people: [person()] });
+      fixture.detectChanges();
+      expect(text()).toContain('Siti can no longer sign in');
+
+      i18n.pick('zh');
+      fixture.detectChanges();
+      expect(text()).toContain('Siti 不能再登入了');
+      expect(text()).not.toContain('can no longer sign in');
     });
 
     it('an admin’s own row offers no button at all', () => {
