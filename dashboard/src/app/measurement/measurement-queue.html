@@ -1,23 +1,22 @@
 <header class="queue-head">
-  <h1>Measurement queue</h1>
+  <h1>{{ t().queue.title }}</h1>
 
   <!-- Jobs across trips, in that order: a day is planned in trips and counted
        in jobs, and "9 trips" alone does not say how much work that is. -->
   <p class="count" role="status">
     @if (loading()) {
-      Loading…
+      {{ t().common.loading }}
     } @else {
-      {{ visibleOrders() }} job{{ visibleOrders() === 1 ? '' : 's' }} across
-      {{ visible().length }} trip{{ visible().length === 1 ? '' : 's' }}
+      {{ t().queue.jobsAcrossTrips(visibleOrders(), visible().length) }}
       @if (visibleUnmeasured() > 0) {
-        · {{ visibleUnmeasured() }} still to measure
+        · {{ t().queue.stillToMeasure(visibleUnmeasured()) }}
       }
     }
   </p>
 </header>
 
-<nav class="filters" aria-label="Filters">
-  <span class="filter-label" id="show-label">Show</span>
+<nav class="filters" [attr.aria-label]="t().queue.show">
+  <span class="filter-label" id="show-label">{{ t().queue.show }}</span>
   <div role="group" aria-labelledby="show-label">
     @for (f of filters; track f) {
       <button
@@ -27,28 +26,28 @@
         (click)="show(f)"
       >
         @switch (f) {
-          @case ('unbooked') { Nobody called yet }
-          @case ('booked') { Visit booked }
-          @default { All }
+          @case ('unbooked') { {{ t().queue.unbooked }} }
+          @case ('booked') { {{ t().queue.booked }} }
+          @default { {{ t().queue.all }} }
         }
       </button>
     }
   </div>
 </nav>
 
-@if (failure(); as message) {
+@if (failure(); as failed) {
   <!-- Said out loud, with a way back. A queue that silently shows nothing is
        indistinguishable from an empty one, and somebody would go home. -->
   <p class="failure" role="alert">
-    {{ message }}
-    <button type="button" (click)="retry()">Try again</button>
+    {{ message(failed) }}
+    <button type="button" (click)="retry()">{{ t().common.tryAgain }}</button>
   </p>
 } @else if (!loading() && visible().length === 0) {
   <p class="empty">
     @if (totalOrders() === 0) {
-      Nothing is waiting for a visit.
+      {{ t().queue.nothingWaiting }}
     } @else {
-      No trips match this filter.
+      {{ t().queue.noTripsMatch }}
     }
   </p>
 } @else {
@@ -66,17 +65,14 @@
           <div class="trip-meta">
             <!-- The number the whole queue is ordered by. Said in words as
                  well as in colour: colour alone is not information. -->
-            <p class="waiting">
-              Waiting {{ group.waiting_days }}
-              day{{ group.waiting_days === 1 ? '' : 's' }}
-            </p>
+            <p class="waiting">{{ t().queue.waiting(group.waiting_days) }}</p>
             <p class="booked">
               @if (group.booked_count === 0) {
-                Nobody called yet
+                {{ t().queue.unbooked }}
               } @else if (group.booked_count === group.jobs.length) {
-                Visit booked
+                {{ t().queue.booked }}
               } @else {
-                {{ group.booked_count }} of {{ group.jobs.length }} booked
+                {{ t().queue.someBooked(group.booked_count, group.jobs.length) }}
               }
             </p>
           </div>
@@ -86,17 +82,14 @@
           <!-- Why these are one card. §11 Phase 5: one trip covers several
                units, and the saving is only real if somebody can see it. -->
           <p class="together">
-            {{ group.jobs.length }} orders for one customer — one visit covers
-            them all
+            {{ t().queue.oneVisitCovers(group.jobs.length) }}
           </p>
         }
 
         @if (!group.grouped_by_phone) {
           <!-- Honest about what could not be grouped. Pooling the phone-less
                orders would invent a trip that does not exist. -->
-          <p class="ungrouped">
-            No phone recorded, so this could not be grouped with anything else.
-          </p>
+          <p class="ungrouped">{{ t().queue.noPhone }}</p>
         }
 
         <ul class="jobs">
@@ -104,12 +97,16 @@
             <li class="job">
               <a [routerLink]="['/orders', job.order_id]">
                 <span class="reference" [class.pending]="job.order_no === null">
-                  {{ job.order_no ?? 'pending sync' }}
+                  {{ job.order_no ?? t().queue.pendingSync }}
                 </span>
 
                 <span class="lines">
-                  {{ job.unmeasured_line_count }} of {{ job.line_count }} to
-                  measure
+                  {{
+                    t().queue.toMeasure(
+                      job.unmeasured_line_count,
+                      job.line_count
+                    )
+                  }}
                 </span>
 
                 @if (job.material_pending_count > 0) {
@@ -117,10 +114,7 @@
                        in its group, so every one of these is a decision that
                        can only make the final price go down. -->
                   <span class="materials">
-                    {{ job.material_pending_count }} material{{
-                      job.material_pending_count === 1 ? '' : 's'
-                    }}
-                    to choose
+                    {{ t().queue.materialsToChoose(job.material_pending_count) }}
                   </span>
                 }
 
@@ -128,9 +122,9 @@
 
                 <span class="stage">
                   @if (job.booked_at) {
-                    Booked {{ date(job.booked_at) }}
+                    {{ t().queue.bookedOn(date(job.booked_at)) }}
                   } @else {
-                    Not booked
+                    {{ t().queue.notBooked }}
                   }
                 </span>
               </a>
@@ -139,8 +133,12 @@
         </ul>
 
         <p class="trip-total">
-          Trip total {{ money(total(group)) }} · oldest deposit
-          {{ date(group.oldest_confirmed_at) }}
+          {{
+            t().queue.tripTotal(
+              money(total(group)),
+              date(group.oldest_confirmed_at)
+            )
+          }}
         </p>
       </li>
     }

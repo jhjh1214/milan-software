@@ -25,6 +25,7 @@ import { RouterTestingHarness } from '@angular/router/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { MeasurementGroup, MeasurementJob } from '../api/types';
+import { Text } from '../i18n/text';
 import { MeasurementQueue, filterFrom, waitOf } from './measurement-queue';
 
 const job = (over: Partial<MeasurementJob> = {}): MeasurementJob => ({
@@ -86,6 +87,7 @@ describe('MeasurementQueue', () => {
   let http: HttpTestingController;
   let harness: RouterTestingHarness;
   let router: Router;
+  let i18n: Text;
 
   beforeEach(async () => {
     TestBed.configureTestingModule({
@@ -99,6 +101,10 @@ describe('MeasurementQueue', () => {
     });
     http = TestBed.inject(HttpTestingController);
     router = TestBed.inject(Router);
+    i18n = TestBed.inject(Text);
+    // Pinned rather than assumed: the dashboard defaults to Chinese (§13 C9)
+    // and nobody is signed in here. What these tests are about is the queue.
+    i18n.pick('en');
     harness = await RouterTestingHarness.create();
   });
 
@@ -344,6 +350,57 @@ describe('MeasurementQueue', () => {
         .flush({ groups: [trip()], total_orders: 1 });
       harness.detectChanges();
       expect(text()).not.toContain('The server answered 500');
+    });
+  });
+
+  describe('in the other two languages', () => {
+    // SPEC.md §13 C9. Every count on this screen is a function rather than a
+    // number beside a noun: English needs the plural `s`, Chinese needs a
+    // measure word and no plural, and Malay needs neither. A shared template
+    // would make two of the three read like a translation.
+
+    it('counts jobs and trips the way Chinese counts them', async () => {
+      i18n.pick('zh');
+      await open('/measurement', [
+        trip({ jobs: [job({ order_id: 'a' }), job({ order_id: 'b' })] }),
+      ]);
+
+      expect(text()).toContain('量尺排程');
+      expect(text()).toContain('1 趟，共 2 张单');
+      expect(text()).toContain('去一趟就够');
+      expect(text()).not.toContain('jobs across');
+    });
+
+    it('says the same things in Malay', async () => {
+      i18n.pick('ms');
+      await open('/measurement', [
+        trip({ jobs: [job({ order_id: 'a' }), job({ order_id: 'b' })] }),
+      ]);
+
+      expect(text()).toContain('Senarai ukuran');
+      expect(text()).toContain('2 pesanan dalam 1 perjalanan');
+      expect(text()).toContain('satu lawatan mencukupi');
+    });
+
+    it('a trip of one is not pluralised into a trip of many', async () => {
+      // The English `s` is the whole reason these are functions. Getting it
+      // from a template would print "1 jobs across 1 trips".
+      await open('/measurement', [trip()]);
+      expect(text()).toContain('1 job across 1 trip');
+      expect(text()).not.toContain('1 jobs');
+      expect(text()).not.toContain('1 trips');
+    });
+
+    it('what could not be grouped is said in the reader’s language', async () => {
+      // §13 C10. The honest sentence, not the silent one — and it is the
+      // sentence somebody acts on by going to find a phone number.
+      i18n.pick('ms');
+      await open('/measurement', [
+        trip({ key: 'order:o1', customer_phone: null, grouped_by_phone: false }),
+      ]);
+
+      expect(text()).toContain('Tiada nombor telefon');
+      expect(text()).not.toContain('No phone recorded');
     });
   });
 });

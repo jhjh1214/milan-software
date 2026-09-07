@@ -79,4 +79,33 @@ export const EN: Strings = {
     signedOut: 'Signed out. Sign in again to see the board.',
     wentWrong: 'Something went wrong loading the board.',
   },
+
+  queue: {
+    title: 'Measurement queue',
+    show: 'Show',
+    all: 'All',
+    unbooked: 'Nobody called yet',
+    booked: 'Visit booked',
+    jobsAcrossTrips: (jobs, trips) =>
+      `${jobs} job${jobs === 1 ? '' : 's'} across ` +
+      `${trips} trip${trips === 1 ? '' : 's'}`,
+    stillToMeasure: (lines) => `${lines} still to measure`,
+    nothingWaiting: 'Nothing is waiting for a visit.',
+    noTripsMatch: 'No trips match this filter.',
+    noName: 'No name recorded',
+    waiting: (days) => `Waiting ${days} day${days === 1 ? '' : 's'}`,
+    someBooked: (booked, jobs) => `${booked} of ${jobs} booked`,
+    oneVisitCovers: (orders) =>
+      `${orders} orders for one customer — one visit covers them all`,
+    noPhone: 'No phone recorded, so this could not be grouped with anything else.',
+    pendingSync: 'pending sync',
+    toMeasure: (unmeasured, lines) => `${unmeasured} of ${lines} to measure`,
+    materialsToChoose: (materials) =>
+      `${materials} material${materials === 1 ? '' : 's'} to choose`,
+    bookedOn: (date) => `Booked ${date}`,
+    notBooked: 'Not booked',
+    tripTotal: (total, oldest) => `Trip total ${total} · oldest deposit ${oldest}`,
+    signedOut: 'Signed out. Sign in again to see the queue.',
+    wentWrong: 'Something went wrong loading the queue.',
+  },
 };

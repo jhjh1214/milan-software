@@ -125,6 +125,40 @@ export interface BoardStrings {
   readonly wentWrong: string;
 }
 
+/**
+ * The measurement queue. §11 Phase 5, §13 C10.
+ *
+ * Every count is a function rather than a number dropped beside a noun.
+ * English needs the plural `s`, Chinese needs a measure word and no plural at
+ * all, and Malay needs neither — three shapes that cannot be assembled from
+ * one template without one of them reading like a translation.
+ */
+export interface QueueStrings {
+  readonly title: string;
+  readonly show: string;
+  readonly all: string;
+  readonly unbooked: string;
+  readonly booked: string;
+  /** "12 jobs across 5 trips". */
+  readonly jobsAcrossTrips: (jobs: number, trips: number) => string;
+  readonly stillToMeasure: (lines: number) => string;
+  readonly nothingWaiting: string;
+  readonly noTripsMatch: string;
+  readonly noName: string;
+  readonly waiting: (days: number) => string;
+  readonly someBooked: (booked: number, jobs: number) => string;
+  readonly oneVisitCovers: (orders: number) => string;
+  readonly noPhone: string;
+  readonly pendingSync: string;
+  readonly toMeasure: (unmeasured: number, lines: number) => string;
+  readonly materialsToChoose: (materials: number) => string;
+  readonly bookedOn: (date: string) => string;
+  readonly notBooked: string;
+  readonly tripTotal: (total: string, oldest: string) => string;
+  readonly signedOut: string;
+  readonly wentWrong: string;
+}
+
 export interface SignInStrings {
   readonly phone: string;
   readonly pin: string;
@@ -145,4 +179,5 @@ export interface Strings {
   readonly nav: NavStrings;
   readonly signIn: SignInStrings;
   readonly board: BoardStrings;
+  readonly queue: QueueStrings;
 }

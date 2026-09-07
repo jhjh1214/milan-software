@@ -32,6 +32,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 
 import { Api } from '../api/api';
+import { commonMessage, failureOf, type Failure } from '../i18n/failure';
+import { Text } from '../i18n/text';
 import { formatDate, formatSen } from '../api/money';
 import type { MeasurementGroup } from '../api/types';
 
@@ -79,7 +81,17 @@ export class MeasurementQueue {
   protected readonly groups = signal<readonly MeasurementGroup[]>([]);
   protected readonly totalOrders = signal(0);
   protected readonly loading = signal(false);
-  protected readonly failure = signal<string | null>(null);
+  protected readonly failure = signal<Failure | null>(null);
+
+  /** The words, as a signal: switching language re-renders the queue. */
+  protected readonly t = inject(Text).strings;
+
+  /** Chosen at render time, so a failure on screen follows the language. */
+  protected message(failure: Failure): string {
+    if (failure.status === 401) return this.t().queue.signedOut;
+    if (failure.status === null) return this.t().queue.wentWrong;
+    return commonMessage(this.t(), failure);
+  }
 
   /** The filter, read from the URL. The URL is the state, not a copy of it. */
   protected readonly filter = toSignal(
@@ -106,7 +118,7 @@ export class MeasurementQueue {
       error: (err: unknown) => {
         this.groups.set([]);
         this.totalOrders.set(0);
-        this.failure.set(describe(err));
+        this.failure.set(failureOf(err));
         this.loading.set(false);
       },
     });
@@ -179,17 +191,6 @@ export class MeasurementQueue {
 
   /** What to call a trip with no name and no phone on it. */
   protected nameOf(group: MeasurementGroup): string {
-    return group.customer_name ?? 'No name recorded';
+    return group.customer_name ?? this.t().queue.noName;
   }
-}
-
-function describe(err: unknown): string {
-  if (typeof err === 'object' && err !== null && 'status' in err) {
-    const status = (err as { status: number }).status;
-    if (status === 401) return 'Signed out. Sign in again.';
-    if (status === 403) return 'You do not have access to this.';
-    if (status === 0) return 'No answer from the server.';
-    return `The server answered ${status}.`;
-  }
-  return 'Something went wrong.';
 }

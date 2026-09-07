@@ -81,4 +81,34 @@ export const MS: Strings = {
     signedOut: 'Sudah log keluar. Log masuk semula untuk melihat pesanan.',
     wentWrong: 'Ada masalah semasa memuatkan pesanan.',
   },
+
+  queue: {
+    title: 'Senarai ukuran',
+    show: 'Tunjuk',
+    all: 'Semua',
+    unbooked: 'Belum dihubungi',
+    booked: 'Lawatan ditempah',
+    jobsAcrossTrips: (jobs, trips) =>
+      `${jobs} pesanan dalam ${trips} perjalanan`,
+    stillToMeasure: (lines) => `${lines} lagi belum diukur`,
+    nothingWaiting: 'Tiada pesanan menunggu lawatan.',
+    noTripsMatch: 'Tiada perjalanan yang sepadan dengan tapisan ini.',
+    noName: 'Tiada nama direkodkan',
+    waiting: (days) => `Menunggu ${days} hari`,
+    someBooked: (booked, jobs) => `${booked} daripada ${jobs} ditempah`,
+    oneVisitCovers: (orders) =>
+      `${orders} pesanan untuk satu pelanggan — satu lawatan mencukupi`,
+    noPhone:
+      'Tiada nombor telefon, jadi ini tidak dapat dikumpulkan dengan yang lain.',
+    pendingSync: 'menunggu penyegerakan',
+    toMeasure: (unmeasured, lines) =>
+      `${unmeasured} daripada ${lines} perlu diukur`,
+    materialsToChoose: (materials) => `${materials} bahan perlu dipilih`,
+    bookedOn: (date) => `Ditempah ${date}`,
+    notBooked: 'Belum ditempah',
+    tripTotal: (total, oldest) =>
+      `Jumlah perjalanan ${total} · deposit terawal ${oldest}`,
+    signedOut: 'Sudah log keluar. Log masuk semula untuk melihat senarai.',
+    wentWrong: 'Ada masalah semasa memuatkan senarai.',
+  },
 };
