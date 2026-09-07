@@ -161,6 +161,7 @@
   "revisedFinalTotal": "Final total",
   "revisedYouSave": "Reduced by",
   "revisedNoChange": "Unchanged",
+  "revisedMinimumCharge": "Minimum charge (deposit {amount})",
   "revisedDepositPaid": "Deposit paid",
   "revisedBalanceDue": "Balance due",
   "revisedWhyTitle": "Why this differs from your quotation",

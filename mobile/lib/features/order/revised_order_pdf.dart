@@ -434,6 +434,16 @@ pw.Widget _totals(L l, RevisedOrderData data) {
             l.revisedEstimateTotal,
             data.pricing.estimateTotal.format(),
           ),
+          // §13 A21d. Without this row the lines add up to one number and the
+          // total shows another, on a document whose whole job is letting a
+          // customer check the arithmetic against the paper they already hold.
+          // Shown as its own row and never folded into a line: no product cost
+          // this, and a line that claimed it would be unexplainable.
+          if (!data.pricing.categoryFloorUplift.isZero)
+            _totalRow(
+              l.revisedMinimumCharge(data.depositPaid.format()),
+              '+${data.pricing.categoryFloorUplift.format()}',
+            ),
           _totalRow(
             variance.isZero ? l.revisedNoChange : l.revisedYouSave,
             variance.isZero

@@ -980,6 +980,12 @@ abstract class L {
   /// **'无变动'**
   String get revisedNoChange;
 
+  /// No description provided for @revisedMinimumCharge.
+  ///
+  /// In zh, this message translates to:
+  /// **'最低收费（订金 {amount}）'**
+  String revisedMinimumCharge(String amount);
+
   /// No description provided for @revisedDepositPaid.
   ///
   /// In zh, this message translates to:

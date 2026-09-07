@@ -217,6 +217,8 @@
   "revisedFinalTotal": "最终总额",
   "revisedYouSave": "减少",
   "revisedNoChange": "无变动",
+  "revisedMinimumCharge": "最低收费（订金 {amount}）",
+  "@revisedMinimumCharge": { "placeholders": { "amount": { "type": "String" } } },
   "revisedDepositPaid": "已付订金",
   "revisedBalanceDue": "应付余额",
   "revisedWhyTitle": "为什么与报价单不同",

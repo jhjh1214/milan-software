@@ -512,6 +512,11 @@ class LZh extends L {
   String get revisedNoChange => '无变动';
 
   @override
+  String revisedMinimumCharge(String amount) {
+    return '最低收费（订金 $amount）';
+  }
+
+  @override
   String get revisedDepositPaid => '已付订金';
 
   @override

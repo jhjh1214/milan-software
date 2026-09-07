@@ -188,16 +188,36 @@ def main() -> int:
         else:
             print(f"  why-it-differs present: {REVISED_PROMISE[lang]}")
 
-        # BOTH numbers on the page. This is the document's whole job: a
-        # customer holding the quotation must be able to check the new figure
-        # against the old one without doing arithmetic. RM552.00 is the curtain
-        # as quoted; the blind was measured exactly as quoted at RM162.00.
-        for quoted in ("552.00", "162.00"):
-            if quoted not in flat:
+        is_floor = stem.endswith("-floor")
+
+        if is_floor:
+            # §13 A21d. The lines add to RM162 and the order bills RM300,
+            # because the per-category deposit floor lifted it. Without a row
+            # saying so the customer is looking at arithmetic that does not
+            # work -- on the one document whose job is letting them check it.
+            for want in ("162.00", "300.00"):
+                if want not in flat:
+                    failures.append(
+                        f"{path.name}: RM{want} is not on the page"
+                    )
+            if "minimumcharge" not in flat.lower().replace(" ", ""):
                 failures.append(
-                    f"{path.name}: the quoted RM{quoted} is not on the page"
+                    f"{path.name}: the deposit floor was applied but not shown"
                 )
-        print("  quoted amounts present alongside the final ones")
+            else:
+                print("  deposit floor shown as its own row")
+        else:
+            # BOTH numbers on the page. This is the document's whole job: a
+            # customer holding the quotation must be able to check the new
+            # figure against the old one without doing arithmetic. RM552.00 is
+            # the curtain as quoted; the blind was measured exactly as quoted
+            # at RM162.00.
+            for quoted in ("552.00", "162.00"):
+                if quoted not in flat:
+                    failures.append(
+                        f"{path.name}: the quoted RM{quoted} is not on the page"
+                    )
+            print("  quoted amounts present alongside the final ones")
 
 
         if "pending" in stem:
@@ -212,9 +232,8 @@ def main() -> int:
                 failures.append(
                     f"{path.name}: an order number was fabricated on device"
                 )
-        else:
-            if "MLK-2609-0007" not in flat:
-                failures.append(f"{path.name}: the order number is missing")
+        elif "MLK-" not in flat:
+            failures.append(f"{path.name}: the order number is missing")
 
         if is_over:
             # A window that measured larger than quoted is named on the page.

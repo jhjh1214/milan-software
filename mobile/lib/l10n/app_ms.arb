@@ -161,6 +161,7 @@
   "revisedFinalTotal": "Jumlah akhir",
   "revisedYouSave": "Berkurang",
   "revisedNoChange": "Tiada perubahan",
+  "revisedMinimumCharge": "Caj minimum (deposit {amount})",
   "revisedDepositPaid": "Deposit dibayar",
   "revisedBalanceDue": "Baki perlu dibayar",
   "revisedWhyTitle": "Mengapa ini berbeza daripada sebut harga anda",

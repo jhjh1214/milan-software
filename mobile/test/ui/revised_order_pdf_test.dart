@@ -264,6 +264,69 @@ void main() {
     test('nothing is flagged when every line came in at or below', () {
       expect(dataFor(pricing())!.overEstimate, isEmpty);
     });
+
+    testWidgets('the deposit floor is a visible row, not a silent gap', (
+      tester,
+    ) async {
+      // §13 A21d. One small blind alone: RM108 exact, RM162 with its printed
+      // minimum, floored to the RM300 already deposited. Without a row saying
+      // so, the lines add to RM162 and the total says RM300 — on the one
+      // document whose job is letting a customer check the arithmetic against
+      // the paper they already hold.
+      final small = repriceOrder(
+        lines: [
+          MeasuredLine(
+            id: 'line-blind',
+            variant: 'roller_blackout',
+            estimateTotal: const Money.sen(16200),
+            appliedRateCardVersion: card.version,
+            finalWidth: Length.tenths(9144),
+            finalHeight: Length.tenths(12192),
+          ),
+        ],
+        cards: {card.version: card},
+      );
+      expect(small.categoryFloorUplift.sen, 13800);
+      expect(small.finalTotal!.sen, 30000);
+      expect(
+        small.lines.single.finalTotal!.sen,
+        16200,
+        reason: 'the LINE still says what the product cost',
+      );
+
+      final l = await load(tester, 'en');
+      final data = RevisedOrderData.of(
+        pricing: small,
+        lines: [
+          RevisedOrderLine(
+            line: small.lines.single,
+            room: 'Bedroom',
+            product: 'Roller blackout',
+            quotedSize: "3' × 4'",
+            measuredSize: "3' × 4'",
+          ),
+        ],
+        orderNo: 'MLK-2609-0008',
+        quotedOn: DateTime(2026, 8, 29),
+        measuredOn: DateTime(2026, 9, 12),
+        depositPaid: const Money.sen(30000),
+        pinnedRateCardVersion: card.version,
+        language: 'en',
+      )!;
+
+      // Nothing owing: they paid RM300 and the order bills RM300.
+      expect(data.balanceDue, Money.zero);
+
+      final bytes = await buildRevisedOrderPdf(
+        data: data,
+        fonts: await QuoteFonts.load(),
+        l: l,
+        compress: false,
+      );
+      Directory('build/test-pdfs').createSync(recursive: true);
+      File('build/test-pdfs/revised-floor.pdf').writeAsBytesSync(bytes);
+      expect(bytes.take(5).toList(), [0x25, 0x50, 0x44, 0x46, 0x2D]);
+    });
   });
 
   for (final language in ['zh', 'en', 'ms']) {

@@ -522,6 +522,11 @@ class LEn extends L {
   String get revisedNoChange => 'Unchanged';
 
   @override
+  String revisedMinimumCharge(String amount) {
+    return 'Minimum charge (deposit $amount)';
+  }
+
+  @override
   String get revisedDepositPaid => 'Deposit paid';
 
   @override

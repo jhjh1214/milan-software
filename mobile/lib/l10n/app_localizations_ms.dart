@@ -519,6 +519,11 @@ class LMs extends L {
   String get revisedNoChange => 'Tiada perubahan';
 
   @override
+  String revisedMinimumCharge(String amount) {
+    return 'Caj minimum (deposit $amount)';
+  }
+
+  @override
   String get revisedDepositPaid => 'Deposit dibayar';
 
   @override
