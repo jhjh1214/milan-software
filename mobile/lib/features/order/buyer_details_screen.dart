@@ -42,7 +42,10 @@ import '../../l10n/app_localizations.dart';
 import '../../pricing/einvoice_threshold.dart';
 import '../../ui/theme.dart';
 import '../quote/confirm_order.dart' show orderRepositoryProvider;
-import '../quote/quote_state.dart' show thresholdsProvider;
+import '../../sync/order_payload.dart';
+import '../../sync/sync_state.dart' show outboxDepthProvider, outboxerProvider;
+import '../quote/quote_state.dart'
+    show databaseProvider, thresholdsProvider, todayProvider;
 import 'order_screen.dart' show orderProvider;
 
 /// The Malaysian identifier kinds MyInvois recognises.
@@ -379,7 +382,29 @@ class _BuyerDetailsScreenState extends ConsumerState<BuyerDetailsScreen> {
           einvoiceRequested: _requested,
         );
 
-    ref.invalidate(orderProvider(widget.orderId));
+    // Queued, never sent from here. §10.2's whole point is that this is filled
+    // in while the customer is standing there, which is often a house with no
+    // signal — waiting on a network call would lose the details rather than
+    // delay them.
+    final db = ref.read(databaseProvider);
+    final saved = await (db.select(
+      db.orders,
+    )..where((o) => o.id.equals(widget.orderId))).getSingleOrNull();
+    if (saved != null) {
+      await ref
+          .read(outboxerProvider)
+          .enqueueBuyerDetails(
+            widget.orderId,
+            buyerDetailsPayload(
+              order: saved,
+              capturedAt: ref.read(todayProvider),
+            ),
+          );
+    }
+
+    ref
+      ..invalidate(orderProvider(widget.orderId))
+      ..invalidate(outboxDepthProvider);
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(l.buyerSaved)));

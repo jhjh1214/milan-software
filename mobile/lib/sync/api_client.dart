@@ -220,6 +220,30 @@ class OrderAccepted {
 }
 
 /// The server's answer to one step along the pipeline.
+/// What the server made of a buyer-detail capture. §10.3.
+class BuyerDetailsAccepted {
+  final String orderId;
+
+  /// Whether what the SERVER now holds is enough to invoice from — which is
+  /// not always what this handset holds, because another one may have captured
+  /// the rest of it.
+  final bool complete;
+
+  /// What is still outstanding, in the rule's own order.
+  final List<String> missing;
+
+  /// `unknown_order` when the order push has not landed, `stale` when a newer
+  /// capture is already stored. Null when it was written.
+  final String? refusedBecause;
+
+  const BuyerDetailsAccepted({
+    required this.orderId,
+    required this.complete,
+    required this.missing,
+    this.refusedBecause,
+  });
+}
+
 class StatusAccepted {
   final String orderId;
 
@@ -511,6 +535,29 @@ class ApiClient {
       orderId: json['order_id'] as String,
       duplicate: json['duplicate'] as bool,
       status: json['status'] as String,
+      refusedBecause: json['refused_because'] as String?,
+    ),
+  );
+
+  /// Sends what was captured about the buyer. §10.3.
+  ///
+  /// Its own call rather than part of the order push, because an order goes up
+  /// once at confirmation and these are taken after measurement. The server
+  /// merges, so this carrying the handset's whole view is safe: another
+  /// handset's fields are not blanked by what this one does not know.
+  Future<SyncResult<BuyerDetailsAccepted>> pushBuyerDetails(
+    String token,
+    Map<String, dynamic> details,
+  ) => _send(
+    () => _http.post(
+      _url('/api/orders/buyer'),
+      headers: _headers(token),
+      body: jsonEncode(details),
+    ),
+    (json) => BuyerDetailsAccepted(
+      orderId: json['order_id'] as String,
+      complete: json['complete'] as bool,
+      missing: [for (final m in json['missing'] as List) m as String],
       refusedBecause: json['refused_because'] as String?,
     ),
   );

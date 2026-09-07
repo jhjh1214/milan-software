@@ -421,6 +421,49 @@ class Order(Base):
     deposit_paid_sen: Mapped[int] = mapped_column(BigInteger, default=0)
     has_unmeasured_lines: Mapped[bool] = mapped_column(Boolean, default=True)
 
+    # Buyer details, for the e-invoice SQL Account issues. §10.3.
+    #
+    # Nullable and null on most orders: a walk-in is General Public and needs
+    # none of this. They become required when the total crosses RM10,000
+    # (§10.2) or when the customer asks (§10.3), and **what counts as complete
+    # is a rule** (`pricing/einvoice_threshold.py`) rather than a flag anybody
+    # can tick.
+    #
+    # Here as well as on the device because the office does the export, and
+    # details sitting on one handset are the same as no details as far as the
+    # accounts system is concerned -- the identical failure the rate locks had
+    # before migration 0005.
+    #
+    # On the order rather than on a customer record because there is no
+    # customer table yet (§13 B9). When one arrives these move and the order
+    # keeps a snapshot: what was true when the invoice was issued is not what
+    # is true when somebody moves house.
+    buyer_tin: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    #: `nric`, `brn`, `passport` or `army`. Stored with its number or not at
+    #: all -- a number with no type cannot be filed.
+    buyer_id_type: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    buyer_id_number: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    buyer_address_line1: Mapped[str | None] = mapped_column(
+        String(160), nullable=True
+    )
+    buyer_address_line2: Mapped[str | None] = mapped_column(
+        String(160), nullable=True
+    )
+    buyer_city: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    buyer_state: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    buyer_postcode: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    #: Business buyers only.
+    buyer_msic_code: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    #: The customer asked for an e-invoice. §10.3: required at any value, so
+    #: this is a reason to capture on its own rather than only a preference.
+    einvoice_requested: Mapped[bool] = mapped_column(Boolean, default=False)
+    #: When the device recorded them. Used to reject a stale push arriving
+    #: after a newer one, which is the only ordering guarantee available when
+    #: several handsets can capture for one order.
+    buyer_captured_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     confirmed_by_user_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("users.id"), nullable=True
     )

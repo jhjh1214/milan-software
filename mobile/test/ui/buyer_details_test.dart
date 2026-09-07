@@ -13,6 +13,8 @@
 /// * and that the screen never claims to issue an invoice (hard rule 7).
 library;
 
+import 'dart:convert';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -130,6 +132,18 @@ void main() {
   Future<void> type(WidgetTester tester, String label, String value) async {
     await tester.enterText(find.widgetWithText(TextField, label), value);
     await tester.pump();
+  }
+
+  /// Opens the form the way somebody actually reaches it — from the order.
+  ///
+  /// Pushed onto a real route rather than pumped bare, so saving can pop back
+  /// to something. A lone `Navigator` whose only route pops leaves an empty
+  /// history and asserts, which is a test artefact rather than anything a
+  /// person meets.
+  Future<void> openForm(WidgetTester tester) async {
+    await pump(tester, const OrderScreen(orderId: orderId));
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Customer details'));
+    await tester.pumpAndSettle();
   }
 
   group('what the screen says before it asks', () {
@@ -261,14 +275,7 @@ void main() {
       // The customer is standing there. What is captured is captured, and
       // `advanceOrder` is the only thing that should refuse an incomplete one.
       await makeOrder(totalSen: 1200000);
-      await pump(
-        tester,
-        Navigator(
-          onGenerateRoute: (_) => MaterialPageRoute<void>(
-            builder: (_) => const BuyerDetailsScreen(orderId: orderId),
-          ),
-        ),
-      );
+      await openForm(tester);
 
       await type(tester, 'TIN', 'C1234567890');
       await tester.tap(find.text('Save details'));
@@ -285,14 +292,7 @@ void main() {
       tester,
     ) async {
       await makeOrder(totalSen: 1200000);
-      await pump(
-        tester,
-        Navigator(
-          onGenerateRoute: (_) => MaterialPageRoute<void>(
-            builder: (_) => const BuyerDetailsScreen(orderId: orderId),
-          ),
-        ),
-      );
+      await openForm(tester);
 
       await type(tester, 'TIN', '  ');
       await type(tester, 'City', '  Melaka  ');
@@ -306,17 +306,94 @@ void main() {
       expect(row.buyerCity, 'Melaka');
     });
 
+    testWidgets('what was captured is queued for the office', (tester) async {
+      // The OFFICE runs the SQL Account export. Details that never leave the
+      // handset are the same as no details as far as the accounts system is
+      // concerned — the failure a rate lock had before it was pushed.
+      //
+      // Queued, never sent from here: §10.2 puts this in a house with the
+      // customer standing there, which is often a house with no signal.
+      await makeOrder(totalSen: 1200000);
+      await openForm(tester);
+
+      await type(tester, 'TIN', 'C1234567890');
+      await tester.tap(find.text('Save details'));
+      await tester.pumpAndSettle();
+
+      final queued = await db.select(db.outbox).get();
+      final row = queued.singleWhere((o) => o.entityType == 'buyer_details');
+      expect(row.entityId, orderId);
+
+      final body = jsonDecode(row.payload) as Map<String, dynamic>;
+      expect(body['order_id'], orderId);
+      expect(body['tin'], 'C1234567890');
+      expect(
+        body['captured_at'],
+        endsWith('Z'),
+        reason:
+            'UTC on the wire — a local time would make a correction look '
+            'stale to the server',
+      );
+    });
+
+    testWidgets('a buyer push does not displace a queued order push', (
+      tester,
+    ) async {
+      // The outbox matched on the entity id alone, and both of these are
+      // keyed on the ORDER id. Capturing details while the order push was
+      // still waiting replaced it — so the order never went up at all, and
+      // the details arrived pointing at nothing.
+      await makeOrder(totalSen: 1200000);
+      await db.enqueueOutbox(
+        OutboxCompanion.insert(
+          id: 'ob-order',
+          entityType: 'order',
+          entityId: orderId,
+          payload: '{"id":"$orderId"}',
+          createdAt: at,
+        ),
+      );
+
+      await openForm(tester);
+      await type(tester, 'TIN', 'C1234567890');
+      await tester.tap(find.text('Save details'));
+      await tester.pumpAndSettle();
+
+      final queued = await db.select(db.outbox).get();
+      expect(
+        queued.map((o) => o.entityType).toSet(),
+        {'order', 'buyer_details'},
+        reason: 'both kinds of work survive for one order',
+      );
+    });
+
+    testWidgets('a second capture supersedes the first in the queue', (
+      tester,
+    ) async {
+      // Keyed on the order id on purpose, unlike a status change: each capture
+      // carries this handset's whole view, so there is no history to lose —
+      // only a record to correct, and only the newest needs to go up.
+      await makeOrder(totalSen: 1200000);
+      for (final tin in ['WRONG', 'C1234567890']) {
+        await openForm(tester);
+        await type(tester, 'TIN', tin);
+        await tester.tap(find.text('Save details'));
+        await tester.pumpAndSettle();
+      }
+
+      final queued = await db.select(db.outbox).get();
+      final rows = queued.where((o) => o.entityType == 'buyer_details');
+      expect(rows, hasLength(1));
+      expect(
+        (jsonDecode(rows.single.payload) as Map<String, dynamic>)['tin'],
+        'C1234567890',
+      );
+    });
+
     testWidgets('the e-invoice request is recorded', (tester) async {
       // §10.3: asked for at any value, so it is a reason to capture on its own.
       await makeOrder(totalSen: 55200);
-      await pump(
-        tester,
-        Navigator(
-          onGenerateRoute: (_) => MaterialPageRoute<void>(
-            builder: (_) => const BuyerDetailsScreen(orderId: orderId),
-          ),
-        ),
-      );
+      await openForm(tester);
 
       await tester.tap(find.byType(CheckboxListTile));
       await tester.pump();

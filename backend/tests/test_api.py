@@ -445,6 +445,106 @@ class TestPush:
         assert r.status_code == 422
 
 
+class TestBuyerDetailsOverTheWire:
+    """SPEC.md §10.3, Phase 7. The merge and the staleness rule are tested
+    against the service in `test_buyer_details_push.py`; what is checked here
+    is the route -- that it exists, that it needs a session, and that a device
+    can drive it with the body the app actually builds."""
+
+    def _an_order(self, client: TestClient) -> str:
+        order_id = str(uuid.uuid4())
+        payload = {
+            "id": order_id,
+            "quote_id": str(uuid.uuid4()),
+            "channel": "fair",
+            "pinned_rate_card_version": 1,
+            "customer_name": "Ah Lian",
+            "estimate_total_sen": 1_200_000,
+            "deposit_paid_sen": 30000,
+            "confirmed_at": datetime.now(UTC).isoformat(),
+            "lines": [
+                {
+                    "id": str(uuid.uuid4()),
+                    "quote_line_id": str(uuid.uuid4()),
+                    "sort_order": 0,
+                    "room": "Living room",
+                    "variant": "night_curtain",
+                    "layer": "night",
+                    "est_width_tmm": 36576,
+                    "applied_rule_id": "night-curtain-lo",
+                    "applied_rate_card_version": 1,
+                    "standard_rate_sen": 4600,
+                    "rate_sen": 4600,
+                    "billed_qty": "12",
+                    "billed_unit": "ft",
+                    "line_total_sen": 1_200_000,
+                }
+            ],
+        }
+        token = sign_in(client, "staff")
+        r = client.post("/api/orders", json=payload, headers=auth(token))
+        assert r.status_code == 200, r.text
+        return order_id
+
+    def test_a_handset_can_push_what_it_captured(self, client: TestClient) -> None:
+        order_id = self._an_order(client)
+        token = sign_in(client, "staff")
+
+        r = client.post(
+            "/api/orders/buyer",
+            json={
+                "order_id": order_id,
+                "captured_at": datetime.now(UTC).isoformat(),
+                "tin": "C1234567890",
+                "address_line1": "12 Jalan Melaka",
+                "city": "Melaka",
+                "state": "Melaka",
+                "postcode": "75000",
+            },
+            headers=auth(token),
+        )
+
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["complete"] is True
+        assert body["missing"] == []
+        assert body["refused_because"] is None
+
+    def test_what_is_outstanding_comes_back_to_the_handset(
+        self, client: TestClient
+    ) -> None:
+        # So the app can say what still has to be collected without asking a
+        # second question, and without computing a second answer of its own.
+        order_id = self._an_order(client)
+        token = sign_in(client, "staff")
+
+        body = client.post(
+            "/api/orders/buyer",
+            json={
+                "order_id": order_id,
+                "captured_at": datetime.now(UTC).isoformat(),
+                "tin": "C1234567890",
+            },
+            headers=auth(token),
+        ).json()
+
+        assert body["complete"] is False
+        assert body["missing"] == ["address"]
+
+    def test_it_needs_a_session(self, client: TestClient) -> None:
+        # An IC number and a home address are the most sensitive thing this
+        # system holds, and the route that writes them is not an exception to
+        # §12's rule that everything but health and sign-in is authenticated.
+        r = client.post(
+            "/api/orders/buyer",
+            json={
+                "order_id": str(uuid.uuid4()),
+                "captured_at": datetime.now(UTC).isoformat(),
+            },
+        )
+        assert r.status_code == 401
+
+
 class TestTheMeasurementQueue:
     """SPEC.md §11 Phase 5. Over the wire, which is the only place the clock
     and the authorisation are decided -- the grouping itself is tested against

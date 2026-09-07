@@ -28,6 +28,8 @@ from .api.schemas import (
     AddPersonIn,
     BalancesReport,
     BundleOut,
+    BuyerDetailsIn,
+    BuyerDetailsResult,
     CardDiffOut,
     CategoryLockIn,
     CategoryLockOut,
@@ -80,6 +82,7 @@ from .services.ingest import (
     advance_order_status,
     locks_for_customer,
     publish_card,
+    push_buyer_details,
     push_category_lock,
     push_deposit_prompt,
     push_order,
@@ -383,6 +386,28 @@ def advance_status_route(
     """
     user, _ = who
     return advance_order_status(session, payload, by=user)
+
+
+@app.post("/api/orders/buyer", response_model=BuyerDetailsResult)
+def push_buyer_details_route(
+    payload: BuyerDetailsIn, session: SessionDep, who: CurrentDep
+) -> BuyerDetailsResult:
+    """Records what was captured about the buyer. SPEC.md 10.3.
+
+    Its own push rather than a field on the order, because an order is pushed
+    once at confirmation and these are captured after measurement.
+
+    It MERGES: a field the payload does not carry keeps whatever is stored, so
+    the measurer's TIN and the office's address end up on one row instead of
+    overwriting each other. An empty string clears a field; a push older than
+    the stored capture is refused as stale rather than applied.
+
+    Nothing here decides whether the details were needed -- that is the
+    threshold rule, checked when the order tries to move. What comes back is
+    whether the record is now complete, from the same rule the handset shows.
+    """
+    _ = who
+    return push_buyer_details(session, payload)
 
 
 @app.post("/api/locks", response_model=LockPushResult)

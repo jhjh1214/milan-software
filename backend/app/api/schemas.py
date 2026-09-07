@@ -303,6 +303,59 @@ class StatusChangeResult(BaseModel):
     refused_because: str | None = None
 
 
+class BuyerDetailsIn(BaseModel):
+    """What was captured about the buyer, pushed up after the device took it.
+
+    SPEC.md §10.3. Its own push rather than a field on the order, because an
+    order is pushed **once at confirmation** and these are captured after
+    measurement -- by which point that payload has long been sent.
+
+    Every field is optional and **absent means "leave what is there"**. Two
+    people can capture for one order: the measurer takes the TIN at the house,
+    the office adds the address later. A payload that blanked what it did not
+    carry would lose whichever was written first, and both are things somebody
+    actually collected.
+
+    To CLEAR a field, send it as an empty string. The server trims, so ``""``
+    and ``"  "`` both mean "there is nothing here" -- which is what a legal
+    requirement needs a blank to mean.
+    """
+
+    order_id: str = Field(min_length=36, max_length=36)
+    #: When the device recorded them. The only ordering signal available when
+    #: several handsets can capture offline for one order.
+    captured_at: datetime
+
+    #: The buyer's legal name. On the order already, and updated here too: an
+    #: e-invoice needs the name on the IC, and a fair may have written down
+    #: "Ah Lian's mother".
+    name: str | None = None
+    tin: str | None = None
+    #: ``nric``, ``brn``, ``passport`` or ``army``.
+    id_type: str | None = Field(default=None, max_length=16)
+    id_number: str | None = None
+    address_line1: str | None = None
+    address_line2: str | None = None
+    city: str | None = None
+    state: str | None = None
+    postcode: str | None = None
+    msic_code: str | None = None
+    einvoice_requested: bool | None = None
+
+
+class BuyerDetailsResult(BaseModel):
+    order_id: str
+    #: True when what the server holds is now complete enough to invoice from
+    #: -- the same rule the device shows, so the two cannot disagree about
+    #: whether somebody still has to be telephoned.
+    complete: bool
+    #: What is still outstanding, in the rule's own order. Empty when complete.
+    missing: list[str] = []
+    #: Set when nothing was written. ``unknown_order`` if the order push has
+    #: not landed; ``stale`` if a newer capture is already stored.
+    refused_because: str | None = None
+
+
 class CategoryLockIn(BaseModel):
     """A hold opened on a handset. §6.1.
 

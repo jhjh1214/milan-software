@@ -16,11 +16,14 @@ PURE of HTTP. The router calls this; the tests call it directly.
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..api.schemas import (
+    BuyerDetailsIn,
+    BuyerDetailsResult,
     CategoryLockIn,
     DepositPromptIn,
     DepositPromptResult,
@@ -64,6 +67,11 @@ from ..pricing.models import (
     Layer,
     PricingStage,
     RateCard,
+)
+from ..pricing.einvoice_threshold import (
+    BuyerDetails,
+    buyer_details_complete,
+    missing_buyer_details,
 )
 from ..pricing.order_status import (
     OrderLineState,
@@ -597,6 +605,132 @@ def advance_order_status(
     session.flush()
 
     return StatusChangeResult(order_id=order.id, duplicate=False, status=order.status)
+
+
+def _merged(current: str | None, incoming: str | None) -> str | None:
+    """Applies one buyer field: absent leaves it, empty clears it.
+
+    ``None`` means the payload did not carry this field, so whatever is already
+    stored stands. Two people can capture for one order -- the measurer takes
+    the TIN at the house, the office adds the address later -- and a push that
+    blanked what it did not carry would lose whichever landed first.
+
+    A string that trims to nothing is an explicit clear. That is how a wrong
+    IC number gets removed, and it is why the trim happens here rather than
+    being trusted to the caller: a field holding a space must not satisfy a
+    legal requirement.
+    """
+    if incoming is None:
+        return current
+    trimmed = incoming.strip()
+    return trimmed or None
+
+
+def push_buyer_details(
+    session: Session, payload: BuyerDetailsIn
+) -> BuyerDetailsResult:
+    """Records what was captured about the buyer. SPEC.md §10.3, §11 Phase 7.
+
+    Its own endpoint rather than a field on the order push, because an order is
+    pushed **once at confirmation** and these are captured after measurement --
+    by which point that payload was sent hours or days ago.
+
+    On the server as well as the device because the **office** runs the SQL
+    Account export, and details that never leave a handset are the same as no
+    details as far as the accounts system is concerned. That is exactly the
+    failure the rate locks had before migration 0005: correct machinery, stored
+    where nothing else could read it.
+
+    **Idempotent, and safe to retry**, because it merges rather than replaces:
+    sending the same payload twice reaches the same row. A push carrying an
+    older ``captured_at`` than the one already stored is refused as ``stale``
+    rather than applied -- several handsets work one fair, any of them can
+    capture for an order, and an out-of-order delivery must not undo the newer
+    answer. It refuses the whole push rather than merging field by field: a
+    half-applied older record is a buyer nobody can account for.
+
+    Nothing here re-decides whether the details were *needed*. That is the
+    threshold rule, checked by the state machine when the order tries to move.
+    What comes back is whether the record is now complete, from the same rule
+    the device shows, so the two cannot disagree about who still has to be
+    telephoned.
+    """
+    order = session.get(Order, payload.order_id)
+    if order is None:
+        # The order push has not landed. The outbox is FIFO so this should not
+        # happen, but saying so plainly beats writing details onto nothing.
+        return BuyerDetailsResult(
+            order_id=payload.order_id,
+            complete=False,
+            missing=[],
+            refused_because="unknown_order",
+        )
+
+    stored_at = order.buyer_captured_at
+    if stored_at is not None and payload.captured_at < _as_utc(stored_at):
+        return BuyerDetailsResult(
+            order_id=order.id,
+            complete=buyer_details_complete(_buyer_of(order)),
+            missing=[m.value for m in missing_buyer_details(_buyer_of(order))],
+            refused_because="stale",
+        )
+
+    order.customer_name = _merged(order.customer_name, payload.name)
+    order.buyer_tin = _merged(order.buyer_tin, payload.tin)
+    order.buyer_id_type = _merged(order.buyer_id_type, payload.id_type)
+    order.buyer_id_number = _merged(order.buyer_id_number, payload.id_number)
+    order.buyer_address_line1 = _merged(
+        order.buyer_address_line1, payload.address_line1
+    )
+    order.buyer_address_line2 = _merged(
+        order.buyer_address_line2, payload.address_line2
+    )
+    order.buyer_city = _merged(order.buyer_city, payload.city)
+    order.buyer_state = _merged(order.buyer_state, payload.state)
+    order.buyer_postcode = _merged(order.buyer_postcode, payload.postcode)
+    order.buyer_msic_code = _merged(order.buyer_msic_code, payload.msic_code)
+    if payload.einvoice_requested is not None:
+        order.einvoice_requested = payload.einvoice_requested
+    order.buyer_captured_at = payload.captured_at
+
+    session.flush()
+
+    buyer = _buyer_of(order)
+    return BuyerDetailsResult(
+        order_id=order.id,
+        complete=buyer_details_complete(buyer),
+        missing=[m.value for m in missing_buyer_details(buyer)],
+    )
+
+
+def _buyer_of(order: Order) -> BuyerDetails:
+    """The stored row as the rule wants it.
+
+    A function rather than a stored ``is_complete`` column: what counts as
+    complete is a rule, and a boolean beside it would be a second answer that
+    drifts the first time somebody edits a field without recomputing it.
+    """
+    return BuyerDetails(
+        name=order.customer_name,
+        tin=order.buyer_tin,
+        id_type=order.buyer_id_type,
+        id_number=order.buyer_id_number,
+        address_line1=order.buyer_address_line1,
+        address_line2=order.buyer_address_line2,
+        city=order.buyer_city,
+        state=order.buyer_state,
+        postcode=order.buyer_postcode,
+    )
+
+
+def _as_utc(value: datetime) -> datetime:
+    """SQLite drops the timezone off a ``timestamptz``; Postgres does not.
+
+    Comparing an aware payload against a naive stored value raises, and it
+    would raise only under SQLite -- so it would pass every local test and fail
+    the first time somebody pushed a correction in production.
+    """
+    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
 
 
 def push_category_lock(

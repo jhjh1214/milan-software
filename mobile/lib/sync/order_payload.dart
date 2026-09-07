@@ -127,3 +127,46 @@ Map<String, dynamic> statusChangePayload({
   'reason': event.note,
   'at': event.at.toUtc().toIso8601String(),
 };
+
+/// Builds the request body for `POST /api/orders/buyer`. §10.3.
+///
+/// Its own payload rather than fields on [orderPayload], because an order goes
+/// up **once at confirmation** and these are captured after measurement — by
+/// which point that body was sent days ago.
+///
+/// Every field is sent, including the ones that are null. Null on the wire is
+/// "leave what is there" and the server merges on that basis, so a handset
+/// that only knows half the record cannot blank the half another one captured
+/// — the measurer takes the TIN at the house, somebody else adds the address,
+/// and both survive.
+///
+/// **What this cannot do is clear a field on the server.** The device stores a
+/// blank as null and null on the wire means "leave it", so a wrong IC number
+/// removed on the handset stays on the server. That is the deliberate choice
+/// between two imperfect ones: merging fails toward keeping too much, and
+/// replacing fails toward losing what a colleague collected. §10.2's penalty
+/// is for **missing** details, not for spare ones.
+///
+/// Recorded as §13 **C14**, because the real fix is a distinguishable "cleared"
+/// signal or an office write path, and neither should be guessed at here.
+Map<String, dynamic> buyerDetailsPayload({
+  required OrderRow order,
+  required DateTime capturedAt,
+}) => {
+  'order_id': order.id,
+  // UTC on the wire, displayed Asia/Kuala_Lumpur. This is the only ordering
+  // signal the server has when several handsets can capture for one order
+  // offline, so a local time here would make a correction look stale.
+  'captured_at': capturedAt.toUtc().toIso8601String(),
+  'name': order.customerName,
+  'tin': order.buyerTin,
+  'id_type': order.buyerIdType,
+  'id_number': order.buyerIdNumber,
+  'address_line1': order.buyerAddressLine1,
+  'address_line2': order.buyerAddressLine2,
+  'city': order.buyerCity,
+  'state': order.buyerState,
+  'postcode': order.buyerPostcode,
+  'msic_code': order.buyerMsicCode,
+  'einvoice_requested': order.einvoiceRequested,
+};

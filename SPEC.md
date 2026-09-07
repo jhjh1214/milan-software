@@ -2531,6 +2531,22 @@ orders, supplier management and costing come later.
   later when nobody remembers the order.
 
   Answering this changes one function on each engine and its fixtures.
+- **C14.** **How does a buyer field get CLEARED on the server?** Buyer details
+  push up and the server **merges**: a field the payload does not carry keeps
+  whatever is stored, so the measurer's TIN and the office's address end up on
+  one row instead of overwriting each other. That is the right default when
+  several handsets can capture for one order.
+
+  The cost is that a field cleared on a handset stays on the server. The device
+  stores a blank as null, null on the wire means "leave it", and so a wrong IC
+  number removed on the phone is still there for the export.
+
+  It is the deliberate choice between two imperfect ones — merging fails toward
+  keeping too much, replacing fails toward losing what a colleague collected,
+  and §10.2's penalty is for **missing** details rather than spare ones. The
+  real fix is either a distinguishable "cleared" signal on the wire or an
+  office write path from the dashboard, and which of those is right depends on
+  whether the office ever edits these at all.
 - **C8.** Who may move an order along, and who may cancel one? The pipeline
   enforces *what* can happen, not *who* may do it — no role check is wired to it
   yet. A part-timer marking a job installed, or cancelling one, is the kind of

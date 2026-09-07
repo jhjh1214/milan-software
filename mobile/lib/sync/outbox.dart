@@ -105,6 +105,22 @@ class Outboxer {
     Map<String, dynamic> payload,
   ) => _enqueue('order_status', eventId, payload);
 
+  /// Queues what was captured about the buyer. Â§10.3.
+  ///
+  /// Keyed on the **order id**, unlike a status change. Each capture carries
+  /// this handset's whole view of the buyer, so a later one supersedes an
+  /// earlier one still waiting in the queue and only the newest needs to go up
+  /// â€” there is no history here to lose, only a record to correct.
+  ///
+  /// It has to go up at all because the **office** runs the export. Details
+  /// that never leave the handset are the same as no details as far as the
+  /// accounts system is concerned, which is the failure a rate lock had before
+  /// it was pushed.
+  Future<void> enqueueBuyerDetails(
+    String orderId,
+    Map<String, dynamic> payload,
+  ) => _enqueue('buyer_details', orderId, payload);
+
   /// Queues a hold to go up. Â§6.1.
   ///
   /// A hold that never leaves the handset that took the deposit is a hold the
@@ -127,9 +143,18 @@ class Outboxer {
     String entityId,
     Map<String, dynamic> payload,
   ) async {
-    final existing = await (db.select(
-      db.outbox,
-    )..where((o) => o.entityId.equals(entityId))).getSingleOrNull();
+    // Matched on the KIND as well as the id. Two different kinds of work can
+    // legitimately name the same entity -- an order push and a buyer-detail
+    // capture are both keyed on the order id -- and matching on the id alone
+    // would have the second silently replace the first, so the order never
+    // went up at all. It would also throw here the moment two such rows
+    // existed, because `getSingleOrNull` is single-or-null and not first.
+    final existing =
+        await (db.select(db.outbox)..where(
+              (o) =>
+                  o.entityId.equals(entityId) & o.entityType.equals(entityType),
+            ))
+            .getSingleOrNull();
 
     await db.enqueueOutbox(
       OutboxCompanion.insert(
@@ -164,6 +189,7 @@ class Outboxer {
         'payment' => await api.pushPayment(credentials.token, body),
         'order' => await api.pushOrder(credentials.token, body),
         'order_status' => await api.pushStatusChange(credentials.token, body),
+        'buyer_details' => await api.pushBuyerDetails(credentials.token, body),
         'lock' => await api.pushLock(credentials.token, body),
         'deposit_prompt' => await api.pushDepositPrompt(
           credentials.token,
