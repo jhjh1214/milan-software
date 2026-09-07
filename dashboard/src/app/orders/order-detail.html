@@ -83,6 +83,74 @@
     </section>
   }
 
+  <!-- SPEC.md §10.3. The office runs the SQL Account export, so it has to be
+       able to see whether an order can be exported at all — without opening
+       somebody's handset or telephoning to find out.
+
+       Read-only. The handset is the only writer (§13 C14). -->
+  @if (d.buyer; as buyer) {
+    <section class="buyer">
+      <h2>Customer details for the invoice</h2>
+
+      @if (whyCaptured(d); as why) {
+        <p class="why">{{ why }}</p>
+      }
+
+      @if (buyer.captured_at === null) {
+        <!-- Nobody has asked yet. Reads differently from "asked and came away
+             with nothing", and the difference decides whether somebody has to
+             be telephoned or the handset has to be looked at. -->
+        <p class="none">Nobody has taken these yet.</p>
+      } @else {
+        <dl>
+          @if (buyer.name) {
+            <dt>Name</dt>
+            <dd>{{ buyer.name }}</dd>
+          }
+          @if (buyer.tin) {
+            <dt>TIN</dt>
+            <dd>{{ buyer.tin }}</dd>
+          }
+          @if (buyer.id_number) {
+            <dt>{{ buyer.id_type || 'ID' }}</dt>
+            <!-- Not masked, on purpose. This screen exists so the person doing
+                 the export can check the number against whatever the accounts
+                 system rejected. -->
+            <dd>{{ buyer.id_number }}</dd>
+          }
+          @if (address(buyer)) {
+            <dt>Address</dt>
+            <dd>{{ address(buyer) }}</dd>
+          }
+          @if (buyer.msic_code) {
+            <dt>MSIC</dt>
+            <dd>{{ buyer.msic_code }}</dd>
+          }
+          <dt>Taken</dt>
+          <dd>{{ date(buyer.captured_at) }}</dd>
+        </dl>
+      }
+
+      @if (buyer.complete) {
+        <p class="complete">Everything the invoice needs is here.</p>
+      } @else {
+        <!-- All of it at once, the same as the handset shows: whoever
+             telephones this customer gets one conversation, not three. -->
+        <p class="still-needed">Still needed:</p>
+        <ul class="missing">
+          @for (m of buyer.missing; track m) {
+            <li>{{ missingLabel(m) }}</li>
+          }
+        </ul>
+      }
+
+      <p class="note">
+        These are collected so the invoice can be issued in the accounts
+        system. This dashboard does not issue invoices.
+      </p>
+    </section>
+  }
+
   <section>
     <h2>What has happened</h2>
     <!-- Oldest first, which is the order somebody reads a story in. Append

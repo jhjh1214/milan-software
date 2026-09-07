@@ -29,6 +29,7 @@ from sqlalchemy.pool import StaticPool
 from app.api.schemas import BuyerDetailsIn, OrderIn, OrderLineIn
 from app.models.db import Base, Order
 from app.services.ingest import push_buyer_details, push_order
+from app.services.reads import order_detail
 
 CONFIRMED_AT = datetime(2026, 8, 29, 14, 0, tzinfo=UTC)
 MEASURED_AT = CONFIRMED_AT + timedelta(days=14)
@@ -334,6 +335,69 @@ def test_the_einvoice_request_is_carried(db: sessionmaker[Session]) -> None:
         capture(session, at=MEASURED_AT + timedelta(hours=1), tin="C1")
         session.commit()
         assert stored(session).einvoice_requested is True
+
+
+class TestWhatTheOfficeCanRead:
+    """The other half of why 0006 exists.
+
+    Pushing details up is pointless unless somebody can read them back. Until
+    Phase 5 every endpoint here was a push, and that asymmetry is what let two
+    rate-lock bugs sit unnoticed -- nothing ever read the data, so nothing
+    noticed it was unusable.
+    """
+
+    def test_the_detail_view_carries_them(self, db: sessionmaker[Session]) -> None:
+        with db() as session:
+            seed(session)
+            capture(session, tin="C1234567890", city="Melaka")
+            session.commit()
+
+            detail = order_detail(session, ORDER_ID)
+            assert detail is not None
+            assert detail.buyer is not None
+            assert detail.buyer.tin == "C1234567890"
+            assert detail.buyer.captured_at is not None
+
+    def test_it_says_what_is_still_missing(self, db: sessionmaker[Session]) -> None:
+        # So the office can see whether an order can be exported at all,
+        # without opening somebody's handset or telephoning to find out.
+        with db() as session:
+            seed(session)
+            capture(session, tin="C1234567890")
+            session.commit()
+
+            buyer = order_detail(session, ORDER_ID).buyer
+            assert buyer.complete is False
+            assert buyer.missing == ["address"]
+
+    def test_an_order_nobody_has_captured_for_reads_as_never_captured(
+        self, db: sessionmaker[Session]
+    ) -> None:
+        # Null `captured_at` reads differently from "captured and empty", and
+        # it has to: one means nobody has asked yet, the other means somebody
+        # asked and came away with nothing.
+        with db() as session:
+            seed(session)
+            session.commit()
+
+            buyer = order_detail(session, ORDER_ID).buyer
+            assert buyer.captured_at is None
+            assert buyer.complete is False
+            assert buyer.missing == ["identifier", "address"]
+
+    def test_the_identifier_is_not_masked(self, db: sessionmaker[Session]) -> None:
+        # This screen exists so the person doing the export can check the
+        # number against whatever the accounts system rejected. Masking it
+        # sends them to the handset for it, which is the trip the read side
+        # exists to remove.
+        with db() as session:
+            seed(session)
+            capture(session, id_type="nric", id_number="900101015555")
+            session.commit()
+
+            buyer = order_detail(session, ORDER_ID).buyer
+            assert buyer.id_number == "900101015555"
+            assert buyer.id_type == "nric"
 
 
 def test_a_naive_stored_timestamp_does_not_raise(db: sessionmaker[Session]) -> None:

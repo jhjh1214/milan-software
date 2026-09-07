@@ -19,7 +19,7 @@ import { RouterLink } from '@angular/router';
 
 import { Api } from '../api/api';
 import { formatDate, formatSen, urgencyOf, type Urgency } from '../api/money';
-import type { OrderDetailOut, OrderLineOut } from '../api/types';
+import type { BuyerOut, OrderDetailOut, OrderLineOut } from '../api/types';
 
 @Component({
   selector: 'app-order-detail',
@@ -93,6 +93,55 @@ export class OrderDetail {
     const fh = feet(line.final_height_tmm);
     const measured = fh === null ? `${fw}ft` : `${fw} × ${fh}ft`;
     return `${estimate} → ${measured} measured`;
+  }
+
+  /**
+   * The buyer's address as one readable block, blank lines dropped.
+   *
+   * Joined here rather than in the template so an absent line 2 does not leave
+   * a hole in the middle of an address somebody is reading onto a form.
+   */
+  protected address(buyer: BuyerOut): string {
+    return [
+      buyer.address_line1,
+      buyer.address_line2,
+      [buyer.postcode, buyer.city].filter(Boolean).join(' '),
+      buyer.state,
+    ]
+      .map((part) => part?.trim())
+      .filter((part) => !!part)
+      .join(', ');
+  }
+
+  /** What is still outstanding, in words rather than as a wire value. */
+  protected missingLabel(missing: string): string {
+    switch (missing) {
+      case 'name':
+        return 'the full name, as on the IC or company registration';
+      case 'identifier':
+        return 'a TIN, or an ID number with its type';
+      default:
+        return 'a full address — street, city, state and postcode';
+    }
+  }
+
+  /**
+   * Why these details matter for this particular order.
+   *
+   * Not a rule — the RM10,000 gate is the state machine's, on the handset and
+   * on the server. This is a note beside a figure the office is already
+   * looking at, so somebody chasing a customer knows whether it is the law or
+   * a request.
+   */
+  protected whyCaptured(d: OrderDetailOut): string | null {
+    if (d.buyer?.einvoice_requested) {
+      return 'The customer asked for an e-invoice, so these are needed whatever the amount.';
+    }
+    const total = d.order.estimate_total_sen;
+    if (total >= 1_000_000) {
+      return 'This order is over RM10,000, so by law the invoice needs the customer’s own details.';
+    }
+    return null;
   }
 
   /** What a line was priced on, in one line somebody can read out. */

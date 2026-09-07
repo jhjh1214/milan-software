@@ -18,7 +18,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { OrderDetailOut, OrderLineOut } from '../api/types';
+import type { BuyerOut, OrderDetailOut, OrderLineOut } from '../api/types';
 import { OrderDetail } from './order-detail';
 
 const line = (over: Partial<OrderLineOut> = {}): OrderLineOut => ({
@@ -66,6 +66,7 @@ const detail = (over: Partial<OrderDetailOut> = {}): OrderDetailOut => ({
   lines: [line()],
   events: [],
   overrides: [],
+  buyer: null,
   ...over,
 });
 
@@ -236,6 +237,135 @@ describe('OrderDetail', () => {
     expect(text()).toContain('RM 552.00 to RM 500.00');
     expect(text()).toContain('u-boss');
     expect(text()).toContain('matched a competitor quote');
+  });
+
+  describe('the customer details for the invoice', () => {
+    // SPEC.md §10.3. The office runs the SQL Account export, so it has to see
+    // whether an order can be exported without opening somebody's handset.
+    const buyer = (over: Partial<BuyerOut> = {}): BuyerOut => ({
+      name: 'Ah Lian',
+      tin: 'C1234567890',
+      id_type: null,
+      id_number: null,
+      address_line1: '12 Jalan Melaka',
+      address_line2: null,
+      city: 'Melaka',
+      state: 'Melaka',
+      postcode: '75000',
+      msic_code: null,
+      einvoice_requested: false,
+      captured_at: '2026-09-12T02:00:00Z',
+      complete: true,
+      missing: [],
+      ...over,
+    });
+
+    it('shows what is on file', async () => {
+      await load(detail({ buyer: buyer() }));
+
+      expect(text()).toContain('C1234567890');
+      expect(text()).toContain('12 Jalan Melaka');
+      expect(text()).toContain('Everything the invoice needs is here');
+    });
+
+    it('an address with no second line has no hole in it', async () => {
+      // Joined in the component rather than the template, so an absent line 2
+      // does not leave ", ," in the middle of an address somebody is reading
+      // onto a form.
+      await load(detail({ buyer: buyer() }));
+      expect(text()).toContain('12 Jalan Melaka, 75000 Melaka, Melaka');
+      expect(text()).not.toContain(', ,');
+    });
+
+    it('states everything outstanding at once', async () => {
+      // Not one field at a time. Whoever telephones this customer gets one
+      // conversation, and a screen that revealed the next gap after each call
+      // is a customer rung three times.
+      await load(
+        detail({
+          buyer: buyer({
+            tin: null,
+            address_line1: null,
+            city: null,
+            state: null,
+            postcode: null,
+            complete: false,
+            missing: ['identifier', 'address'],
+          }),
+        }),
+      );
+
+      expect(text()).toContain('Still needed');
+      expect(text()).toContain('a TIN, or an ID number with its type');
+      expect(text()).toContain('a full address');
+    });
+
+    it('never having been asked reads differently from having nothing', async () => {
+      // One means somebody still has to go and ask. The other means they did
+      // and came away empty, and the next step is different.
+      await load(
+        detail({
+          buyer: buyer({
+            tin: null,
+            address_line1: null,
+            city: null,
+            state: null,
+            postcode: null,
+            captured_at: null,
+            complete: false,
+            missing: ['identifier', 'address'],
+          }),
+        }),
+      );
+
+      expect(text()).toContain('Nobody has taken these yet');
+    });
+
+    it('says why they are needed when the order is over the threshold', async () => {
+      await load(
+        detail({
+          order: { ...detail().order, estimate_total_sen: 1_200_000 },
+          buyer: buyer(),
+        }),
+      );
+
+      expect(text()).toContain('over RM10,000');
+    });
+
+    it('says nothing about the threshold on a small order', async () => {
+      await load(detail({ buyer: buyer() }));
+      expect(text()).not.toContain('over RM10,000');
+    });
+
+    it('a customer request is a reason on its own, at any amount', async () => {
+      // §10.3: asked for at any value.
+      await load(detail({ buyer: buyer({ einvoice_requested: true }) }));
+      expect(text()).toContain('asked for an e-invoice');
+    });
+
+    it('the identifier is not masked', async () => {
+      // This screen exists so the person doing the export can check the number
+      // against whatever the accounts system rejected. Masking it sends them
+      // to the handset, which is the trip the read side exists to remove.
+      await load(
+        detail({ buyer: buyer({ id_type: 'nric', id_number: '900101015555' }) }),
+      );
+      expect(text()).toContain('900101015555');
+    });
+
+    it('the dashboard does not claim to issue invoices', async () => {
+      // CLAUDE.md hard rule 7 and §10.1. SQL Account is the sole issuer.
+      await load(detail({ buyer: buyer() }));
+      expect(text()).toContain('does not issue invoices');
+      expect(text().toLowerCase()).not.toContain('tax invoice');
+    });
+
+    it('an order with no buyer block at all renders without it', async () => {
+      // A server that has not been migrated yet, or an older response.
+      await load(detail({ buyer: null }));
+      expect(text()).not.toContain('Customer details for the invoice');
+      expect(text()).toContain('MLK-2608-0001');
+    });
   });
 
   it('an unknown order says so rather than showing an empty shell', async () => {

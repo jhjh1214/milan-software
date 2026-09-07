@@ -29,6 +29,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..api.schemas import (
+    BuyerOut,
     DepositPromptOut,
     OrderDetailOut,
     OrderEventOut,
@@ -45,6 +46,11 @@ from ..models.db import (
     PriceOverride,
 )
 from ..pricing.customer_key import customer_key_for
+from ..pricing.einvoice_threshold import (
+    BuyerDetails,
+    buyer_details_complete,
+    missing_buyer_details,
+)
 
 #: The most cards one request will return. §11 Phase 5 wants 500 without
 #: pagination lag, so the default page is the whole board and the cap exists to
@@ -279,6 +285,45 @@ def order_detail(session: Session, order_id: str) -> OrderDetailOut | None:
             for event in events
         ],
         overrides=[_override_out(row) for row in overrides],
+        buyer=_buyer_out(order),
+    )
+
+
+def _buyer_out(order: Order) -> BuyerOut:
+    """What is on file about the buyer, plus what is still missing. §10.3.
+
+    ``complete`` and ``missing`` are computed from the same rule the handset
+    shows rather than stored beside the row. A boolean column would be a second
+    answer that drifts the first time somebody edits a field without
+    recomputing it -- and the thing it would be wrong about is whether a
+    customer still has to be telephoned before an invoice can be issued.
+    """
+    buyer = BuyerDetails(
+        name=order.customer_name,
+        tin=order.buyer_tin,
+        id_type=order.buyer_id_type,
+        id_number=order.buyer_id_number,
+        address_line1=order.buyer_address_line1,
+        address_line2=order.buyer_address_line2,
+        city=order.buyer_city,
+        state=order.buyer_state,
+        postcode=order.buyer_postcode,
+    )
+    return BuyerOut(
+        name=order.customer_name,
+        tin=order.buyer_tin,
+        id_type=order.buyer_id_type,
+        id_number=order.buyer_id_number,
+        address_line1=order.buyer_address_line1,
+        address_line2=order.buyer_address_line2,
+        city=order.buyer_city,
+        state=order.buyer_state,
+        postcode=order.buyer_postcode,
+        msic_code=order.buyer_msic_code,
+        einvoice_requested=order.einvoice_requested,
+        captured_at=order.buyer_captured_at,
+        complete=buyer_details_complete(buyer),
+        missing=[m.value for m in missing_buyer_details(buyer)],
     )
 
 

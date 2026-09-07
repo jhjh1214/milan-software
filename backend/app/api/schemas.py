@@ -524,6 +524,40 @@ class PriceOverrideOut(BaseModel):
     at: datetime
 
 
+class BuyerOut(BaseModel):
+    """What is on file about the buyer, for the office. §10.3.
+
+    Read-only. The handset is the only writer today (§13 C14), and the office
+    needs this to see whether an order can actually be exported before it
+    telephones anybody.
+
+    ``complete`` and ``missing`` come from the same rule the handset shows, so
+    the two cannot disagree about who still has to be chased.
+
+    The identifier is deliberately **not** masked. This screen exists so the
+    person doing the export can check the number against what the accounts
+    system rejected, and a masked value would send them to the handset for it.
+    """
+
+    name: str | None = None
+    tin: str | None = None
+    id_type: str | None = None
+    id_number: str | None = None
+    address_line1: str | None = None
+    address_line2: str | None = None
+    city: str | None = None
+    state: str | None = None
+    postcode: str | None = None
+    msic_code: str | None = None
+    einvoice_requested: bool = False
+    #: When a handset last captured. Null when nobody ever has, which reads
+    #: differently from "captured and empty" and has to.
+    captured_at: datetime | None = None
+
+    complete: bool = False
+    missing: list[str] = []
+
+
 class OrderDetailOut(BaseModel):
     """One order, with everything needed to answer a question about it.
 
@@ -536,6 +570,10 @@ class OrderDetailOut(BaseModel):
     lines: list[OrderLineOut] = []
     events: list[OrderEventOut] = []
     overrides: list[PriceOverrideOut] = []
+    #: What is on file about the buyer, and what is still missing. The office
+    #: runs the export, so it has to be able to see the gap without opening
+    #: somebody's handset.
+    buyer: BuyerOut | None = None
 
 
 class OverridesOut(BaseModel):

@@ -110,11 +110,40 @@ export interface PriceOverrideOut {
   readonly at: string;
 }
 
+/**
+ * What is on file about the buyer, for the invoice. SPEC.md §10.3.
+ *
+ * Read-only here. The handset is the only writer today (§13 C14), and the
+ * office needs this to see whether an order can actually be exported before
+ * it telephones anybody about it.
+ */
+export interface BuyerOut {
+  readonly name: string | null;
+  readonly tin: string | null;
+  readonly id_type: string | null;
+  readonly id_number: string | null;
+  readonly address_line1: string | null;
+  readonly address_line2: string | null;
+  readonly city: string | null;
+  readonly state: string | null;
+  readonly postcode: string | null;
+  readonly msic_code: string | null;
+  readonly einvoice_requested: boolean;
+  /** Null when nobody has ever captured — which reads differently from
+   *  "captured and came away with nothing", and has to. */
+  readonly captured_at: string | null;
+  /** From the same rule the handset shows, never computed here. Two answers
+   *  would disagree about who still has to be telephoned. */
+  readonly complete: boolean;
+  readonly missing: readonly string[];
+}
+
 export interface OrderDetailOut {
   readonly order: OrderSummary;
   readonly lines: readonly OrderLineOut[];
   readonly events: readonly OrderEventOut[];
   readonly overrides: readonly PriceOverrideOut[];
+  readonly buyer: BuyerOut | null;
 }
 
 export interface OverridesOut {

@@ -208,3 +208,57 @@ section {
   font: inherit;
   cursor: pointer;
 }
+
+/* SPEC.md §10.3. What the office needs to see before it can export an order,
+   and what is still outstanding if it cannot. */
+.buyer dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 16px;
+  margin: 0 0 12px;
+}
+
+.buyer dt {
+  font-size: 12px;
+  color: #56637a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.buyer dd {
+  margin: 0;
+  font-size: 14px;
+}
+
+.buyer .why {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 13px;
+}
+
+.buyer .none {
+  margin: 0 0 12px;
+  color: #56637a;
+}
+
+.buyer .complete {
+  margin: 0;
+  color: #047857;
+  font-weight: 600;
+}
+
+.buyer .still-needed {
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+
+/* Everything outstanding at once. Whoever telephones this customer gets one
+   conversation, not one per missing field. */
+.buyer .missing {
+  margin: 0;
+  padding-left: 20px;
+  color: #7f1d1d;
+}
