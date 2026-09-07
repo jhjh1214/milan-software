@@ -91,12 +91,69 @@ describe('App', () => {
     fixture.detectChanges();
 
     const button: HTMLButtonElement =
-      fixture.nativeElement.querySelector('.who button');
+      fixture.nativeElement.querySelector('.who button.sign-out');
     button.click();
     fixture.detectChanges();
 
     expect(session.signedIn()).toBe(false);
     expect(api.token()).toBeNull();
     expect(text()).not.toContain('Sign out');
+  });
+
+  describe('the language the bar speaks', () => {
+    // SPEC.md §13 C9. The handset has been trilingual since Phase 2; the
+    // office was English on an assumption that turned out to be wrong.
+    const languages = (): HTMLButtonElement[] =>
+      Array.from(
+        fixture.nativeElement.querySelectorAll('.languages button'),
+      ) as HTMLButtonElement[];
+
+    it('follows the signed-in person, not the browser', () => {
+      // CLAUDE.md: switchable per user, not per device. Two people share this
+      // machine and the server already knows which language each of them
+      // reads.
+      session.user.set({ id: 'u1', name: 'Boss', role: 'admin', language: 'ms' });
+      fixture.detectChanges();
+      expect(text()).toContain('Pesanan');
+      expect(text()).not.toContain('Orders');
+
+      session.user.set({ id: 'u2', name: 'Ah Lian', role: 'admin', language: 'zh' });
+      fixture.detectChanges();
+      expect(text()).toContain('订单');
+    });
+
+    it('falls back to Chinese for an account naming a language we do not speak', () => {
+      // A language column is free text on the wire. Rendering a blank nav
+      // would be the alternative.
+      session.user.set({ id: 'u1', name: 'Boss', role: 'admin', language: 'ta' });
+      fixture.detectChanges();
+      expect(text()).toContain('订单');
+    });
+
+    it('the picker switches every word at once', () => {
+      signedInAs('admin');
+      fixture.detectChanges();
+      expect(text()).toContain('Orders');
+
+      // 中文, English, Bahasa Melayu — the order LANGUAGES declares.
+      languages()[2].click();
+      fixture.detectChanges();
+
+      expect(text()).toContain('Pesanan');
+      expect(text()).toContain('Log keluar');
+      expect(text()).not.toContain('Sign out');
+    });
+
+    it('each language names itself, in itself', () => {
+      // Never translated: somebody who cannot read the current language has
+      // to be able to find the way out of it.
+      signedInAs('admin');
+      fixture.detectChanges();
+      expect(languages().map((b) => b.textContent?.trim())).toEqual([
+        '中文',
+        'English',
+        'Bahasa Melayu',
+      ]);
+    });
   });
 });

@@ -1,23 +1,33 @@
 @if (session.signedIn()) {
   <header class="chrome">
     <nav aria-label="Main">
-      <a routerLink="/orders" routerLinkActive="on">Orders</a>
-      <a routerLink="/measurement" routerLinkActive="on">Measurement</a>
+      <a routerLink="/orders" routerLinkActive="on">{{ t().nav.orders }}</a>
+      <a routerLink="/measurement" routerLinkActive="on">
+        {{ t().nav.measurement }}
+      </a>
 
       <!-- Admin only, and the server enforces it. Hidden rather than shown and
            refused: offering somebody a screen that answers 403 wastes their
            time and teaches them the app is unreliable. -->
       @if (session.isAdmin()) {
-        <a routerLink="/overrides" routerLinkActive="on">Price changes</a>
-        <a routerLink="/rates" routerLinkActive="on">Price list</a>
-        <a routerLink="/reports" routerLinkActive="on">Reports</a>
-        <a routerLink="/people" routerLinkActive="on">People</a>
+        <a routerLink="/overrides" routerLinkActive="on">
+          {{ t().nav.priceChanges }}
+        </a>
+        <a routerLink="/rates" routerLinkActive="on">{{ t().nav.priceList }}</a>
+        <a routerLink="/reports" routerLinkActive="on">{{ t().nav.reports }}</a>
+        <a routerLink="/people" routerLinkActive="on">{{ t().nav.people }}</a>
       }
     </nav>
 
     <div class="who">
+      <!-- Here as well as on the sign-in screen: somebody whose account says
+           English can still be handed the machine by a colleague reading
+           Chinese, and neither of them should have to sign out to read it. -->
+      <app-language-picker />
       <span>{{ session.user()?.name }}</span>
-      <button type="button" (click)="signOut()">Sign out</button>
+      <button type="button" class="sign-out" (click)="signOut()">
+        {{ t().nav.signOut }}
+      </button>
     </div>
   </header>
 }

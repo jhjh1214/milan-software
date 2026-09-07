@@ -1,7 +1,12 @@
 <form class="sign-in" (ngSubmit)="submit()">
   <h1>Milan</h1>
 
-  <label for="phone">Phone</label>
+  <!-- Before the picker, nobody who reads only Malay could get past this
+       screen: the default is Chinese and the account that would have said
+       otherwise is on the far side of the button they cannot read. -->
+  <app-language-picker />
+
+  <label for="phone">{{ t().signIn.phone }}</label>
   <input
     id="phone"
     name="phone"
@@ -12,7 +17,7 @@
     [disabled]="busy()"
   />
 
-  <label for="pin">PIN</label>
+  <label for="pin">{{ t().signIn.pin }}</label>
   <input
     id="pin"
     name="pin"
@@ -23,14 +28,14 @@
     [disabled]="busy()"
   />
 
-  @if (failure(); as message) {
+  @if (failure(); as failed) {
     <!-- role=alert so a screen reader hears it. The message never says which
          of the two was wrong: "no such phone" tells somebody holding a stolen
          handset which numbers are real. -->
-    <p class="failure" role="alert">{{ message }}</p>
+    <p class="failure" role="alert">{{ message(failed) }}</p>
   }
 
   <button type="submit" [disabled]="!ready || busy()">
-    {{ busy() ? 'Signing in…' : 'Sign in' }}
+    {{ busy() ? t().signIn.busy : t().signIn.action }}
   </button>
 </form>

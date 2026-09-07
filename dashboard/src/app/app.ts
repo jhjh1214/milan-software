@@ -2,6 +2,8 @@ import { Component, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { Session } from './auth/session';
+import { LanguagePicker } from './i18n/language-picker';
+import { Text } from './i18n/text';
 
 /**
  * The shell: a thin bar with the way between screens, and nothing else.
@@ -15,13 +17,16 @@ import { Session } from './auth/session';
  */
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, LanguagePicker],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
 export class App {
   protected readonly session = inject(Session);
   private readonly router = inject(Router);
+
+  /** The words, as a signal: switching language re-renders the bar. */
+  protected readonly t = inject(Text).strings;
 
   protected signOut(): void {
     this.session.signOut();
