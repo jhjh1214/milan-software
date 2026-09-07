@@ -546,17 +546,19 @@ variance report must subtract this known bias before it can say anything about a
 salesperson's guessing. A line quoted at 13ft and billed at 12.33ft is not a bad
 estimate.
 
-**`min_qty` applies at BOTH stages, and that is now a placeholder for a
-conditional rule — see §13 A21.** "Min 18 sqft" is printed on the price list as
-a commercial floor, not a rounding artefact, so a site-measured 9 sqft roller
-blind currently still bills 18. Both engines do this and a fixture pins it.
+**`min_qty` is unconditional on a quotation and CONDITIONAL at final pricing —
+§13 A21, answered.** "Min 18 sqft" is printed on the price list as a commercial
+floor, not a rounding artefact, but it is a floor on the **job** rather than on
+the line.
 
-A21 is answered in principle: the floor is a property of the **job**, not the
-line, and a small blind inside a house of curtains should bill what it measures.
-The order-of-operations questions that answer raises are A21a–A21d and they move
-money, so the unconditional floor stays in force until they are settled. On a
-**quotation** it stays unconditional either way: quoting below a floor the final
-might apply would break §8.5 in the one direction it may not break.
+On a **quotation** it always applies. Quoting below a floor the final might then
+apply would break §8.5 in the one direction it may not break.
+
+At **final pricing** it applies only when the job does not clear the threshold.
+A small blind on its own bills its printed 18 sqft; the same blind inside a
+house of curtains bills the 12 sqft it measures. The full order of operations,
+and the four sub-answers that fix it, are in §13 A21 — read them before touching
+this, because the sequence is what stops the rule being circular.
 
 **`rawQty` must be exact rational arithmetic, not a float.** A foot is 304.8mm,
 so ft→mm→sqft can never be exact in binary. A 12ft × 8ft blind that computes as
@@ -2209,28 +2211,56 @@ orders, supplier management and costing come later.
   final might then apply would break the §8.5 promise in the one direction it
   may not break.
 
-  Four things this answer does not settle, each recorded rather than guessed
-  because each moves money. **Until they are answered both engines keep
-  applying `min_qty` at both stages** — the conservative reading, and the one
-  already built and fixture-tested.
+  Four follow-ups were put to the client rather than guessed, because each
+  moves money. All four are answered, and the rule is now built on both
+  engines against five fixtures.
 
-  - `[BLOCKING P6]` **A21a. Which total is the RM300 measured against?** The
-    whole order, or the deposit category the line belongs to? A house of
-    curtains plus one small blind is one order but two categories, and the two
-    readings disagree about that blind.
-  - `[BLOCKING P6]` **A21b. Is the total computed with the minimums applied or
-    without?** This is circular: the minimums decide the total, and the total
-    decides whether the minimums apply. It needs a stated order of operations
-    — most likely "sum the exact-tape totals first, then decide" — or an order
-    of exactly RM300 flips between two answers depending on which pass ran.
-  - `[BLOCKING P6]` **A21c. Is exactly RM300 above the line or on it?** "Exceeds
-    RM300" reads as strictly greater. Worth confirming, because RM300 is also
-    the deposit figure and a customer paying exactly one deposit is not a rare
-    case — it is the common one.
-  - `[BLOCKING P6]` **A21d. What happens when waiving the minimum drops the
-    final below the deposit already taken?** This is §13 **B4** arriving from a
-    new direction. §8.4 stops a *quotation* showing less than the deposit; a
-    final is a different document and B4 is still open.
+  - ~~**A21a.**~~ **ANSWERED — the WHOLE order.** Not the deposit category. A
+    house of curtains plus one small blind is one job, and the blind rides
+    along with it.
+  - ~~**A21b.**~~ **ANSWERED — the EXACT prices, never the minimum-applied
+    ones.** The other reading is circular: the minimums decide the total, and
+    the total decides whether the minimums apply.
+  - ~~**A21c.**~~ **ANSWERED — exactly the threshold clears it.** RM300 is also
+    the deposit figure, so an order landing on it is the common case rather
+    than a corner one.
+  - ~~**A21d.**~~ **ANSWERED — never bill below the deposit already taken.**
+    §8.4's per-category floor, which the quotation already applies, now applies
+    at final pricing too. The customer pays exactly what they deposited and
+    nothing is refunded automatically. This answers §13 **B4** in one
+    direction only: a final that lands under the deposit bills the deposit. It
+    says nothing about a customer who cancels.
+
+  **The order of operations, and the order matters:**
+
+  1. Price every line exactly from the tape, with **no** minimum.
+  2. Sum those across the **whole order** (A21a). Delivery is excluded — it is
+     travel, not product (§4.3), so a customer 100km away must not clear a
+     threshold an identical order in town does not.
+  3. If that sum is **at least** the threshold (A21c), waive `min_qty` on every
+     line and keep the exact prices.
+  4. Otherwise apply `min_qty` exactly as the quotation does.
+  5. Apply §8.4's per-category deposit floor to the resulting subtotals (A21d).
+
+  Step 2 uses the figures from step 1 and never those from step 4 (A21b).
+
+  The threshold is `config.min_qty_waiver_sen` on the rate card, defaulting to
+  `min_deposit_sen` when a card does not carry it — config rather than a
+  literal, and defaulted so a card published before this rule still behaves.
+
+  **One consequence, pinned in a fixture so nobody quietly "fixes" it.** A
+  3ft × 4ft timber blind (12 sqft, RM240 exact) bills **RM360**, and a larger
+  3ft × 5ft one (15 sqft, RM300 exact) bills **RM300**. The smaller window
+  costs more. That inversion is what any threshold sitting on top of any
+  minimum produces; it is not a defect, and changing it means changing the
+  rule rather than the code.
+
+  **The estimate side is floored too.** The quotation the customer holds
+  already had §8.4's floor applied, but as an order-level uplift — so a sum of
+  the recorded *line* estimates is short by it. Flooring only the final would
+  make every small order look like its price went **up**, which is the one
+  thing §8.5 says cannot happen, invented by arithmetic rather than by
+  anything real.
 - `[BLOCKING P6]` **A22. What are the stair and landing rates?** The shape is
   known and built: a staircase is charged **per step**, a landing separately
   and at a different rate, and both depend on how wide the step is. The client

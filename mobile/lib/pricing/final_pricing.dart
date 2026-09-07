@@ -146,9 +146,31 @@ class FinalPricing {
     required this.estimateTotal,
     required this.finalTotal,
     required this.isComplete,
+    this.minQtyWaived = false,
+    this.exactSubtotal,
+    this.categoryFloorUplift = Money.zero,
   });
 
   final List<FinalLine> lines;
+
+  /// True when the job cleared the threshold and every printed minimum was
+  /// stood down. §13 A21.
+  final bool minQtyWaived;
+
+  /// What the lines came to with no minimum applied — the number the waiver
+  /// decision was actually made on (A21b). Null until the order fully prices.
+  ///
+  /// Kept because a rule that turns on a comparison is unreadable without the
+  /// figure it compared: "RM324, which cleared RM300" is a sentence somebody
+  /// can check, and "the minimums were waived" is not.
+  final Money? exactSubtotal;
+
+  /// What §8.4's per-category deposit floor added on top of the lines. A21d.
+  ///
+  /// An order-level number, deliberately not pushed back into the lines: a
+  /// line has to keep saying what its own product cost, or the variance report
+  /// compares an estimate against a figure that was never a price.
+  final Money categoryFloorUplift;
 
   final Money estimateTotal;
 
@@ -184,32 +206,179 @@ FinalPricing repriceOrder({
   required Map<int, RateCard> cards,
   CustomerTier tier = CustomerTier.standard,
 }) {
-  final priced = [for (final line in lines) _repriceLine(line, cards, tier)];
+  // §13 A21, in the order the answer fixes — and the order matters.
+  //
+  // Pass 1 prices every line from the tape with NO minimum, which gives the
+  // exact subtotal. Pass 2 decides. The threshold is measured against the
+  // exact prices and never against the minimum-applied ones (A21b): the other
+  // reading is circular, because the minimums are what the decision produces.
+  final exact = [
+    for (final line in lines)
+      _repriceLine(line, cards, tier, applyMinQty: false),
+  ];
 
-  final estimate = priced.fold<Money>(
+  // A21a: the WHOLE order, not the deposit category. A house of curtains and
+  // one small blind is one job, and the blind rides along with it.
+  //
+  // Only lines that actually priced contribute. A refused line has no number,
+  // and treating a missing one as zero would drag a job under the threshold
+  // and bill minimums the customer should not have paid — which is the same
+  // failure as a total that quietly excluded a window, one step earlier.
+  final exactSubtotal = exact.fold<Money>(
     Money.zero,
-    (sum, line) => sum + line.estimateTotal,
+    (sum, line) => sum + (line.finalTotal ?? Money.zero),
   );
+
+  // The threshold is config on the card, and every line's card may differ.
+  // Taking the LOWEST of them is the customer-favourable reading, and the
+  // only one that does not depend on which line happens to be first.
+  final threshold = _waiverThreshold(lines, cards);
+
+  // A21c: exactly the threshold clears it. RM300 is also the deposit figure,
+  // so an order landing on it is the common case rather than a corner one.
+  final everyLinePriced =
+      exact.isNotEmpty && exact.every((l) => l.refusal == null);
+  final waived =
+      everyLinePriced &&
+      threshold != null &&
+      exactSubtotal.sen >= threshold.sen;
+
+  final priced = waived
+      ? exact
+      : [
+          for (final line in lines)
+            _repriceLine(line, cards, tier, applyMinQty: true),
+        ];
 
   // An order with no lines has not been priced. Zero is a total somebody could
   // act on, and "RM0.00 due" is a worse answer than "not priced".
   final complete = priced.isNotEmpty && priced.every((l) => l.refusal == null);
 
+  final uplift = complete
+      ? _categoryFloorUplift(priced, lines, cards, (l) => l.finalTotal!)
+      : Money.zero;
+  final estimateUplift = complete
+      ? _categoryFloorUplift(priced, lines, cards, (l) => l.estimateTotal)
+      : Money.zero;
+
+  final estimate =
+      priced.fold<Money>(Money.zero, (sum, line) => sum + line.estimateTotal) +
+      estimateUplift;
+
   return FinalPricing(
     lines: priced,
+    minQtyWaived: waived,
+    exactSubtotal: complete ? exactSubtotal : null,
+    categoryFloorUplift: uplift,
     estimateTotal: estimate,
+    // The lines, plus whatever the per-category deposit floor added on top.
+    // The uplift stays an order-level number rather than being smeared back
+    // across the lines: a line has to keep saying what its own product cost,
+    // or the variance report is comparing an estimate against a figure that
+    // was never a price for anything.
     finalTotal: complete
-        ? priced.fold<Money>(Money.zero, (sum, line) => sum + line.finalTotal!)
+        ? priced.fold<Money>(
+                Money.zero,
+                (sum, line) => sum + line.finalTotal!,
+              ) +
+              uplift
         : null,
     isComplete: complete,
   );
 }
 
+/// The lowest waiver threshold among the cards this order's lines priced at.
+///
+/// Lines can sit on different card versions — a lock is per line — and those
+/// cards can carry different config. The lowest is the customer-favourable
+/// reading and the only one that does not depend on line order. Null when no
+/// line could name its card, in which case nothing is waived.
+Money? _waiverThreshold(List<MeasuredLine> lines, Map<int, RateCard> cards) {
+  Money? lowest;
+  for (final line in lines) {
+    final card = cards[line.appliedRateCardVersion];
+    if (card == null) continue;
+    final value = card.config.minQtyWaiver;
+    if (lowest == null || value.sen < lowest.sen) lowest = value;
+  }
+  return lowest;
+}
+
+/// §8.4's per-category deposit floor, now applied at final pricing too.
+///
+/// §13 A21d: waiving a minimum can drop a final below the deposit the customer
+/// already handed over, and the answer is that it never bills below it. Same
+/// rule as the quotation, so the two documents cannot contradict each other —
+/// and §8.5's promise survives, because a quote that was itself floored to
+/// RM300 is met exactly rather than undercut.
+///
+/// Returns the total uplift across every category, in sen.
+/// [amountOf] selects which figure to floor. It is run over BOTH the final and
+/// the estimate: the quotation the customer holds already had this floor
+/// applied (§8.4), but only as an order-level uplift, so a sum of the recorded
+/// line estimates is short by it. Flooring only the final would then make every
+/// small order look like its price went **up** — the one thing §8.5 says cannot
+/// happen, invented by the arithmetic rather than by anything real.
+Money _categoryFloorUplift(
+  List<FinalLine> priced,
+  List<MeasuredLine> lines,
+  Map<int, RateCard> cards,
+  Money Function(FinalLine) amountOf,
+) {
+  final subtotals = <DepositCategory, Money>{};
+  final floors = <DepositCategory, Money>{};
+
+  for (final line in priced) {
+    final rule = line.priced?.rule;
+    if (rule == null) continue;
+
+    // An unparented add-on has no deposit category, and `depositCategory`
+    // throws rather than guessing one — correctly, because filing it under
+    // curtains could price it at a held rate its RM300 never bought.
+    //
+    // It is skipped for FLOORING only, and its total still counts in the
+    // order. No category means no deposit was ever taken against it, so it
+    // cannot pull a category under a floor and must not invent one. The
+    // quotation raises the same data problem out loud (`totalQuote`); final
+    // pricing must not newly crash on an order that was priceable a minute
+    // ago, in a house, with a measurer holding the phone.
+    final DepositCategory cat;
+    try {
+      cat = rule.depositCategory;
+    } on UnknownDepositCategory {
+      continue;
+    }
+
+    subtotals[cat] = (subtotals[cat] ?? Money.zero) + amountOf(line);
+
+    // The floor comes off the card that priced the line, like every other
+    // configured figure — never off today's active card.
+    final version = line.pricedAtVersion;
+    final card = version == null ? null : cards[version];
+    if (card == null) continue;
+    final floor = Money.sen(card.config.minDepositSen);
+    final known = floors[cat];
+    // Lowest again, for the same reason as the waiver threshold.
+    if (known == null || floor.sen < known.sen) floors[cat] = floor;
+  }
+
+  var uplift = Money.zero;
+  for (final entry in subtotals.entries) {
+    final floor = floors[entry.key];
+    if (floor == null) continue;
+    if (entry.value.sen < floor.sen) {
+      uplift = uplift + (floor - entry.value);
+    }
+  }
+  return uplift;
+}
+
 FinalLine _repriceLine(
   MeasuredLine line,
   Map<int, RateCard> cards,
-  CustomerTier tier,
-) {
+  CustomerTier tier, {
+  required bool applyMinQty,
+}) {
   FinalLine refuse(FinalPricingRefusal why) =>
       FinalLine(id: line.id, estimateTotal: line.estimateTotal, refusal: why);
 
@@ -239,6 +408,7 @@ FinalLine _repriceLine(
       card: card,
       stage: PricingStage.finalPricing,
       tier: tier,
+      applyMinQty: applyMinQty,
     );
 
     return FinalLine(

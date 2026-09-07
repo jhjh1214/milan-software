@@ -77,6 +77,15 @@ class PricedLine {
   /// Shown on the line, or the customer queries it.
   final bool minQtyApplied;
 
+  /// True when this line HAD a printed minimum and it was stood down because
+  /// the job cleared the threshold. §13 A21.
+  ///
+  /// Distinct from `!minQtyApplied`, which is also true for a line that simply
+  /// measured above its minimum, and for a line that never had one. This is
+  /// the reason a line came in below its printed rate, and both the revised
+  /// order document and the variance report need to be able to say it.
+  final bool minQtyWaived;
+
   /// True when the customer has not chosen a material yet and this line was
   /// priced at the **dearest** option in the group.
   ///
@@ -110,6 +119,7 @@ class PricedLine {
     required this.billedQty,
     required this.billedUnit,
     required this.minQtyApplied,
+    this.minQtyWaived = false,
     required this.standardRateSen,
     required this.rateSen,
     required this.quantity,
@@ -157,6 +167,17 @@ PricedLine priceLine({
   required RateCard card,
   required PricingStage stage,
   CustomerTier tier = CustomerTier.standard,
+  // §13 A21. A printed minimum is a floor on the JOB, not on the line, and
+  // whether this job clears it is an ORDER-level question this function cannot
+  // see. So the decision is made by `repriceOrder`, which prices once with the
+  // minimum suppressed to get the exact subtotal and then decides.
+  //
+  // Defaults to true, so nothing that does not know about the rule can waive a
+  // minimum by omission. And it is only ever passed false at final pricing: on
+  // a quotation the minimum is unconditional, because quoting below a floor
+  // the final might then apply would break §8.5 in the one direction it may
+  // not break.
+  bool applyMinQty = true,
 }) {
   if (request.quantity < 1) {
     throw ArgumentError.value(
@@ -248,9 +269,19 @@ PricedLine priceLine({
   //    mirrors the same ordering when flooring and wallpaper arrive.
 
   // 5. Minimum billed quantity, BEFORE the rate multiplies.
-  final minQty = rule.minQty;
+  //
+  // Per WINDOW, not per line: three identical small blinds each meet the
+  // minimum separately, then step 8 multiplies. Waived only when the caller
+  // has established the job clears the threshold (§13 A21).
+  final minQty = applyMinQty ? rule.minQty : null;
   final afterMin = minQty == null ? rawQty : rawQty.max(minQty);
   final minQtyApplied = minQty != null && afterMin != rawQty;
+
+  // True when a minimum existed and this call was told to stand it down. The
+  // document and the variance report both need to say WHY a line came in
+  // below its printed rate, and "the job cleared RM300" is the reason.
+  final minQtyWaived =
+      !applyMinQty && rule.minQty != null && rawQty < rule.minQty!;
 
   // 5b. Stage rounding. A quotation rounds up to a whole unit (A10); final
   //     pricing bills the measured quantity exactly (A11).
@@ -276,6 +307,7 @@ PricedLine priceLine({
     billedQty: billedQty,
     billedUnit: rule.basis.unit,
     minQtyApplied: minQtyApplied,
+    minQtyWaived: minQtyWaived,
     standardRateSen: rule.rateSen,
     rateSen: rateSen,
     quantity: request.quantity,

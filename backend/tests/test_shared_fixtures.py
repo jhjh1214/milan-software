@@ -251,6 +251,13 @@ def test_final_pricing_case(case: dict) -> None:
             assert got.priced is not None
             assert got.priced.billed_unit == want["billed_unit"]
 
+        if "min_qty_waived" in want:
+            waived = got.priced is not None and got.priced.min_qty_waived
+            assert waived is want["min_qty_waived"], (
+                f"{got.id}: whether its printed minimum was stood down "
+                f"because the job cleared the threshold (§13 A21)"
+            )
+
     assert result.estimate_total.sen == expected["estimate_total_sen"]
     assert (None if result.final_total is None else result.final_total.sen) == expected[
         "final_total_sen"
@@ -259,6 +266,24 @@ def test_final_pricing_case(case: dict) -> None:
         "variance_sen"
     ]
     assert result.is_complete is expected["is_complete"]
+
+    # §13 A21. Asserted only where a case states them, so the cases written
+    # before the rule existed are not silently given a default that would pass
+    # whatever the engine did.
+    if "exact_subtotal_sen" in expected:
+        assert (
+            None if result.exact_subtotal is None else result.exact_subtotal.sen
+        ) == expected["exact_subtotal_sen"], (
+            "the subtotal the waiver decision was made on (A21b)"
+        )
+    if "min_qty_waived" in expected:
+        assert result.min_qty_waived is expected["min_qty_waived"], (
+            "whether the job cleared the threshold (A21a, A21c)"
+        )
+    if "category_floor_uplift_sen" in expected:
+        assert (
+            result.category_floor_uplift.sen == expected["category_floor_uplift_sen"]
+        ), "never bill below the deposit already taken (A21d)"
 
 
 def test_every_refusal_reason_is_exercised() -> None:

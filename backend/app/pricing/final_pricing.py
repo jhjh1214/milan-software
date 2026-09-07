@@ -31,6 +31,7 @@ Pure. No I/O, no ORM, no clock.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from fractions import Fraction
@@ -38,7 +39,15 @@ from fractions import Fraction
 from ..core.length import Length
 from ..core.money import ZERO, Money
 from .engine import LineRequest, NoApplicableRate, PricedLine, price_line
-from .models import CustomerTier, Fulfilment, Layer, PricingStage, RateCard
+from .models import (
+    CustomerTier,
+    DepositCategory,
+    Fulfilment,
+    Layer,
+    PricingStage,
+    RateCard,
+    UnknownDepositCategory,
+)
 
 
 class FinalPricingRefusal(Enum):
@@ -148,6 +157,25 @@ class FinalPricing:
     #: True when every line priced, and there was at least one.
     is_complete: bool = False
 
+    #: True when the job cleared the threshold and every printed minimum was
+    #: stood down. §13 A21.
+    min_qty_waived: bool = False
+
+    #: What the lines came to with no minimum applied -- the number the waiver
+    #: decision was actually made on (A21b). None until the order fully prices.
+    #:
+    #: Kept because a rule that turns on a comparison is unreadable without the
+    #: figure it compared: "RM324, which cleared RM300" is a sentence somebody
+    #: can check, and "the minimums were waived" is not.
+    exact_subtotal: Money | None = None
+
+    #: What §8.4's per-category deposit floor added on top of the lines. A21d.
+    #:
+    #: An order-level number, deliberately not pushed back into the lines: a
+    #: line has to keep saying what its own product cost, or the variance
+    #: report compares an estimate against a figure that was never a price.
+    category_floor_uplift: Money = ZERO
+
     @property
     def variance(self) -> Money | None:
         return (
@@ -179,26 +207,173 @@ def reprice_order(
     has. A line whose version is missing refuses; it is never priced at
     another.
     """
-    priced = [_reprice_line(line, cards, tier) for line in lines]
+    # §13 A21, in the order the answer fixes -- and the order matters.
+    #
+    # Pass 1 prices every line from the tape with NO minimum, which gives the
+    # exact subtotal. Pass 2 decides. The threshold is measured against the
+    # exact prices and never against the minimum-applied ones (A21b): the other
+    # reading is circular, because the minimums are what the decision produces.
+    exact = [_reprice_line(line, cards, tier, apply_min_qty=False) for line in lines]
 
-    estimate = sum((line.estimate_total for line in priced), ZERO)
+    # A21a: the WHOLE order, not the deposit category. A house of curtains and
+    # one small blind is one job, and the blind rides along with it.
+    #
+    # Only lines that actually priced contribute. A refused line has no number,
+    # and treating a missing one as zero would drag a job under the threshold
+    # and bill minimums the customer should not have paid.
+    exact_subtotal = sum(
+        (line.final_total for line in exact if line.final_total is not None), ZERO
+    )
+
+    threshold = _waiver_threshold(lines, cards)
+    every_line_priced = bool(exact) and all(line.refusal is None for line in exact)
+
+    # A21c: exactly the threshold clears it. RM300 is also the deposit figure,
+    # so an order landing on it is the common case rather than a corner one.
+    waived = (
+        every_line_priced
+        and threshold is not None
+        and exact_subtotal.sen >= threshold.sen
+    )
+
+    priced = (
+        exact
+        if waived
+        else [_reprice_line(line, cards, tier, apply_min_qty=True) for line in lines]
+    )
 
     # An order with no lines has not been priced. Zero is a total somebody could
     # act on, and "RM0.00 due" is a worse answer than "not priced".
     complete = bool(priced) and all(line.refusal is None for line in priced)
 
+    uplift = (
+        _category_floor_uplift(priced, cards, lambda l: l.final_total)
+        if complete
+        else ZERO
+    )
+    estimate_uplift = (
+        _category_floor_uplift(priced, cards, lambda l: l.estimate_total)
+        if complete
+        else ZERO
+    )
+
+    estimate = sum((line.estimate_total for line in priced), ZERO) + estimate_uplift
+
     return FinalPricing(
         lines=priced,
         estimate_total=estimate,
+        min_qty_waived=waived,
+        exact_subtotal=exact_subtotal if complete else None,
+        category_floor_uplift=uplift,
+        # The lines, plus whatever the per-category deposit floor added on top.
         final_total=(
-            sum((line.final_total for line in priced), ZERO) if complete else None
+            sum((line.final_total for line in priced), ZERO) + uplift
+            if complete
+            else None
         ),
         is_complete=complete,
     )
 
 
+def _waiver_threshold(
+    lines: list[MeasuredLine], cards: dict[int, RateCard]
+) -> Money | None:
+    """The lowest waiver threshold among the cards this order's lines priced at.
+
+    Lines can sit on different card versions -- a lock is per line -- and those
+    cards can carry different config. The lowest is the customer-favourable
+    reading and the only one that does not depend on line order. None when no
+    line could name its card, in which case nothing is waived.
+    """
+    lowest: Money | None = None
+    for line in lines:
+        card = cards.get(line.applied_rate_card_version)
+        if card is None:
+            continue
+        value = card.config.min_qty_waiver
+        if lowest is None or value.sen < lowest.sen:
+            lowest = value
+    return lowest
+
+
+def _category_floor_uplift(
+    priced: list[FinalLine],
+    cards: dict[int, RateCard],
+    amount_of: Callable[[FinalLine], Money | None],
+) -> Money:
+    """§8.4's per-category deposit floor, now applied at final pricing too.
+
+    §13 A21d: waiving a minimum can drop a final below the deposit the customer
+    already handed over, and the answer is that it never bills below it. Same
+    rule as the quotation, so the two documents cannot contradict each other --
+    and §8.5's promise survives, because a quote that was itself floored to
+    RM300 is met exactly rather than undercut.
+
+    ``amount_of`` selects which figure to floor. It is run over BOTH the final
+    and the estimate: the quotation the customer holds already had this floor
+    applied, but only as an order-level uplift, so a sum of the recorded line
+    estimates is short by it. Flooring only the final would make every small
+    order look like its price went **up** -- the one thing §8.5 says cannot
+    happen, invented by the arithmetic rather than by anything real.
+
+    Returns the total uplift across every category, in sen.
+    """
+    subtotals: dict[DepositCategory, Money] = {}
+    floors: dict[DepositCategory, Money] = {}
+
+    for line in priced:
+        rule = None if line.priced is None else line.priced.rule
+        if rule is None:
+            continue
+
+        # An unparented add-on has no deposit category, and `deposit_category`
+        # raises rather than guessing one -- correctly, because filing it under
+        # curtains could price it at a held rate its RM300 never bought.
+        #
+        # It is skipped for FLOORING only, and its total still counts in the
+        # order. No category means no deposit was ever taken against it, so it
+        # cannot pull a category under a floor and must not invent one.
+        try:
+            cat = rule.deposit_category
+        except UnknownDepositCategory:
+            continue
+
+        amount = amount_of(line)
+        if amount is None:
+            continue
+        subtotals[cat] = subtotals.get(cat, ZERO) + amount
+
+        # The floor comes off the card that priced the line, like every other
+        # configured figure -- never off today's active card.
+        card = (
+            None
+            if line.priced_at_version is None
+            else cards.get(line.priced_at_version)
+        )
+        if card is None:
+            continue
+        floor = Money(card.config.min_deposit_sen)
+        known = floors.get(cat)
+        # Lowest again, for the same reason as the waiver threshold.
+        if known is None or floor.sen < known.sen:
+            floors[cat] = floor
+
+    uplift = ZERO
+    for cat, subtotal in subtotals.items():
+        floor = floors.get(cat)
+        if floor is None:
+            continue
+        if subtotal.sen < floor.sen:
+            uplift = uplift + (floor - subtotal)
+    return uplift
+
+
 def _reprice_line(
-    line: MeasuredLine, cards: dict[int, RateCard], tier: CustomerTier
+    line: MeasuredLine,
+    cards: dict[int, RateCard],
+    tier: CustomerTier,
+    *,
+    apply_min_qty: bool,
 ) -> FinalLine:
     def refuse(why: FinalPricingRefusal) -> FinalLine:
         return FinalLine(id=line.id, estimate_total=line.estimate_total, refusal=why)
@@ -230,6 +405,7 @@ def _reprice_line(
             card=card,
             stage=PricingStage.FINAL,
             tier=tier,
+            apply_min_qty=apply_min_qty,
         )
     except NoApplicableRate:
         # One line that cannot be priced must not lose the other five. The

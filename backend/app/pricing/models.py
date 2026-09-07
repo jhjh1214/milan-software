@@ -324,6 +324,15 @@ class RateCardConfig:
     #: at RM11,200, and by then the customer has gone home.
     einvoice_prompt_sen: int = 800_000
 
+    #: The order total at which a printed ``min_qty`` stops applying. §13 A21.
+    #:
+    #: A minimum is a floor on the JOB, not on the line: a small blind on its
+    #: own bills its printed 18 sqft, the same blind inside a house of curtains
+    #: bills what it measures. None means "use ``min_deposit_sen``", which is
+    #: the figure the rule was stated in -- but it is a separate key so the two
+    #: can move apart without one silently dragging the other.
+    min_qty_waiver_sen: int | None = None
+
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> RateCardConfig:
         return cls(
@@ -337,6 +346,19 @@ class RateCardConfig:
             # non-compliance on exactly the oldest data.
             einvoice_threshold_sen=data.get("einvoice_threshold_sen", 1_000_000),
             einvoice_prompt_sen=data.get("einvoice_prompt_sen", 800_000),
+            # Absent on a card published before §13 A21 was answered, and
+            # absent by choice on any card where the waiver figure IS the
+            # deposit figure.
+            min_qty_waiver_sen=data.get("min_qty_waiver_sen"),
+        )
+
+    @property
+    def min_qty_waiver(self) -> Money:
+        """The threshold a job must clear before its minimums are waived."""
+        return Money(
+            self.min_deposit_sen
+            if self.min_qty_waiver_sen is None
+            else self.min_qty_waiver_sen
         )
 
     @property

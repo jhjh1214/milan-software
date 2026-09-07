@@ -2047,6 +2047,8 @@
   ],
   "_final_pricing_purpose": "SPEC.md §11 Phase 6. Repricing a measured order. Every line prices at the card version and discount IT recorded, never at today's -- that is the phase's first acceptance criterion, and the reason a rate lock is worth RM300. Quantity is EXACT here: the quote rounded up and the bill does not. A line the tape has not reached, a material nobody chose, or a card version not to hand refuses; it never falls back, because every fallback is a number on an invoice nobody can explain a year later.",
   "_final_pricing_versions": "`available_card_versions` lists which published cards the caller holds. Only version 1 exists as a file (rate-card-fair-2026-08.json); `active_rate_card_version` being higher is how a case says two publishes have happened since the deposit.",
+  "_final_pricing_min_qty": "SPEC.md §13 A21, answered. At FINAL PRICING a printed minimum quantity is a floor on the JOB, not on the line. The order of operations is fixed and the order matters: (1) price every line exactly, with no minimum, from the tape; (2) sum those across the WHOLE ORDER -- A21a, not per deposit category; (3) if that sum is at least the waiver threshold, waive `min_qty` on every line and keep the exact prices -- A21c, exactly the threshold counts as clearing it; (4) otherwise apply `min_qty` as the quotation does; (5) then apply the per-category deposit floor of §8.4 to the resulting subtotals -- A21d, so waiving can never bill below the deposit already taken. Step 2 uses the EXACT prices and never the minimum-applied ones (A21b): the other reading is circular, because the minimums are what step 3 decides. On a QUOTATION `min_qty` stays unconditional -- quoting below a floor the final might then apply would break §8.5's promise in the one direction it may not break.",
+  "_final_pricing_min_qty_threshold": "The threshold is `config.min_qty_waiver_sen` on the rate card, defaulting to `min_deposit_sen` (RM300) when a card does not carry it. Config rather than a literal, because CLAUDE.md forbids a price living in code and because a card published before this rule existed must still behave. It is compared against the sum of exact LINE totals only: the delivery zone charge is travel rather than product (§4.3) and is excluded, so a customer 100km away cannot clear a threshold that an identical order in town does not.",
   "final_pricing_cases": [
     {
       "id": "final-reprices-at-the-held-card-not-todays",
@@ -2268,7 +2270,7 @@
     {
       "id": "final-still-honours-the-printed-minimum-quantity",
       "source": "SPEC.md §4.3, §13 A16",
-      "why": "A 3ft x 3ft roller measures 9 sqft and bills 18. 'Min 18 sqft' is printed on the price list as a commercial floor, not a rounding artefact, so the tape does not remove it. §13 A21 asks the client to confirm before this ships; the exact-tape reading would bill RM81 instead of RM162.",
+      "why": "A 3ft x 3ft roller measures 9 sqft. Exact is RM81, which does not clear RM300, so the printed 18 sqft minimum stands and the LINE bills RM162 -- 'Min 18 sqft' is a commercial floor on the price list, not a rounding artefact, and the tape does not remove it. The ORDER then bills RM300, because §8.4's per-category deposit floor now applies at final pricing too (§13 A21d) and RM162 is under the RM300 already taken. Written before A21 was answered and updated when it was: the line figure was always right, and the order figure changed.",
       "active_rate_card_version": 1,
       "available_card_versions": [
         1
@@ -2301,12 +2303,16 @@
             "over_estimate": false,
             "refusal": null,
             "billed_qty": "18",
-            "billed_unit": "sqft"
+            "billed_unit": "sqft",
+            "min_qty_waived": false
           }
         ],
-        "estimate_total_sen": 18000,
-        "final_total_sen": 16200,
-        "variance_sen": -1800,
+        "exact_subtotal_sen": 8100,
+        "min_qty_waived": false,
+        "category_floor_uplift_sen": 13800,
+        "estimate_total_sen": 30000,
+        "final_total_sen": 30000,
+        "variance_sen": 0,
         "is_complete": true
       }
     },
@@ -2679,6 +2685,266 @@
         "final_total_sen": null,
         "variance_sen": null,
         "is_complete": false
+      }
+    },
+    {
+      "id": "final-min-qty-applies-when-the-job-is-small",
+      "source": "SPEC.md §13 A21 / A21a-A21c",
+      "why": "The printed minimum is a floor on the JOB, not on the line. This job is one small timber blind: 3ft x 4ft is 12 sqft exact at RM20 = RM240, which does not clear RM300, so the printed 18 sqft minimum stands and it bills RM360. The minimum exists so a one-window callout is worth doing at all, and here there is nothing else for it to ride along with.",
+      "active_rate_card_version": 1,
+      "available_card_versions": [
+        1
+      ],
+      "lines": [
+        {
+          "id": "l1",
+          "variant": "timber_25mm",
+          "material_key": null,
+          "layer": "single",
+          "fulfilment": "supply_install",
+          "quantity": 1,
+          "applied_rate_card_version": 1,
+          "applied_discount_pct": "0",
+          "est_width_tmm": 9144,
+          "est_height_tmm": 12192,
+          "estimate_total_sen": 36000,
+          "final_width_tmm": 9144,
+          "final_height_tmm": 12192,
+          "material_deferred": false
+        }
+      ],
+      "expect": {
+        "lines": [
+          {
+            "id": "l1",
+            "priced_at_version": 1,
+            "final_total_sen": 36000,
+            "variance_sen": 0,
+            "over_estimate": false,
+            "refusal": null,
+            "min_qty_waived": false
+          }
+        ],
+        "exact_subtotal_sen": 24000,
+        "min_qty_waived": false,
+        "category_floor_uplift_sen": 0,
+        "estimate_total_sen": 36000,
+        "final_total_sen": 36000,
+        "variance_sen": 0,
+        "is_complete": true
+      }
+    },
+    {
+      "id": "final-min-qty-waived-at-exactly-the-threshold",
+      "source": "SPEC.md §13 A21c",
+      "why": "3ft x 5ft is 15 sqft exact at RM20 = RM300.00, to the sen. A21c: exactly RM300 counts as clearing the floor, so the minimum is waived and it bills RM300 rather than the printed 18 sqft's RM360. READ THIS BESIDE THE CASE ABOVE: the SMALLER 12 sqft window bills RM360 and this larger 15 sqft one bills RM300. That inversion is not a bug -- it is what any threshold on top of any minimum produces, and it is pinned here so nobody 'fixes' it later without deciding to.",
+      "active_rate_card_version": 1,
+      "available_card_versions": [
+        1
+      ],
+      "lines": [
+        {
+          "id": "l1",
+          "variant": "timber_25mm",
+          "material_key": null,
+          "layer": "single",
+          "fulfilment": "supply_install",
+          "quantity": 1,
+          "applied_rate_card_version": 1,
+          "applied_discount_pct": "0",
+          "est_width_tmm": 9144,
+          "est_height_tmm": 15240,
+          "estimate_total_sen": 36000,
+          "final_width_tmm": 9144,
+          "final_height_tmm": 15240,
+          "material_deferred": false
+        }
+      ],
+      "expect": {
+        "lines": [
+          {
+            "id": "l1",
+            "priced_at_version": 1,
+            "final_total_sen": 30000,
+            "variance_sen": -6000,
+            "over_estimate": false,
+            "refusal": null,
+            "min_qty_waived": true
+          }
+        ],
+        "exact_subtotal_sen": 30000,
+        "min_qty_waived": true,
+        "category_floor_uplift_sen": 0,
+        "estimate_total_sen": 36000,
+        "final_total_sen": 30000,
+        "variance_sen": -6000,
+        "is_complete": true
+      }
+    },
+    {
+      "id": "final-min-qty-waived-when-there-is-other-work",
+      "source": "SPEC.md §13 A21 / A21a",
+      "why": "The client's own words: bill what it actually measures if they are doing other stuff too. A 12ft night curtain at RM552 plus one 3ft x 4ft roller blind. A21a: the WHOLE ORDER is what clears RM300, so the exact subtotal is 552 + 108 = RM660 and the blind bills its measured 12 sqft at RM108 rather than the printed minimum's RM162. The quotation charged RM714; the bill is RM660.",
+      "active_rate_card_version": 1,
+      "available_card_versions": [
+        1
+      ],
+      "lines": [
+        {
+          "id": "l1",
+          "variant": "night_curtain",
+          "material_key": null,
+          "layer": "night",
+          "fulfilment": "supply_install",
+          "quantity": 1,
+          "applied_rate_card_version": 1,
+          "applied_discount_pct": "0",
+          "est_width_tmm": 36576,
+          "est_height_tmm": 27432,
+          "estimate_total_sen": 55200,
+          "final_width_tmm": 36576,
+          "final_height_tmm": 27432,
+          "material_deferred": false
+        },
+        {
+          "id": "l2",
+          "variant": "roller_blackout",
+          "material_key": null,
+          "layer": "single",
+          "fulfilment": "supply_install",
+          "quantity": 1,
+          "applied_rate_card_version": 1,
+          "applied_discount_pct": "0",
+          "est_width_tmm": 9144,
+          "est_height_tmm": 12192,
+          "estimate_total_sen": 16200,
+          "final_width_tmm": 9144,
+          "final_height_tmm": 12192,
+          "material_deferred": false
+        }
+      ],
+      "expect": {
+        "lines": [
+          {
+            "id": "l1",
+            "priced_at_version": 1,
+            "final_total_sen": 55200,
+            "variance_sen": 0,
+            "over_estimate": false,
+            "refusal": null,
+            "min_qty_waived": false
+          },
+          {
+            "id": "l2",
+            "priced_at_version": 1,
+            "final_total_sen": 10800,
+            "variance_sen": -5400,
+            "over_estimate": false,
+            "refusal": null,
+            "min_qty_waived": true
+          }
+        ],
+        "exact_subtotal_sen": 66000,
+        "min_qty_waived": true,
+        "category_floor_uplift_sen": 0,
+        "estimate_total_sen": 71400,
+        "final_total_sen": 66000,
+        "variance_sen": -5400,
+        "is_complete": true
+      }
+    },
+    {
+      "id": "final-min-qty-waived-across-identical-windows",
+      "source": "SPEC.md §13 A21 / A21b",
+      "why": "Three identical 3ft x 4ft roller blinds on one line. The minimum applies PER WINDOW, so the quotation charged 3 x 18 sqft = RM486. Exact is 3 x 12 sqft = RM324, which clears RM300 on its own, so all three bill exactly: RM324. A21b: the RM300 is measured against the EXACT subtotal (RM324), never against the subtotal with minimums already applied (RM486) -- the second reading is circular, because the minimums are what the answer decides.",
+      "active_rate_card_version": 1,
+      "available_card_versions": [
+        1
+      ],
+      "lines": [
+        {
+          "id": "l1",
+          "variant": "roller_blackout",
+          "material_key": null,
+          "layer": "single",
+          "fulfilment": "supply_install",
+          "quantity": 3,
+          "applied_rate_card_version": 1,
+          "applied_discount_pct": "0",
+          "est_width_tmm": 9144,
+          "est_height_tmm": 12192,
+          "estimate_total_sen": 48600,
+          "final_width_tmm": 9144,
+          "final_height_tmm": 12192,
+          "material_deferred": false
+        }
+      ],
+      "expect": {
+        "lines": [
+          {
+            "id": "l1",
+            "priced_at_version": 1,
+            "final_total_sen": 32400,
+            "variance_sen": -16200,
+            "over_estimate": false,
+            "refusal": null,
+            "min_qty_waived": true
+          }
+        ],
+        "exact_subtotal_sen": 32400,
+        "min_qty_waived": true,
+        "category_floor_uplift_sen": 0,
+        "estimate_total_sen": 48600,
+        "final_total_sen": 32400,
+        "variance_sen": -16200,
+        "is_complete": true
+      }
+    },
+    {
+      "id": "final-never-bills-below-the-deposit-taken",
+      "source": "SPEC.md §13 A21d, §8.4",
+      "why": "A21d. One 3ft x 4ft roller blind alone. Exact is RM108, which does not clear RM300, so the printed 18 sqft minimum applies and it bills RM162 -- and RM162 is still under the RM300 deposit the customer already paid for the curtain category. The same per-category floor the quotation applies (§8.4) now applies at final pricing too, so the order bills RM300: exactly what they deposited, and nothing is refunded. The line still records its own RM162; the RM138 is an order-level uplift, visible rather than smeared across the lines.",
+      "active_rate_card_version": 1,
+      "available_card_versions": [
+        1
+      ],
+      "lines": [
+        {
+          "id": "l1",
+          "variant": "roller_blackout",
+          "material_key": null,
+          "layer": "single",
+          "fulfilment": "supply_install",
+          "quantity": 1,
+          "applied_rate_card_version": 1,
+          "applied_discount_pct": "0",
+          "est_width_tmm": 9144,
+          "est_height_tmm": 12192,
+          "estimate_total_sen": 16200,
+          "final_width_tmm": 9144,
+          "final_height_tmm": 12192,
+          "material_deferred": false
+        }
+      ],
+      "expect": {
+        "lines": [
+          {
+            "id": "l1",
+            "priced_at_version": 1,
+            "final_total_sen": 16200,
+            "variance_sen": 0,
+            "over_estimate": false,
+            "refusal": null,
+            "min_qty_waived": false
+          }
+        ],
+        "exact_subtotal_sen": 10800,
+        "min_qty_waived": false,
+        "category_floor_uplift_sen": 13800,
+        "estimate_total_sen": 30000,
+        "final_total_sen": 30000,
+        "variance_sen": 0,
+        "is_complete": true
       }
     }
   ],

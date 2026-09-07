@@ -97,6 +97,14 @@ class PricedLine:
     rate_sen: int
     quantity: int
     total: Money
+    #: True when this line HAD a printed minimum and it was stood down because
+    #: the job cleared the threshold. §13 A21.
+    #:
+    #: Distinct from ``not min_qty_applied``, which is also true for a line
+    #: that simply measured above its minimum and for one that never had a
+    #: minimum. This is the REASON a line came in below its printed rate, and
+    #: both the revised order document and the variance report need to say it.
+    min_qty_waived: bool = False
     #: True when no material was chosen and the **dearest** option was used.
     material_deferred: bool = False
     material_options: tuple[str, ...] = ()
@@ -116,11 +124,23 @@ def price_line(
     card: RateCard,
     stage: PricingStage,
     tier: CustomerTier = CustomerTier.STANDARD,
+    apply_min_qty: bool = True,
 ) -> PricedLine:
     """Prices one line. §4.3.
 
     **Height selects the band. Height never multiplies.** For ``per_ft_width``
     only width is charged -- the single most likely thing to get wrong.
+
+    ``apply_min_qty`` exists for §13 A21. A printed minimum is a floor on the
+    JOB, not on the line, and whether this job clears it is an ORDER-level
+    question this function cannot see -- so ``reprice_order`` prices once with
+    the minimum suppressed to get the exact subtotal, then decides.
+
+    It defaults to True, so nothing that does not know about the rule can waive
+    a minimum by omission. And it is only ever passed False at final pricing:
+    on a quotation the minimum is unconditional, because quoting below a floor
+    the final might then apply would break §8.5 in the one direction it may not
+    break.
     """
     if request.quantity < 1:
         raise ValueError(f"quantity must be at least 1: {request.quantity}")
@@ -193,8 +213,18 @@ def price_line(
     #    the same ordering when it arrives.
 
     # 7. Minimum billed quantity, BEFORE the rate multiplies.
-    after_min = raw_qty if rule.min_qty is None else max(raw_qty, rule.min_qty)
-    min_qty_applied = rule.min_qty is not None and after_min != raw_qty
+    #
+    #    Per WINDOW, not per line: three identical small blinds each meet the
+    #    minimum separately, then step 11 multiplies. Waived only when the
+    #    caller has established the job clears the threshold (§13 A21).
+    min_qty = rule.min_qty if apply_min_qty else None
+    after_min = raw_qty if min_qty is None else max(raw_qty, min_qty)
+    min_qty_applied = min_qty is not None and after_min != raw_qty
+    min_qty_waived = (
+        not apply_min_qty
+        and rule.min_qty is not None
+        and raw_qty < rule.min_qty
+    )
 
     # 8. Stage rounding. A quotation rounds up to a whole unit (A10); final
     #    pricing bills the measured quantity exactly (A11).
@@ -220,6 +250,7 @@ def price_line(
         billed_qty=billed_qty,
         billed_unit=rule.basis.unit,
         min_qty_applied=min_qty_applied,
+        min_qty_waived=min_qty_waived,
         standard_rate_sen=rule.rate_sen,
         rate_sen=rate_sen,
         quantity=request.quantity,

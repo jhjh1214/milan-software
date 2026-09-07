@@ -302,6 +302,16 @@ void main() {
             );
             expect(got.priced?.billedUnit, want['billed_unit']);
           }
+
+          if (want.containsKey('min_qty_waived')) {
+            expect(
+              got.priced?.minQtyWaived ?? false,
+              want['min_qty_waived'],
+              reason:
+                  '${got.id}: whether its printed minimum was stood down '
+                  'because the job cleared the threshold (§13 A21)',
+            );
+          }
         }
 
         expect(result.estimateTotal.sen, expected['estimate_total_sen']);
@@ -312,6 +322,31 @@ void main() {
         );
         expect(result.variance?.sen, expected['variance_sen']);
         expect(result.isComplete, expected['is_complete']);
+
+        // §13 A21. Asserted only where a case states them, so the thirteen
+        // cases written before the rule existed are not silently given a
+        // default that would pass whatever the engine did.
+        if (expected.containsKey('exact_subtotal_sen')) {
+          expect(
+            result.exactSubtotal?.sen,
+            expected['exact_subtotal_sen'],
+            reason: 'the subtotal the waiver decision was made on (A21b)',
+          );
+        }
+        if (expected.containsKey('min_qty_waived')) {
+          expect(
+            result.minQtyWaived,
+            expected['min_qty_waived'],
+            reason: 'whether the job cleared the threshold (A21a, A21c)',
+          );
+        }
+        if (expected.containsKey('category_floor_uplift_sen')) {
+          expect(
+            result.categoryFloorUplift.sen,
+            expected['category_floor_uplift_sen'],
+            reason: 'never bill below the deposit already taken (A21d)',
+          );
+        }
       });
     }
 

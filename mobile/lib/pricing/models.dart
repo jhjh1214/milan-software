@@ -393,6 +393,15 @@ class RateCardConfig {
   /// RM11,200, and by then the customer has gone home.
   final int einvoicePromptSen;
 
+  /// The order total at which a printed `min_qty` stops applying. §13 A21.
+  ///
+  /// A minimum is a floor on the **job**, not on the line: a small blind on
+  /// its own bills its printed 18 sqft, the same blind inside a house of
+  /// curtains bills what it measures. Null means "use [minDepositSen]", which
+  /// is the figure the rule was stated in — but it is a separate key so the
+  /// two can move apart without one silently dragging the other.
+  final int? minQtyWaiverSen;
+
   /// What each deposit category can physically measure, per field. §5.5.
   /// Empty means no plausibility warning anywhere, which is the safe default.
   final Map<String, CategoryPlausibility> plausibleByCategory;
@@ -404,8 +413,12 @@ class RateCardConfig {
     required this.defaultUnitHeight,
     this.einvoiceThresholdSen = 1000000,
     this.einvoicePromptSen = 800000,
+    this.minQtyWaiverSen,
     this.plausibleByCategory = const {},
   });
+
+  /// The threshold a job must clear before its minimums are waived.
+  Money get minQtyWaiver => Money.sen(minQtyWaiverSen ?? minDepositSen);
 
   factory RateCardConfig.fromJson(Map<String, dynamic> json) => RateCardConfig(
     minDepositSen: json['min_deposit_sen'] as int,
@@ -418,6 +431,9 @@ class RateCardConfig {
     // would be silent non-compliance on exactly the oldest handsets.
     einvoiceThresholdSen: json['einvoice_threshold_sen'] as int? ?? 1000000,
     einvoicePromptSen: json['einvoice_prompt_sen'] as int? ?? 800000,
+    // Absent on a card published before §13 A21 was answered, and absent by
+    // choice on any card where the waiver figure IS the deposit figure.
+    minQtyWaiverSen: json['min_qty_waiver_sen'] as int?,
     plausibleByCategory: _plausibleFromJson(json['plausible_dimensions']),
   );
 
