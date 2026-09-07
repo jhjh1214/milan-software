@@ -1,27 +1,27 @@
-<p class="back"><a routerLink="/orders">&larr; Orders</a></p>
+<p class="back"><a routerLink="/orders">{{ t().order.backToOrders }}</a></p>
 
 @if (loading()) {
-  <p class="muted" role="status">Loading…</p>
-} @else if (failure(); as message) {
+  <p class="muted" role="status">{{ t().common.loading }}</p>
+} @else if (failure(); as failed) {
   <p class="failure" role="alert">
-    {{ message }}
-    <button type="button" (click)="retry()">Try again</button>
+    {{ message(failed) }}
+    <button type="button" (click)="retry()">{{ t().common.tryAgain }}</button>
   </p>
 } @else if (detail(); as d) {
   <header class="head" [attr.data-urgency]="urgency()">
     <h1 [class.pending]="d.order.order_no === null">
-      {{ d.order.order_no ?? 'Order number pending sync' }}
+      {{ d.order.order_no ?? t().order.numberPending }}
     </h1>
-    <p class="who">{{ d.order.customer_name || 'No name' }}</p>
-    <p class="stage">{{ d.order.status.replaceAll('_', ' ') }}</p>
+    <p class="who">{{ d.order.customer_name || t().order.noName }}</p>
+    <p class="stage">{{ t().status[d.order.status] }}</p>
 
     <dl class="money">
       <div>
-        <dt>Estimate</dt>
+        <dt>{{ t().order.estimate }}</dt>
         <dd>{{ money(d.order.estimate_total_sen) }}</dd>
       </div>
       <div>
-        <dt>Taken</dt>
+        <dt>{{ t().order.taken }}</dt>
         <dd>{{ money(d.order.deposit_paid_sen) }}</dd>
       </div>
     </dl>
@@ -29,17 +29,15 @@
     <!-- No balance. Client, Sep 2026: the deposit buys a held rate, not a
          part-paid bill, and a figure worked out from an estimate is one the
          customer remembers and the tape contradicts. -->
-    <p class="note">
-      An estimate. After measuring the price is the same or lower, never higher.
-    </p>
+    <p class="note">{{ t().order.referencePrice }}</p>
 
     @if (d.order.held_until) {
-      <p class="hold">Rate held to {{ date(d.order.held_until) }}</p>
+      <p class="hold">{{ t().order.rateHeldTo(date(d.order.held_until)) }}</p>
     }
   </header>
 
   <section>
-    <h2>What was ordered</h2>
+    <h2>{{ t().order.whatWasOrdered }}</h2>
     <ul class="lines">
       @for (line of d.lines; track line.id) {
         <li>
@@ -55,10 +53,10 @@
           <p class="basis">{{ basis(line) }}</p>
 
           @if (line.material_deferred && !line.material_key) {
-            <p class="flag">Material still to choose — quoted at the dearest</p>
+            <p class="flag">{{ t().order.materialToChoose }}</p>
           }
           @if (line.is_overridden) {
-            <p class="flag overridden">Price changed by hand</p>
+            <p class="flag overridden">{{ t().order.priceChangedByHand }}</p>
           }
         </li>
       }
@@ -67,13 +65,18 @@
 
   @if (d.overrides.length > 0) {
     <section>
-      <h2>Prices changed by hand</h2>
+      <h2>{{ t().order.pricesChangedByHand }}</h2>
       <ul class="audit">
         @for (o of d.overrides; track o.id) {
           <li>
             <p class="move">
-              {{ money(o.before_sen) }} to {{ money(o.after_sen) }},
-              by {{ o.admin_user_id }}
+              {{
+                t().order.movedBy(
+                  money(o.before_sen),
+                  money(o.after_sen),
+                  o.admin_user_id
+                )
+              }}
             </p>
             <p class="reason">{{ o.reason }}</p>
             <p class="when">{{ date(o.at) }}</p>
@@ -92,10 +95,14 @@
   @if (d.buyer; as buyer) {
     <section class="buyer">
       <div class="buyer-head">
-        <h2>Customer details for the invoice</h2>
+        <h2>{{ t().buyer.title }}</h2>
         @if (!editingBuyer()) {
           <button type="button" (click)="openBuyerEdit()">
-            {{ buyer.captured_at === null ? "Add these" : "Correct these" }}
+            {{
+              buyer.captured_at === null
+                ? t().buyer.addThese
+                : t().buyer.correctThese
+            }}
           </button>
         }
       </div>
@@ -104,11 +111,11 @@
         <p class="why">{{ why }}</p>
       }
 
-      @if (buyerNote(); as message) {
-        <p class="saved" role="status">{{ message }}</p>
+      @if (buyerNote(); as note) {
+        <p class="saved" role="status">{{ buyerNoteText(note) }}</p>
       }
-      @if (buyerFailure(); as message) {
-        <p class="failure" role="alert">{{ message }}</p>
+      @if (buyerFailure(); as refused) {
+        <p class="failure" role="alert">{{ buyerFailureText(refused) }}</p>
       }
 
       @if (editingBuyer()) {
@@ -116,14 +123,11 @@
              FormsModule, and without it `(ngSubmit)` binds a DOM event that
              nothing ever fires. -->
         <form class="buyer-edit" (submit)="submitBuyer($event)">
-          <p class="hint">
-            Only what you change is sent. A box you empty clears that field; one
-            you leave alone keeps whatever a handset has captured since.
-          </p>
+          <p class="hint">{{ t().buyer.onlyWhatYouChange }}</p>
 
           @for (f of buyerFields; track f.key) {
             <div class="field">
-              <label [attr.for]="'buyer-' + f.key">{{ f.label }}</label>
+              <label [attr.for]="'buyer-' + f.key">{{ fieldLabel(f.key) }}</label>
               @if (f.options.length > 0) {
                 <select
                   [attr.id]="'buyer-' + f.key"
@@ -133,7 +137,7 @@
                   <!-- A number filed under no type cannot be filed at all, so
                        "not stated" is a real answer rather than a placeholder
                        somebody has to get past. -->
-                  <option value="">not stated</option>
+                  <option value="">{{ t().buyer.notStated }}</option>
                   @for (o of f.options; track o) {
                     <option [value]="o">{{ o }}</option>
                   }
@@ -156,58 +160,60 @@
                 [checked]="draftRequested()"
                 (change)="draftRequested.set($any($event.target).checked)"
               />
-              The customer asked for an e-invoice
+              {{ t().buyer.askedForEinvoice }}
             </label>
           </div>
 
           <div class="actions">
             <button type="submit" class="primary" [disabled]="!canSaveBuyer()">
-              Save
+              {{ savingBuyer() ? t().common.saving : t().common.save }}
             </button>
-            <button type="button" (click)="cancelBuyerEdit()">Cancel</button>
+            <button type="button" (click)="cancelBuyerEdit()">
+              {{ t().common.cancel }}
+            </button>
           </div>
         </form>
       } @else if (buyer.captured_at === null) {
         <!-- Nobody has asked yet. Reads differently from "asked and came away
              with nothing", and the difference decides whether somebody has to
              be telephoned or the handset has to be looked at. -->
-        <p class="none">Nobody has taken these yet.</p>
+        <p class="none">{{ t().buyer.nobodyHasTaken }}</p>
       } @else {
         <dl>
           @if (buyer.name) {
-            <dt>Name</dt>
+            <dt>{{ t().buyer.name }}</dt>
             <dd>{{ buyer.name }}</dd>
           }
           @if (buyer.tin) {
-            <dt>TIN</dt>
+            <dt>{{ t().buyer.tin }}</dt>
             <dd>{{ buyer.tin }}</dd>
           }
           @if (buyer.id_number) {
-            <dt>{{ buyer.id_type || 'ID' }}</dt>
+            <dt>{{ buyer.id_type || t().buyer.id }}</dt>
             <!-- Not masked, on purpose. This screen exists so the person doing
                  the export can check the number against whatever the accounts
                  system rejected. -->
             <dd>{{ buyer.id_number }}</dd>
           }
           @if (address(buyer)) {
-            <dt>Address</dt>
+            <dt>{{ t().buyer.address }}</dt>
             <dd>{{ address(buyer) }}</dd>
           }
           @if (buyer.msic_code) {
-            <dt>MSIC</dt>
+            <dt>{{ t().buyer.msic }}</dt>
             <dd>{{ buyer.msic_code }}</dd>
           }
-          <dt>Taken</dt>
+          <dt>{{ t().buyer.taken }}</dt>
           <dd>{{ date(buyer.captured_at) }}</dd>
         </dl>
       }
 
       @if (buyer.complete) {
-        <p class="complete">Everything the invoice needs is here.</p>
+        <p class="complete">{{ t().buyer.complete }}</p>
       } @else {
         <!-- All of it at once, the same as the handset shows: whoever
              telephones this customer gets one conversation, not three. -->
-        <p class="still-needed">Still needed:</p>
+        <p class="still-needed">{{ t().buyer.stillNeeded }}</p>
         <ul class="missing">
           @for (m of buyer.missing; track m) {
             <li>{{ missingLabel(m) }}</li>
@@ -215,21 +221,18 @@
         </ul>
       }
 
-      <p class="note">
-        These are collected so the invoice can be issued in the accounts
-        system. This dashboard does not issue invoices.
-      </p>
+      <p class="note">{{ t().buyer.notAnIssuer }}</p>
     </section>
   }
 
   <section>
-    <h2>What has happened</h2>
+    <h2>{{ t().order.whatHasHappened }}</h2>
     <!-- Oldest first, which is the order somebody reads a story in. Append
          only: a correction is a new row, never an edit to an old one. -->
     <ol class="history">
       @for (e of d.events; track e.id) {
         <li>
-          <span class="event">{{ e.event.replaceAll('_', ' ') }}</span>
+          <span class="event">{{ eventLabel(e.event) }}</span>
           <span class="when">{{ date(e.at) }}</span>
           @if (e.note) {
             <p class="reason">{{ e.note }}</p>

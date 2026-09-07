@@ -203,4 +203,78 @@ export const EN: Strings = {
     versionMustGoUp: 'The server refused it — check the version number goes up.',
     wentWrong: 'Something went wrong.',
   },
+
+  order: {
+    backToOrders: '← Orders',
+    numberPending: 'Order number pending sync',
+    noName: 'No name',
+    estimate: 'Estimate',
+    taken: 'Taken',
+    referencePrice:
+      'An estimate. After measuring the price is the same or lower, never higher.',
+    rateHeldTo: (date) => `Rate held to ${date}`,
+    whatWasOrdered: 'What was ordered',
+    sizeEstimate: (size) => `${size} (estimate)`,
+    sizeMeasured: (estimate, measured) => `${estimate} → ${measured} measured`,
+    basis: (quantity, unit, rate, band, version, discount) =>
+      `${quantity} ${unit} at ${rate}${band}` +
+      ` · list v${version}${discount}`,
+    materialToChoose: 'Material still to choose — quoted at the dearest',
+    priceChangedByHand: 'Price changed by hand',
+    pricesChangedByHand: 'Prices changed by hand',
+    movedBy: (before, after, who) => `${before} to ${after}, by ${who}`,
+    whatHasHappened: 'What has happened',
+    noSuchOrder: 'No such order.',
+    signedOut: 'Signed out. Sign in again to see this order.',
+    wentWrong: 'Something went wrong loading this order.',
+  },
+
+  buyer: {
+    title: 'Customer details for the invoice',
+    whyOverThreshold:
+      'This order is over RM10,000, so by law the invoice needs the ' +
+      'customer’s own details.',
+    whyRequested:
+      'The customer asked for an e-invoice, so these are needed whatever the ' +
+      'amount.',
+    nobodyHasTaken: 'Nobody has taken these yet.',
+    name: 'Name',
+    tin: 'TIN',
+    id: 'ID',
+    address: 'Address',
+    msic: 'MSIC',
+    taken: 'Taken',
+    complete: 'Everything the invoice needs is here.',
+    stillNeeded: 'Still needed:',
+    missingName: 'the full name, as on the IC or company registration',
+    missingIdentifier: 'a TIN, or an ID number with its type',
+    missingAddress: 'a full address — street, city, state and postcode',
+    notAnIssuer:
+      'These are collected so the invoice can be issued in the accounts ' +
+      'system. This dashboard does not issue invoices.',
+    addThese: 'Add these',
+    correctThese: 'Correct these',
+    onlyWhatYouChange:
+      'Only what you change is sent. A box you empty clears that field; one ' +
+      'you leave alone keeps whatever a handset has captured since.',
+    notStated: 'not stated',
+    askedForEinvoice: 'The customer asked for an e-invoice',
+    fieldName: 'Name, as on the IC or company registration',
+    fieldTin: 'TIN',
+    fieldIdType: 'ID type',
+    fieldIdNumber: 'ID number',
+    fieldAddress1: 'Address line 1',
+    fieldAddress2: 'Address line 2 (optional)',
+    fieldCity: 'City',
+    fieldState: 'State',
+    fieldPostcode: 'Postcode',
+    fieldMsic: 'MSIC code (business buyers only)',
+    savedComplete: 'Saved. Everything the invoice needs is here.',
+    savedIncomplete: 'Saved. Some of it is still outstanding.',
+    refusedStale:
+      'Not saved — somebody captured these on a handset more recently. ' +
+      'Reload to see what they took, then correct it again.',
+    refusedUnknown: 'Not saved — the server has no record of this order yet.',
+    refusedOther: (reason) => `Not saved — the server refused it (${reason}).`,
+  },
 };

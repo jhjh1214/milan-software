@@ -268,6 +268,79 @@ export interface PublishStrings {
   readonly wentWrong: string;
 }
 
+/** One order, and why its numbers are what they are. §6.3, §6.5, §10.3. */
+export interface OrderStrings {
+  readonly backToOrders: string;
+  readonly numberPending: string;
+  readonly noName: string;
+  readonly estimate: string;
+  readonly taken: string;
+  /** §8.5, binding. The promise, in the reader's own language. */
+  readonly referencePrice: string;
+  readonly rateHeldTo: (date: string) => string;
+  readonly whatWasOrdered: string;
+  readonly sizeEstimate: (size: string) => string;
+  readonly sizeMeasured: (estimate: string, measured: string) => string;
+  /** "12 ft at RM 46.00 · up to 10ft · list v1 · held 20% off". */
+  readonly basis: (
+    quantity: string,
+    unit: string,
+    rate: string,
+    band: string,
+    version: number,
+    discount: string,
+  ) => string;
+  readonly materialToChoose: string;
+  readonly priceChangedByHand: string;
+  readonly pricesChangedByHand: string;
+  readonly movedBy: (before: string, after: string, who: string) => string;
+  readonly whatHasHappened: string;
+  readonly noSuchOrder: string;
+  readonly signedOut: string;
+  readonly wentWrong: string;
+}
+
+/** The buyer block on an order. §10.3, §13 C14. */
+export interface BuyerStrings {
+  readonly title: string;
+  readonly whyOverThreshold: string;
+  readonly whyRequested: string;
+  readonly nobodyHasTaken: string;
+  readonly name: string;
+  readonly tin: string;
+  readonly id: string;
+  readonly address: string;
+  readonly msic: string;
+  readonly taken: string;
+  readonly complete: string;
+  readonly stillNeeded: string;
+  readonly missingName: string;
+  readonly missingIdentifier: string;
+  readonly missingAddress: string;
+  /** Hard rule 7: SQL Account is the sole issuer, and this says so. */
+  readonly notAnIssuer: string;
+  readonly addThese: string;
+  readonly correctThese: string;
+  readonly onlyWhatYouChange: string;
+  readonly notStated: string;
+  readonly askedForEinvoice: string;
+  readonly fieldName: string;
+  readonly fieldTin: string;
+  readonly fieldIdType: string;
+  readonly fieldIdNumber: string;
+  readonly fieldAddress1: string;
+  readonly fieldAddress2: string;
+  readonly fieldCity: string;
+  readonly fieldState: string;
+  readonly fieldPostcode: string;
+  readonly fieldMsic: string;
+  readonly savedComplete: string;
+  readonly savedIncomplete: string;
+  readonly refusedStale: string;
+  readonly refusedUnknown: string;
+  readonly refusedOther: (reason: string) => string;
+}
+
 export interface SignInStrings {
   readonly phone: string;
   readonly pin: string;
@@ -293,4 +366,6 @@ export interface Strings {
   readonly role: RoleStrings;
   readonly people: PeopleStrings;
   readonly publish: PublishStrings;
+  readonly order: OrderStrings;
+  readonly buyer: BuyerStrings;
 }

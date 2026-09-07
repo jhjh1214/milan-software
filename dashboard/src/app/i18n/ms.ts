@@ -210,4 +210,81 @@ export const MS: Strings = {
       'Pelayan menolaknya — pastikan nombor versi lebih tinggi daripada sekarang.',
     wentWrong: 'Ada sesuatu yang tidak kena.',
   },
+
+  order: {
+    backToOrders: '← Pesanan',
+    numberPending: 'Nombor pesanan menunggu penyegerakan',
+    noName: 'Tiada nama',
+    estimate: 'Anggaran',
+    taken: 'Diterima',
+    referencePrice:
+      'Ini anggaran. Selepas diukur, harganya sama atau lebih rendah, tidak ' +
+      'akan lebih tinggi.',
+    rateHeldTo: (date) => `Harga dikunci hingga ${date}`,
+    whatWasOrdered: 'Apa yang dipesan',
+    sizeEstimate: (size) => `${size} (anggaran)`,
+    sizeMeasured: (estimate, measured) => `${estimate} → ${measured} diukur`,
+    basis: (quantity, unit, rate, band, version, discount) =>
+      `${quantity} ${unit} pada ${rate}${band}` +
+      ` · senarai v${version}${discount}`,
+    materialToChoose: 'Bahan belum dipilih — disebut harga pada yang termahal',
+    priceChangedByHand: 'Harga diubah dengan tangan',
+    pricesChangedByHand: 'Harga yang diubah dengan tangan',
+    movedBy: (before, after, who) => `${before} kepada ${after}, oleh ${who}`,
+    whatHasHappened: 'Apa yang sudah berlaku',
+    noSuchOrder: 'Pesanan itu tidak wujud.',
+    signedOut: 'Sudah log keluar. Log masuk semula untuk melihat pesanan ini.',
+    wentWrong: 'Ada masalah semasa memuatkan pesanan ini.',
+  },
+
+  buyer: {
+    title: 'Butiran pelanggan untuk invois',
+    whyOverThreshold:
+      'Pesanan ini melebihi RM10,000, jadi mengikut undang-undang invois ' +
+      'memerlukan butiran pelanggan sendiri.',
+    whyRequested:
+      'Pelanggan meminta e-invois, jadi butiran ini diperlukan tanpa mengira ' +
+      'jumlahnya.',
+    nobodyHasTaken: 'Belum ada sesiapa mengambil butiran ini.',
+    name: 'Nama',
+    tin: 'TIN',
+    id: 'Pengenalan',
+    address: 'Alamat',
+    msic: 'MSIC',
+    taken: 'Diambil',
+    complete: 'Semua yang diperlukan invois sudah ada.',
+    stillNeeded: 'Masih diperlukan:',
+    missingName: 'nama penuh, seperti dalam IC atau pendaftaran syarikat',
+    missingIdentifier: 'TIN, atau nombor pengenalan berserta jenisnya',
+    missingAddress: 'alamat penuh — jalan, bandar, negeri dan poskod',
+    notAnIssuer:
+      'Butiran ini dikumpulkan supaya invois boleh dikeluarkan dalam sistem ' +
+      'perakaunan. Papan pemuka ini tidak mengeluarkan invois.',
+    addThese: 'Tambah butiran',
+    correctThese: 'Betulkan butiran',
+    onlyWhatYouChange:
+      'Hanya apa yang anda ubah akan dihantar. Kotak yang anda kosongkan akan ' +
+      'memadam medan itu; yang tidak disentuh mengekalkan apa yang telefon ' +
+      'ambil sejak itu.',
+    notStated: 'tidak dinyatakan',
+    askedForEinvoice: 'Pelanggan meminta e-invois',
+    fieldName: 'Nama, seperti dalam IC atau pendaftaran syarikat',
+    fieldTin: 'TIN',
+    fieldIdType: 'Jenis pengenalan',
+    fieldIdNumber: 'Nombor pengenalan',
+    fieldAddress1: 'Alamat baris 1',
+    fieldAddress2: 'Alamat baris 2 (pilihan)',
+    fieldCity: 'Bandar',
+    fieldState: 'Negeri',
+    fieldPostcode: 'Poskod',
+    fieldMsic: 'Kod MSIC (pembeli syarikat sahaja)',
+    savedComplete: 'Disimpan. Semua yang diperlukan invois sudah ada.',
+    savedIncomplete: 'Disimpan. Sebahagiannya masih belum lengkap.',
+    refusedStale:
+      'Tidak disimpan — seseorang mengambil butiran ini di telefon baru-baru ' +
+      'ini. Muat semula untuk melihat apa yang mereka ambil, kemudian betulkan ' +
+      'sekali lagi.',
+    refusedUnknown: 'Tidak disimpan — pelayan belum ada rekod pesanan ini.',
+    refusedOther: (reason) => `Tidak disimpan — pelayan menolaknya (${reason}).`,
+  },
 };

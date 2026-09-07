@@ -19,6 +19,7 @@ import { provideRouter } from '@angular/router';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { BuyerOut, OrderDetailOut, OrderLineOut } from '../api/types';
+import { Text } from '../i18n/text';
 import { OrderDetail } from './order-detail';
 
 const line = (over: Partial<OrderLineOut> = {}): OrderLineOut => ({
@@ -74,6 +75,7 @@ describe('OrderDetail', () => {
   let fixture: ComponentFixture<OrderDetail>;
   let component: OrderDetail;
   let http: HttpTestingController;
+  let i18n: Text;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -87,6 +89,10 @@ describe('OrderDetail', () => {
     fixture.componentRef.setInput('id', 'o1');
     component = fixture.componentInstance;
     http = TestBed.inject(HttpTestingController);
+    i18n = TestBed.inject(Text);
+    // Pinned rather than assumed: the dashboard defaults to Chinese (§13 C9)
+    // and nobody is signed in here.
+    i18n.pick('en');
   });
 
   const load = async (d: OrderDetailOut = detail()): Promise<void> => {
@@ -118,7 +124,9 @@ describe('OrderDetail', () => {
     expect(text()).toContain('RM 552.00');
     expect(text()).toContain('RM 300.00');
     expect(text()).toContain('Living room');
-    expect(text()).toContain('confirmed');
+    // The lifecycle word, not the wire value. §6.6 names these steps and the
+    // handset says the same thing about the same job.
+    expect(text()).toContain('Confirmed');
   });
 
   it('says the estimate can only fall, never rise', async () => {
@@ -552,6 +560,93 @@ describe('OrderDetail', () => {
         // box alone has to know it keeps what a handset captured since.
         await open();
         expect(text()).toContain('Only what you change is sent');
+      });
+
+      describe('in the other two languages', () => {
+        // SPEC.md §13 C9. This is a legal record: §10.2's penalty runs RM200
+        // to RM20,000 per non-compliant invoice, and somebody correcting an
+        // IC number has to understand what an untouched box will do.
+
+        it('the whole form is in Chinese, including what a blank box means', async () => {
+          i18n.pick('zh');
+          await load(detail({ buyer: buyer() }));
+          click('修改资料');
+
+          expect(text()).toContain('开发票所需的客户资料');
+          expect(text()).toContain('只会送出你改过的部分');
+          expect(text()).toContain('证件种类');
+          expect(text()).not.toContain('Only what you change');
+        });
+
+        it('the whole form is in Malay', async () => {
+          i18n.pick('ms');
+          await load(detail({ buyer: buyer() }));
+          click('Betulkan butiran');
+
+          expect(text()).toContain('Butiran pelanggan untuk invois');
+          expect(text()).toContain('Hanya apa yang anda ubah akan dihantar');
+          expect(text()).toContain('Jenis pengenalan');
+        });
+
+        it('what is outstanding is listed in the reader’s language', async () => {
+          // §10.3: everything at once, so somebody collects it in one
+          // conversation. That only works if they can read the list.
+          i18n.pick('ms');
+          await load(
+            detail({
+              buyer: buyer({
+                tin: null,
+                complete: false,
+                missing: ['identifier', 'address'],
+              }),
+            }),
+          );
+
+          expect(text()).toContain('Masih diperlukan');
+          expect(text()).toContain('TIN, atau nombor pengenalan berserta jenisnya');
+          expect(text()).toContain('alamat penuh');
+        });
+
+        it('a stale refusal follows a language change, still as a refusal', async () => {
+          // It arrives as a 200 and means nothing was written. Saying "saved"
+          // in any language would report a legal requirement met when it was
+          // not — and the sentence must not freeze in the language it was
+          // refused in.
+          await open();
+          type('city', 'Ayer Keroh');
+          save();
+          http.expectOne('/api/orders/buyer').flush({
+            order_id: 'o1',
+            complete: false,
+            missing: ['address'],
+            refused_because: 'stale',
+          });
+          fixture.detectChanges();
+          expect(text()).toContain('captured these on a handset more recently');
+
+          i18n.pick('zh');
+          fixture.detectChanges();
+          expect(text()).toContain('手机那边有更新的记录');
+          expect(text()).not.toContain('captured these on a handset');
+        });
+
+        it('the dashboard denies issuing invoices in every language', async () => {
+          // CLAUDE.md hard rule 7 and §10.1. SQL Account is the sole issuer,
+          // and a denial only present in English is a denial two thirds of
+          // the office cannot read.
+          await load(detail({ buyer: buyer() }));
+          for (const [language, denial] of [
+            ['zh', '本系统不开发票'],
+            ['ms', 'tidak mengeluarkan invois'],
+          ] as const) {
+            i18n.pick(language);
+            fixture.detectChanges();
+            expect(text()).toContain(denial);
+            expect(text().toLowerCase()).not.toContain('tax invoice');
+            expect(text()).not.toContain('税务发票');
+            expect(text().toLowerCase()).not.toContain('invois cukai');
+          }
+        });
       });
     });
   });

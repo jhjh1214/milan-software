@@ -39,6 +39,8 @@ import { Component, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { Api } from '../api/api';
+import { commonMessage, failureOf, type Failure } from '../i18n/failure';
+import { Text } from '../i18n/text';
 import { formatDate, formatSen, urgencyOf, type Urgency } from '../api/money';
 import type {
   BuyerDetailsIn,
@@ -62,7 +64,6 @@ type BuyerField =
 
 interface BuyerFieldSpec {
   readonly key: BuyerField;
-  readonly label: string;
   /** Empty for free text. Non-empty makes it a fixed list. */
   readonly options: readonly string[];
 }
@@ -81,20 +82,16 @@ const ID_TYPES = ['nric', 'brn', 'passport', 'army'] as const;
 
 /** Every buyer field, in the order somebody asks for them on the telephone. */
 const BUYER_FIELDS: readonly BuyerFieldSpec[] = [
-  {
-    key: 'name',
-    label: 'Name, as on the IC or company registration',
-    options: [],
-  },
-  { key: 'tin', label: 'TIN', options: [] },
-  { key: 'id_type', label: 'ID type', options: ID_TYPES },
-  { key: 'id_number', label: 'ID number', options: [] },
-  { key: 'address_line1', label: 'Address line 1', options: [] },
-  { key: 'address_line2', label: 'Address line 2 (optional)', options: [] },
-  { key: 'city', label: 'City', options: [] },
-  { key: 'state', label: 'State', options: [] },
-  { key: 'postcode', label: 'Postcode', options: [] },
-  { key: 'msic_code', label: 'MSIC code (business buyers only)', options: [] },
+  { key: 'name', options: [] },
+  { key: 'tin', options: [] },
+  { key: 'id_type', options: ID_TYPES },
+  { key: 'id_number', options: [] },
+  { key: 'address_line1', options: [] },
+  { key: 'address_line2', options: [] },
+  { key: 'city', options: [] },
+  { key: 'state', options: [] },
+  { key: 'postcode', options: [] },
+  { key: 'msic_code', options: [] },
 ];
 
 type Draft = Record<BuyerField, string>;
@@ -136,7 +133,58 @@ export class OrderDetail {
 
   protected readonly detail = signal<OrderDetailOut | null>(null);
   protected readonly loading = signal(true);
-  protected readonly failure = signal<string | null>(null);
+  protected readonly failure = signal<Failure | null>(null);
+
+  /** The words, as a signal: switching language re-renders the order. */
+  protected readonly t = inject(Text).strings;
+
+  /** Chosen at render time, so a failure on screen follows the language. */
+  protected message(failure: Failure): string {
+    if (failure.status === 404) return this.t().order.noSuchOrder;
+    if (failure.status === 401) return this.t().order.signedOut;
+    if (failure.status === null) return this.t().order.wentWrong;
+    return commonMessage(this.t(), failure);
+  }
+
+  /** What to call each buyer box. Keyed on the column, never on a label. */
+  protected fieldLabel(key: BuyerField): string {
+    const words = this.t().buyer;
+    switch (key) {
+      case 'name':
+        return words.fieldName;
+      case 'tin':
+        return words.fieldTin;
+      case 'id_type':
+        return words.fieldIdType;
+      case 'id_number':
+        return words.fieldIdNumber;
+      case 'address_line1':
+        return words.fieldAddress1;
+      case 'address_line2':
+        return words.fieldAddress2;
+      case 'city':
+        return words.fieldCity;
+      case 'state':
+        return words.fieldState;
+      case 'postcode':
+        return words.fieldPostcode;
+      default:
+        return words.fieldMsic;
+    }
+  }
+
+  /**
+   * A history row's event name.
+   *
+   * Most are lifecycle steps and say what the handset says about the same job.
+   * Anything else -- a step added later, an event the server invented -- falls
+   * back to the wire value with its underscores opened out rather than to a
+   * blank line where a fact should be.
+   */
+  protected eventLabel(event: string): string {
+    const known = this.t().status as unknown as Record<string, string>;
+    return known[event] ?? event.replaceAll('_', ' ');
+  }
 
   protected readonly buyerFields = BUYER_FIELDS;
 
@@ -145,8 +193,38 @@ export class OrderDetail {
   protected readonly draft = signal<Draft>(EMPTY_DRAFT);
   protected readonly draftRequested = signal(false);
   protected readonly savingBuyer = signal(false);
-  protected readonly buyerNote = signal<string | null>(null);
+
+  /**
+   * What the save did, not the sentence about it.
+   *
+   * The same reasoning as a failure: composed at the moment of the click it
+   * would freeze in whichever language was on screen then -- and this one is
+   * telling somebody whether a legal requirement is now met.
+   */
+  protected readonly buyerNote = signal<'complete' | 'incomplete' | null>(null);
+
+  /** The server's refusal reason, turned into words at read time. */
   protected readonly buyerFailure = signal<string | null>(null);
+
+  protected buyerNoteText(note: 'complete' | 'incomplete'): string {
+    const words = this.t().buyer;
+    return note === 'complete' ? words.savedComplete : words.savedIncomplete;
+  }
+
+  /**
+   * A refusal, in words. Every one of these means **nothing was stored**.
+   *
+   * `stale` is the one that happens: a handset captured for this order after
+   * this screen was loaded, and the merge would have put an older answer over
+   * a newer one.
+   */
+  protected buyerFailureText(reason: string): string {
+    const words = this.t().buyer;
+    if (reason === 'stale') return words.refusedStale;
+    if (reason === 'unknown_order') return words.refusedUnknown;
+    if (reason === 'error') return this.t().order.wentWrong;
+    return words.refusedOther(reason);
+  }
 
   /**
    * What the form was opened with. A signal because `changedFields` reads it.
@@ -175,7 +253,7 @@ export class OrderDetail {
       },
       error: (err: unknown) => {
         this.detail.set(null);
-        this.failure.set(describe(err));
+        this.failure.set(failureOf(err));
         this.loading.set(false);
       },
     });
@@ -208,12 +286,12 @@ export class OrderDetail {
     const height = feet(line.est_height_tmm);
     const estimate = height === null ? `${width}ft` : `${width} × ${height}ft`;
 
-    if (!line.is_site_measured) return `${estimate} (estimate)`;
+    if (!line.is_site_measured) return this.t().order.sizeEstimate(estimate);
 
     const fw = feet(line.final_width_tmm);
     const fh = feet(line.final_height_tmm);
     const measured = fh === null ? `${fw}ft` : `${fw} × ${fh}ft`;
-    return `${estimate} → ${measured} measured`;
+    return this.t().order.sizeMeasured(estimate, measured);
   }
 
   /**
@@ -236,13 +314,14 @@ export class OrderDetail {
 
   /** What is still outstanding, in words rather than as a wire value. */
   protected missingLabel(missing: string): string {
+    const words = this.t().buyer;
     switch (missing) {
       case 'name':
-        return 'the full name, as on the IC or company registration';
+        return words.missingName;
       case 'identifier':
-        return 'a TIN, or an ID number with its type';
+        return words.missingIdentifier;
       default:
-        return 'a full address — street, city, state and postcode';
+        return words.missingAddress;
     }
   }
 
@@ -255,13 +334,9 @@ export class OrderDetail {
    * a request.
    */
   protected whyCaptured(d: OrderDetailOut): string | null {
-    if (d.buyer?.einvoice_requested) {
-      return 'The customer asked for an e-invoice, so these are needed whatever the amount.';
-    }
+    if (d.buyer?.einvoice_requested) return this.t().buyer.whyRequested;
     const total = d.order.estimate_total_sen;
-    if (total >= 1_000_000) {
-      return 'This order is over RM10,000, so by law the invoice needs the customer’s own details.';
-    }
+    if (total >= 1_000_000) return this.t().buyer.whyOverThreshold;
     return null;
   }
 
@@ -345,22 +420,18 @@ export class OrderDetail {
         if (result.refused_because !== null) {
           // Nothing was written. It arrived as a 200, and saying "saved" here
           // would tell somebody a legal requirement was met when it was not.
-          this.buyerFailure.set(refusal(result.refused_because));
+          this.buyerFailure.set(result.refused_because);
           return;
         }
         this.editingBuyer.set(false);
-        this.buyerNote.set(
-          result.complete
-            ? 'Saved. Everything the invoice needs is here.'
-            : 'Saved. Some of it is still outstanding.',
-        );
+        this.buyerNote.set(result.complete ? 'complete' : 'incomplete');
         // Reload rather than patch what is on screen: the server merged this
         // into whatever else has landed, and only it knows the result.
         this.load();
       },
-      error: (err: unknown) => {
+      error: () => {
         this.savingBuyer.set(false);
-        this.buyerFailure.set(describe(err));
+        this.buyerFailure.set('error');
       },
     });
   }
@@ -372,39 +443,15 @@ export class OrderDetail {
       line.applied_discount_pct === '0'
         ? ''
         : ` · held ${line.applied_discount_pct} off`;
-    return `${line.billed_qty} ${line.billed_unit} at ${this.money(
-      line.rate_sen,
-    )}${band} · list v${line.applied_rate_card_version}${discount}`;
-  }
-}
-
-/**
- * A refusal the server reports rather than raises.
- *
- * Both of these mean **nothing was stored**. `stale` is the one that happens:
- * a handset captured for this order after this screen was loaded, and the
- * merge would have put an older answer over a newer one.
- */
-function refusal(reason: string): string {
-  if (reason === 'stale') {
-    return (
-      'Not saved — somebody captured these on a handset more recently. ' +
-      'Reload to see what they took, then correct it again.'
+    return this.t().order.basis(
+      line.billed_qty,
+      line.billed_unit,
+      this.money(line.rate_sen),
+      band,
+      line.applied_rate_card_version,
+      discount,
     );
   }
-  if (reason === 'unknown_order') {
-    return 'Not saved — the server has no record of this order yet.';
-  }
-  return `Not saved — the server refused it (${reason}).`;
 }
 
-function describe(err: unknown): string {
-  if (typeof err === 'object' && err !== null && 'status' in err) {
-    const status = (err as { status: number }).status;
-    if (status === 404) return 'No such order.';
-    if (status === 401) return 'Signed out. Sign in again to see this order.';
-    if (status === 0) return 'No answer from the server.';
-    return `The server answered ${status}.`;
-  }
-  return 'Something went wrong loading this order.';
-}
+
