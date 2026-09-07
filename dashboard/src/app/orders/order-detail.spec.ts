@@ -556,6 +556,28 @@ describe('OrderDetail', () => {
     });
   });
 
+  it('the Try again button asks again', async () => {
+    // Offered on every screen here and pressed by no test until now. A retry
+    // that does nothing is worse than none: somebody presses it twice and
+    // concludes the server is down.
+    fixture.detectChanges();
+    await Promise.resolve();
+    http
+      .expectOne('/api/orders/o1')
+      .flush({ detail: 'no' }, { status: 500, statusText: 'Server Error' });
+    fixture.detectChanges();
+
+    const retry = fixture.nativeElement.querySelector(
+      '.failure button',
+    ) as HTMLButtonElement;
+    retry.click();
+    fixture.detectChanges();
+
+    http.expectOne('/api/orders/o1').flush(detail());
+    fixture.detectChanges();
+    expect(text()).toContain('MLK-2608-0001');
+  });
+
   it('an unknown order says so rather than showing an empty shell', async () => {
     // An empty detail renders as an order that lost its contents, which reads
     // as data loss rather than as a bad link.

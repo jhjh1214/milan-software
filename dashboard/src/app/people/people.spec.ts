@@ -285,4 +285,168 @@ describe('People', () => {
       expect(text()).toContain('four or more digits');
     });
   });
+
+  describe('removing access, driven the way somebody does it', () => {
+    // §11 Phase 5's acceptance criterion is *deactivating a user requires
+    // typing their name*. Everything above proves the rule; none of it proves
+    // the screen. If the confirm button's binding were dead, or the box not
+    // wired to what the button reads, `nameMatches()` would still be right and
+    // the criterion would still be unmet.
+    //
+    // Sessions never expire (§12), so this dialog is the only thing that stops
+    // the handset in a leaver's pocket. It is worth clicking.
+
+    const el = <T extends Element>(selector: string): T => {
+      const found = fixture.nativeElement.querySelector(selector) as T | null;
+      if (found === null) throw new Error(`no ${selector} on the screen`);
+      return found;
+    };
+
+    const rowButton = (index: number): HTMLButtonElement => {
+      const cells = fixture.nativeElement.querySelectorAll('td.actions');
+      const button = (cells[index] as HTMLElement).querySelector('button');
+      if (button === null) throw new Error(`row ${index} has no button`);
+      return button as HTMLButtonElement;
+    };
+
+    const click = (selector: string): void => {
+      el<HTMLButtonElement>(selector).click();
+      fixture.detectChanges();
+    };
+
+    const typeName = (value: string): void => {
+      const box = el<HTMLInputElement>('#typed');
+      box.value = value;
+      box.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+    };
+
+    it('the row button opens the dialog for that person', () => {
+      load([person({ id: 'u1', name: 'Ah Lian' }), person({ id: 'u2', name: 'Siti' })]);
+
+      rowButton(1).click();
+      fixture.detectChanges();
+
+      // The second row's person, not the first. A dialog that opened on
+      // whoever was at the top would lock out the wrong person on a click
+      // that looked right.
+      expect(el('[role="dialog"]').textContent).toContain('Siti');
+    });
+
+    it('the confirm button does nothing until the name is typed', () => {
+      load([person({ name: 'Ah Lian' }), person({ id: 'u2', name: 'Siti' })]);
+      rowButton(1).click();
+      fixture.detectChanges();
+
+      expect(el<HTMLButtonElement>('.confirm .danger').disabled).toBe(true);
+      typeName('Sit');
+      expect(el<HTMLButtonElement>('.confirm .danger').disabled).toBe(true);
+
+      // And pressing it anyway sends nothing. The disabled attribute is the
+      // presentation; the refusal has to be real.
+      el<HTMLButtonElement>('.confirm .danger').click();
+      fixture.detectChanges();
+      http.expectNone('/api/people/u2/deactivate');
+    });
+
+    it('typing the name and pressing it removes that person', () => {
+      load([person({ name: 'Ah Lian' }), person({ id: 'u2', name: 'Siti' })]);
+      rowButton(1).click();
+      fixture.detectChanges();
+
+      typeName('Siti');
+      expect(el<HTMLButtonElement>('.confirm .danger').disabled).toBe(false);
+      click('.confirm .danger');
+
+      const req = http.expectOne('/api/people/u2/deactivate');
+      expect(req.request.method).toBe('POST');
+      req.flush({ id: 'u2', sessions_revoked: 2 });
+      http.expectOne('/api/people').flush({ people: [person()] });
+      fixture.detectChanges();
+
+      expect(text()).toContain('2 handset(s) signed out');
+      expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    });
+
+    it('the case of the typed name does not matter, the person does', () => {
+      // The point is that somebody read the name, not that they can reproduce
+      // its capitals.
+      load([person({ name: 'Ah Lian' }), person({ id: 'u2', name: 'Siti' })]);
+      rowButton(1).click();
+      fixture.detectChanges();
+
+      typeName('  siti  ');
+      expect(el<HTMLButtonElement>('.confirm .danger').disabled).toBe(false);
+    });
+
+    it('typing the OTHER person’s name does not unlock it', () => {
+      // The failure this criterion exists to prevent, in its exact shape:
+      // the dialog is open on Siti and the name in front of the reader is
+      // Ah Lian's, from the row above.
+      load([person({ name: 'Ah Lian' }), person({ id: 'u2', name: 'Siti' })]);
+      rowButton(1).click();
+      fixture.detectChanges();
+
+      typeName('Ah Lian');
+      expect(el<HTMLButtonElement>('.confirm .danger').disabled).toBe(true);
+    });
+
+    it('"Keep it" closes the dialog and sends nothing', () => {
+      load([person({ name: 'Ah Lian' }), person({ id: 'u2', name: 'Siti' })]);
+      rowButton(1).click();
+      fixture.detectChanges();
+      typeName('Siti');
+
+      const keep = Array.from(
+        fixture.nativeElement.querySelectorAll('.confirm .actions button'),
+      )[1] as HTMLButtonElement;
+      keep.click();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+      http.expectNone('/api/people/u2/deactivate');
+    });
+
+    it('re-opening the dialog does not carry the last typed name over', () => {
+      // Otherwise the second removal needs no confirmation at all, which is
+      // the criterion quietly not applying to the person after the first.
+      load([person({ name: 'Ah Lian' }), person({ id: 'u2', name: 'Siti' })]);
+      rowButton(1).click();
+      fixture.detectChanges();
+      typeName('Siti');
+
+      const keep = Array.from(
+        fixture.nativeElement.querySelectorAll('.confirm .actions button'),
+      )[1] as HTMLButtonElement;
+      keep.click();
+      fixture.detectChanges();
+
+      rowButton(1).click();
+      fixture.detectChanges();
+      expect(el<HTMLInputElement>('#typed').value).toBe('');
+      expect(el<HTMLButtonElement>('.confirm .danger').disabled).toBe(true);
+    });
+
+    it('"Let back in" is the button a leaver’s row offers', () => {
+      load([person({ id: 'u2', name: 'Siti', is_active: false })]);
+
+      rowButton(0).click();
+      fixture.detectChanges();
+
+      http.expectOne('/api/people/u2/reactivate').flush(person({ id: 'u2' }));
+      fixture.detectChanges();
+      expect(text()).toContain('They will have to');
+    });
+
+    it('an admin’s own row offers no button at all', () => {
+      // Locking the last admin out is the one mistake nobody can undo from
+      // the app.
+      session.user.set({ id: 'u1', name: 'Boss', role: 'admin', language: 'en' });
+      load([person({ id: 'u1', name: 'Boss', role: 'admin' })]);
+
+      const cells = fixture.nativeElement.querySelectorAll('td.actions');
+      expect((cells[0] as HTMLElement).querySelector('button')).toBeNull();
+      expect((cells[0] as HTMLElement).textContent).toContain('You');
+    });
+  });
 });

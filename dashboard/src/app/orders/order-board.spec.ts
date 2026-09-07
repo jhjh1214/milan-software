@@ -237,5 +237,28 @@ describe('OrderBoard', () => {
       await open('/orders?status=closed', [], 0);
       expect(text()).toContain('Nothing matches these filters');
     });
+
+    it('the Try again button asks again, with the filters still on', async () => {
+      // The retry has to repeat the request that failed, not a bare one. A
+      // reload that quietly dropped the filter would show the whole board to
+      // somebody who asked for one status, and look like it worked.
+      await harness.navigateByUrl('/orders?status=confirmed');
+      http
+        .expectOne((r) => r.url === '/api/orders')
+        .flush({ detail: 'no' }, { status: 500, statusText: 'Server Error' });
+      harness.detectChanges();
+
+      const retry = harness.routeNativeElement!.querySelector(
+        '.failure button',
+      ) as HTMLButtonElement;
+      retry.click();
+      harness.detectChanges();
+
+      const again = http.expectOne((r) => r.url === '/api/orders');
+      expect(again.request.params.get('status')).toBe('confirmed');
+      again.flush({ orders: [card()], total: 1 });
+      harness.detectChanges();
+      expect(text()).toContain('MLK-2608-0001');
+    });
   });
 });

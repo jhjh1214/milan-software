@@ -323,5 +323,27 @@ describe('MeasurementQueue', () => {
       expect(text()).toContain('No trips match this filter');
       expect(text()).not.toContain('Nothing is waiting for a visit');
     });
+
+    it('the Try again button asks again', async () => {
+      // Pressed by no test until now. A retry that does nothing is worse than
+      // none: somebody presses it twice and concludes the server is down.
+      await harness.navigateByUrl('/measurement');
+      http
+        .expectOne('/api/measurement-queue')
+        .flush({ detail: 'no' }, { status: 500, statusText: 'Server Error' });
+      harness.detectChanges();
+
+      const retry = harness.routeNativeElement!.querySelector(
+        '.failure button',
+      ) as HTMLButtonElement;
+      retry.click();
+      harness.detectChanges();
+
+      http
+        .expectOne('/api/measurement-queue')
+        .flush({ groups: [trip()], total_orders: 1 });
+      harness.detectChanges();
+      expect(text()).not.toContain('The server answered 500');
+    });
   });
 });

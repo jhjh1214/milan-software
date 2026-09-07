@@ -15,7 +15,8 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { PriceOverrideOut } from '../api/types';
@@ -150,5 +151,117 @@ describe('OverrideReview', () => {
 
     expect(text()).toContain('The server answered 500');
     expect(text()).toContain('Try again');
+  });
+});
+
+/**
+ * Every control on the screen, clicked.
+ *
+ * Nothing in the suite above touches a button: the week is moved by setting a
+ * query parameter and the load is asserted from the request. That leaves the
+ * two arrows — the only way anybody actually reaches last week — untested, and
+ * a dead binding there is invisible in exactly the way the people screen's Add
+ * button was.
+ *
+ * Through a **real router**, because `step()` navigates rather than setting a
+ * field. A component fixture with `provideRouter([])` would let the navigation
+ * resolve to nothing and the effect never re-run, and the test would pass on a
+ * screen that does not move.
+ */
+describe('OverrideReview: the week arrows', () => {
+  let harness: RouterTestingHarness;
+  let http: HttpTestingController;
+  let router: Router;
+
+  beforeEach(async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([{ path: 'overrides', component: OverrideReview }]),
+      ],
+    });
+    http = TestBed.inject(HttpTestingController);
+    router = TestBed.inject(Router);
+    harness = await RouterTestingHarness.create();
+  });
+
+  const open = async (url: string): Promise<void> => {
+    await harness.navigateByUrl(url);
+    http.expectOne((r) => r.url === '/api/overrides').flush({ overrides: [] });
+    harness.detectChanges();
+  };
+
+  const arrows = (): HTMLButtonElement[] =>
+    Array.from(
+      harness.routeNativeElement!.querySelectorAll('.week button'),
+    ) as HTMLButtonElement[];
+
+  /** Click, then let the navigation it starts actually finish. */
+  const press = async (which: 0 | 1): Promise<void> => {
+    arrows()[which].click();
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+  };
+
+  const started = (): string => {
+    const req = http.expectOne((r) => r.url === '/api/overrides');
+    const start = req.request.params.get('start') as string;
+    req.flush({ overrides: [] });
+    harness.detectChanges();
+    return start.slice(0, 10);
+  };
+
+  it('there are two of them and they are the only ones in the nav', async () => {
+    await open('/overrides?week=2026-08-26');
+    expect(arrows().length).toBe(2);
+  });
+
+  it('Earlier loads the week before, and says so in the URL', async () => {
+    // The URL matters as much as the load: §11 Phase 5 makes every filter
+    // state reachable by link, and a week somebody can see but not send is
+    // half a review screen.
+    await open('/overrides?week=2026-08-26');
+
+    await press(0);
+
+    expect(started()).toBe('2026-08-17');
+    expect(router.url).toContain('week=2026-08-17');
+  });
+
+  it('Later loads the week after', async () => {
+    await open('/overrides?week=2026-08-26');
+
+    await press(1);
+
+    expect(started()).toBe('2026-08-31');
+    expect(router.url).toContain('week=2026-08-31');
+  });
+
+  it('stepping twice keeps going, rather than bouncing off the same week', async () => {
+    // The navigation is keyed on the URL. Stepping from a week the URL does
+    // not name would compute the same target twice and look like a dead
+    // button on the second press.
+    await open('/overrides?week=2026-08-26');
+
+    await press(0);
+    expect(started()).toBe('2026-08-17');
+
+    await press(0);
+    expect(started()).toBe('2026-08-10');
+  });
+
+  it('the first Earlier works even when the URL named no week', async () => {
+    // The commonest press: somebody opens the screen on Monday and wants
+    // last week. `start()` falls back to today's week, and stepping has to
+    // step from that rather than from nothing.
+    await open('/overrides');
+    const thisWeek = weekStart(new Date());
+    const wanted = new Date(thisWeek);
+    wanted.setUTCDate(wanted.getUTCDate() - 7);
+
+    await press(0);
+
+    expect(started()).toBe(wanted.toISOString().slice(0, 10));
   });
 });

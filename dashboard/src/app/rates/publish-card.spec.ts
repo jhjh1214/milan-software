@@ -245,4 +245,147 @@ describe('PublishCard', () => {
       expect(text()).toContain('version number goes up');
     });
   });
+
+  describe('every control on the screen is actually wired', () => {
+    // Nothing above this block touches the DOM: every test drives the
+    // component by calling its methods. That is exactly the gap that let the
+    // people screen ship an Add button bound to `(ngSubmit)` in a component
+    // without FormsModule — a DOM event nothing fires, so the unit was right
+    // and only the wiring to it was dead.
+    //
+    // This screen is the one where that would cost the most: it sets the price
+    // of everything, for every handset, on the next pull. So the whole
+    // sequence is driven the way somebody in the office would.
+    //
+    // Selectors are structural rather than by label, matching the idiom in
+    // order-board.spec.ts — a test that finds a button by its English text
+    // stops working the moment the screen speaks Malay.
+
+    const el = <T extends Element>(selector: string): T => {
+      const found = fixture.nativeElement.querySelector(selector) as T | null;
+      if (found === null) throw new Error(`no ${selector} on the screen`);
+      return found;
+    };
+
+    const typeInBox = (value: string): void => {
+      const box = el<HTMLTextAreaElement>('textarea#card');
+      box.value = value;
+      box.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+    };
+
+    const click = <T extends HTMLElement>(selector: string): void => {
+      el<T>(selector).click();
+      fixture.detectChanges();
+    };
+
+    it('the whole publish runs from the keyboard and the mouse alone', () => {
+      typeInBox(CARD);
+      click('button.primary');
+
+      const preview = http.expectOne('/api/rate-cards/preview');
+      expect(preview.request.body.payload.version).toBe(2);
+      preview.flush(diff());
+      fixture.detectChanges();
+      expect(text()).toContain('1 prices move');
+
+      click('button.danger');
+      const publish = http.expectOne('/api/rate-cards');
+      expect(publish.request.body.list_id).toBe('fair');
+      publish.flush({ version: 2, list_id: 'fair', published_by: 'u-boss' });
+      fixture.detectChanges();
+
+      expect(text()).toContain('version 2');
+    });
+
+    it('the list buttons choose the list the server is asked about', () => {
+      // Sending the standard card to the fair list would publish the wrong
+      // prices under the right name, which is the worst version of this bug.
+      const lists = fixture.nativeElement.querySelectorAll(
+        '.which button',
+      ) as NodeListOf<HTMLButtonElement>;
+      expect(lists.length).toBe(2);
+
+      lists[1].click();
+      fixture.detectChanges();
+      typeInBox(CARD);
+      click('button.primary');
+
+      const req = http.expectOne('/api/rate-cards/preview');
+      expect(req.request.body.list_id).toBe('standard');
+      req.flush(diff());
+    });
+
+    it('switching list after a preview takes the publish button away', () => {
+      // A diff of the fair card says nothing about the standard one, and the
+      // button that says "Publish this" would be describing the wrong diff.
+      typeInBox(CARD);
+      click('button.primary');
+      http.expectOne('/api/rate-cards/preview').flush(diff());
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('button.danger')).not.toBeNull();
+
+      const lists = fixture.nativeElement.querySelectorAll(
+        '.which button',
+      ) as NodeListOf<HTMLButtonElement>;
+      lists[1].click();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('button.danger')).toBeNull();
+    });
+
+    it('an edit after a preview takes the publish button away', () => {
+      typeInBox(CARD);
+      click('button.primary');
+      http.expectOne('/api/rate-cards/preview').flush(diff());
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('button.danger')).not.toBeNull();
+
+      typeInBox(CARD + ' ');
+      expect(fixture.nativeElement.querySelector('button.danger')).toBeNull();
+    });
+
+    it('a card that changes nothing offers no publish button at all', () => {
+      // It would create a version nobody can tell apart from the live one,
+      // and every handset would pull it for no reason.
+      typeInBox(CARD);
+      click('button.primary');
+      http
+        .expectOne('/api/rate-cards/preview')
+        .flush(diff({ changed: [], is_empty: true, total_delta_sen: 0 }));
+      fixture.detectChanges();
+
+      expect(text()).toContain('Nothing would change');
+      expect(fixture.nativeElement.querySelector('button.danger')).toBeNull();
+    });
+
+    it('the preview button is disabled until the text parses', () => {
+      const button = el<HTMLButtonElement>('button.primary');
+      expect(button.disabled).toBe(true);
+      typeInBox('not json at all');
+      expect(el<HTMLButtonElement>('button.primary').disabled).toBe(true);
+      typeInBox(CARD);
+      expect(el<HTMLButtonElement>('button.primary').disabled).toBe(false);
+    });
+
+    it('"Publish another" clears the screen rather than half of it', () => {
+      typeInBox(CARD);
+      click('button.primary');
+      http.expectOne('/api/rate-cards/preview').flush(diff());
+      fixture.detectChanges();
+      click('button.danger');
+      http
+        .expectOne('/api/rate-cards')
+        .flush({ version: 2, list_id: 'fair', published_by: 'u-boss' });
+      fixture.detectChanges();
+
+      click('button.primary');
+
+      // Back to an empty box with no diff behind it. Leaving the old card in
+      // place would let somebody publish it twice by pressing on.
+      expect(el<HTMLTextAreaElement>('textarea#card').value).toBe('');
+      expect(text()).not.toContain('prices move');
+      expect(el<HTMLButtonElement>('button.primary').disabled).toBe(true);
+    });
+  });
 });

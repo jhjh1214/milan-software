@@ -27,7 +27,7 @@ import type {
   OutstandingBalance,
   SalespersonVariance,
 } from '../api/types';
-import { Reports, panelFrom, weeksFrom } from './reports';
+import { PERIODS, Reports, panelFrom, weeksFrom } from './reports';
 
 const salesperson = (
   over: Partial<SalespersonVariance> = {},
@@ -410,6 +410,104 @@ describe('Reports', () => {
 
       expect(text()).toContain('Only an admin can read the reports');
       expect(text()).not.toContain('Nothing has been finally priced yet');
+    });
+
+    it('the Try again button asks again', async () => {
+      // Every screen here offers one and none of them was ever pressed in a
+      // test. A retry that does nothing is worse than no retry: somebody
+      // presses it twice and concludes the server is down.
+      await harness.navigateByUrl('/reports');
+      http
+        .expectOne((r) => r.url === '/api/reports/variance')
+        .flush({ detail: 'no' }, { status: 500, statusText: 'Server Error' });
+      harness.detectChanges();
+
+      const retry = harness.routeNativeElement!.querySelector(
+        '.failure button',
+      ) as HTMLButtonElement;
+      retry.click();
+      harness.detectChanges();
+
+      http
+        .expectOne((r) => r.url === '/api/reports/variance')
+        .flush({ rows: [salesperson()], nothing_priced_yet: false });
+      harness.detectChanges();
+      expect(text()).toContain('Ah Meng');
+    });
+  });
+
+  describe('the window buttons on the declined-deposit report', () => {
+    // The one control on this screen that nothing has ever clicked. It is also
+    // the one whose effect is invisible if it fails: the table still renders,
+    // with the default window, and reads as though four weeks is what was
+    // asked for.
+
+    const buttons = (): HTMLButtonElement[] =>
+      Array.from(
+        harness.routeNativeElement!.querySelectorAll('.periods button'),
+      ) as HTMLButtonElement[];
+
+    const press = async (index: number): Promise<void> => {
+      buttons()[index].click();
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+    };
+
+    /** The window the next request actually asked for, in whole days. */
+    const askedForDays = (): number => {
+      const req = http.expectOne((r) => r.url === '/api/deposit-prompts');
+      const start = new Date(req.request.params.get('start') as string);
+      const end = new Date(req.request.params.get('end') as string);
+      req.flush({ prompts: [] });
+      harness.detectChanges();
+      return Math.round((end.getTime() - start.getTime()) / 86_400_000);
+    };
+
+    it('offers exactly the periods the component knows how to honour', async () => {
+      // A hand-typed ?weeks=9999 falls back to the default rather than asking
+      // the server for every prompt ever recorded, so the buttons and that
+      // list have to be the same list.
+      await open('/reports?report=deposits', '/api/deposit-prompts', {
+        prompts: [],
+      });
+      expect(buttons().length).toBe(PERIODS.length);
+    });
+
+    it('pressing one asks the server for that window', async () => {
+      await open('/reports?report=deposits', '/api/deposit-prompts', {
+        prompts: [],
+      });
+
+      await press(0); // 4 weeks
+      expect(askedForDays()).toBe(28);
+      expect(router.url).toContain('weeks=4');
+    });
+
+    it('the default window is the plain URL, not ?weeks=12', async () => {
+      // The default is twelve weeks, which is PERIODS[1] rather than the first
+      // button — so the one that clears the parameter is the middle one.
+      // Otherwise the link somebody sends says what the default already said,
+      // and the two drift the first time the default moves.
+      await open('/reports?report=deposits&weeks=52', '/api/deposit-prompts', {
+        prompts: [],
+      });
+
+      await press(1); // back to the default
+      expect(askedForDays()).toBe(84);
+      expect(router.url).not.toContain('weeks=');
+      expect(router.url).toContain('report=deposits');
+    });
+
+    it('changing the window keeps the report you are looking at', async () => {
+      // `queryParamsHandling: 'merge'` is doing that, and dropping it would
+      // bounce the reader back to the variance table on every press.
+      await open('/reports?report=deposits', '/api/deposit-prompts', {
+        prompts: [],
+      });
+
+      await press(2);
+      askedForDays();
+      expect(router.url).toContain('report=deposits');
     });
   });
 });
