@@ -12,8 +12,39 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 
 ## Current state
 
-**Phases 1-6 complete. Phase 7 next** — Flutter app,
+**Phases 1-6 complete. Phase 7 in progress** — Flutter app,
 FastAPI backend, Postgres, and sync between them.
+
+**Phase 7 so far.** The buyer-detail capture screens, both sides, and the sync
+between them. **What is left is blocked**: the SQL Account export needs a sample
+import template (§13 **E1**) and the accountant's ruling on **E2**, and §13
+**C12** and **C13** decide where the guard bites and which fields MyInvois
+actually rejects. Do not guess any of the four.
+
+- **The handset form.** Without it an order over RM10,000 was *stuck* —
+  `advanceOrder` refused to move it and nothing could supply what the refusal
+  asked for. The refusal now opens the form, and the form is also reachable
+  without being refused first. It says **why** before it asks (three different
+  reasons, not interchangeable), states everything outstanding **at once**
+  because §10.2 gives one conversation, and **never gates saving on
+  completeness** — half the details now beats nothing.
+- **Migration 0006 and `POST /api/orders/buyer`.** Its own endpoint, because an
+  order is pushed once at confirmation and these are captured after
+  measurement. It **merges** (a field the payload does not carry keeps what is
+  stored, so two handsets' captures both survive) and **refuses a stale push**
+  rather than letting the last arrival win.
+- **The read side**, so the office can see what is on file and what is missing
+  before it telephones anybody. Same rule as the handset, never a second answer.
+
+A latent outbox bug found on the way: `_enqueue` matched on the entity id alone,
+and an order push and a buyer capture are both keyed on the **order id** — so
+capturing details while the order push was still queued replaced it, and the
+order never went up. Now matched on the kind as well.
+
+§13 gained **C14**: a field *cleared* on a handset stays on the server, because
+the device stores a blank as null and null on the wire means "leave it". Merging
+fails toward keeping too much and replacing fails toward losing a colleague's
+work; §10.2's penalty is for **missing** details, not spare ones.
 
 Built and green on the device: `Length`, `Money`, `Rational`, the unit parser,
 the soft warnings, the pricing engine over the real 77-row fair card, the custom
@@ -24,7 +55,7 @@ trilingual PDF.
 
 Built and green on the server: the Python engine passing the same fixtures, the
 sync endpoints, Alembic migrations with a test that they match the models, users
-and roles, and rate card publishing. **798 Dart tests, 600 Python tests.** 100%
+and roles, and rate card publishing. **817 Dart tests, 622 Python tests, 159 dashboard tests.** 100%
 coverage on `Length`, `Money` and `Rational`.
 
 **Prices are server-owned now.** One card is published and pulled by every
@@ -391,27 +422,25 @@ would mean the admin types RM120, is told it was accepted, and the engine still
 refuses. §13 **A22**. The card file now holds 81 rows; 77 is still the count of
 sellable ones, and a test asserts both separately.
 
-**A21 is answered and built**, both engines, five fixtures, ten mutations.
-A printed minimum is a floor on the **job**, not the line: a small blind on its
-own bills its 18 sqft, the same blind inside a house of curtains bills what it
-measures. Four order-of-operations follow-ups were put to the client rather than
-guessed, and all four are answered — **A21a** the whole order clears it (not the
-deposit category), **A21b** measured on the exact prices and never the
-minimum-applied ones (the other reading is circular), **A21c** exactly the
-threshold clears it, **A21d** never bill below the deposit already taken.
+**A21 is answered, corrected by the client, and built.** `min_qty` applies on a
+**quotation only**. At final pricing every line bills the exact tape and the
+order is floored at §8.4's **RM300 per deposit category** — which now applies at
+**both** stages, not just the estimate.
 
-The sequence is the rule: price exactly with no minimum → sum across the order
-→ at or above the threshold, waive → else apply → then floor by category.
-Delivery is excluded from the sum. On a **quotation** the minimum stays
-unconditional, so `applyMinQty` defaults to true and is only ever passed false
-at final pricing.
+The first answer applied the minimum at both stages and waived it once the job
+cleared RM300. That made a 12 sqft timber blind bill RM360 and a **larger**
+15 sqft one bill RM300, and the client rejected it: *"dont make it so that lower
+sqft more expensive than higher sqft"*. The rule now in force is **monotonic by
+construction** — flat at RM300 below the floor, the exact tape above it — so a
+billed total can never fall as a window grows. There is no threshold to
+configure and no two-pass ordering to get wrong.
 
-A consequence is pinned in a fixture because it looks like a bug and is not: a
-12 sqft timber blind bills RM360 and a 15 sqft one bills RM300. Any threshold
-sitting on top of any minimum does that.
+Checked as a **property**, not by example: a sweep of every sellable row at 3ft
+by 1–25ft gives 1,650 sizes with zero inversions, and `engine_test.dart` walks
+the same sizes for the blind that caused the complaint.
 
-Two things this surfaced that were not obvious going in. **The estimate side has
-to be floored too** — the quotation already had §8.4's floor but as an
+Two things the work surfaced that were not obvious going in. **The estimate side
+has to be floored too** — the quotation already had §8.4's floor but as an
 order-level uplift, so a sum of the recorded *line* estimates is short by it,
 and flooring only the final made every small order look like its price went
 **up**. And **an unparented add-on has no deposit category**, where
@@ -438,8 +467,21 @@ and any Malay or Chinese. The handset is trilingual because a part-timer who
 reads only Malay has to be able to quote; whether the office screens need the
 same is worth asking rather than assuming.
 
-**Five CI jobs**, all green: Flutter, Python, the deploy stack, Angular, and the
-shared files.
+**Six CI jobs, STAGED**, all green:
+
+```
+shared  ->  lint  ->  backend   ->  mobile
+                      dashboard     deploy
+```
+
+Nothing downstream starts until its gate passes. A ruff error used to sit behind
+a 4½-minute Flutter run, a Postgres container and a Docker stack, all burnt
+before anybody learned a lambda argument was called `l`.
+
+**Run the linter at the PINNED version.** `backend/requirements-dev.txt` pins
+`ruff==0.8.4`; the formatter changes between releases, so a newer global ruff
+reformats files nobody touched and disagrees with CI. Easiest: a throwaway venv
+with that pin. **`ruff` was never run locally before, and it is what broke CI.**
 
 **Two new blocking questions**, both about money, both built the conservative
 way rather than guessed: §13 **B9** (what identifies a returning customer —
