@@ -26,6 +26,8 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 
 import { Api } from '../api/api';
+import { commonMessage, failureOf, type Failure } from '../i18n/failure';
+import { Text } from '../i18n/text';
 import { formatSen } from '../api/money';
 import type { CardDiffOut, ListId, RateChangeOut } from '../api/types';
 
@@ -40,6 +42,10 @@ type Stage = 'editing' | 'previewed' | 'published';
 })
 export class PublishCard {
   private readonly api = inject(Api);
+  private readonly text_ = inject(Text);
+
+  /** The words, as a signal: switching language re-renders the screen. */
+  protected readonly t = this.text_.strings;
 
   protected readonly lists: readonly ListId[] = ['fair', 'standard'];
   protected readonly listId = signal<ListId>('fair');
@@ -55,7 +61,19 @@ export class PublishCard {
 
   protected readonly stage = signal<Stage>('editing');
   protected readonly busy = signal(false);
-  protected readonly failure = signal<string | null>(null);
+  protected readonly failure = signal<Failure | null>(null);
+
+  /** Chosen at render time, so a failure on screen follows the language. */
+  protected message(failure: Failure): string {
+    const words = this.t().publish;
+    if (failure.status === 403) return words.notAdmin;
+    if (failure.status === 422) return words.notACard;
+    // The server refuses a version that is not newer. Versions only go up: a
+    // re-used number would leave two different cards answering to one.
+    if (failure.status === 400) return words.versionMustGoUp;
+    if (failure.status === null) return words.wentWrong;
+    return commonMessage(this.t(), failure);
+  }
   protected readonly diff = signal<CardDiffOut | null>(null);
   protected readonly publishedVersion = signal<number | null>(null);
 
@@ -108,7 +126,10 @@ export class PublishCard {
     this.busy.set(true);
     this.failure.set(null);
 
-    this.api.previewCard(this.listId(), card, 'en').subscribe({
+    // The card's labels are {zh, en, ms} maps, and the server picks one. Sent
+    // the reader's language rather than a literal 'en', or the diff would name
+    // every product in English on a screen saying everything else in Malay.
+    this.api.previewCard(this.listId(), card, this.text_.language()).subscribe({
       next: (diff) => {
         this.diff.set(diff);
         this.stage.set('previewed');
@@ -116,7 +137,7 @@ export class PublishCard {
       },
       error: (err: unknown) => {
         this.diff.set(null);
-        this.failure.set(describe(err));
+        this.failure.set(failureOf(err));
         this.busy.set(false);
       },
     });
@@ -140,7 +161,7 @@ export class PublishCard {
         this.busy.set(false);
       },
       error: (err: unknown) => {
-        this.failure.set(describe(err));
+        this.failure.set(failureOf(err));
         this.busy.set(false);
       },
     });
@@ -181,21 +202,4 @@ export class PublishCard {
       !diff.is_empty
     );
   });
-}
-
-function describe(err: unknown): string {
-  if (typeof err === 'object' && err !== null && 'status' in err) {
-    const status = (err as { status: number }).status;
-    if (status === 403) return 'Only an admin can publish a price list.';
-    if (status === 401) return 'Signed out. Sign in again.';
-    if (status === 422) return 'That is not a rate card the server accepts.';
-    if (status === 400) {
-      // The server refuses a version that is not newer. Versions only go up:
-      // a re-used number would leave two different cards answering to one.
-      return 'The server refused it — check the version number goes up.';
-    }
-    if (status === 0) return 'No answer from the server.';
-    return `The server answered ${status}.`;
-  }
-  return 'Something went wrong.';
 }

@@ -19,6 +19,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { CardDiffOut } from '../api/types';
+import { Text } from '../i18n/text';
 import { PublishCard } from './publish-card';
 
 const CARD = JSON.stringify({
@@ -50,6 +51,7 @@ describe('PublishCard', () => {
   let fixture: ComponentFixture<PublishCard>;
   let component: PublishCard;
   let http: HttpTestingController;
+  let i18n: Text;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -58,6 +60,9 @@ describe('PublishCard', () => {
     fixture = TestBed.createComponent(PublishCard);
     component = fixture.componentInstance;
     http = TestBed.inject(HttpTestingController);
+    i18n = TestBed.inject(Text);
+    // Pinned rather than assumed: the dashboard defaults to Chinese (§13 C9).
+    i18n.pick('en');
     fixture.detectChanges();
   });
 
@@ -368,6 +373,20 @@ describe('PublishCard', () => {
       expect(el<HTMLButtonElement>('button.primary').disabled).toBe(false);
     });
 
+    it('asks the server for the diff in the reader’s language', () => {
+      // The card's labels are {zh, en, ms} maps and the server picks one. A
+      // literal 'en' here would name every product in English on a screen
+      // saying everything else in Malay — on the one screen where reading the
+      // wrong product name costs money.
+      i18n.pick('ms');
+      typeInBox(CARD);
+      click('button.primary');
+
+      const req = http.expectOne('/api/rate-cards/preview');
+      expect(req.request.body.language).toBe('ms');
+      req.flush(diff());
+    });
+
     it('"Publish another" clears the screen rather than half of it', () => {
       typeInBox(CARD);
       click('button.primary');
@@ -386,6 +405,72 @@ describe('PublishCard', () => {
       expect(el<HTMLTextAreaElement>('textarea#card').value).toBe('');
       expect(text()).not.toContain('prices move');
       expect(el<HTMLButtonElement>('button.primary').disabled).toBe(true);
+    });
+
+    describe('in the other two languages', () => {
+      // SPEC.md §13 C9. This is the screen where a wrong word costs money
+      // directly: it sets the price of everything, for every handset, on the
+      // next pull. An admin who reads Malay reading an English summary of what
+      // is about to move is exactly the reader this was built for.
+
+      it('says the whole diff in Chinese', () => {
+        i18n.pick('zh');
+        typeInBox(CARD);
+        click('button.primary');
+        http.expectOne('/api/rate-cards/preview').flush(diff());
+        fixture.detectChanges();
+
+        expect(text()).toContain('发布价格表');
+        expect(text()).toContain('1 项改价');
+        expect(text()).toContain('会改动的价格');
+        expect(text()).toContain('发布这一份');
+        expect(text()).not.toContain('prices move');
+      });
+
+      it('says the whole diff in Malay', () => {
+        i18n.pick('ms');
+        typeInBox(CARD);
+        click('button.primary');
+        http.expectOne('/api/rate-cards/preview').flush(diff());
+        fixture.detectChanges();
+
+        expect(text()).toContain('Terbitkan senarai harga');
+        expect(text()).toContain('1 harga berubah');
+        expect(text()).toContain('Harga yang berubah');
+        expect(text()).toContain('Terbitkan ini');
+      });
+
+      it('a card that changes nothing says so in Chinese too', () => {
+        // The sentence that stops a pointless version being published. It
+        // only works if it is read.
+        i18n.pick('zh');
+        typeInBox(CARD);
+        click('button.primary');
+        http
+          .expectOne('/api/rate-cards/preview')
+          .flush(diff({ changed: [], is_empty: true, total_delta_sen: 0 }));
+        fixture.detectChanges();
+
+        expect(text()).toContain('没有任何改动');
+        expect(fixture.nativeElement.querySelector('button.danger')).toBeNull();
+      });
+
+      it('a refused version explains itself in Malay', () => {
+        // Versions only go up. A bare 400 on this screen is somebody
+        // republishing the same number until something breaks.
+        i18n.pick('ms');
+        typeInBox(CARD);
+        click('button.primary');
+        http.expectOne('/api/rate-cards/preview').flush(diff());
+        fixture.detectChanges();
+        click('button.danger');
+        http
+          .expectOne('/api/rate-cards')
+          .flush({ detail: 'no' }, { status: 400, statusText: 'Bad Request' });
+        fixture.detectChanges();
+
+        expect(text()).toContain('nombor versi lebih tinggi');
+      });
     });
   });
 });

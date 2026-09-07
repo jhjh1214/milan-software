@@ -166,4 +166,41 @@ export const EN: Strings = {
     noSuchPerson: 'That person no longer exists.',
     wentWrong: 'Something went wrong.',
   },
+
+  publish: {
+    title: 'Publish a price list',
+    whichList: 'Which list',
+    fair: 'fair',
+    standard: 'standard',
+    cardAsJson: 'The card, as JSON',
+    or: 'or',
+    showMeWhatChanges: 'Show me what changes',
+    working: 'Working…',
+    publishThis: 'Publish this',
+    publishing: 'Publishing…',
+    publishAnother: 'Publish another',
+    publishedAs: (version) =>
+      `Published as version ${version}. Every handset picks it up on its next pull.`,
+    nothingWouldChange: (unchanged) =>
+      `Nothing would change. ${unchanged} rules, all at the same price.`,
+    summary: (changed, added, removed, unchanged) =>
+      `${changed} prices move, ${added} added, ${removed} removed, ` +
+      `${unchanged} unchanged.`,
+    net: (amount) => `Net ${amount}.`,
+    pricesThatMove: 'Prices that move',
+    product: 'Product',
+    from: 'From',
+    to: 'To',
+    change: 'Change',
+    productsThatDisappear: 'Products that disappear',
+    wasPriced: (rate) => `was ${rate}`,
+    newProducts: 'New products',
+    liveNote:
+      'This becomes the live price list. The one it replaces is kept, so a ' +
+      'quote taken against it can still be explained.',
+    notAdmin: 'Only an admin can publish a price list.',
+    notACard: 'That is not a rate card the server accepts.',
+    versionMustGoUp: 'The server refused it — check the version number goes up.',
+    wentWrong: 'Something went wrong.',
+  },
 };

@@ -1,16 +1,15 @@
-<h1>Publish a price list</h1>
+<h1>{{ t().publish.title }}</h1>
 
 @if (stage() === 'published') {
   <p class="done" role="status">
-    Published as version {{ publishedVersion() }}. Every handset picks it up on
-    its next pull.
+    {{ t().publish.publishedAs(publishedVersion() ?? 0) }}
   </p>
   <button type="button" class="primary" (click)="startAgain()">
-    Publish another
+    {{ t().publish.publishAnother }}
   </button>
 } @else {
   <fieldset class="which">
-    <legend>Which list</legend>
+    <legend>{{ t().publish.whichList }}</legend>
     @for (id of lists; track id) {
       <button
         type="button"
@@ -18,12 +17,12 @@
         [attr.aria-pressed]="listId() === id"
         (click)="chooseList(id)"
       >
-        {{ id }}
+        {{ t().publish[id] }}
       </button>
     }
   </fieldset>
 
-  <label for="card">The card, as JSON</label>
+  <label for="card">{{ t().publish.cardAsJson }}</label>
   <textarea
     id="card"
     rows="10"
@@ -33,12 +32,12 @@
   ></textarea>
 
   <p class="or">
-    or
+    {{ t().publish.or }}
     <input type="file" accept=".json,application/json" (change)="onFile($event)" />
   </p>
 
-  @if (failure(); as message) {
-    <p class="failure" role="alert">{{ message }}</p>
+  @if (failure(); as failed) {
+    <p class="failure" role="alert">{{ message(failed) }}</p>
   }
 
   <button
@@ -47,7 +46,7 @@
     [disabled]="!canPreview()"
     (click)="preview()"
   >
-    {{ busy() ? 'Working…' : 'Show me what changes' }}
+    {{ busy() ? t().publish.working : t().publish.showMeWhatChanges }}
   </button>
 
   @if (diff(); as d) {
@@ -56,31 +55,41 @@
         <!-- Publishing this would create a version nobody can tell apart from
              the live one, and every handset would pull it for no reason. -->
         <p class="nothing">
-          Nothing would change. {{ d.unchanged }} rules, all at the same price.
+          {{ t().publish.nothingWouldChange(d.unchanged) }}
         </p>
       } @else {
         <p class="summary">
-          {{ d.changed.length }} prices move, {{ d.added.length }} added,
-          {{ d.removed.length }} removed, {{ d.unchanged }} unchanged.
+          {{
+            t().publish.summary(
+              d.changed.length,
+              d.added.length,
+              d.removed.length,
+              d.unchanged
+            )
+          }}
           @if (d.changed.length > 0) {
-            <span class="net">Net {{ money(d.total_delta_sen) }}.</span>
+            <span class="net">{{ t().publish.net(money(d.total_delta_sen)) }}</span>
           }
         </p>
 
         @if (d.changed.length > 0) {
-          <h2>Prices that move</h2>
+          <h2>{{ t().publish.pricesThatMove }}</h2>
           <table>
             <thead>
               <tr>
-                <th scope="col">Product</th>
-                <th scope="col">From</th>
-                <th scope="col">To</th>
-                <th scope="col">Change</th>
+                <th scope="col">{{ t().publish.product }}</th>
+                <th scope="col">{{ t().publish.from }}</th>
+                <th scope="col">{{ t().publish.to }}</th>
+                <th scope="col">{{ t().publish.change }}</th>
               </tr>
             </thead>
             <tbody>
               <!-- Biggest move first, regardless of direction: the row that
-                   will start an argument is the row read first. -->
+                   will start an argument is the row read first.
+
+                   The label comes from the card itself, which carries its own
+                   {zh, en, ms} map — so a product name is already in the
+                   reader's language before it reaches this table. -->
               @for (c of d.changed; track c.rule_id) {
                 <tr>
                   <td>{{ c.label }}</td>
@@ -98,16 +107,18 @@
         @if (d.removed.length > 0) {
           <!-- A product that stops being quotable is at least as big a change
                as one that gets dearer, and it is the one nobody notices. -->
-          <h2 class="warn">Products that disappear</h2>
+          <h2 class="warn">{{ t().publish.productsThatDisappear }}</h2>
           <ul>
             @for (c of d.removed; track c.rule_id) {
-              <li>{{ c.label }} — was {{ money(c.old_rate_sen ?? 0) }}</li>
+              <li>
+                {{ c.label }} — {{ t().publish.wasPriced(money(c.old_rate_sen ?? 0)) }}
+              </li>
             }
           </ul>
         }
 
         @if (d.added.length > 0) {
-          <h2>New products</h2>
+          <h2>{{ t().publish.newProducts }}</h2>
           <ul>
             @for (c of d.added; track c.rule_id) {
               <li>{{ c.label }} — {{ money(c.new_rate_sen ?? 0) }}</li>
@@ -119,12 +130,9 @@
 
     @if (canPublish()) {
       <button type="button" class="danger" (click)="publish()">
-        {{ busy() ? 'Publishing…' : 'Publish this' }}
+        {{ busy() ? t().publish.publishing : t().publish.publishThis }}
       </button>
-      <p class="note">
-        This becomes the live price list. The one it replaces is kept, so a
-        quote taken against it can still be explained.
-      </p>
+      <p class="note">{{ t().publish.liveNote }}</p>
     }
   }
 }

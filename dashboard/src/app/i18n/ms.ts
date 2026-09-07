@@ -171,4 +171,43 @@ export const MS: Strings = {
     noSuchPerson: 'Orang itu tidak wujud lagi.',
     wentWrong: 'Ada sesuatu yang tidak kena.',
   },
+
+  publish: {
+    title: 'Terbitkan senarai harga',
+    whichList: 'Senarai mana',
+    fair: 'pesta jualan',
+    standard: 'biasa',
+    cardAsJson: 'Senarai harga, dalam JSON',
+    or: 'atau',
+    showMeWhatChanges: 'Tunjuk apa yang berubah',
+    working: 'Sedang diproses…',
+    publishThis: 'Terbitkan ini',
+    publishing: 'Sedang menerbitkan…',
+    publishAnother: 'Terbitkan satu lagi',
+    publishedAs: (version) =>
+      `Diterbitkan sebagai versi ${version}. Setiap telefon akan mendapatnya ` +
+      `pada penyegerakan seterusnya.`,
+    nothingWouldChange: (unchanged) =>
+      `Tiada apa-apa yang berubah. ${unchanged} peraturan, semuanya pada harga sama.`,
+    summary: (changed, added, removed, unchanged) =>
+      `${changed} harga berubah, ${added} ditambah, ${removed} dibuang, ` +
+      `${unchanged} tidak berubah.`,
+    net: (amount) => `Bersih ${amount}.`,
+    pricesThatMove: 'Harga yang berubah',
+    product: 'Produk',
+    from: 'Dari',
+    to: 'Kepada',
+    change: 'Perubahan',
+    productsThatDisappear: 'Produk yang hilang',
+    wasPriced: (rate) => `dahulu ${rate}`,
+    newProducts: 'Produk baharu',
+    liveNote:
+      'Ini akan menjadi senarai harga yang digunakan. Yang digantikan tetap ' +
+      'disimpan, jadi sebut harga yang dibuat atasnya masih boleh dijelaskan.',
+    notAdmin: 'Hanya admin boleh menerbitkan senarai harga.',
+    notACard: 'Pelayan tidak menerima senarai harga itu.',
+    versionMustGoUp:
+      'Pelayan menolaknya — pastikan nombor versi lebih tinggi daripada sekarang.',
+    wentWrong: 'Ada sesuatu yang tidak kena.',
+  },
 };

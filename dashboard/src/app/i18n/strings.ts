@@ -226,6 +226,48 @@ export interface PeopleStrings {
   readonly wentWrong: string;
 }
 
+/**
+ * Publishing a price list. §11 Phase 5's first acceptance criterion.
+ *
+ * The one screen where a wrong word costs money directly: it sets the price of
+ * everything, for every handset, on the next pull.
+ */
+export interface PublishStrings {
+  readonly title: string;
+  readonly whichList: string;
+  readonly fair: string;
+  readonly standard: string;
+  readonly cardAsJson: string;
+  readonly or: string;
+  readonly showMeWhatChanges: string;
+  readonly working: string;
+  readonly publishThis: string;
+  readonly publishing: string;
+  readonly publishAnother: string;
+  readonly publishedAs: (version: number) => string;
+  readonly nothingWouldChange: (unchanged: number) => string;
+  readonly summary: (
+    changed: number,
+    added: number,
+    removed: number,
+    unchanged: number,
+  ) => string;
+  readonly net: (amount: string) => string;
+  readonly pricesThatMove: string;
+  readonly product: string;
+  readonly from: string;
+  readonly to: string;
+  readonly change: string;
+  readonly productsThatDisappear: string;
+  readonly wasPriced: (rate: string) => string;
+  readonly newProducts: string;
+  readonly liveNote: string;
+  readonly notAdmin: string;
+  readonly notACard: string;
+  readonly versionMustGoUp: string;
+  readonly wentWrong: string;
+}
+
 export interface SignInStrings {
   readonly phone: string;
   readonly pin: string;
@@ -250,4 +292,5 @@ export interface Strings {
   readonly overrides: OverridesStrings;
   readonly role: RoleStrings;
   readonly people: PeopleStrings;
+  readonly publish: PublishStrings;
 }
