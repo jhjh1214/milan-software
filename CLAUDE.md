@@ -24,7 +24,7 @@ trilingual PDF.
 
 Built and green on the server: the Python engine passing the same fixtures, the
 sync endpoints, Alembic migrations with a test that they match the models, users
-and roles, and rate card publishing. **792 Dart tests, 595 Python tests.** 100%
+and roles, and rate card publishing. **798 Dart tests, 600 Python tests.** 100%
 coverage on `Length`, `Money` and `Rational`.
 
 **Prices are server-owned now.** One card is published and pulled by every
@@ -391,12 +391,32 @@ would mean the admin types RM120, is told it was accepted, and the engine still
 refuses. §13 **A22**. The card file now holds 81 rows; 77 is still the count of
 sellable ones, and a test asserts both separately.
 
-**A21 is answered in principle, and the principle is conditional.** A printed
-minimum is a floor on the **job**, not the line: a small blind on its own bills
-its 18 sqft, the same blind inside a house of curtains bills what it measures.
-Four order-of-operations questions that answer raises are recorded as **A21a–d**
-rather than guessed. Until they are settled both engines keep applying `min_qty`
-unconditionally — the conservative reading, already built and fixture-tested.
+**A21 is answered and built**, both engines, five fixtures, ten mutations.
+A printed minimum is a floor on the **job**, not the line: a small blind on its
+own bills its 18 sqft, the same blind inside a house of curtains bills what it
+measures. Four order-of-operations follow-ups were put to the client rather than
+guessed, and all four are answered — **A21a** the whole order clears it (not the
+deposit category), **A21b** measured on the exact prices and never the
+minimum-applied ones (the other reading is circular), **A21c** exactly the
+threshold clears it, **A21d** never bill below the deposit already taken.
+
+The sequence is the rule: price exactly with no minimum → sum across the order
+→ at or above the threshold, waive → else apply → then floor by category.
+Delivery is excluded from the sum. On a **quotation** the minimum stays
+unconditional, so `applyMinQty` defaults to true and is only ever passed false
+at final pricing.
+
+A consequence is pinned in a fixture because it looks like a bug and is not: a
+12 sqft timber blind bills RM360 and a 15 sqft one bills RM300. Any threshold
+sitting on top of any minimum does that.
+
+Two things this surfaced that were not obvious going in. **The estimate side has
+to be floored too** — the quotation already had §8.4's floor but as an
+order-level uplift, so a sum of the recorded *line* estimates is short by it,
+and flooring only the final made every small order look like its price went
+**up**. And **an unparented add-on has no deposit category**, where
+`depositCategory` raises rather than guessing; flooring called it
+unconditionally and turned a priceable order into a crash.
 
 **Two l10n traps, both now recorded.** The gen-l10n template is **`app_zh.arb`,
 not English** — which is why adding `@`-metadata to the English file never
