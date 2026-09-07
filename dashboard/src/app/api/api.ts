@@ -23,6 +23,8 @@ import { Observable } from 'rxjs';
 import type {
   AddPersonIn,
   BalancesReport,
+  BuyerDetailsIn,
+  BuyerDetailsResult,
   CardDiffOut,
   Channel,
   DeactivateOut,
@@ -94,6 +96,24 @@ export class Api {
     return this.http.get<OrderDetailOut>(`${API_BASE}/orders/${id}`, {
       headers: this.authorised(),
     });
+  }
+
+  /**
+   * Corrects what is on file about the buyer. SPEC.md §10.3, §11 Phase 7.
+   *
+   * The same endpoint the handset pushes to, deliberately: one write path and
+   * one merge rule, so the office and the measurer cannot end up with two
+   * different ideas of what happens to a field neither of them touched.
+   *
+   * A refusal comes back **200 with `refused_because` set**, not as an error —
+   * so the caller has to read the body rather than trust the status code.
+   */
+  saveBuyer(payload: BuyerDetailsIn): Observable<BuyerDetailsResult> {
+    return this.http.post<BuyerDetailsResult>(
+      `${API_BASE}/orders/buyer`,
+      payload,
+      { headers: this.authorised() },
+    );
   }
 
   /**

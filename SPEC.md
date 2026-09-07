@@ -1900,9 +1900,11 @@ rebuild these:
 - SQL Account export behind an adapter interface
 - Export screen in the dashboard, date-ranged, re-export option
 - Document labelling audit
-- Buyer-detail capture **screens** — the handset form the measurer fills in, and
-  the dashboard equivalent for the office. The rule and the storage exist; the
-  UI does not
+- ~~Buyer-detail capture **screens** — the handset form the measurer fills in,
+  and the dashboard equivalent for the office~~ **done.** The handset form, the
+  office's read of it, and the office's correction of it. The office form sends
+  **only what somebody changed**, and an emptied box clears the field — the one
+  thing a handset cannot express (§13 C14)
 - Whatever C13 changes about which fields are mandatory
 
 **Out**
@@ -2552,14 +2554,37 @@ orders, supplier management and costing come later.
 
   It is the deliberate choice between two imperfect ones — merging fails toward
   keeping too much, replacing fails toward losing what a colleague collected,
-  and §10.2's penalty is for **missing** details rather than spare ones. The
-  real fix is either a distinguishable "cleared" signal on the wire or an
-  office write path from the dashboard, and which of those is right depends on
-  whether the office ever edits these at all.
+  and §10.2's penalty is for **missing** details rather than spare ones.
+
+  **Half of this is now answered, and it is the office half.** The wire already
+  distinguishes the two: absent means "leave it", an **empty string** means
+  "clear it", and the server trims so a space is not a value. §11 Phase 7's
+  office form sends that empty string, so a wrong IC number can be removed from
+  the dashboard. It sends **only the fields somebody changed** — not the whole
+  record — because a measurer can be capturing a TIN at a house while the
+  office types an address at a desk, and a payload carrying every field would
+  silently undo whichever landed first.
+
+  **Two things are still open.** A *handset* still cannot clear a field: the
+  device stores a blank as null and null on the wire means "leave it", so the
+  correction has to be made from the office. And nothing records **who** typed
+  a buyer field — `buyer_captured_at` says when, and §6.7 defers "customer
+  identity changes" to B9's customer record, which is the right place for it
+  but is now one table further away than the need is.
+
+  Which matters depends on an unasked question: **does the office edit these at
+  all, or does it telephone the measurer?** If it edits them, the missing
+  author is worth a column before Phase 8, not after.
 - **C8.** Who may move an order along, and who may cancel one? The pipeline
   enforces *what* can happen, not *who* may do it — no role check is wired to it
   yet. A part-timer marking a job installed, or cancelling one, is the kind of
   thing that is obvious to the client and invisible to us.
+
+  The same is now true of the buyer details: `POST /api/orders/buyer` accepts
+  any signed-in user, on the handset and from the dashboard alike, and the
+  office form is not admin-gated. That is deliberate rather than overlooked —
+  gating it would be inventing an answer to this question — but it is a third
+  thing this question decides, and the one that touches a legal record.
 
 ## D. Documents
 - `[BLOCKING P2]` **D1.** Two or three existing quote and order samples.

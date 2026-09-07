@@ -113,9 +113,9 @@ export interface PriceOverrideOut {
 /**
  * What is on file about the buyer, for the invoice. SPEC.md §10.3.
  *
- * Read-only here. The handset is the only writer today (§13 C14), and the
- * office needs this to see whether an order can actually be exported before
- * it telephones anybody about it.
+ * What the server reports. The office writes through `BuyerDetailsIn`, which
+ * is a different shape on purpose: this carries every field, that one carries
+ * only what somebody changed.
  */
 export interface BuyerOut {
   readonly name: string | null;
@@ -136,6 +136,67 @@ export interface BuyerOut {
    *  would disagree about who still has to be telephoned. */
   readonly complete: boolean;
   readonly missing: readonly string[];
+}
+
+/**
+ * A correction to what is on file about the buyer. SPEC.md §10.3, §13 C14.
+ *
+ * The same endpoint a handset pushes to, and it **merges**: a field this
+ * payload does not carry keeps whatever the server holds. That is why every
+ * field is optional and why the office sends only what somebody actually
+ * changed — a measurer capturing a TIN at the house while the office types an
+ * address at a desk must not lose either half.
+ *
+ * The three states are distinct and all three are used:
+ *
+ * | On the wire | Means |
+ * |---|---|
+ * | absent | leave whatever is stored |
+ * | `""` | clear it — the server trims, so a space is not a value |
+ * | a value | store it |
+ *
+ * The empty string is the answer to C14's complaint that a field cleared on a
+ * handset stays on the server: the device has no way to send one, the office
+ * does.
+ */
+export interface BuyerDetailsIn {
+  readonly order_id: string;
+  /**
+   * When this was captured, ISO 8601.
+   *
+   * The server refuses a push older than the one it already stored, so this
+   * is what decides a race between an office desk and a handset. It is this
+   * browser's clock — the office is online and the skew is seconds, and the
+   * failure it produces is a visible refusal rather than a silent overwrite.
+   */
+  readonly captured_at: string;
+  readonly name?: string;
+  readonly tin?: string;
+  readonly id_type?: string;
+  readonly id_number?: string;
+  readonly address_line1?: string;
+  readonly address_line2?: string;
+  readonly city?: string;
+  readonly state?: string;
+  readonly postcode?: string;
+  readonly msic_code?: string;
+  readonly einvoice_requested?: boolean;
+}
+
+/** What the server did with a buyer push. */
+export interface BuyerDetailsResult {
+  readonly order_id: string;
+  readonly complete: boolean;
+  readonly missing: readonly string[];
+  /**
+   * Set when **nothing was written**, and it arrives with a 200.
+   *
+   * `stale` if a newer capture is already stored, `unknown_order` if the order
+   * itself never reached the server. Both have to read as failures: a screen
+   * that said "saved" here would be telling somebody a legal requirement was
+   * met when it was not.
+   */
+  readonly refused_because: string | null;
 }
 
 export interface OrderDetailOut {

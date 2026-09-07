@@ -366,6 +366,194 @@ describe('OrderDetail', () => {
       expect(text()).not.toContain('Customer details for the invoice');
       expect(text()).toContain('MLK-2608-0001');
     });
+
+    describe('correcting them from the office', () => {
+      // SPEC.md §11 Phase 7: "the dashboard equivalent for the office". The
+      // office is who runs the export, so it is who finds out weeks later that
+      // an IC number was mistyped or an address stops at the street.
+      //
+      // Driven through the DOM rather than by calling methods: what is being
+      // checked is that the form somebody types into produces the right
+      // payload, and a test that called `saveBuyer()` would pass with the
+      // inputs wired to nothing.
+
+      const click = (label: string): void => {
+        const button = [
+          ...fixture.nativeElement.querySelectorAll('button'),
+        ].find(
+          (b: HTMLButtonElement) => (b.textContent ?? '').trim() === label,
+        ) as HTMLButtonElement | undefined;
+        if (button === undefined) throw new Error(`no "${label}" button`);
+        button.click();
+        fixture.detectChanges();
+      };
+
+      const type = (field: string, value: string): void => {
+        const input = fixture.nativeElement.querySelector(
+          `#buyer-${field}`,
+        ) as HTMLInputElement | HTMLSelectElement | null;
+        if (input === null) throw new Error(`no ${field} box`);
+        input.value = value;
+        input.dispatchEvent(
+          new Event(input.tagName === 'SELECT' ? 'change' : 'input'),
+        );
+        fixture.detectChanges();
+      };
+
+      const save = (): void => {
+        const form = fixture.nativeElement.querySelector(
+          'form.buyer-edit',
+        ) as HTMLFormElement;
+        form.dispatchEvent(new Event('submit', { cancelable: true }));
+        fixture.detectChanges();
+      };
+
+      const sent = (): Record<string, unknown> => {
+        const request = http.expectOne('/api/orders/buyer');
+        return request.request.body as Record<string, unknown>;
+      };
+
+      const open = async (over: Partial<BuyerOut> = {}): Promise<void> => {
+        await load(detail({ buyer: buyer(over) }));
+        click('Correct these');
+      };
+
+      it('sends only the field that was changed', async () => {
+        // The whole record would silently undo a capture that landed since:
+        // a measurer can be taking a TIN at a house while the office types an
+        // address at a desk, and the server merges what it is given.
+        await open();
+        type('city', 'Ayer Keroh');
+        save();
+
+        const body = sent();
+        expect(body['city']).toBe('Ayer Keroh');
+        expect(body['order_id']).toBe('o1');
+        expect(body).not.toHaveProperty('name');
+        expect(body).not.toHaveProperty('tin');
+        expect(body).not.toHaveProperty('address_line1');
+        expect(body).not.toHaveProperty('einvoice_requested');
+      });
+
+      it('an emptied box clears the field rather than leaving it', async () => {
+        // §13 C14. The handset stores a blank as null and null on the wire
+        // means "leave it", so a wrong IC number removed on a phone is still
+        // there for the export. An empty string is the server's explicit
+        // clear, and this screen is the only thing that can send one.
+        await open({ tin: 'C1234567890' });
+        type('tin', '');
+        save();
+
+        expect(sent()['tin']).toBe('');
+      });
+
+      it('typing a space into an empty box is not a change', async () => {
+        // It would stamp buyer_captured_at and win a race it had no business
+        // entering — and the server trims, so it would store nothing anyway.
+        await open({ msic_code: null });
+        type('msic_code', '   ');
+
+        expect(component['canSaveBuyer']()).toBe(false);
+      });
+
+      it('nothing changed means nothing to save', async () => {
+        await open();
+        expect(component['canSaveBuyer']()).toBe(false);
+      });
+
+      it('values are trimmed on the way out', async () => {
+        await open();
+        type('postcode', '  75450  ');
+        save();
+
+        expect(sent()['postcode']).toBe('75450');
+      });
+
+      it('the e-invoice request goes up only when it was toggled', async () => {
+        await open({ einvoice_requested: false });
+        const box = fixture.nativeElement.querySelector(
+          '#buyer-requested',
+        ) as HTMLInputElement;
+        box.checked = true;
+        box.dispatchEvent(new Event('change'));
+        fixture.detectChanges();
+        save();
+
+        const body = sent();
+        expect(body['einvoice_requested']).toBe(true);
+        expect(body).not.toHaveProperty('name');
+      });
+
+      it('a refusal is not a save, even though it arrives as a 200', async () => {
+        // `stale` means the server wrote nothing: a handset captured after
+        // this screen was loaded. Saying "saved" here would tell somebody a
+        // legal requirement was met when it was not.
+        await open();
+        type('city', 'Ayer Keroh');
+        save();
+        http.expectOne('/api/orders/buyer').flush({
+          order_id: 'o1',
+          complete: false,
+          missing: ['address'],
+          refused_because: 'stale',
+        });
+        fixture.detectChanges();
+
+        expect(text()).toContain('captured these on a handset more recently');
+        expect(text()).not.toContain('Saved.');
+        // And the form stays open, holding what was typed, so the correction
+        // is not lost along with the news that it did not land.
+        expect(
+          fixture.nativeElement.querySelector('form.buyer-edit'),
+        ).not.toBeNull();
+      });
+
+      it('a save reloads the order rather than patching the screen', async () => {
+        // The server merged this into whatever else has landed, so only it
+        // knows what the record now says.
+        await open();
+        type('city', 'Ayer Keroh');
+        save();
+        http.expectOne('/api/orders/buyer').flush({
+          order_id: 'o1',
+          complete: true,
+          missing: [],
+          refused_because: null,
+        });
+        fixture.detectChanges();
+
+        http
+          .expectOne('/api/orders/o1')
+          .flush(detail({ buyer: buyer({ city: 'Ayer Keroh' }) }));
+        fixture.detectChanges();
+
+        expect(text()).toContain('Saved.');
+        expect(text()).toContain('Ayer Keroh');
+      });
+
+      it('offers to add them when nobody ever has', async () => {
+        await load(detail({ buyer: buyer({ captured_at: null }) }));
+        expect(text()).toContain('Add these');
+      });
+
+      it('the ID type is a fixed list, not free text', async () => {
+        // A number filed under a type nobody recognises is a submission
+        // rejected weeks later, when nobody remembers the order.
+        await open();
+        const select = fixture.nativeElement.querySelector(
+          '#buyer-id_type',
+        ) as HTMLSelectElement;
+        const values = [...select.options].map((o) => o.value);
+        expect(values).toEqual(['', 'nric', 'brn', 'passport', 'army']);
+      });
+
+      it('the form says what an untouched box will do', async () => {
+        // Merge semantics are invisible and surprising. Somebody who leaves a
+        // box alone has to know it keeps what a handset captured since.
+        await open();
+        expect(text()).toContain('Only what you change is sent');
+      });
+    });
   });
 
   it('an unknown order says so rather than showing an empty shell', async () => {

@@ -83,20 +83,91 @@
     </section>
   }
 
-  <!-- SPEC.md §10.3. The office runs the SQL Account export, so it has to be
-       able to see whether an order can be exported at all — without opening
-       somebody's handset or telephoning to find out.
+  <!-- SPEC.md §10.3, §11 Phase 7. The office runs the SQL Account export, so
+       it has to be able to see whether an order can be exported at all —
+       without opening somebody's handset or telephoning to find out — and it
+       is where a mistyped IC number or a half-finished address is found.
 
-       Read-only. The handset is the only writer (§13 C14). -->
+       The form sends only what somebody changed (§13 C14). -->
   @if (d.buyer; as buyer) {
     <section class="buyer">
-      <h2>Customer details for the invoice</h2>
+      <div class="buyer-head">
+        <h2>Customer details for the invoice</h2>
+        @if (!editingBuyer()) {
+          <button type="button" (click)="openBuyerEdit()">
+            {{ buyer.captured_at === null ? "Add these" : "Correct these" }}
+          </button>
+        }
+      </div>
 
       @if (whyCaptured(d); as why) {
         <p class="why">{{ why }}</p>
       }
 
-      @if (buyer.captured_at === null) {
+      @if (buyerNote(); as message) {
+        <p class="saved" role="status">{{ message }}</p>
+      }
+      @if (buyerFailure(); as message) {
+        <p class="failure" role="alert">{{ message }}</p>
+      }
+
+      @if (editingBuyer()) {
+        <!-- The native `submit`, not `ngSubmit`: this component does not import
+             FormsModule, and without it `(ngSubmit)` binds a DOM event that
+             nothing ever fires. -->
+        <form class="buyer-edit" (submit)="submitBuyer($event)">
+          <p class="hint">
+            Only what you change is sent. A box you empty clears that field; one
+            you leave alone keeps whatever a handset has captured since.
+          </p>
+
+          @for (f of buyerFields; track f.key) {
+            <div class="field">
+              <label [attr.for]="'buyer-' + f.key">{{ f.label }}</label>
+              @if (f.options.length > 0) {
+                <select
+                  [attr.id]="'buyer-' + f.key"
+                  [value]="draft()[f.key]"
+                  (change)="setDraft(f.key, $any($event.target).value)"
+                >
+                  <!-- A number filed under no type cannot be filed at all, so
+                       "not stated" is a real answer rather than a placeholder
+                       somebody has to get past. -->
+                  <option value="">not stated</option>
+                  @for (o of f.options; track o) {
+                    <option [value]="o">{{ o }}</option>
+                  }
+                </select>
+              } @else {
+                <input
+                  [attr.id]="'buyer-' + f.key"
+                  [value]="draft()[f.key]"
+                  (input)="setDraft(f.key, $any($event.target).value)"
+                />
+              }
+            </div>
+          }
+
+          <div class="field checkbox">
+            <label for="buyer-requested">
+              <input
+                id="buyer-requested"
+                type="checkbox"
+                [checked]="draftRequested()"
+                (change)="draftRequested.set($any($event.target).checked)"
+              />
+              The customer asked for an e-invoice
+            </label>
+          </div>
+
+          <div class="actions">
+            <button type="submit" class="primary" [disabled]="!canSaveBuyer()">
+              Save
+            </button>
+            <button type="button" (click)="cancelBuyerEdit()">Cancel</button>
+          </div>
+        </form>
+      } @else if (buyer.captured_at === null) {
         <!-- Nobody has asked yet. Reads differently from "asked and came away
              with nothing", and the difference decides whether somebody has to
              be telephoned or the handset has to be looked at. -->

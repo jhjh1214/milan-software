@@ -262,3 +262,107 @@ section {
   padding-left: 20px;
   color: #7f1d1d;
 }
+
+/* The office's correction form. SPEC.md §11 Phase 7, §13 C14.
+
+   Deliberately plain and vertical: it is filled in from a telephone call,
+   often while reading an IC number back to somebody, and a two-column layout
+   puts the label a customer is answering out of the reader's eye line. */
+.buyer-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.buyer-head button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #c3cbd9;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.buyer .saved {
+  margin: 0 0 12px;
+  color: #047857;
+  font-weight: 600;
+}
+
+.buyer .failure {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.buyer-edit .hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #56637a;
+}
+
+.buyer-edit .field {
+  margin-bottom: 10px;
+}
+
+.buyer-edit label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: #56637a;
+}
+
+.buyer-edit input[type='text'],
+.buyer-edit input:not([type]),
+.buyer-edit select {
+  width: 100%;
+  max-width: 420px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid #c3cbd9;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+}
+
+.buyer-edit .checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1f2937;
+  font-size: 14px;
+}
+
+.buyer-edit .checkbox input {
+  width: auto;
+  min-height: 0;
+}
+
+.buyer-edit .actions {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0 12px;
+}
+
+.buyer-edit .actions button {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid #c3cbd9;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.buyer-edit .actions .primary {
+  border-color: #1d4ed8;
+  background: #1d4ed8;
+  color: #fff;
+}
+
+.buyer-edit .actions button[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}

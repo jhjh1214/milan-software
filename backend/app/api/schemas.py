@@ -527,9 +527,10 @@ class PriceOverrideOut(BaseModel):
 class BuyerOut(BaseModel):
     """What is on file about the buyer, for the office. §10.3.
 
-    Read-only. The handset is the only writer today (§13 C14), and the office
-    needs this to see whether an order can actually be exported before it
-    telephones anybody.
+    What the office reads before it can tell whether an order is exportable at
+    all. It writes back through the same ``POST /api/orders/buyer`` a handset
+    pushes to -- one write path and one merge rule, so a desk and a handset
+    cannot end up with different ideas about a field neither of them touched.
 
     ``complete`` and ``missing`` come from the same rule the handset shows, so
     the two cannot disagree about who still has to be chased.
