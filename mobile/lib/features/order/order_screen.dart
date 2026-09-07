@@ -36,6 +36,7 @@ import '../../ui/theme.dart';
 import '../../sync/sync_state.dart';
 import '../quote/confirm_order.dart';
 import '../quote/quote_state.dart';
+import 'buyer_details_screen.dart';
 import 'cancel_order_sheet.dart';
 import 'override_price_sheet.dart';
 
@@ -137,7 +138,22 @@ class _Body extends ConsumerWidget {
       if (message != null) {
         messenger.showSnackBar(SnackBar(content: Text(message)));
       }
+
+      // A refusal that names what is missing must also offer the way to
+      // supply it. Told "take the customer's details" with no form to put
+      // them in, somebody rings the office and the order sits until Monday.
+      if (result.refusedBecause == StatusRefusal.buyerDetailsRequired &&
+          context.mounted) {
+        await _takeBuyerDetails(context, ref);
+      }
     }
+  }
+
+  Future<void> _takeBuyerDetails(BuildContext context, WidgetRef ref) async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => BuyerDetailsScreen(orderId: order.id)),
+    );
+    _refresh(ref);
   }
 
   void _refresh(WidgetRef ref) {
@@ -188,6 +204,22 @@ class _Body extends ConsumerWidget {
               ),
             ),
             child: Text(l.measureTitle),
+          ),
+        ],
+
+        // §10.3, and always available rather than only once the threshold
+        // bites. An order that crosses RM10,000 only after measurement needs
+        // these details from a customer who has by then gone home, so the
+        // office taking them early is the behaviour to make easy. It is also
+        // the only way to see what has already been captured.
+        if (!status.isTerminal) ...[
+          const SizedBox(height: Space.md),
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(Touch.min),
+            ),
+            onPressed: () => _takeBuyerDetails(context, ref),
+            child: Text(l.buyerEdit),
           ),
         ],
 

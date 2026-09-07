@@ -1058,6 +1058,115 @@ class LEn extends L {
       'Write a reason first, at least 4 letters.';
 
   @override
+  String get buyerTitle => 'Customer details for the invoice';
+
+  @override
+  String buyerWhyOverThreshold(String amount) {
+    return 'This order is over $amount. By law the invoice needs the customer\'s own details — a company cannot issue it to \"cash sale\".';
+  }
+
+  @override
+  String buyerWhyNearThreshold(String amount) {
+    return 'This order is close to $amount. If it goes over after measurement the invoice will need these, and by then the customer has gone home. Take them now.';
+  }
+
+  @override
+  String get buyerWhyRequested =>
+      'The customer asked for an e-invoice, so these are needed whatever the amount.';
+
+  @override
+  String get buyerStillNeeded => 'Still needed';
+
+  @override
+  String get buyerComplete => 'Everything needed is here.';
+
+  @override
+  String get buyerMissingName =>
+      'The customer\'s full name, as it appears on their IC or company registration';
+
+  @override
+  String get buyerMissingIdentifier => 'A TIN, or an ID number with its type';
+
+  @override
+  String get buyerMissingAddress =>
+      'A full address — street, city, state and postcode';
+
+  @override
+  String get buyerName => 'Full name';
+
+  @override
+  String get buyerNameHint =>
+      'As on the IC or the company registration, not a nickname';
+
+  @override
+  String get buyerIdentifierSection => 'Identification';
+
+  @override
+  String get buyerIdentifierNote =>
+      'A TIN is enough on its own. Otherwise give an ID number AND say which kind it is — a number with no type cannot be filed.';
+
+  @override
+  String get buyerTin => 'TIN';
+
+  @override
+  String get buyerIdType => 'ID type';
+
+  @override
+  String get buyerIdNumber => 'ID number';
+
+  @override
+  String get buyerIdTypeNric => 'NRIC (IC)';
+
+  @override
+  String get buyerIdTypeBrn => 'Company (BRN)';
+
+  @override
+  String get buyerIdTypePassport => 'Passport';
+
+  @override
+  String get buyerIdTypeArmy => 'Army / police';
+
+  @override
+  String get buyerAddressSection => 'Address';
+
+  @override
+  String get buyerAddress1 => 'Address line 1';
+
+  @override
+  String get buyerAddress2 => 'Address line 2';
+
+  @override
+  String get buyerCity => 'City';
+
+  @override
+  String get buyerState => 'State';
+
+  @override
+  String get buyerPostcode => 'Postcode';
+
+  @override
+  String get buyerMsic => 'MSIC code';
+
+  @override
+  String get buyerMsicNote => 'Business buyers only. Leave blank for a person.';
+
+  @override
+  String get buyerRequested => 'The customer asked for an e-invoice';
+
+  @override
+  String get buyerSave => 'Save details';
+
+  @override
+  String get buyerSaved => 'Details saved';
+
+  @override
+  String get buyerEdit => 'Customer details';
+
+  @override
+  String get buyerNotAnInvoice =>
+      'These are collected so the invoice can be issued in the accounts system. This app does not issue invoices.';
+
+  @override
   String get overrideTitle => 'Change this price';
 
   @override

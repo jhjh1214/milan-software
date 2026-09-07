@@ -1022,6 +1022,109 @@ class LZh extends L {
   String get orderRefusedNoReason => '请先写理由，至少四个字。';
 
   @override
+  String get buyerTitle => '开发票所需的客户资料';
+
+  @override
+  String buyerWhyOverThreshold(String amount) {
+    return '这单超过 $amount。依法发票必须写客户本人的资料，不能开「现金销售」。';
+  }
+
+  @override
+  String buyerWhyNearThreshold(String amount) {
+    return '这单接近 $amount。丈量后如果超过就一定要这些资料，那时客户已经回家了。现在就拿。';
+  }
+
+  @override
+  String get buyerWhyRequested => '客户要求电子发票，所以不论金额都需要这些资料。';
+
+  @override
+  String get buyerStillNeeded => '还缺';
+
+  @override
+  String get buyerComplete => '资料齐全了。';
+
+  @override
+  String get buyerMissingName => '客户全名，与身份证或公司注册一致';
+
+  @override
+  String get buyerMissingIdentifier => '税号，或身份证件号码连同证件种类';
+
+  @override
+  String get buyerMissingAddress => '完整地址 — 街道、城市、州属、邮编';
+
+  @override
+  String get buyerName => '全名';
+
+  @override
+  String get buyerNameHint => '照身份证或公司注册写，不要写花名';
+
+  @override
+  String get buyerIdentifierSection => '身份证明';
+
+  @override
+  String get buyerIdentifierNote => '有税号就够。否则要填证件号码，并说明是哪一种 — 只有号码没有种类是不能报的。';
+
+  @override
+  String get buyerTin => '税号 TIN';
+
+  @override
+  String get buyerIdType => '证件种类';
+
+  @override
+  String get buyerIdNumber => '证件号码';
+
+  @override
+  String get buyerIdTypeNric => '身份证 NRIC';
+
+  @override
+  String get buyerIdTypeBrn => '公司注册 BRN';
+
+  @override
+  String get buyerIdTypePassport => '护照';
+
+  @override
+  String get buyerIdTypeArmy => '军警证';
+
+  @override
+  String get buyerAddressSection => '地址';
+
+  @override
+  String get buyerAddress1 => '地址第一行';
+
+  @override
+  String get buyerAddress2 => '地址第二行';
+
+  @override
+  String get buyerCity => '城市';
+
+  @override
+  String get buyerState => '州属';
+
+  @override
+  String get buyerPostcode => '邮编';
+
+  @override
+  String get buyerMsic => 'MSIC 代码';
+
+  @override
+  String get buyerMsicNote => '只有公司客户需要。个人客户留空。';
+
+  @override
+  String get buyerRequested => '客户要求电子发票';
+
+  @override
+  String get buyerSave => '保存资料';
+
+  @override
+  String get buyerSaved => '资料已保存';
+
+  @override
+  String get buyerEdit => '客户资料';
+
+  @override
+  String get buyerNotAnInvoice => '收集这些是为了在会计系统开发票。本应用不开发票。';
+
+  @override
   String get overrideTitle => '改这个价钱';
 
   @override

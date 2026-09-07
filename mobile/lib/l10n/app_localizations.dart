@@ -1856,6 +1856,204 @@ abstract class L {
   /// **'请先写理由，至少四个字。'**
   String get orderRefusedNoReason;
 
+  /// No description provided for @buyerTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'开发票所需的客户资料'**
+  String get buyerTitle;
+
+  /// No description provided for @buyerWhyOverThreshold.
+  ///
+  /// In zh, this message translates to:
+  /// **'这单超过 {amount}。依法发票必须写客户本人的资料，不能开「现金销售」。'**
+  String buyerWhyOverThreshold(String amount);
+
+  /// No description provided for @buyerWhyNearThreshold.
+  ///
+  /// In zh, this message translates to:
+  /// **'这单接近 {amount}。丈量后如果超过就一定要这些资料，那时客户已经回家了。现在就拿。'**
+  String buyerWhyNearThreshold(String amount);
+
+  /// No description provided for @buyerWhyRequested.
+  ///
+  /// In zh, this message translates to:
+  /// **'客户要求电子发票，所以不论金额都需要这些资料。'**
+  String get buyerWhyRequested;
+
+  /// No description provided for @buyerStillNeeded.
+  ///
+  /// In zh, this message translates to:
+  /// **'还缺'**
+  String get buyerStillNeeded;
+
+  /// No description provided for @buyerComplete.
+  ///
+  /// In zh, this message translates to:
+  /// **'资料齐全了。'**
+  String get buyerComplete;
+
+  /// No description provided for @buyerMissingName.
+  ///
+  /// In zh, this message translates to:
+  /// **'客户全名，与身份证或公司注册一致'**
+  String get buyerMissingName;
+
+  /// No description provided for @buyerMissingIdentifier.
+  ///
+  /// In zh, this message translates to:
+  /// **'税号，或身份证件号码连同证件种类'**
+  String get buyerMissingIdentifier;
+
+  /// No description provided for @buyerMissingAddress.
+  ///
+  /// In zh, this message translates to:
+  /// **'完整地址 — 街道、城市、州属、邮编'**
+  String get buyerMissingAddress;
+
+  /// No description provided for @buyerName.
+  ///
+  /// In zh, this message translates to:
+  /// **'全名'**
+  String get buyerName;
+
+  /// No description provided for @buyerNameHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'照身份证或公司注册写，不要写花名'**
+  String get buyerNameHint;
+
+  /// No description provided for @buyerIdentifierSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'身份证明'**
+  String get buyerIdentifierSection;
+
+  /// No description provided for @buyerIdentifierNote.
+  ///
+  /// In zh, this message translates to:
+  /// **'有税号就够。否则要填证件号码，并说明是哪一种 — 只有号码没有种类是不能报的。'**
+  String get buyerIdentifierNote;
+
+  /// No description provided for @buyerTin.
+  ///
+  /// In zh, this message translates to:
+  /// **'税号 TIN'**
+  String get buyerTin;
+
+  /// No description provided for @buyerIdType.
+  ///
+  /// In zh, this message translates to:
+  /// **'证件种类'**
+  String get buyerIdType;
+
+  /// No description provided for @buyerIdNumber.
+  ///
+  /// In zh, this message translates to:
+  /// **'证件号码'**
+  String get buyerIdNumber;
+
+  /// No description provided for @buyerIdTypeNric.
+  ///
+  /// In zh, this message translates to:
+  /// **'身份证 NRIC'**
+  String get buyerIdTypeNric;
+
+  /// No description provided for @buyerIdTypeBrn.
+  ///
+  /// In zh, this message translates to:
+  /// **'公司注册 BRN'**
+  String get buyerIdTypeBrn;
+
+  /// No description provided for @buyerIdTypePassport.
+  ///
+  /// In zh, this message translates to:
+  /// **'护照'**
+  String get buyerIdTypePassport;
+
+  /// No description provided for @buyerIdTypeArmy.
+  ///
+  /// In zh, this message translates to:
+  /// **'军警证'**
+  String get buyerIdTypeArmy;
+
+  /// No description provided for @buyerAddressSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'地址'**
+  String get buyerAddressSection;
+
+  /// No description provided for @buyerAddress1.
+  ///
+  /// In zh, this message translates to:
+  /// **'地址第一行'**
+  String get buyerAddress1;
+
+  /// No description provided for @buyerAddress2.
+  ///
+  /// In zh, this message translates to:
+  /// **'地址第二行'**
+  String get buyerAddress2;
+
+  /// No description provided for @buyerCity.
+  ///
+  /// In zh, this message translates to:
+  /// **'城市'**
+  String get buyerCity;
+
+  /// No description provided for @buyerState.
+  ///
+  /// In zh, this message translates to:
+  /// **'州属'**
+  String get buyerState;
+
+  /// No description provided for @buyerPostcode.
+  ///
+  /// In zh, this message translates to:
+  /// **'邮编'**
+  String get buyerPostcode;
+
+  /// No description provided for @buyerMsic.
+  ///
+  /// In zh, this message translates to:
+  /// **'MSIC 代码'**
+  String get buyerMsic;
+
+  /// No description provided for @buyerMsicNote.
+  ///
+  /// In zh, this message translates to:
+  /// **'只有公司客户需要。个人客户留空。'**
+  String get buyerMsicNote;
+
+  /// No description provided for @buyerRequested.
+  ///
+  /// In zh, this message translates to:
+  /// **'客户要求电子发票'**
+  String get buyerRequested;
+
+  /// No description provided for @buyerSave.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存资料'**
+  String get buyerSave;
+
+  /// No description provided for @buyerSaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'资料已保存'**
+  String get buyerSaved;
+
+  /// No description provided for @buyerEdit.
+  ///
+  /// In zh, this message translates to:
+  /// **'客户资料'**
+  String get buyerEdit;
+
+  /// No description provided for @buyerNotAnInvoice.
+  ///
+  /// In zh, this message translates to:
+  /// **'收集这些是为了在会计系统开发票。本应用不开发票。'**
+  String get buyerNotAnInvoice;
+
   /// No description provided for @overrideTitle.
   ///
   /// In zh, this message translates to:

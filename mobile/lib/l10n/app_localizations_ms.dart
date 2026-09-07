@@ -1055,6 +1055,117 @@ class LMs extends L {
       'Tulis sebabnya dahulu, sekurang-kurangnya 4 huruf.';
 
   @override
+  String get buyerTitle => 'Butiran pelanggan untuk invois';
+
+  @override
+  String buyerWhyOverThreshold(String amount) {
+    return 'Pesanan ini melebihi $amount. Mengikut undang-undang, invois perlu butiran pelanggan sendiri — syarikat tidak boleh mengeluarkannya sebagai \"jualan tunai\".';
+  }
+
+  @override
+  String buyerWhyNearThreshold(String amount) {
+    return 'Pesanan ini hampir $amount. Jika ia melebihi selepas pengukuran, invois akan memerlukan butiran ini, dan ketika itu pelanggan sudah pulang. Ambil sekarang.';
+  }
+
+  @override
+  String get buyerWhyRequested =>
+      'Pelanggan meminta e-invois, jadi butiran ini diperlukan tanpa mengira jumlahnya.';
+
+  @override
+  String get buyerStillNeeded => 'Masih diperlukan';
+
+  @override
+  String get buyerComplete => 'Semua yang diperlukan sudah ada.';
+
+  @override
+  String get buyerMissingName =>
+      'Nama penuh pelanggan, seperti dalam IC atau pendaftaran syarikat';
+
+  @override
+  String get buyerMissingIdentifier =>
+      'TIN, atau nombor pengenalan berserta jenisnya';
+
+  @override
+  String get buyerMissingAddress =>
+      'Alamat penuh — jalan, bandar, negeri dan poskod';
+
+  @override
+  String get buyerName => 'Nama penuh';
+
+  @override
+  String get buyerNameHint =>
+      'Seperti dalam IC atau pendaftaran syarikat, bukan nama panggilan';
+
+  @override
+  String get buyerIdentifierSection => 'Pengenalan';
+
+  @override
+  String get buyerIdentifierNote =>
+      'TIN sahaja sudah memadai. Jika tidak, berikan nombor pengenalan DAN nyatakan jenisnya — nombor tanpa jenis tidak boleh difailkan.';
+
+  @override
+  String get buyerTin => 'TIN';
+
+  @override
+  String get buyerIdType => 'Jenis pengenalan';
+
+  @override
+  String get buyerIdNumber => 'Nombor pengenalan';
+
+  @override
+  String get buyerIdTypeNric => 'NRIC (IC)';
+
+  @override
+  String get buyerIdTypeBrn => 'Syarikat (BRN)';
+
+  @override
+  String get buyerIdTypePassport => 'Pasport';
+
+  @override
+  String get buyerIdTypeArmy => 'Tentera / polis';
+
+  @override
+  String get buyerAddressSection => 'Alamat';
+
+  @override
+  String get buyerAddress1 => 'Alamat baris 1';
+
+  @override
+  String get buyerAddress2 => 'Alamat baris 2';
+
+  @override
+  String get buyerCity => 'Bandar';
+
+  @override
+  String get buyerState => 'Negeri';
+
+  @override
+  String get buyerPostcode => 'Poskod';
+
+  @override
+  String get buyerMsic => 'Kod MSIC';
+
+  @override
+  String get buyerMsicNote =>
+      'Pembeli perniagaan sahaja. Biarkan kosong untuk individu.';
+
+  @override
+  String get buyerRequested => 'Pelanggan meminta e-invois';
+
+  @override
+  String get buyerSave => 'Simpan butiran';
+
+  @override
+  String get buyerSaved => 'Butiran disimpan';
+
+  @override
+  String get buyerEdit => 'Butiran pelanggan';
+
+  @override
+  String get buyerNotAnInvoice =>
+      'Butiran ini dikumpulkan supaya invois boleh dikeluarkan dalam sistem perakaunan. Aplikasi ini tidak mengeluarkan invois.';
+
+  @override
   String get overrideTitle => 'Ubah harga ini';
 
   @override
