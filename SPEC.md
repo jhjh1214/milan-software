@@ -1899,7 +1899,13 @@ rebuild these:
 **In**
 - SQL Account export behind an adapter interface
 - Export screen in the dashboard, date-ranged, re-export option
-- Document labelling audit
+- ~~Document labelling audit~~ **done for everything that exists.**
+  `tool/check_labelling.py` reads every surface that can put words in front of
+  a customer — the ARB files, the handset source, every dashboard template, and
+  the rate card's own `{zh, en, ms}` labels — in **all three languages**, and
+  looks for a UIN or a QR renderer, which nothing had ever checked. It prints
+  the register of surfaces and says which are covered by what. The export is
+  the one entry that is not, because it does not exist
 - ~~Buyer-detail capture **screens** — the handset form the measurer fills in,
   and the dashboard equivalent for the office~~ **done.** The handset form, the
   office's read of it, and the office's correction of it. The office form sends
@@ -1921,9 +1927,19 @@ rebuild these:
 - [ ] Re-exporting the same range does not create duplicates
 - [ ] No printed document uses "Tax Invoice" or "e-Invoice", or displays anything
       resembling a UIN or validation QR
-      — a CI check greps the Dart and ARB sources for it today, and a widget test
-      renders the real PDF and reads the text back. Ticked when the export and
-      any Phase 7 document are covered too.
+      — two checks, and between them they cover every surface that exists.
+      `tool/check_labelling.py` is the static half: every ARB value, the handset
+      source, every dashboard template and the rate card's `{zh, en, ms}` labels,
+      **in all three languages**, plus a UIN or QR anywhere. It fails if a
+      surface matched no files, because a check that has stopped reading passes
+      exactly the way a clean tree does, and its own self-test plants each
+      violation and fails if the audit stays quiet.
+      `tool/check_pdf_text.py` is the half with teeth: it renders the real
+      documents and extracts the text, which is the only way to prove the
+      **positive** duty — that each one denies being a tax invoice in the
+      reader's own language.
+      **Still unticked**, and for one reason: the SQL Account export is a
+      printed surface and does not exist yet (E1).
 
 **Blocked on** a sample SQL Account import template (E1), the accountant's ruling
 on E2, and C12 and C13.

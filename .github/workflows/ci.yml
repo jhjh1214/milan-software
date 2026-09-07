@@ -631,34 +631,20 @@ jobs:
           echo "ok - both suites load every section:"
           echo "$sections" | sed 's/^/  /'
 
-      - name: No printed document may claim to be a tax invoice
-        # CLAUDE.md hard rule 7 is a legal constraint, not a labelling
-        # preference. SQL Account is the sole issuer of record.
-        #
-        # Whole-line comments are dropped first: a comment is not printed, and
-        # the rule is quoted verbatim in quote_pdf.dart where it applies. A
-        # trailing comment still counts, which errs the safe way. This is the
-        # cheap static half -- the half with teeth is the widget test that
-        # renders the real PDF and reads the text back out of it.
+      # CLAUDE.md hard rule 7 and SPEC.md 10.1 are a legal constraint, not a
+      # labelling preference. SQL Account is the sole issuer of record, and two
+      # systems submitting one sale produce two validated UINs and a 72-hour
+      # cancellation problem.
+      #
+      # This replaces a shell grep that could see only English, looked only at
+      # mobile/lib, and never looked for a UIN or a QR at all -- on a product
+      # whose handset defaults to Chinese.
+      #
+      # The self-test runs FIRST. A checker that has stopped checking passes
+      # exactly the way a clean tree does, and the self-test is what tells the
+      # two apart: it plants each violation in a throwaway tree and fails if
+      # the audit stays quiet.
+      - name: The document labelling audit
         run: |
-          found=0
-          while IFS= read -r f; do
-            case "$f" in
-              *.dart) body=$(grep -vE '^[[:space:]]*(//|\*|/\*)' "$f") ;;
-              *)      body=$(cat "$f") ;;
-            esac
-            hit=$(printf '%s\n' "$body" \
-              | grep -niE '"(tax invoice|e-invoice)"|>[[:space:]]*(Tax Invoice|e-Invoice)') || true
-            if [ -n "$hit" ]; then
-              found=1
-              printf '%s\n' "$hit" | while IFS= read -r line; do
-                echo "$f: $line"
-              done
-            fi
-          done < <(find mobile/lib -type f \( -name '*.dart' -o -name '*.arb' \))
-
-          if [ "$found" = 1 ]; then
-            echo "::error::A user-facing string claims to be a tax invoice."
-            exit 1
-          fi
-          echo "ok — nothing printable claims to be a tax invoice"
+          python3 tool/check_labelling.py --self-test
+          python3 tool/check_labelling.py
