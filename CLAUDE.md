@@ -80,6 +80,39 @@ test on that screen called `add()` directly, so the unit was right and only the
 wiring to it was wrong. Drive a form through the DOM in its test, and
 `dashboard/tools/check-templates.mjs` now fails the binding in CI.
 
+**Every dashboard control is now clicked by a test**, which is the sweep that
+bug earned. Thirteen bindings — the whole publish sequence, the week arrows,
+the report window buttons, the deactivate dialog, and every Try again — were
+each replaced with `(ngSubmit)` in turn, and every one made a test go red. **No
+new dead wiring was found**; what changed is that a future one cannot hide. The
+publish screen had *zero* DOM coverage and it is the screen that sets the price
+of everything: under the dead-publish-button mutation all thirteen of its
+existing tests still passed.
+
+**The dashboard is trilingual** (§13 **C9**, answered by the client: yes). A
+**typed dictionary looked up at runtime** in `dashboard/src/app/i18n/`, not
+`@angular/localize` — Angular's own i18n is a build-time substitution, one
+bundle per locale, and CLAUDE.md wants *per user, not per device*. `ZH` and
+`MS` are declared as `Strings`, so **a missing translation is a compile
+error**. Every message carrying a value is a **function**, never a placeholder
+template: the alphabetical-placeholder trap cannot happen to a named parameter,
+and it is what lets English take its plural `s`, Chinese its measure word, and
+Malay neither.
+
+The picked language is **not persisted** — shared office machine, the same
+reasoning that keeps the token out of `localStorage`. Precedence is: what
+somebody picked this session, then the account's `language`, then `zh`.
+A failure or a note is held as **what happened**, never as a rendered sentence,
+so switching language re-renders it; freezing it leaves one line of the old
+language on the very line explaining why somebody cannot see their work.
+
+Two real bugs surfaced by doing it. The rate-card preview asked the server for
+the diff in a hardcoded `'en'`, so a Malay reader would have seen every product
+named in English in the one table whose job is naming what is about to change
+price. And `AgeingBucket` carried `"0-30 days"` **on the wire**; it now carries
+the day range and the client says the words. Nothing user-visible in the API
+should be a word.
+
 Built and green on the device: `Length`, `Money`, `Rational`, the unit parser,
 the soft warnings, the pricing engine over the real 77-row fair card, the custom
 keypad, the quote wizard in zh / en / ms, local persistence (a quote survives a
@@ -90,7 +123,7 @@ trilingual PDF.
 Built and green on the server: the Python engine passing the same fixtures, the
 sync endpoints, Alembic migrations with a test that they match the models, users
 and roles, and rate card publishing. **817 Dart tests, 622 Python tests,
-171 dashboard tests.** 100% coverage on `Length`, `Money` and `Rational`.
+243 dashboard tests.** 100% coverage on `Length`, `Money` and `Rational`.
 
 **Prices are server-owned now.** One card is published and pulled by every
 handset. On-device editing is read-only except for an admin, and an admin's
@@ -495,12 +528,11 @@ forever. It has happened twice — the publish screen's card text and the people
 form — and both times it was caught by a test rather than by reading. Make every
 piece of component state a signal.
 
-Two smaller things the dashboard still lacks: a session that survives a page
-refresh (deliberate for now — a token in `localStorage` on a shared office
-machine is one the next person inherits, and §13 has no question about it yet),
-and any Malay or Chinese. The handset is trilingual because a part-timer who
-reads only Malay has to be able to quote; whether the office screens need the
-same is worth asking rather than assuming.
+One thing the dashboard still lacks: a session that survives a page refresh —
+deliberate for now, because a token in `localStorage` on a shared office
+machine is one the next person inherits, and §13 has no question about it yet.
+*(Malay and Chinese were the other one. C9 is answered and they are built —
+see above.)*
 
 **Six CI jobs, STAGED**, all green:
 

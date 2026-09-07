@@ -2468,16 +2468,43 @@ orders, supplier management and costing come later.
 - **C4.** Who books the measurement visit?
 - **C5.** Which payment methods in the dropdown?
 - **C6.** Does the terminal slip carry a reference staff can realistically type?
-- **C9.** **Does the web dashboard need Chinese and Malay?** The handset is
-  trilingual because §8 makes it one: a part-timer who reads only Malay has to
-  be able to quote, and no string is ever hardcoded in a widget. The dashboard
-  is built in English only so far, on the assumption that the office is a
-  smaller and more consistent group than the fair staff.
+- **C9.** ~~Does the web dashboard need Chinese and Malay?~~ **Answered by the
+  client, Sep 2026: yes.** The assumption that the office was a smaller and
+  more English-reading group than the fair staff was only ever an assumption,
+  and it was wrong. Built.
 
-  That is an assumption, not an answer. If whoever works the order board reads
-  Chinese first, English-only is the same barrier §8 exists to remove — and
-  retrofitting three languages across a dozen screens costs far more than
-  starting with them. Worth asking before the dashboard grows.
+  A **typed dictionary looked up at runtime**, not `@angular/localize`.
+  Angular's own i18n is a build-time substitution — one bundle per locale,
+  chosen by URL or by deploy — and CLAUDE.md asks for the opposite:
+  *switchable per user, not per device.* The server already says which language
+  a person reads, on `Identity.language`, so the two people sharing the office
+  machine see the same page in different languages without either of them
+  configuring anything.
+
+  A TypeScript interface rather than JSON files, so **a missing translation is
+  a compile error**: `ZH` and `MS` are declared as `Strings` and a forgotten key
+  fails the build. That is the guarantee the handset gets from its
+  `l10n-missing.txt` check, without a step anybody can skip.
+
+  Every message carrying a value is a **function**, never a placeholder
+  template. The handset's alphabetical-placeholder trap cannot happen to a
+  named parameter — and it is what lets each language count in its own way:
+  English needs a plural `s`, Chinese needs a measure word and no plural, Malay
+  needs neither.
+
+  The choice is **not persisted to the browser**. This is the shared office
+  machine, the same reasoning that keeps the session token out of
+  `localStorage`: a language stored on the device is a per-device setting,
+  which is exactly what this must not be. The picker is on the sign-in screen
+  because it has to be — the default is `zh` and the account that would say
+  otherwise is on the far side of a button somebody cannot read.
+
+  Two things the work forced out into the open. The rate-card **preview asked
+  the server for the diff in a hardcoded `'en'`**, so a Malay reader would have
+  seen every product named in English inside the one table whose job is saying
+  which product is about to change price. And `AgeingBucket` **carried its own
+  English label on the wire**; it now carries the day range and the client says
+  the words.
 - **C7.** May an order with nothing to measure skip the measurement steps?
   Every product defers material to measurement (B7), so in practice every order
   has a visit — but a supply-only flooring job might not. The pipeline currently
