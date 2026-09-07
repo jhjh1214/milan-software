@@ -542,6 +542,12 @@ jobs:
       - name: Nothing floats
         run: node tools/check-pins.mjs
 
+      # Angular does not error on an unknown event name on a DOM element, so
+      # `(ngSubmit)` without FormsModule compiles, renders, and does nothing.
+      # The Add somebody button shipped that way and the build was green.
+      - name: No template binds a directive its component never imported
+        run: node tools/check-templates.mjs
+
       - name: Build
         run: npm run build
 
