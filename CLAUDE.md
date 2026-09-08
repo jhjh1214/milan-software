@@ -122,8 +122,43 @@ trilingual PDF.
 
 Built and green on the server: the Python engine passing the same fixtures, the
 sync endpoints, Alembic migrations with a test that they match the models, users
-and roles, and rate card publishing. **817 Dart tests, 622 Python tests,
+and roles, and rate card publishing. **853 Dart tests, 625 Python tests,
 243 dashboard tests.** 100% coverage on `Length`, `Money` and `Rational`.
+
+**An upgrade is only offered where it can belong** (client, Sep 2026). Four
+add-ons carried `attaches_to: null`, which the wizard reads as *offer this on
+anything* — so quoting SPC flooring showed a RM800 motor and a RM200 remote,
+and every product on the list was offered RM400 of stainless steel side-guide
+cable. Now:
+
+- **Motor, remote and intermediate joint → curtains on a TRACK.** A motor
+  track replaces the track, and a rod-hung curtain has none to replace.
+- **Stainless steel side guide → the outdoor roller blind**, where it is
+  `mandatory`: added automatically, shown locked, still charged RM400. It is
+  what the blind runs in, and a tick box is what somebody forgets.
+- **The motor `auto_adds` its motor track** — RM40/ft on the curtain's own
+  width. Taking the motor off takes the track with it, or the quote keeps a
+  track driving nothing. `pr-motor-track` is the net under that.
+- **The three services became add-ons.** Dismantling old SPC was a selectable
+  *product*, so it was quoted with its own measurements — a second chance to
+  type a different number for the same room. Offered on the product now, and
+  billed on the same square footage. **Still charged, same rates.**
+
+Two mechanisms, deliberately distinct: `mandatory` is about the **parent
+product** (this add-on comes with it), `auto_adds` is one **upgrade bringing
+another**.
+
+**Every `family: addon` line used to crash the quote.** `PricedLine.
+depositCategory` called `depositCategoryOf(family)` with no parent, so ticking
+the RM800 motor replaced every price on the screen with an
+`UnknownDepositCategory`. `LineRequest` now carries `parentFamily`, mirroring
+`depositCategoryOf`'s own signature, and three fixture cases hold both engines
+to it. Nothing had ever caught it because nothing had ever added an add-on
+without somebody choosing one.
+
+**Somfy and AOK are one variant with two material keys**, not two upgrades —
+the tile names them (`material chosen at measurement: aok / somfy`) while B7
+still defers the pick and quotes the dearest, so §8.5's promise holds.
 
 **Prices are server-owned now.** One card is published and pulled by every
 handset. On-device editing is read-only except for an admin, and an admin's
@@ -697,6 +732,8 @@ an injected one. Runnable in a test with no UI, no DB, no network.
    width is charged.
 6. **A line whose category has no active lock is never priced at a held version.**
    Applying a curtain lock to a flooring line is the expensive bug in this design.
+   An **add-on takes its parent's category** and raises without one — never
+   defaults, because the default would be a guess about money.
 7. **Nothing this system prints may say "Tax Invoice" or "e-Invoice", or display
    a UIN or validation QR.** SQL Account is the sole issuer of record. This is a
    legal constraint, not a labelling preference.

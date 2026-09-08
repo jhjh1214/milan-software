@@ -353,10 +353,45 @@ per_sqft service    : Dismantle old SPC RM1/sqft, self levelling
 per_roll service    : Wallpaper dismantle RM80/roll
 ```
 
+### What each add-on may attach to
+
+**Answered by the client, Sep 2026.** Every one of these rows used to carry
+`attaches_to: null`, which the wizard reads as *offer this on anything* — so
+quoting an SPC floor showed a RM800 motor, and every product on the list was
+offered RM400 of stainless steel side-guide cable. An upgrade offered where it
+cannot belong is a wrong line somebody taps by mistake, and each of these is
+real money.
+
+| Add-on | Attaches to | Why |
+|---|---|---|
+| Motor, Remote Control, Intermediate Joint | curtains on a **track** | A motor track *replaces* the track. A curtain hanging from an iron or wooden rod has none to replace, so a motor there cannot be fitted. |
+| Side Guide Cable | outdoor roller blind, **mandatory** | It is what the blind runs in. Added automatically and charged; a tick box is what somebody forgets on the one product that cannot go up without it. |
+| Roller Add Box | the four roller blinds | Already scoped. |
+| Outdoor Roller Motor (Somfy / AOK) | outdoor roller blind | One variant, two material keys — the same motor at two qualities. B7 defers the pick to measurement and quotes the dearest, so the price can only fall. |
+| Dismantle Old SPC, Self Levelling | the floors priced by area | Charged, but asked **while quoting the floor** rather than as a separate service line, and billed on the same square footage. Skirting is per running foot and stairs per piece, so "same square footage" has no meaning on either. |
+| Wallpaper Dismantle | Korea wallpaper | The same change. |
+
+**A service asked as its own product is a second chance to type a different
+number for the same room.** That is why the three moved: not to change what
+they cost, but to stop the same wall being measured twice.
+
 ### Constraint rules, not prices
 - SPC Herringbone **requires** self levelling
 - Intermediate Joint **requires** motor
+- Motor **requires** motor track — auto-added, RM40/ft on the curtain's width
 - Outdoor ZIP Blinds **max 20ft width**
+
+Two mechanisms, and they are not the same thing:
+
+- **`mandatory`** — the *parent product* cannot exist without this add-on, so
+  it arrives with the product and cannot be removed.
+- **`auto_adds`** — one *upgrade* brings another with it, and taking the first
+  off takes the second too. A motor track left behind after the motor came off
+  is RM40 a foot for something nobody is driving.
+
+A `requires` product rule sits behind the auto-add as a net. It is **returned,
+never thrown**: a missing motor track is a reason to tell the salesperson while
+the customer is standing there, not a reason to refuse the sale.
 
 ### Order-level zone charges
 ```
@@ -2306,6 +2341,57 @@ orders, supplier management and costing come later.
   Two related questions the four numbers will probably raise: whether the
   landing width break is the same 5ft as the step's, and whether a staircase
   carries a minimum number of steps the way SPC carries a minimum area.
+- ~~**A23.**~~ **ANSWERED. What may be added to what?** Client, Sep 2026:
+
+  > track changes etc motorized and the set of stainless steel beam is only
+  > for certain product, like stainless steel beam is a must for outdoor
+  > roller blind only, so make it a notice instead, and tracks only for
+  > curtains
+
+  and, on the motor:
+
+  > for indoor curtains only, and they must add on extra motorized track that
+  > is based on their length also which is rm40 per ft. outdoor blinds all
+  > have their own motor, or can be manual
+
+  and on the rod-hung curtains:
+
+  > exclude motor selection if it's for rod design
+
+  and on the side guide, asked whether the RM400 is still charged: **charged,
+  added automatically.** See §4.1 for the table this produced. Tracks were
+  already curtain-only; the rest were not scoped at all.
+
+- ~~**A24.**~~ **ANSWERED. Where is a service asked for?** Client, Sep 2026,
+  correcting an earlier "they are free":
+
+  > actually i'm wrong, need to be charged, but make charging them an option
+  > instead while quoting for that product, not a separate service quote, so
+  > it is clearer, like when quoting spc after that only come option if need
+  > dismantle or not and calculate based on the same sqft
+
+  Dismantling, self levelling and wallpaper dismantling stay **charged at the
+  same rates**. What changed is where the question is asked: they were
+  selectable products, so each was quoted with its own measurements — a second
+  chance to type a different number for the same room.
+
+- `[BLOCKING P2]` **A25. How is wallpaper quantity chosen?** Korea wallpaper
+  is RM800 for a fixed **2-roll pack** (buy one free one, 14ft × 10ft, 280
+  sqft total — A14). Client, Sep 2026:
+
+  > normally just do one set of two rolls, but still have the calculator there
+  > to suggest how many rolls needed, but not a must, make it clear
+
+  So the default is **one pack**, and the width and height become a
+  *suggestion* rather than the thing that decides the price. What is not yet
+  answered is what the suggestion does when it disagrees with the default: if
+  the wall needs two packs and the line says one, does the app **change the
+  quantity**, or **say so and leave it** for somebody to set? Those are
+  different amounts of money on the quote, so it is not being guessed.
+
+  Until it is answered the wizard still measures wallpaper and bills whole
+  bundles, which is the current behaviour and errs toward quoting enough.
+
 - **A5.** One discount % for everything, or different per family?
 - **A6.** Is "Sgp Pleat" a heading bundled with a rod, or standalone fabric?
 - **A7.** Wallpaper pattern-repeat wastage: absorbed already, or added per range?

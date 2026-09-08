@@ -1,0 +1,17 @@
+{
+  "_why": [
+    "The dashboard calls /api on its own origin, because in production Caddy",
+    "serves both the app and the API from one host. `ng serve` has no API",
+    "behind it, so without this every screen shows 'No answer from the",
+    "server' and there is nothing to test by hand.",
+    "",
+    "Points at the backend running locally on 8000 — see the README's",
+    "'Running it locally'. Development only: the production build never",
+    "reads this file."
+  ],
+  "/api": {
+    "target": "http://localhost:8000",
+    "secure": false,
+    "changeOrigin": true
+  }
+}
