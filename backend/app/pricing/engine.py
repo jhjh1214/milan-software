@@ -420,7 +420,16 @@ def _check_product_rules(card: RateCard, request: LineRequest) -> None:
     for rule in card.product_rules:
         if rule.variant != request.variant or rule.value_tmm is None:
             continue
-        value = request.width if rule.dimension == "width" else request.height
+        # Mirrors the Dart engine's `switch`: an unrecognised `dimension` (a
+        # typo, or a value nobody has defined yet) names no rule to enforce
+        # rather than defaulting to height. Defaulting is how this rule would
+        # start enforcing itself against the wrong measurement.
+        if rule.dimension == "width":
+            value = request.width
+        elif rule.dimension == "height":
+            value = request.height
+        else:
+            continue
         if value is None:
             continue
         breached = (rule.kind == "max_dimension" and value.tmm > rule.value_tmm) or (

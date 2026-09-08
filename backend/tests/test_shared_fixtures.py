@@ -13,6 +13,7 @@ can act on. These tests are what stops that.
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from datetime import date
 from fractions import Fraction
 from pathlib import Path
@@ -49,8 +50,10 @@ from app.pricing.models import (
     Family,
     Fulfilment,
     Layer,
+    Localised,
     PriceBasis,
     PricingStage,
+    ProductRule,
     RateCard,
 )
 
@@ -429,6 +432,40 @@ def test_per_roll_with_no_height_raises_at_final_pricing() -> None:
             card=CARD,
             stage=PricingStage.FINAL,
         )
+
+
+def test_an_unrecognised_product_rule_dimension_is_skipped_not_defaulted() -> None:
+    """Bug hunt, 2026-09-08 (FINDINGS.md #3): `_check_product_rules` used to
+    default an unrecognised `dimension` (a typo, or one nobody wrote a case
+    for) to height, so a `max_dimension` rule with `dimension=None` would
+    have silently enforced itself against the wrong measurement. The Dart
+    engine's `switch` was always symmetric here -- this pins the Python side
+    to match it, against a request the rule would have wrongly refused."""
+    synthetic = replace(
+        CARD,
+        product_rules=(
+            ProductRule(
+                id="test-only-unrecognised-dimension",
+                variant="night_curtain",
+                kind="max_dimension",
+                messages=Localised(by_language={"en": "test rule"}),
+                dimension=None,
+                value_tmm=1000,
+            ),
+        ),
+    )
+    # A height far past the rule's value_tmm. If the check defaulted an
+    # unrecognised dimension to height, this would raise.
+    price_line(
+        request=LineRequest(
+            variant="night_curtain",
+            layer=Layer.NIGHT,
+            width=Length(4 * 3048),
+            height=Length(8 * 3048),
+        ),
+        card=synthetic,
+        stage=PricingStage.ESTIMATE,
+    )
 
 
 def test_a_placeholder_rate_cannot_be_priced() -> None:

@@ -293,6 +293,28 @@ void main() {
     },
   );
 
+  test(
+    'a stale buyer-details refusal is reported, not treated as delivered',
+    () async {
+      // Bug hunt, 2026-09-08 (FINDINGS.md #2). `BuyerDetailsAccepted` fell
+      // into drain()'s generic branch, which only checks `PushResponse` —
+      // a class it isn't — so a refusal was silently dropped as a success:
+      // the row vanished from the outbox and nothing was ever reported.
+      await outboxer.enqueueBuyerDetails('order-1', {
+        'order_id': 'order-1',
+        'captured_at': at.toUtc().toIso8601String(),
+        'name': 'Ah Lian',
+      });
+      server.refuseBuyerDetailsBecause = 'stale';
+
+      final report = await outboxer.drain(credentials);
+
+      expect(report.sent, ['order-1']);
+      expect(report.disagreed, ['order-1']);
+      expect(await db.pendingOutbox(), isEmpty);
+    },
+  );
+
   test('the queue drains oldest first', () async {
     await queueAQuote(room: 'first');
     await queueAQuote(room: 'second');

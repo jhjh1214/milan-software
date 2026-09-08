@@ -48,6 +48,44 @@ could finish "measuring" a wall nobody's tape ever touched. Fixed to ask the
 applied rule's basis directly rather than the quote-time coincidence, and a
 widget test now pins it.
 
+**A targeted bug hunt on the strength of that finding surfaced five more.**
+Full detail in `FINDINGS.md`. Two are fixed, each with a test that failed
+before the fix and passes after, mutation-confirmed:
+
+- The Dart and Python engines disagreed on an unrecognised `ProductRule.
+  dimension` — Dart skipped the rule, Python defaulted it to height. Dormant
+  today (every rule on the real card says `"width"`), but the next
+  height-dimension rule would have passed on the handset and been
+  hard-rejected by the server on sync. Python's check is now symmetric with
+  Dart's.
+- A buyer-details push the server refused as `stale` or `unknown_order` was
+  silently treated as delivered — `outbox.dart`'s `drain()` had no branch
+  for `BuyerDetailsAccepted`, so it fell into the generic success path and
+  the row vanished with no retry and no signal. It now reports as a
+  disagreement, the same as every other refusable push. Whether an
+  `unknown_order` refusal should retry rather than just flag — the capture
+  is genuinely lost either way right now — is still open.
+
+**One is not fixed, and it is the one that matters most: §13 gains a new
+entry.** Site measurements never reach the server after confirmation.
+`enqueueOrder` fires exactly once, before the site visit; nothing in
+`measurement_repository.dart` ever pushes a final measurement up, and even a
+naive retry would be silently ignored (`push_order` treats any order with an
+existing id as a pure duplicate). The server's `is_site_measured` stays
+`False` forever, so `advance_order_status`'s guard refuses `measured`
+server-side on every real order, and the office's measurement queue shows
+everything as permanently unmeasured no matter what's done in the field.
+This is why Phase 6/7 look complete in every test that runs on the device and
+don't yet mean anything to the dashboard. Needs a new sync endpoint —
+staleness/merge semantics, similar in shape to how `POST /api/orders/buyer`
+was designed — not a one-line fix. Planning it is next.
+
+Two more, lower severity, still open: removing an auto-adding upgrade (Motor)
+can delete an independently-chosen line sharing a variant with its
+`auto_adds` list (e.g. a hand-picked Motor Track); and rapidly double-tapping
+an upgrade chip has no re-entrancy guard and can add two lines instead of
+one.
+
 - **The handset form.** Without it an order over RM10,000 was *stuck* —
   `advanceOrder` refused to move it and nothing could supply what the refusal
   asked for. The refusal now opens the form, and the form is also reachable
@@ -148,7 +186,7 @@ trilingual PDF.
 
 Built and green on the server: the Python engine passing the same fixtures, the
 sync endpoints, Alembic migrations with a test that they match the models, users
-and roles, and rate card publishing. **861 Dart tests, 628 Python tests,
+and roles, and rate card publishing. **863 Dart tests, 629 Python tests,
 243 dashboard tests.** 100% coverage on `Length`, `Money` and `Rational`.
 
 **An upgrade is only offered where it can belong** (client, Sep 2026). Four

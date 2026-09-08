@@ -162,6 +162,45 @@ void main() {
       }
     });
 
+    test(
+      'an unrecognised rule dimension names nothing to enforce, not height',
+      () {
+        // Bug hunt, 2026-09-08 (FINDINGS.md #3). The Python engine used to
+        // default an unrecognised `dimension` to height instead of skipping
+        // the rule — this pins the Dart side, which was always correct, so a
+        // future change here cannot quietly start agreeing with that bug.
+        final synthetic = RateCard(
+          version: card.version,
+          provisional: card.provisional,
+          config: card.config,
+          rules: card.rules,
+          productRules: const [
+            ProductRule(
+              id: 'test-only-unrecognised-dimension',
+              variant: 'night_curtain',
+              kind: 'max_dimension',
+              messages: Localised({'en': 'test rule'}),
+              valueTmm: 1000,
+            ),
+          ],
+        );
+
+        // A height far past the rule's valueTmm. If an unrecognised
+        // dimension defaulted to height, this would throw.
+        final result = priceLine(
+          request: LineRequest(
+            variant: 'night_curtain',
+            layer: Layer.night,
+            width: ft(4),
+            height: ft(8),
+          ),
+          card: synthetic,
+          stage: PricingStage.estimate,
+        );
+        expect(result.rule.variant, 'night_curtain');
+      },
+    );
+
     test('a curtain is not constrained by a blind rule', () {
       // The rules are keyed by variant. A 25ft curtain is unusual but legal.
       final result = priceLine(

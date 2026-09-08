@@ -69,6 +69,9 @@ class FakeServer {
   /// When set, POST /api/orders/status refuses every move with this reason.
   String? refuseStatusBecause;
 
+  /// When set, POST /api/orders/buyer refuses every capture with this reason.
+  String? refuseBuyerDetailsBecause;
+
   /// customer_key -> the holds this server will serve for them, as a handset
   /// other than this one would have left them.
   final Map<String, List<Map<String, dynamic>>> heldRates = {};
@@ -279,6 +282,18 @@ class FakeServer {
         'duplicate': false,
         'status': orderStatus[orderId]!,
         'refused_because': null,
+      });
+    }
+
+    if (path == '/api/orders/buyer') {
+      final body =
+          jsonDecode(utf8.decode(request.bodyBytes)) as Map<String, dynamic>;
+      final orderId = body['order_id'] as String;
+      return _json({
+        'order_id': orderId,
+        'complete': refuseBuyerDetailsBecause == null,
+        'missing': <String>[],
+        'refused_because': refuseBuyerDetailsBecause,
       });
     }
 

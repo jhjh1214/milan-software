@@ -250,6 +250,17 @@ class Outboxer {
             if (!response.accepted) {
               disagreed.add(row.entityId);
             }
+          } else if (response is BuyerDetailsAccepted) {
+            await db.dropOutbox(row.id);
+            if (response.refusedBecause != null) {
+              // A `stale` refusal means a newer capture already landed and
+              // this one is moot; `unknown_order` means the capture is lost
+              // until somebody looks. Either way it must not read as a
+              // silent success — CLAUDE.md's promise that a stale push
+              // "reads as a failure" only ever held for the dashboard's own
+              // correction form until this branch existed.
+              disagreed.add(row.entityId);
+            }
           } else {
             await db.completeOutbox(row.id, row.entityId, clock());
             if (response is PushResponse && !response.agreed) {
