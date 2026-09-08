@@ -92,11 +92,38 @@ before the fix and passes after, mutation-confirmed:
   `advance_order_status` succeed to `measured` where it previously refused
   with `lines_not_measured`) plus outbox and widget tests on the device side.
 
-Two more, lower severity, still open: removing an auto-adding upgrade (Motor)
-can delete an independently-chosen line sharing a variant with its
-`auto_adds` list (e.g. a hand-picked Motor Track); and rapidly double-tapping
-an upgrade chip has no re-entrancy guard and can add two lines instead of
-one.
+**All six findings are now fixed.** The remaining two: removing an
+auto-adding upgrade (Motor) could delete an independently-chosen line sharing
+a variant with its `auto_adds` list (e.g. a hand-picked Motor Track) — fixed
+with `_autoAddedBy`, which records which upgrade actually created each
+auto-added line, so removal only cascades to what that specific upgrade
+brought. And rapidly double-tapping an upgrade chip had no re-entrancy guard
+and could add two lines instead of one — fixed with `_togglingUpgrades`,
+gating re-entry per variant while a toggle is in flight. `recordMeasurement`
+also gained its own defense-in-depth check (finding #6): it now looks up the
+line's rule and refuses `missingHeight` itself, rather than trusting
+`MeasureSheet`'s gating to be the only caller forever.
+
+**Two more UX bugs, reported directly rather than found by the sweep, fixed
+the same session.** The band-edge nudge (§5.5, "the highest-value validation
+in the app") computed `isAboveEdge` correctly but the rendered message
+hardcoded "just over" regardless — so a curtain drop of exactly 10ft, which
+A1 makes the LOWER band, was told it was just over the edge when it was
+genuinely under. Split into `warnNearBandEdgeOver`/`warnNearBandEdgeUnder`,
+selected by `isAboveEdge`.
+
+And the unit-slip suggestion (`unitLooksWrong`/`implausibleForCategory`)
+always proposed millimetres whenever the entered unit was inch or foot,
+regardless of the raw number typed — so a real 20-21ft curtain drop, just
+over the category's generous plausible ceiling, was asked "did you mean 21
+millimetres?", which is not a fix anyone who typed a real window ever meant.
+`_plausibleSmallerUnit` now recovers the raw number as typed and only
+suggests mm when it is itself squarely mm-scale (over §5.3's own named
+50–300 ambiguous band) — `2000` (a typical floor-plan number, the client's
+own example) suggests mm; `20` or `21` does not. Below the ambiguous band the
+warning is suppressed entirely rather than guess, matching §5.3's existing
+"do not guess unit from magnitude" rule — this only changes which one-tap
+fix a warning offers, never what a value is interpreted as.
 
 - **The handset form.** Without it an order over RM10,000 was *stuck* —
   `advanceOrder` refused to move it and nothing could supply what the refusal
@@ -198,7 +225,7 @@ trilingual PDF.
 
 Built and green on the server: the Python engine passing the same fixtures, the
 sync endpoints, Alembic migrations with a test that they match the models, users
-and roles, and rate card publishing. **866 Dart tests, 640 Python tests,
+and roles, and rate card publishing. **873 Dart tests, 640 Python tests,
 243 dashboard tests.** 100% coverage on `Length`, `Money` and `Rational`.
 
 **An upgrade is only offered where it can belong** (client, Sep 2026). Four

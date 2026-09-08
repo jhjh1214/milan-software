@@ -110,7 +110,10 @@
   "@warnSwitchTo": { "placeholders": { "unit": { "type": "String" } } },
   "warnDropVeryShort": "高度只有 {value}，确认吗？",
   "@warnDropVeryShort": { "placeholders": { "value": { "type": "String" } } },
-  "warnNearBandEdge": "刚刚超过 {edge}，请确认尺寸",
+  "warnNearBandEdgeOver": "刚刚超过 {edge}，请确认尺寸",
+  "@warnNearBandEdgeOver": { "placeholders": { "edge": { "type": "String" } } },
+  "warnNearBandEdgeUnder": "刚刚不到 {edge}，请确认尺寸",
+  "@warnNearBandEdgeUnder": { "placeholders": { "edge": { "type": "String" } } },
   "warnImplausibleSize": "这是 {size}，请确认尺寸和单位",
 
   "measureTitle": "现场丈量",
@@ -134,7 +137,7 @@
   "measureRefusedZero": "这不是一个尺寸，请检查数字。",
   "measureRefusedTerminal": "这单已关闭或已取消。",
   "measureRefusedNoLine": "这一项不属于这单。",
-  "@warnNearBandEdge": { "placeholders": { "edge": { "type": "String" } } },
+  "measureRefusedMissingHeight": "这一项还需要高度，请填写后再保存。",
   "warnBandBothPrices": "{lower} 以内 {lowerPrice} · 超过 {upper}",
   "@warnBandBothPrices": {
     "placeholders": {

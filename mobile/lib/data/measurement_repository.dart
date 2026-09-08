@@ -41,7 +41,17 @@ enum MeasurementRefusal {
   notAMeasurement('not_a_measurement'),
 
   /// No such line on this order.
-  noSuchLine('no_such_line');
+  noSuchLine('no_such_line'),
+
+  /// This line's rule needs a height and none was given.
+  ///
+  /// Bug hunt, 2026-09-08 (FINDINGS.md #6). `MeasureSheet` already gates on
+  /// this correctly, so today nothing reaches here — but the repository must
+  /// not trust its one caller to keep doing so forever. A future second entry
+  /// point (a bulk-measure tool, a different screen) that skipped that gate
+  /// would otherwise mark a line `isSiteMeasured: true` with no real height,
+  /// and `price_line` would only catch it downstream, after the write.
+  missingHeight('missing_height');
 
   const MeasurementRefusal(this.wire);
 
@@ -113,6 +123,25 @@ class MeasurementRepository {
 
     if (line == null) {
       return const MeasurementOutcome(refusal: MeasurementRefusal.noSuchLine);
+    }
+
+    // Defense in depth, not the primary gate: `MeasureSheet` already derives
+    // whether this line needs a height from the same rule and disables Save
+    // until it has one. This exists so a future second caller that skipped
+    // that gate cannot mark a line "measured" with no real height behind it.
+    final rule = cards[line.appliedRateCardVersion]?.rules
+        .where((r) => r.id == line.appliedRuleId)
+        .firstOrNull;
+    final needsHeight =
+        rule != null &&
+        height == null &&
+        (rule.bandField == BandField.height ||
+            rule.basis == PriceBasis.perSqft ||
+            rule.basis == PriceBasis.perRoll);
+    if (needsHeight) {
+      return const MeasurementOutcome(
+        refusal: MeasurementRefusal.missingHeight,
+      );
     }
 
     await (_db.update(_db.orderLines)..where((l) => l.id.equals(lineId))).write(

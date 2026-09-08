@@ -400,4 +400,5 @@ String refusalMessage(L l, MeasurementRefusal refusal) => switch (refusal) {
   MeasurementRefusal.notAMeasurement => l.measureRefusedZero,
   MeasurementRefusal.orderIsTerminal => l.measureRefusedTerminal,
   MeasurementRefusal.noSuchLine => l.measureRefusedNoLine,
+  MeasurementRefusal.missingHeight => l.measureRefusedMissingHeight,
 };

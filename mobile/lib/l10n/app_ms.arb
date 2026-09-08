@@ -74,7 +74,8 @@
   "warnUnitLooksWrong": "{value} {unit} = {converted}. Adakah anda maksudkan {suggestion}?",
   "warnSwitchTo": "Tukar ke {unit}",
   "warnDropVeryShort": "Tinggi hanya {value}. Betul ke?",
-  "warnNearBandEdge": "Baru melebihi {edge}. Sila semak ukuran.",
+  "warnNearBandEdgeOver": "Baru melebihi {edge}. Sila semak ukuran.",
+  "warnNearBandEdgeUnder": "Baru di bawah {edge}. Sila semak ukuran.",
   "warnImplausibleSize": "Itu {size}. Sila semak ukuran dan unitnya.",
 
   "measureTitle": "Pengukuran di tapak",
@@ -98,6 +99,7 @@
   "measureRefusedZero": "Itu bukan ukuran. Sila semak nombornya.",
   "measureRefusedTerminal": "Pesanan ini ditutup atau dibatalkan.",
   "measureRefusedNoLine": "Baris itu bukan pada pesanan ini.",
+  "measureRefusedMissingHeight": "Baris ini masih perlu tinggi. Isikan, kemudian simpan.",
   "warnBandBothPrices": "Sehingga {lower}: {lowerPrice} · Melebihi {upper}",
 
   "runningTotal": "Jumlah",

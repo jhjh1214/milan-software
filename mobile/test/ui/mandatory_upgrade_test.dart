@@ -50,6 +50,14 @@ void main() {
   tearDown(() => db.close());
 
   Future<void> pumpApp(WidgetTester tester) async {
+    // A phone, not the 800x600 default. The upgrade list grows by a row per
+    // line added, and a chip below the fixed bottom bar on the default
+    // surface is a test artefact — a real handset just scrolls.
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -203,5 +211,66 @@ void main() {
 
       expect(await variantsOnTheQuote(), ['night_curtain']);
     });
+
+    testWidgets('a hand-picked track survives the motor coming back off', (
+      tester,
+    ) async {
+      // Bug hunt, 2026-09-08 (FINDINGS.md #4). Motor Track is independently
+      // selectable — it is offered on any curtain, not only through the
+      // motor's own auto_adds. Picking it by hand first, then adding the
+      // motor (which sees the track already there and correctly does not
+      // add a second one), must not have the motor's removal delete a line
+      // the motor never created.
+      await pumpApp(tester);
+      await reachUpgrades(tester, family: '窗帘', product: '夜帘（遮光）');
+
+      await tester.scrollUntilVisible(
+        find.text('电动轨道'),
+        120,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('电动轨道'));
+      await tester.pumpAndSettle();
+      expect(await variantsOnTheQuote(), ['night_curtain', 'motor_track']);
+
+      await tapMotor(tester);
+      // The motor saw the track already present and did not add a second.
+      expect(await variantsOnTheQuote(), [
+        'night_curtain',
+        'motor_track',
+        'motor',
+      ]);
+
+      await tapMotor(tester);
+      // The motor is gone; the hand-picked track is still the customer's.
+      expect(await variantsOnTheQuote(), ['night_curtain', 'motor_track']);
+    });
+
+    testWidgets(
+      'double-tapping the motor chip adds only one motor and one track',
+      (tester) async {
+        // Bug hunt, 2026-09-08 (FINDINGS.md #5). `_addedUpgrades` is only
+        // written after the async line-insert resolves, so two taps landing
+        // before the first write completes both saw "not added yet".
+        await pumpApp(tester);
+        await reachUpgrades(tester, family: '窗帘', product: '夜帘（遮光）');
+
+        await tester.scrollUntilVisible(
+          find.text('马达'),
+          120,
+          scrollable: find.byType(Scrollable).first,
+        );
+        // Two taps with no pump between them — the race window this closes.
+        await tester.tap(find.text('马达'));
+        await tester.tap(find.text('马达'));
+        await tester.pumpAndSettle();
+
+        expect(await variantsOnTheQuote(), [
+          'night_curtain',
+          'motor',
+          'motor_track',
+        ]);
+      },
+    );
   });
 }

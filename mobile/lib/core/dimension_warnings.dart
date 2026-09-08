@@ -10,6 +10,30 @@
 library;
 
 import 'length.dart';
+import 'rational.dart';
+
+/// The unit a raw typed number most plausibly means, when the unit actually
+/// selected produced something too large to be real.
+///
+/// **Never used to decide what a value means** — §5.3 forbids guessing
+/// interpretation from magnitude. This only picks which one-tap fix a
+/// warning offers, and offering the wrong one is worse than offering none:
+/// a bare `21` on the foot chip is a normal window, and "did you mean 21
+/// millimetres?" is not a fix anyone typing a real window ever meant. A bare
+/// `2000`, on the other hand, is squarely the scale a floor plan is
+/// dimensioned in — nobody hand-measures 2000 of anything else this trade
+/// sells.
+///
+/// SPEC.md §5.3 names 50–300 the ambiguous band on purpose and refuses to
+/// guess inside it (`84` is a plausible inch drop and a plausible cm width).
+/// Below it a bare number reads as feet or inches, which is how this trade
+/// actually measures; only clear of it does millimetres become the obvious
+/// read, so this stays silent rather than force a coin flip.
+LengthUnit? _plausibleSmallerUnit(Length value, LengthUnit enteredUnit) {
+  if (enteredUnit == LengthUnit.mm) return null; // Already the finest unit.
+  final raw = Rational(value.tmm, enteredUnit.tenthsPerUnit);
+  return raw > const Rational.fromInt(300) ? LengthUnit.mm : null;
+}
 
 /// What kind of nudge to show.
 enum DimensionWarningKind {
@@ -167,26 +191,17 @@ List<DimensionWarning> checkDimension({
       DimensionWarning(
         kind: DimensionWarningKind.implausibleForCategory,
         expected: range,
-        // The likely fix, when there is an obvious one: somebody typing a
-        // four-digit number in inches or feet meant millimetres.
-        suggestedUnit: switch (enteredUnit) {
-          LengthUnit.inch || LengthUnit.foot => LengthUnit.mm,
-          _ => null,
-        },
+        suggestedUnit: _plausibleSmallerUnit(value, enteredUnit),
       ),
     );
   }
 
-  // A value only plausible if the unit were smaller. Suggest the smaller one.
-  // Only when the unit came from the chip — an explicit `2400mm` is a
-  // statement, not a slip.
+  // A value only plausible if the unit were smaller. Suggest the smaller one,
+  // and only when there is one the raw number actually supports — see
+  // `_plausibleSmallerUnit`. Only when the unit came from the chip — an
+  // explicit `2400mm` is a statement, not a slip.
   if (!unitWasExplicit && value.tmm > thresholds.implausiblyLargeTmm) {
-    final suggestion = switch (enteredUnit) {
-      LengthUnit.inch || LengthUnit.foot => LengthUnit.mm,
-      LengthUnit.m => LengthUnit.mm,
-      LengthUnit.cm => LengthUnit.mm,
-      LengthUnit.mm => null,
-    };
+    final suggestion = _plausibleSmallerUnit(value, enteredUnit);
     if (suggestion != null) {
       warnings.add(
         DimensionWarning(

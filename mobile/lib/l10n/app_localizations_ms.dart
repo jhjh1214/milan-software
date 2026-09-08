@@ -226,8 +226,13 @@ class LMs extends L {
   }
 
   @override
-  String warnNearBandEdge(String edge) {
+  String warnNearBandEdgeOver(String edge) {
     return 'Baru melebihi $edge. Sila semak ukuran.';
+  }
+
+  @override
+  String warnNearBandEdgeUnder(String edge) {
+    return 'Baru di bawah $edge. Sila semak ukuran.';
   }
 
   @override
@@ -315,6 +320,10 @@ class LMs extends L {
 
   @override
   String get measureRefusedNoLine => 'Baris itu bukan pada pesanan ini.';
+
+  @override
+  String get measureRefusedMissingHeight =>
+      'Baris ini masih perlu tinggi. Isikan, kemudian simpan.';
 
   @override
   String warnBandBothPrices(String lower, String lowerPrice, String upper) {

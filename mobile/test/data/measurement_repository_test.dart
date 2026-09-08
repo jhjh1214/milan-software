@@ -227,6 +227,34 @@ void main() {
       expect((await row('l1')).finalHeightTmm, null);
     });
 
+    test('refuses to mark a line measured when its rule needs a height and '
+        'none was given', () async {
+      // Bug hunt, 2026-09-08 (FINDINGS.md #6). `MeasureSheet` already
+      // gates Save on this, so this exercises the repository directly,
+      // the way a second caller that skipped that gate would reach it.
+      // `night_curtain` bands on the drop and cannot price without one.
+      final id = await confirm();
+
+      final outcome = await measuring.recordMeasurement(
+        orderId: id,
+        lineId: 'l1',
+        width: narrower(),
+        height: null,
+        cards: cards,
+        at: measuredAt,
+        byUserId: 'u-measurer',
+      );
+
+      expect(outcome.refusal, MeasurementRefusal.missingHeight);
+      final stored = await row('l1');
+      expect(
+        stored.isSiteMeasured,
+        isFalse,
+        reason: 'nothing is written on a refusal',
+      );
+      expect(stored.finalWidthTmm, null);
+    });
+
     test('refuses a cancelled order', () async {
       // Measuring one would produce a bill for a job that is not happening.
       final id = await confirm();

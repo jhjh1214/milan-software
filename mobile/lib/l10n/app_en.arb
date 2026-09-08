@@ -74,7 +74,8 @@
   "warnUnitLooksWrong": "{value} {unit} = {converted}. Did you mean {suggestion}?",
   "warnSwitchTo": "Change to {unit}",
   "warnDropVeryShort": "Height is only {value}. Is that right?",
-  "warnNearBandEdge": "Just over {edge}. Please check the size.",
+  "warnNearBandEdgeOver": "Just over {edge}. Please check the size.",
+  "warnNearBandEdgeUnder": "Just under {edge}. Please check the size.",
   "warnImplausibleSize": "That is {size}. Please check the size and the unit.",
 
   "measureTitle": "Site measurement",
@@ -98,6 +99,7 @@
   "measureRefusedZero": "That is not a measurement. Check the number.",
   "measureRefusedTerminal": "This order is closed or cancelled.",
   "measureRefusedNoLine": "That line is not on this order.",
+  "measureRefusedMissingHeight": "This line still needs a height. Fill it in, then save.",
   "warnBandBothPrices": "Up to {lower}: {lowerPrice} · Over {upper}",
 
   "runningTotal": "Total",

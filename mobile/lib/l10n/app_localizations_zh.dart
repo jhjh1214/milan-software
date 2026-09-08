@@ -223,8 +223,13 @@ class LZh extends L {
   }
 
   @override
-  String warnNearBandEdge(String edge) {
+  String warnNearBandEdgeOver(String edge) {
     return '刚刚超过 $edge，请确认尺寸';
+  }
+
+  @override
+  String warnNearBandEdgeUnder(String edge) {
+    return '刚刚不到 $edge，请确认尺寸';
   }
 
   @override
@@ -310,6 +315,9 @@ class LZh extends L {
 
   @override
   String get measureRefusedNoLine => '这一项不属于这单。';
+
+  @override
+  String get measureRefusedMissingHeight => '这一项还需要高度，请填写后再保存。';
 
   @override
   String warnBandBothPrices(String lower, String lowerPrice, String upper) {

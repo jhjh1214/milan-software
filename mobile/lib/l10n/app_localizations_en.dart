@@ -227,8 +227,13 @@ class LEn extends L {
   }
 
   @override
-  String warnNearBandEdge(String edge) {
+  String warnNearBandEdgeOver(String edge) {
     return 'Just over $edge. Please check the size.';
+  }
+
+  @override
+  String warnNearBandEdgeUnder(String edge) {
+    return 'Just under $edge. Please check the size.';
   }
 
   @override
@@ -317,6 +322,10 @@ class LEn extends L {
 
   @override
   String get measureRefusedNoLine => 'That line is not on this order.';
+
+  @override
+  String get measureRefusedMissingHeight =>
+      'This line still needs a height. Fill it in, then save.';
 
   @override
   String warnBandBothPrices(String lower, String lowerPrice, String upper) {

@@ -482,11 +482,17 @@ abstract class L {
   /// **'高度只有 {value}，确认吗？'**
   String warnDropVeryShort(String value);
 
-  /// No description provided for @warnNearBandEdge.
+  /// No description provided for @warnNearBandEdgeOver.
   ///
   /// In zh, this message translates to:
   /// **'刚刚超过 {edge}，请确认尺寸'**
-  String warnNearBandEdge(String edge);
+  String warnNearBandEdgeOver(String edge);
+
+  /// No description provided for @warnNearBandEdgeUnder.
+  ///
+  /// In zh, this message translates to:
+  /// **'刚刚不到 {edge}，请确认尺寸'**
+  String warnNearBandEdgeUnder(String edge);
 
   /// No description provided for @warnImplausibleSize.
   ///
@@ -619,6 +625,12 @@ abstract class L {
   /// In zh, this message translates to:
   /// **'这一项不属于这单。'**
   String get measureRefusedNoLine;
+
+  /// No description provided for @measureRefusedMissingHeight.
+  ///
+  /// In zh, this message translates to:
+  /// **'这一项还需要高度，请填写后再保存。'**
+  String get measureRefusedMissingHeight;
 
   /// No description provided for @warnBandBothPrices.
   ///

@@ -46,13 +46,14 @@ void main() {
       expect(warnings, isEmpty);
     });
 
-    test('every non-mm unit suggests mm when implausibly large', () {
-      for (final unit in [
-        LengthUnit.inch,
-        LengthUnit.foot,
-        LengthUnit.m,
-        LengthUnit.cm,
-      ]) {
+    test('a unit suggests mm only when the RAW number typed supports it', () {
+      // 70000mm entered in each unit recovers a different raw number —
+      // 2755.9 inches, 229.7 feet, 70 metres, 7000 centimetres. Only the
+      // ones whose raw count is itself squarely mm-scale (§5.3's ambiguous
+      // band is 50–300; clear of it going up) get the suggestion. The
+      // others were never a believable "meant millimetres" typo, so
+      // suggesting one would be a guess with nothing behind it.
+      for (final unit in [LengthUnit.inch, LengthUnit.cm]) {
         final warnings = checkDimension(
           value: Length.mm(70000),
           enteredUnit: unit,
@@ -65,6 +66,47 @@ void main() {
           reason: '$unit should suggest mm',
         );
       }
+      for (final unit in [LengthUnit.foot, LengthUnit.m]) {
+        final warnings = checkDimension(
+          value: Length.mm(70000),
+          enteredUnit: unit,
+          unitWasExplicit: false,
+          isSecondDimension: false,
+        );
+        expect(
+          warnings,
+          isEmpty,
+          reason:
+              '$unit\'s raw count here is not plausibly millimetres, so '
+              'there is no honest suggestion to make',
+        );
+      }
+    });
+
+    test('a real 21ft window is not told it might be 21 millimetres', () {
+      // The bug report this fixes: 21 is a completely ordinary foot count
+      // for a curtain, and "did you mean 21mm?" is not a fix anybody who
+      // typed a real window ever meant.
+      final warnings = checkDimension(
+        value: ft(21),
+        enteredUnit: LengthUnit.foot,
+        unitWasExplicit: false,
+        isSecondDimension: false,
+      );
+      expect(warnings, isEmpty);
+    });
+
+    test('a bare 2000 is exactly the scale a floor plan uses', () {
+      // The client's own words: a typical floor-plan number, and the
+      // fix this heuristic exists to offer.
+      final value = Length.of(Rational.fromInt(2000), LengthUnit.foot);
+      final warnings = checkDimension(
+        value: value,
+        enteredUnit: LengthUnit.foot,
+        unitWasExplicit: false,
+        isSecondDimension: false,
+      );
+      expect(warnings.single.suggestedUnit, LengthUnit.mm);
     });
 
     test(

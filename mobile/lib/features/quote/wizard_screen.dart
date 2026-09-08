@@ -50,6 +50,21 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
   /// Upgrade variant -> the line id it created, so a second tap removes it.
   final Map<String, String> _addedUpgrades = {};
 
+  /// Auto-added variant -> the upgrade variant whose `auto_adds` brought it
+  /// in, so taking that upgrade off takes only what it actually brought.
+  ///
+  /// A variant reachable via `auto_adds` (a motor track, say) is also
+  /// independently selectable on its own — `upgradesFor` offers it either
+  /// way. A customer who hand-picks it first, then adds the motor that would
+  /// have brought it, must not have it deleted when the motor comes back
+  /// off: the motor never created that line, so it is not the motor's to
+  /// remove.
+  final Map<String, String> _autoAddedBy = {};
+
+  /// Upgrade variants with a toggle in flight, so a double tap before the
+  /// first write lands cannot add — or remove — the same line twice.
+  final Set<String> _togglingUpgrades = {};
+
   String _rawWidth = '';
   String _rawHeight = '';
   LengthUnit _widthUnit = LengthUnit.foot;
@@ -392,9 +407,18 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
     DimensionWarningKind.dropVeryShort => l.warnDropVeryShort(
       '${parseLength(_rawHeight, _heightUnit)?.length.mm ?? 0}mm',
     ),
-    DimensionWarningKind.nearBandEdge => l.warnNearBandEdge(
-      '${(w.bandEdgeTmm ?? 0) ~/ 3048} ${l.unitFoot}',
-    ),
+    // §5.5's fencepost: the edge is the exclusive upper bound (A1 — exactly
+    // 10ft is still the LOWER band), so a value sitting just below it is
+    // genuinely "under", not "over". Saying the wrong direction here is worse
+    // than saying nothing, because it points a correction the wrong way.
+    DimensionWarningKind.nearBandEdge =>
+      w.isAboveEdge == true
+          ? l.warnNearBandEdgeOver(
+              '${(w.bandEdgeTmm ?? 0) ~/ 3048} ${l.unitFoot}',
+            )
+          : l.warnNearBandEdgeUnder(
+              '${(w.bandEdgeTmm ?? 0) ~/ 3048} ${l.unitFoot}',
+            ),
     // §5.5: say the number back in metres. "8000in" reads as a plausible
     // number; "203m" does not, and that is the whole point of showing it.
     DimensionWarningKind.implausibleForCategory => l.warnImplausibleSize(
@@ -493,39 +517,61 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
   Future<void> _toggleUpgrade(RateCard card, PricingRule upgrade) async {
     if (upgrade.mandatory) return;
 
-    final existing = _addedUpgrades[upgrade.variant];
-    if (existing != null) {
-      await ref.read(quoteProvider.notifier).removeLine(existing);
-      if (!mounted) return;
-      setState(() => _addedUpgrades.remove(upgrade.variant));
-
-      // What it brought with it goes too. A motor track left behind after the
-      // motor came off is RM40 a foot for something nobody is driving.
-      for (final variant in upgrade.autoAdds) {
-        final brought = _addedUpgrades[variant];
-        if (brought == null) continue;
-        await ref.read(quoteProvider.notifier).removeLine(brought);
+    // A second tap landing before the first write finishes must not add — or
+    // remove — the line twice: `_addedUpgrades` is only updated after the
+    // `await` below resolves, so two taps in that window would both see the
+    // same starting state.
+    if (_togglingUpgrades.contains(upgrade.variant)) return;
+    _togglingUpgrades.add(upgrade.variant);
+    try {
+      final existing = _addedUpgrades[upgrade.variant];
+      if (existing != null) {
+        await ref.read(quoteProvider.notifier).removeLine(existing);
         if (!mounted) return;
-        setState(() => _addedUpgrades.remove(variant));
+        setState(() {
+          _addedUpgrades.remove(upgrade.variant);
+          _autoAddedBy.remove(upgrade.variant);
+        });
+
+        // What it brought with it goes too — but only what THIS upgrade
+        // actually brought. A variant in `auto_adds` is also independently
+        // selectable, so a customer may have hand-picked a motor track
+        // before ever adding the motor; the motor never created that line,
+        // so it is not the motor's to remove.
+        for (final variant in upgrade.autoAdds) {
+          if (_autoAddedBy[variant] != upgrade.variant) continue;
+          final brought = _addedUpgrades[variant];
+          if (brought == null) continue;
+          await ref.read(quoteProvider.notifier).removeLine(brought);
+          if (!mounted) return;
+          setState(() {
+            _addedUpgrades.remove(variant);
+            _autoAddedBy.remove(variant);
+          });
+        }
+        return;
       }
-      return;
-    }
 
-    await _addUpgrade(card, upgrade);
-    if (!mounted) return;
-
-    // A motorised curtain needs a motor track, charged on the curtain's own
-    // width. Choosing the motor and forgetting the track quotes a motor with
-    // nothing to drive, so the track comes with it rather than being
-    // remembered.
-    for (final variant in upgrade.autoAdds) {
-      if (_addedUpgrades.containsKey(variant)) continue;
-      final rule = card
-          .upgradesFor(_product!)
-          .where((r) => r.variant == variant);
-      if (rule.isEmpty) continue;
-      await _addUpgrade(card, rule.first);
+      await _addUpgrade(card, upgrade);
       if (!mounted) return;
+
+      // A motorised curtain needs a motor track, charged on the curtain's own
+      // width. Choosing the motor and forgetting the track quotes a motor
+      // with nothing to drive, so the track comes with it rather than being
+      // remembered — unless it is already on the quote, hand-picked or
+      // brought by something else, in which case it is left exactly as it is.
+      for (final variant in upgrade.autoAdds) {
+        if (_addedUpgrades.containsKey(variant)) continue;
+        final rule = card
+            .upgradesFor(_product!)
+            .where((r) => r.variant == variant);
+        if (rule.isEmpty) continue;
+        await _addUpgrade(card, rule.first);
+        if (!mounted) return;
+        setState(() => _autoAddedBy[variant] = upgrade.variant);
+      }
+    } finally {
+      _togglingUpgrades.remove(upgrade.variant);
     }
   }
 
