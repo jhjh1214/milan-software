@@ -63,6 +63,20 @@ function withoutComments(html) {
   return html.replace(/<!--[\s\S]*?-->/g, '');
 }
 
+/**
+ * The text of the standalone component's own `imports: [...]` array.
+ *
+ * Not "does the file mention this module anywhere" — a component can
+ * `import { FormsModule } from '@angular/forms'` at the top and never add it
+ * to `imports:`, which compiles, and is the exact same silent-nothing bug
+ * this file exists to catch, one level removed. Empty when there is no
+ * `@Component` decorator with an `imports` array to find.
+ */
+function importsArray(ts) {
+  const match = ts.match(/imports\s*:\s*\[([^\]]*)\]/s);
+  return match ? match[1] : '';
+}
+
 const problems = [];
 
 for (const path of templates(src)) {
@@ -76,9 +90,10 @@ for (const path of templates(src)) {
     continue;
   }
 
+  const declared = importsArray(ts);
   for (const need of NEEDS) {
     if (!html.includes(need.binding)) continue;
-    if (ts.includes(need.module)) continue;
+    if (declared.includes(need.module)) continue;
     problems.push(
       `${path}\n  uses ${need.binding} but ${component} does not import ${need.module}.\n  ${need.why}`,
     );

@@ -64,6 +64,15 @@ export class People {
   protected readonly failure = signal<Failure | null>(null);
 
   /**
+   * A write is in flight. Bug hunt, 2026-09-09: none of add/deactivate/
+   * reactivate had one, so a double click (or a double Enter) before the
+   * first request's response landed fired the request twice — the same
+   * shape of gap `order-detail.ts`'s buyer form already closes with its own
+   * `savingBuyer`.
+   */
+  protected readonly saving = signal(false);
+
+  /**
    * What just happened, as what happened rather than as a sentence.
    *
    * The same reasoning as a failure: a note composed at the moment of the
@@ -147,6 +156,7 @@ export class People {
 
   protected readonly canAdd = computed(
     () =>
+      !this.saving() &&
       this.name().trim().length > 0 &&
       this.phone().trim().length > 0 &&
       this.pin().length > 0,
@@ -161,6 +171,7 @@ export class People {
   protected add(): void {
     if (!this.canAdd()) return;
     this.failure.set(null);
+    this.saving.set(true);
 
     this.api
       .addPerson({
@@ -177,10 +188,14 @@ export class People {
           this.phone.set('');
           this.role.set('parttime');
           this.adding.set(false);
+          this.saving.set(false);
           this.note.set({ kind: 'added', name: person.name });
           this.load();
         },
-        error: (err: unknown) => this.failure.set(failureOf(err)),
+        error: (err: unknown) => {
+          this.saving.set(false);
+          this.failure.set(failureOf(err));
+        },
       });
   }
 
@@ -202,6 +217,7 @@ export class People {
    * name, not that they can reproduce its capitals.
    */
   protected readonly nameMatches = computed(() => {
+    if (this.saving()) return false;
     const person = this.confirming();
     if (person === null) return false;
     return this.typedName().trim().toLowerCase() === person.name.toLowerCase();
@@ -212,10 +228,12 @@ export class People {
     if (person === null || !this.nameMatches()) return;
 
     this.failure.set(null);
+    this.saving.set(true);
     this.api.deactivate(person.id).subscribe({
       next: (out) => {
         this.confirming.set(null);
         this.typedName.set('');
+        this.saving.set(false);
         this.note.set({
           kind: 'deactivated',
           name: person.name,
@@ -223,20 +241,29 @@ export class People {
         });
         this.load();
       },
-      error: (err: unknown) => this.failure.set(failureOf(err)),
+      error: (err: unknown) => {
+        this.saving.set(false);
+        this.failure.set(failureOf(err));
+      },
     });
   }
 
   protected reactivate(person: PersonOut): void {
+    if (this.saving()) return;
     this.failure.set(null);
+    this.saving.set(true);
     this.api.reactivate(person.id).subscribe({
       next: () => {
         // Said out loud: their old handsets stay signed out, so somebody
         // expecting the phone in the drawer to work again is told otherwise.
+        this.saving.set(false);
         this.note.set({ kind: 'reactivated', name: person.name });
         this.load();
       },
-      error: (err: unknown) => this.failure.set(failureOf(err)),
+      error: (err: unknown) => {
+        this.saving.set(false);
+        this.failure.set(failureOf(err));
+      },
     });
   }
 

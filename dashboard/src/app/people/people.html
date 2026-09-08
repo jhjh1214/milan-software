@@ -111,11 +111,19 @@
                    the app. The server refuses it too. -->
               <span class="muted">{{ t().people.you }}</span>
             } @else if (person.is_active) {
-              <button type="button" (click)="startDeactivating(person)">
+              <button
+                type="button"
+                [disabled]="saving()"
+                (click)="startDeactivating(person)"
+              >
                 {{ t().people.removeAccess }}
               </button>
             } @else {
-              <button type="button" (click)="reactivate(person)">
+              <button
+                type="button"
+                [disabled]="saving()"
+                (click)="reactivate(person)"
+              >
                 {{ t().people.letBackIn }}
               </button>
             }

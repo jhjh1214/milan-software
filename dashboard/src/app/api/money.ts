@@ -57,8 +57,13 @@ export function daysUntil(iso: string | null, now: Date = new Date()): number | 
   const then = new Date(iso);
   if (Number.isNaN(then.getTime())) return null;
 
-  const a = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-  const b = Date.UTC(then.getUTCFullYear(), then.getUTCMonth(), then.getUTCDate());
+  // Local calendar days, matching `formatDate` above — this office reads
+  // "today" in Asia/Kuala_Lumpur, not UTC. Bucketing on the UTC calendar
+  // instead moved every card's day count (and so its amber/red colour) by
+  // one for the eight hours between midnight and 8am local, since KL is
+  // UTC+8 and has already turned its page while UTC has not.
+  const a = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const b = Date.UTC(then.getFullYear(), then.getMonth(), then.getDate());
   return Math.round((b - a) / 86_400_000);
 }
 

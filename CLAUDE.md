@@ -125,6 +125,47 @@ warning is suppressed entirely rather than guess, matching §5.3's existing
 "do not guess unit from magnitude" rule — this only changes which one-tap
 fix a warning offers, never what a value is interpreted as.
 
+**A second bug hunt, this one on `dashboard/` — the area the first sweep
+explicitly skipped.** Full detail in `FINDINGS.md`'s second dated section.
+Five of six fixed:
+
+- **Publishing a card could go out against a diff describing different
+  text.** `stage` stays `'editing'` for the whole preview round trip, so an
+  edit or a list switch landing while one was in flight saw nothing to
+  invalidate — then the response arrived and stamped `'previewed'` over text
+  it never priced. The one thing that screen's own doc comment says it
+  exists to prevent. A `previewSeq` counter now tags each request and
+  discards a response overtaken by a later edit.
+- **A hold's amber/red colour depended on what hour the office opened the
+  board.** `daysUntil` bucketed **UTC** calendar days for "now" while
+  `formatDate` right next to it correctly used local ones — for the eight
+  hours between midnight and 8am in Kuala Lumpur (UTC+8), the two clocks
+  disagree about what day it is. Now both read local fields, and
+  `money.spec.ts` pins `TZ=Asia/Kuala_Lumpur` for the whole file so the
+  suite can't pass by accident of whatever timezone runs it.
+- **None of `people.ts`'s three write actions (add, deactivate, reactivate)
+  guarded against a request already in flight** — a double click before the
+  first response landed could fire the same POST twice. A `saving` signal
+  now gates all three, matching the guard `order-detail.ts`'s buyer form
+  already had.
+- **`check-templates.mjs` itself had a gap in the exact thing it exists to
+  catch**: it decided a module was "imported" by a substring match against
+  the whole file, so a component that imports `FormsModule` but never adds
+  it to its own `imports: [...]` array would pass. Now checks inside that
+  array specifically.
+- **CLAUDE.md itself was wrong.** It claimed an admin could "change a PIN"
+  from the dashboard; no dashboard code does this — only the backend and its
+  CLI can. Reworded rather than built, since whether a dashboard should let
+  an admin reset someone else's PIN at all is a real product question, not
+  a one-line gap.
+
+One left open: `order-board.ts`'s doc comment quotes SPEC.md's original
+"filter by channel/project/salesperson/fair" wishlist, but only channel and
+status are implemented. Genuinely ambiguous whether that is an oversight or
+a deliberate subset (no §13 entry says either way), and building the missing
+filters is a real feature addition, not a bug fix — left as a question
+rather than guessed at.
+
 - **The handset form.** Without it an order over RM10,000 was *stuck* —
   `advanceOrder` refused to move it and nothing could supply what the refusal
   asked for. The refusal now opens the form, and the form is also reachable
@@ -226,7 +267,7 @@ trilingual PDF.
 Built and green on the server: the Python engine passing the same fixtures, the
 sync endpoints, Alembic migrations with a test that they match the models, users
 and roles, and rate card publishing. **873 Dart tests, 640 Python tests,
-243 dashboard tests.** 100% coverage on `Length`, `Money` and `Rational`.
+249 dashboard tests.** 100% coverage on `Length`, `Money` and `Rational`.
 
 **An upgrade is only offered where it can belong** (client, Sep 2026). Four
 add-ons carried `attaches_to: null`, which the wizard reads as *offer this on
@@ -424,9 +465,19 @@ keep loading the old app after a deploy. Both fixed, both now checked in the
 release job.
 
 **Users and roles are in**, on both sides. An admin who is already signed in
-can add people, change a PIN, and remove access; the **first** admin still needs
-shell access, so no bar was lowered — and a real one was raised, because the
-alternative is the boss keeping one shared login that reaches every handset.
+can add people and remove access from the dashboard; the **first** admin still
+needs shell access, so no bar was lowered — and a real one was raised, because
+the alternative is the boss keeping one shared login that reaches every
+handset.
+
+**Correction, bug hunt 2026-09-09: "change a PIN" was never actually a
+dashboard feature.** `PUT /api/people/{id}/set-pin` and `users pin --phone`
+(the CLI) both exist and work; no dashboard control ever called either —
+`people.ts`/`people.html`/`api.ts` have no PIN-change code at all, and this
+paragraph claimed one that isn't there. Not built here: whether a forgotten
+PIN should be resettable from the dashboard at all is a real question (who
+gets to see or set someone else's PIN, and how the new one reaches them
+securely) rather than a one-line gap, so it stays CLI-only until asked for.
 
 Deactivating asks for the person's name to be typed, which is §11's acceptance
 criterion. Sessions never expire (§12), so it is the only thing that stops the

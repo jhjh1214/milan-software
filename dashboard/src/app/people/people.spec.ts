@@ -193,6 +193,17 @@ describe('People', () => {
 
       expect(text()).toContain('They will have to');
     });
+
+    it('a second click before the first response lands sends only one', () => {
+      load([person({ is_active: false })]);
+      component['reactivate'](person());
+      expect(component['saving']()).toBe(true);
+
+      component['reactivate'](person());
+
+      http.expectOne('/api/people/u1/reactivate').flush(person());
+      http.expectOne('/api/people').flush({ people: [person()] });
+    });
   });
 
   describe('adding somebody', () => {
@@ -229,6 +240,22 @@ describe('People', () => {
       const req = http.expectOne('/api/people');
       expect(req.request.method).toBe('POST');
       expect(req.request.body.name).toBe('Ah Lian');
+    });
+
+    it('a second click before the first response lands sends only one', () => {
+      // Bug hunt, 2026-09-09. Nothing here disabled the button mid-request,
+      // so a double click (or a double Enter) fired the POST twice.
+      load([]);
+      component['name'].set('Ah Lian');
+      component['phone'].set('0123456789');
+      component['pin'].set('4821');
+      component['add']();
+      expect(component['canAdd']()).toBe(false);
+
+      component['add']();
+
+      http.expectOne('/api/people').flush(person());
+      http.expectOne('/api/people').flush({ people: [person()] });
     });
 
     it('will not send until there is a name, a phone and a PIN', () => {
@@ -372,6 +399,26 @@ describe('People', () => {
 
       expect(text()).toContain('2 handset(s) signed out');
       expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    });
+
+    it('a second click before the response lands sends only one deactivate', () => {
+      // Bug hunt, 2026-09-09. The button stayed enabled through the whole
+      // request, since `nameMatches` never considered one in flight.
+      load([person({ name: 'Ah Lian' }), person({ id: 'u2', name: 'Siti' })]);
+      rowButton(1).click();
+      fixture.detectChanges();
+
+      typeName('Siti');
+      click('.confirm .danger');
+      fixture.detectChanges();
+      expect(el<HTMLButtonElement>('.confirm .danger').disabled).toBe(true);
+
+      click('.confirm .danger');
+
+      http
+        .expectOne('/api/people/u2/deactivate')
+        .flush({ id: 'u2', sessions_revoked: 2 });
+      http.expectOne('/api/people').flush({ people: [person()] });
     });
 
     it('the case of the typed name does not matter, the person does', () => {

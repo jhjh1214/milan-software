@@ -116,6 +116,37 @@ describe('PublishCard', () => {
       expect(component['canPublish']()).toBe(false);
     });
 
+    it('discards a preview response for text that has since changed', () => {
+      // Bug hunt, 2026-09-09. `stage` stays 'editing' for the whole round
+      // trip, so an edit landing before the response returns saw nothing to
+      // invalidate and did nothing — then the response arrived and stamped
+      // 'previewed' over text it never described. Exactly what this screen
+      // exists to prevent, just one tick later than the original guard
+      // checked for.
+      type(CARD);
+      component['preview'](); // no flush yet — request is in flight
+      type(CARD.replace('5000', '5100')); // edits while it's outstanding
+
+      http.expectOne('/api/rate-cards/preview').flush(diff());
+      fixture.detectChanges();
+
+      expect(component['stage']()).toBe('editing');
+      expect(component['diff']()).toBeNull();
+      expect(component['canPublish']()).toBe(false);
+    });
+
+    it('discards a preview response for a list switched away from mid-flight', () => {
+      type(CARD);
+      component['preview']();
+      component['chooseList']('standard');
+
+      http.expectOne('/api/rate-cards/preview').flush(diff());
+      fixture.detectChanges();
+
+      expect(component['stage']()).toBe('editing');
+      expect(component['diff']()).toBeNull();
+    });
+
     it('refuses to publish without a preview even if called directly', () => {
       // The button is absent, and this is the second lock on the same door.
       type(CARD);

@@ -78,6 +78,19 @@ export class PublishCard {
   protected readonly publishedVersion = signal<number | null>(null);
 
   /**
+   * Bumped by every action that invalidates whatever preview is in flight.
+   *
+   * A preview request takes a round trip, and `stage` stays `'editing'`
+   * for its whole duration — so an edit or a list switch that lands while
+   * one is outstanding saw nothing to invalidate and did nothing, and the
+   * response then arrived and stamped `'previewed'` over text it never
+   * described. The one thing this screen exists to prevent, reachable
+   * because the earlier guard only checked state at the moment of the
+   * edit, never at the moment the response used it.
+   */
+  private previewSeq = 0;
+
+  /**
    * The parsed card, or null when the text is not a card yet.
    *
    * Parsed here only to catch a paste that is not JSON at all — the server
@@ -96,6 +109,7 @@ export class PublishCard {
 
   protected onText(value: string): void {
     this.text.set(value);
+    this.previewSeq++;
     // Any edit invalidates the preview. Publishing against a diff that
     // describes different text is the one thing this screen exists to prevent.
     if (this.stage() !== 'editing') {
@@ -106,6 +120,7 @@ export class PublishCard {
 
   protected chooseList(id: ListId): void {
     this.listId.set(id);
+    this.previewSeq++;
     // The same reasoning: a diff of the fair card says nothing about the
     // standard one.
     this.stage.set('editing');
@@ -126,19 +141,26 @@ export class PublishCard {
     this.busy.set(true);
     this.failure.set(null);
 
+    // Tags this specific request. If an edit or a list switch lands before
+    // the response does, `previewSeq` moves on and the response below is
+    // recognised as describing text nobody is looking at anymore.
+    const requestSeq = this.previewSeq;
+
     // The card's labels are {zh, en, ms} maps, and the server picks one. Sent
     // the reader's language rather than a literal 'en', or the diff would name
     // every product in English on a screen saying everything else in Malay.
     this.api.previewCard(this.listId(), card, this.text_.language()).subscribe({
       next: (diff) => {
+        this.busy.set(false);
+        if (requestSeq !== this.previewSeq) return;
         this.diff.set(diff);
         this.stage.set('previewed');
-        this.busy.set(false);
       },
       error: (err: unknown) => {
+        this.busy.set(false);
+        if (requestSeq !== this.previewSeq) return;
         this.diff.set(null);
         this.failure.set(failureOf(err));
-        this.busy.set(false);
       },
     });
   }
