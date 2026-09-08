@@ -456,10 +456,35 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
       await ref.read(quoteProvider.notifier).removeLine(existing);
       if (!mounted) return;
       setState(() => _addedUpgrades.remove(upgrade.variant));
+
+      // What it brought with it goes too. A motor track left behind after the
+      // motor came off is RM40 a foot for something nobody is driving.
+      for (final variant in upgrade.autoAdds) {
+        final brought = _addedUpgrades[variant];
+        if (brought == null) continue;
+        await ref.read(quoteProvider.notifier).removeLine(brought);
+        if (!mounted) return;
+        setState(() => _addedUpgrades.remove(variant));
+      }
       return;
     }
 
     await _addUpgrade(card, upgrade);
+    if (!mounted) return;
+
+    // A motorised curtain needs a motor track, charged on the curtain's own
+    // width. Choosing the motor and forgetting the track quotes a motor with
+    // nothing to drive, so the track comes with it rather than being
+    // remembered.
+    for (final variant in upgrade.autoAdds) {
+      if (_addedUpgrades.containsKey(variant)) continue;
+      final rule = card
+          .upgradesFor(_product!)
+          .where((r) => r.variant == variant);
+      if (rule.isEmpty) continue;
+      await _addUpgrade(card, rule.first);
+      if (!mounted) return;
+    }
   }
 
   /// Adds one upgrade line on top of the parent.
@@ -575,11 +600,19 @@ class _UpgradeStep extends ConsumerWidget {
                     // A required add-on says why it is there instead of what
                     // is still to be decided about it. It is on the quote, it
                     // is charged, and nothing about it is a choice.
+                    //
+                    // Where there IS a choice, name it. Somfy and AOK are the
+                    // same motor at two qualities, and "material chosen at
+                    // measurement" does not tell a customer asking what their
+                    // options are. Composed here rather than as a message with
+                    // a placeholder — CLAUDE.md, three times over.
                     subtitle: rule.mandatory
                         ? l.upgradeRequired
-                        : card.materialsFor(rule.variant).length > 1
-                        ? l.materialLater
-                        : null,
+                        : switch (card.materialsFor(rule.variant)) {
+                            final options when options.length > 1 =>
+                              '${l.materialLater}: ${options.join(' / ')}',
+                            _ => null,
+                          },
                     selected: added.containsKey(rule.variant),
                     locked: rule.mandatory,
                     onTap: () => onToggle(card, rule),

@@ -224,9 +224,20 @@ void main() {
       expect(issues.map((i) => i.rule.target), contains('motor'));
     });
 
-    test('an intermediate joint with a motor is fine', () {
+    test('a motor with no motor track is flagged', () {
+      // Client, Sep 2026: a motorised curtain needs a motor track, charged on
+      // its width. The wizard adds it, and this is the net under that: a quote
+      // that lost the track still says so rather than going out with a motor
+      // driving nothing.
+      final issues = checkOrderRules(lines: [line('motor')], card: card);
+      expect(issues.map((i) => i.rule.target), contains('motor_track'));
+    });
+
+    test('an intermediate joint with a motor and its track is fine', () {
+      // The joint needs a motor, and the motor needs its track. All three
+      // present is the shape the wizard actually produces.
       final issues = checkOrderRules(
-        lines: [line('intermediate_joint'), line('motor')],
+        lines: [line('intermediate_joint'), line('motor'), line('motor_track')],
         card: card,
       );
       expect(issues, isEmpty);

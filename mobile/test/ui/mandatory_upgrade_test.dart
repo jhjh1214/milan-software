@@ -162,4 +162,46 @@ void main() {
 
     expect(await variantsOnTheQuote(), ['night_curtain']);
   });
+
+  group('a motorised curtain brings its track', () {
+    // Client, Sep 2026: "for the motorised track should be auto added". RM40
+    // a running foot, on the curtain's own width. A motor with no track is a
+    // motor with nothing to drive, and the person who forgets is the one at a
+    // fair with a customer waiting.
+
+    Future<void> tapMotor(WidgetTester tester) async {
+      await tester.scrollUntilVisible(
+        find.text('马达'),
+        120,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('马达'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('choosing the motor adds the motor track too', (tester) async {
+      await pumpApp(tester);
+      await reachUpgrades(tester, family: '窗帘', product: '夜帘（遮光）');
+      await tapMotor(tester);
+
+      expect(await variantsOnTheQuote(), [
+        'night_curtain',
+        'motor',
+        'motor_track',
+      ]);
+    });
+
+    testWidgets('taking the motor off takes its track with it', (tester) async {
+      // Otherwise the quote keeps RM40 a foot for a track driving nothing,
+      // and it is the line nobody looks at twice.
+      await pumpApp(tester);
+      await reachUpgrades(tester, family: '窗帘', product: '夜帘（遮光）');
+      await tapMotor(tester);
+      expect(await variantsOnTheQuote(), hasLength(3));
+
+      await tapMotor(tester);
+
+      expect(await variantsOnTheQuote(), ['night_curtain']);
+    });
+  });
 }

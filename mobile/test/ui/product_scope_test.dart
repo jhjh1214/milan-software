@@ -140,12 +140,68 @@ void main() {
       }
     });
 
-    test('the motor and its remote belong to an indoor curtain', () {
+    test('the motor and its remote belong to a curtain on a track', () {
       // Client, Sep 2026: the generic motor is for indoor curtains. Every
       // outdoor product either carries its own named motor row or is manual.
       final upgrades = upgradeIdsFor('night-curtain-lo');
       expect(upgrades, contains('motor'));
       expect(upgrades, contains('remote-control'));
+    });
+
+    test('nothing motorised is offered on a curtain hanging from a rod', () {
+      // Client, Sep 2026: "exclude motor selection if it's for rod design".
+      // A motor track replaces the track, and there is nothing to replace on
+      // an eyelet curtain hanging from an iron rod — so RM800 of motor there
+      // is quoting something that cannot be fitted.
+      for (final rod in [
+        'iron-rod-sgp-lo',
+        'iron-rod-eyelet-lo',
+        'wooden-rod-sgp-lo',
+        'wooden-rod-eyelet-lo',
+      ]) {
+        final upgrades = upgradeIdsFor(rod);
+        expect(upgrades, isNot(contains('motor')), reason: rod);
+        expect(upgrades, isNot(contains('remote-control')), reason: rod);
+        expect(upgrades, isNot(contains('intermediate-joint')), reason: rod);
+      }
+    });
+
+    test('a rod curtain is still offered its rods and tracks', () {
+      // The scoping must not take the whole upgrade step away from them.
+      expect(upgradeIdsFor('iron-rod-eyelet-lo'), contains('iron-rod-19'));
+    });
+
+    test('the motor brings its track with it', () {
+      // Client, Sep 2026: "for the motorised track should be auto added".
+      // RM40 a running foot on the curtain's own width. A motor with no track
+      // is a motor with nothing to drive.
+      expect(ruleFor('motor').autoAdds, ['motor_track']);
+      expect(ruleFor('motor-track').rateSen, 4000);
+      // And it has to be reachable as an upgrade on the same curtain, or the
+      // auto-add silently finds nothing.
+      expect(upgradeIdsFor('night-curtain-lo'), contains('motor-track'));
+    });
+
+    test('and the quote says so if the track is taken off again', () {
+      // The safety net behind the auto-add. §4.1's order rules are returned,
+      // not thrown: a missing track is a reason to tell the salesperson, not
+      // to refuse the sale.
+      final rule = card.productRules.firstWhere(
+        (r) => r.id == 'pr-motor-track',
+      );
+      expect(rule.variant, 'motor');
+      expect(rule.target, 'motor_track');
+      expect(rule.kind, 'requires');
+    });
+
+    test('the outdoor roller motor names its two qualities', () {
+      // Client, Sep 2026: Somfy and AOK are the same motor at two qualities,
+      // so the tile has to say what the choice is. §13 B7 still defers the
+      // pick to measurement and quotes the dearest, which keeps §8.5's
+      // promise — the price can only fall when they choose.
+      expect(card.materialsFor('outdoor_roller_motor'), ['aok', 'somfy']);
+      expect(ruleFor('outdoor-roller-motor-somfy').rateSen, 180000);
+      expect(ruleFor('outdoor-roller-motor-aok').rateSen, 100000);
     });
 
     test('an outdoor blind is offered its own motor, not the generic one', () {

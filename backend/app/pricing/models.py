@@ -206,6 +206,16 @@ class PricingRule:
     #: Nothing here prices differently. A mandatory add-on is an ordinary line
     #: once it exists; this only decides who put it there.
     mandatory: bool = False
+
+    #: Variants added alongside this one, because it does not work without them.
+    #:
+    #: Client, Sep 2026 -- a motorised curtain needs a motor track, charged on
+    #: the curtain's own width. Choosing the motor and forgetting the track
+    #: quotes a motor with nothing to drive.
+    #:
+    #: Distinct from ``mandatory``, which is about the **parent product**: this
+    #: is one upgrade bringing another with it.
+    auto_adds: tuple[str, ...] = ()
     note: str | None = None
 
     @classmethod
@@ -246,6 +256,7 @@ class PricingRule:
             is_addon=data.get("is_addon", False),
             attaches_to=tuple(attaches) if attaches else None,
             mandatory=data.get("mandatory", False),
+            auto_adds=tuple(data.get("auto_adds") or ()),
             note=data.get("note"),
         )
 

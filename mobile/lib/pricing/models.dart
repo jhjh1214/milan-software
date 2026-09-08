@@ -287,6 +287,17 @@ class PricingRule {
   /// it exists; this only decides who put it there.
   final bool mandatory;
 
+  /// Variants added alongside this one, because it does not work without them.
+  ///
+  /// Client, Sep 2026 — a motorised curtain needs a motor track, charged on
+  /// the curtain's own width. Choosing the motor and forgetting the track
+  /// quotes a motor with nothing to drive.
+  ///
+  /// Distinct from [mandatory], which is about the **parent product**: this is
+  /// one upgrade bringing another with it. Taking the first off takes the
+  /// second with it, or the quote keeps a track for a motor nobody bought.
+  final List<String> autoAdds;
+
   /// Free text from the price list — series, warranty, openness. Not priced.
   final String? note;
 
@@ -316,6 +327,7 @@ class PricingRule {
     this.isAddon = false,
     this.attachesTo,
     this.mandatory = false,
+    this.autoAdds = const [],
     this.note,
   });
 
@@ -361,6 +373,11 @@ class PricingRule {
           ?.map((e) => e as String)
           .toList(growable: false),
       mandatory: json['mandatory'] as bool? ?? false,
+      autoAdds:
+          (json['auto_adds'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList(growable: false) ??
+          const [],
       note: json['note'] as String?,
     );
   }
