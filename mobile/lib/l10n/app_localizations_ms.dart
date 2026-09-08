@@ -105,6 +105,13 @@ class LMs extends L {
       'Disebut harga pada bahan termahal. Pilihan lebih murah menurunkannya.';
 
   @override
+  String get wallpaperMeasureHint =>
+      'Pilihan — masukkan saiz dinding untuk semak jika lebih daripada satu pek diperlukan';
+
+  @override
+  String get wallpaperUnmeasured => 'tidak diukur';
+
+  @override
   String stepProgress(int current, int total, String room) {
     return 'Tingkap $current daripada $total · $room';
   }
@@ -170,6 +177,9 @@ class LMs extends L {
 
   @override
   String get unitSqft => 'kaki persegi';
+
+  @override
+  String get unitPack => 'pek';
 
   @override
   String billedAs(String qty, String unit) {

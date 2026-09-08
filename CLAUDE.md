@@ -22,6 +22,21 @@ accountant's ruling on **E2**, and §13 **C12** and **C13** decide where the
 guard bites and which fields MyInvois actually rejects. Do not guess any of the
 four. Everything else on Phase 7's "In" list is built.
 
+**§13 A25 is answered and built** (client, Sep 2026). Korea wallpaper does not
+have to be measured at the fair — leaving it blank quotes the default one
+pack, RM800, and measuring it **auto-bills** whatever the wall needs, ceiled
+to whole packs, never a suggestion left for somebody to apply by hand. Final
+pricing is untouched: a per_roll line still refuses without a real
+measurement once the site has been seen, the same as every other basis — the
+engine change is stage-gated on `PricingStage.estimate` alone. Wallpaper's
+`per_roll` unit stopped printing the raw wire word `roll` and now shows the
+localised "pack" (zh/en/ms), since it is a live, customer-facing basis rather
+than the deferred perPiece/perSet ones. Both engines, the wizard's Done
+gating, the quote screen and PDF, and the revised-order document all changed;
+`shared/pricing-fixtures.json` carries the new default-pack case as the
+three-way contract, and each engine separately tests the final-stage refusal
+that the shared-fixture format has no way to express.
+
 - **The handset form.** Without it an order over RM10,000 was *stuck* —
   `advanceOrder` refused to move it and nothing could supply what the refusal
   asked for. The refusal now opens the form, and the form is also reachable
@@ -122,7 +137,7 @@ trilingual PDF.
 
 Built and green on the server: the Python engine passing the same fixtures, the
 sync endpoints, Alembic migrations with a test that they match the models, users
-and roles, and rate card publishing. **853 Dart tests, 625 Python tests,
+and roles, and rate card publishing. **860 Dart tests, 628 Python tests,
 243 dashboard tests.** 100% coverage on `Length`, `Money` and `Rational`.
 
 **An upgrade is only offered where it can belong** (client, Sep 2026). Four

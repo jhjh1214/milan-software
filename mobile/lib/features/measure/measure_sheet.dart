@@ -88,7 +88,14 @@ class _MeasureSheetState extends ConsumerState<MeasureSheet> {
     final widthParsed = parseLength(_rawWidth, _widthUnit);
     final heightParsed = parseLength(_rawHeight, _heightUnit);
 
-    final needsHeight = line.estHeightTmm != null;
+    // §13 A25: a wallpaper line can reach measurement with no quoted height
+    // at all — the fair let it default to one pack. Final pricing still
+    // needs the real wall, so per_roll asks regardless of what the quote
+    // recorded. Every other basis keeps the existing rule: it needed a
+    // height at the fair, so it needs one here.
+    final needsHeight = _rule?.basis == PriceBasis.perRoll
+        ? true
+        : line.estHeightTmm != null;
     final materials = card?.materialsFor(line.variant) ?? const <String>[];
     final mustChooseMaterial = line.materialDeferred && materials.length > 1;
 
@@ -117,7 +124,12 @@ class _MeasureSheetState extends ConsumerState<MeasureSheet> {
                 // `9' × 12'` for a 12ft-wide window — on the one screen whose
                 // whole job is to catch a wrong dimension.
                 l.measureQuotedAs(
-                  line.estHeightTmm == null
+                  // §13 A25: a per_roll line quoted with no wall size at all
+                  // has nothing here worth calling a dimension.
+                  _rule?.basis == PriceBasis.perRoll &&
+                          line.estHeightTmm == null
+                      ? l.wallpaperUnmeasured
+                      : line.estHeightTmm == null
                       ? displayLength(line.estWidthTmm)
                       : '${displayLength(line.estWidthTmm)} × '
                             '${displayLength(line.estHeightTmm!)}',
@@ -141,7 +153,12 @@ class _MeasureSheetState extends ConsumerState<MeasureSheet> {
                 _rawWidth,
                 _widthUnit,
                 widthParsed,
-                line.estWidthTmm,
+                // A per_roll line quoted with no wall size stored a sentinel
+                // zero for the required width column — not a real estimate
+                // to hold this field to.
+                _rule?.basis == PriceBasis.perRoll && line.estHeightTmm == null
+                    ? null
+                    : line.estWidthTmm,
               ),
               if (needsHeight) ...[
                 const SizedBox(height: Space.sm),

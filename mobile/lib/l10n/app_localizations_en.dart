@@ -105,6 +105,13 @@ class LEn extends L {
       'Quoted at the dearest material. A cheaper choice lowers this.';
 
   @override
+  String get wallpaperMeasureHint =>
+      'Optional — enter the wall size to check whether more than one pack is needed';
+
+  @override
+  String get wallpaperUnmeasured => 'not measured';
+
+  @override
   String stepProgress(int current, int total, String room) {
     return 'Window $current of $total · $room';
   }
@@ -170,6 +177,9 @@ class LEn extends L {
 
   @override
   String get unitSqft => 'sqft';
+
+  @override
+  String get unitPack => 'pack';
 
   @override
   String billedAs(String qty, String unit) {

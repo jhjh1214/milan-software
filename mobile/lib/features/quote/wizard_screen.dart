@@ -225,7 +225,16 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
             ),
     );
 
-    final canAdd = widthParsed != null && heightParsed != null;
+    // §13 A25: Korea wallpaper does not have to be measured at all — "normally
+    // just do one set of two rolls". Leaving both fields blank quotes the
+    // default pack; filling in a wall size suggests, and auto-bills, however
+    // many packs it actually needs. A half-filled pair still blocks Done,
+    // the same as every other product.
+    final isPerRoll = product.basis == PriceBasis.perRoll;
+    final bothBlank = _rawWidth.isEmpty && _rawHeight.isEmpty;
+    final canAdd = isPerRoll
+        ? bothBlank || (widthParsed != null && heightParsed != null)
+        : widthParsed != null && heightParsed != null;
 
     return Column(
       children: [
@@ -287,6 +296,15 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
                   warningActionLabel: (w) => _warningAction(l, w),
                   onWarningAction: (w) => _applyWarning(w, _Field.height),
                 ),
+                if (isPerRoll) ...[
+                  const SizedBox(height: Space.sm),
+                  Text(
+                    l.wallpaperMeasureHint,
+                    style: AppText.caption.copyWith(
+                      color: AppColors.mutedForeground,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -348,6 +366,16 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
                 '${areaSqft(width.length, height.length).ceilToInt()}',
                 unit,
               ),
+      // §13 A25: the wall size is a suggestion, not a requirement — shown
+      // only once both fields are entered, and it is what actually gets
+      // billed if it needs more than the default one pack.
+      PriceBasis.perRoll =>
+        height == null || product.coverageSqft == null
+            ? ''
+            : l.billedAs(
+                '${(areaSqft(width.length, height.length) / product.coverageSqft!).ceilToInt()}',
+                unit,
+              ),
       _ => '',
     };
   }
@@ -405,8 +433,12 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
   }
 
   Future<void> _add(RateCard card) async {
-    final width = parseLength(_rawWidth, _widthUnit)!;
-    final height = parseLength(_rawHeight, _heightUnit)!;
+    // §13 A25: a per_roll product can reach here with both fields left
+    // blank — the default is one pack, not a measured wall. `Length.zero`
+    // is the sentinel width the engine never reads once height is null.
+    final width = parseLength(_rawWidth, _widthUnit);
+    final height = parseLength(_rawHeight, _heightUnit);
+    final measured = height != null;
     final id = await ref
         .read(quoteProvider.notifier)
         .addLine(
@@ -414,19 +446,29 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
           variant: _product!.variant,
           materialKey: _deferMaterial ? null : _product!.materialKey,
           layer: _product!.layer,
-          width: width.length,
-          height: height.length,
-          rawWidth: width.raw,
-          rawHeight: height.raw,
+          width: width?.length ?? Length.zero,
+          height: height?.length,
+          rawWidth: width?.raw ?? '',
+          rawHeight: height?.raw ?? '',
         );
     if (!mounted) return;
 
     _parentLineId = id;
 
+    // An upgrade priced on "the same square footage" (dismantling, for one)
+    // has no square footage to copy from a wall nobody measured. Offering it
+    // would crash the moment somebody tapped it, so a skipped measurement
+    // skips the upgrade step entirely rather than pretending there is
+    // nothing to add.
+    if (id == null || !measured) {
+      Navigator.of(context).pop();
+      return;
+    }
+
     // Offer upgrades only where the card actually has some. A step that says
     // "nothing to add" is a tap the part-timer pays for on every window.
     final upgrades = card.upgradesFor(_product!);
-    if (id == null || upgrades.isEmpty) {
+    if (upgrades.isEmpty) {
       Navigator.of(context).pop();
       return;
     }

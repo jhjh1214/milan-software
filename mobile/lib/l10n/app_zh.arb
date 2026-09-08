@@ -37,6 +37,8 @@
   "familyService": "服务",
   "materialLater": "料丈量时再选",
   "materialLaterNote": "报价按最贵的料算，选了较便宜的会更低。",
+  "wallpaperMeasureHint": "非必填 · 输入墙面尺寸可计算是否需要多于一包",
+  "wallpaperUnmeasured": "未丈量",
   "stepProgress": "第 {current} 个，共 {total} 个 · {room}",
   "@stepProgress": {
     "placeholders": {
@@ -69,6 +71,7 @@
   "unitCm": "厘米",
   "unitMetre": "米",
   "unitSqft": "平方尺",
+  "unitPack": "包",
 
   "billedAs": "按 {qty} {unit}计",
   "@billedAs": {

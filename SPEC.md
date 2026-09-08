@@ -406,6 +406,11 @@ surface the charge before the total, never after the customer has agreed a numbe
 Basis `per_roll`, coverage 14ft x 10ft, sold as a BOGO pair. Round up to whole
 bundles. Pattern-repeat wastage still unanswered.
 
+At the **quotation** stage the wall does not have to be measured at all (A25):
+no height quotes the default **one pack**, and measuring it auto-bills
+whatever it needs, ceiled to whole packs. Final pricing still requires a real
+measurement, unchanged.
+
 ### Stairs and landings are counted, not measured by area
 `per_piece`: the quantity on the line is the number of steps. A landing is a
 separate line at its own rate. Both band on the **width** of the step, at 5ft
@@ -2375,22 +2380,29 @@ orders, supplier management and costing come later.
   selectable products, so each was quoted with its own measurements — a second
   chance to type a different number for the same room.
 
-- `[BLOCKING P2]` **A25. How is wallpaper quantity chosen?** Korea wallpaper
+- ~~**A25.**~~ **ANSWERED.** How is wallpaper quantity chosen? Korea wallpaper
   is RM800 for a fixed **2-roll pack** (buy one free one, 14ft × 10ft, 280
   sqft total — A14). Client, Sep 2026:
 
   > normally just do one set of two rolls, but still have the calculator there
   > to suggest how many rolls needed, but not a must, make it clear
 
-  So the default is **one pack**, and the width and height become a
-  *suggestion* rather than the thing that decides the price. What is not yet
-  answered is what the suggestion does when it disagrees with the default: if
-  the wall needs two packs and the line says one, does the app **change the
-  quantity**, or **say so and leave it** for somebody to set? Those are
-  different amounts of money on the quote, so it is not being guessed.
+  and, asked what the suggestion does when it disagrees with the default:
 
-  Until it is answered the wizard still measures wallpaper and bills whole
-  bundles, which is the current behaviour and errs toward quoting enough.
+  > if the calculation says more than 2 rolls are needed for their required
+  > surface area, then yes we'll need more than 1 pack, so have it update to 2
+  > pack automatically, but we are talking 2 rolls bundled in together being 1
+  > pack
+
+  So the wall does not have to be measured at all — leaving it blank quotes
+  the default **one pack**, RM800. Measuring it still *auto-bills* whatever the
+  wall actually needs, ceiled to whole packs, never merely a suggestion left
+  for somebody to apply by hand. The two readings turn out to compute the same
+  number the engine always did (`ceil(area / 280sqft)`, which is already 1 for
+  any wall a single pack covers) — what changed is that a height is no longer
+  *required* to price the line, and only at the fair: final pricing still
+  refuses a per_roll line with no measurement, the same as every other basis,
+  because by then the site has actually been seen.
 
 - **A5.** One discount % for everything, or different per family?
 - **A6.** Is "Sgp Pleat" a heading bundled with a rod, or standalone fabric?
@@ -2753,6 +2765,9 @@ orders, supplier management and costing come later.
 - **The rate card is data and stays admin-editable.** One JSON file, no code
   change and no rebuild of anything but the asset ✓
 - **Korea wallpaper: RM800 buys two rolls covering 280 sqft in total** (A14) ✓
+- **Wallpaper does not have to be measured at the fair.** Unmeasured quotes one
+  pack; measuring it auto-bills whatever the wall needs, never just a
+  suggestion (A25) ✓
 - **All SPC rows share the 200 sqft minimum**, Herringbone included (A13) ✓
 - **Decorative tape is included** in the printed timber blind rates (A13) ✓
 - **Three languages: Chinese, English, Malay**, per user, default `zh`. Data

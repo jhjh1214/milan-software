@@ -275,7 +275,7 @@ PricedLine priceLine({
   }
 
   // 3. Raw quantity by basis, exact.
-  final rawQty = _rawQuantity(rule, request);
+  final rawQty = _rawQuantity(rule, request, stage);
 
   // 4. Wastage. Not on the Phase 1 card; the step exists so the Python engine
   //    mirrors the same ordering when flooring and wallpaper arrive.
@@ -504,7 +504,11 @@ List<OrderRuleViolation> checkOrderRules({
   return out;
 }
 
-Rational _rawQuantity(PricingRule rule, LineRequest request) {
+Rational _rawQuantity(
+  PricingRule rule,
+  LineRequest request,
+  PricingStage stage,
+) {
   switch (rule.basis) {
     case PriceBasis.perFtWidth:
       return request.width.feetExact;
@@ -531,12 +535,27 @@ Rational _rawQuantity(PricingRule rule, LineRequest request) {
     case PriceBasis.perRoll:
       final height = request.height;
       final coverage = rule.coverageSqft;
-      if (height == null || coverage == null || coverage.isZero) {
+      if (coverage == null || coverage.isZero) {
         throw NoApplicableRate(
           variant: request.variant,
           materialKey: request.materialKey,
           bandValue: null,
-          detail: 'per_roll needs a height and a coverage_sqft on the rule',
+          detail: 'per_roll needs a coverage_sqft on the rule',
+        );
+      }
+      // §13 A25: at the fair the wall does not have to be measured at all —
+      // "normally just do one set of two rolls". No height means no
+      // measurement was offered, and the default is exactly one pack. At
+      // final pricing the site has been measured, so the same silence would
+      // hide a wall nobody actually looked at — refuse instead, same as
+      // every other basis missing its final dimension.
+      if (height == null) {
+        if (stage == PricingStage.estimate) return Rational.one;
+        throw NoApplicableRate(
+          variant: request.variant,
+          materialKey: request.materialKey,
+          bandValue: null,
+          detail: 'per_roll needs a height at final pricing',
         );
       }
       // `coverage_sqft` is the area ONE CHARGE covers, not the area one roll

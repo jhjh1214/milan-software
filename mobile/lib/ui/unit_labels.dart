@@ -39,5 +39,7 @@ String billedUnitLabel(L l, PriceBasis basis) => switch (basis) {
   // Phase 2 and get their own strings then rather than a guessed word now.
   PriceBasis.perPiece => basis.unit,
   PriceBasis.perSet => basis.unit,
-  PriceBasis.perRoll => basis.unit,
+  // A "roll" on the wire is a whole buy-one-free-one pack (§13 A25) — the
+  // wire word would be a half-translated lie on screen.
+  PriceBasis.perRoll => l.unitPack,
 };

@@ -354,6 +354,7 @@ void main() {
         pricing: await container.read(orderPricingProvider(orderId).future),
         language: 'en',
         fallbackMeasuredOn: at,
+        l: lookupL(const Locale('en')),
       )!;
 
       final row = data.lines.single;

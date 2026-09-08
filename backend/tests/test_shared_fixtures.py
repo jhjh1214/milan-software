@@ -407,6 +407,30 @@ def test_the_card_is_the_real_price_list() -> None:
     assert CARD.promo.code == "MITC-2026-08"
 
 
+def test_per_roll_with_no_height_defaults_to_one_pack_at_the_fair() -> None:
+    """SPEC.md A25: "normally just do one set of two rolls" -- the wall does
+    not have to be measured to be quoted."""
+    priced = price_line(
+        request=LineRequest(variant="korea_wallpaper", width=Length(0)),
+        card=CARD,
+        stage=PricingStage.ESTIMATE,
+    )
+    assert priced.billed_qty == Fraction(1)
+    assert priced.total == Money(80000)
+
+
+def test_per_roll_with_no_height_raises_at_final_pricing() -> None:
+    """The site has been measured by then, so silence would hide a wall
+    nobody actually looked at -- same as every other basis. Mirrors the Dart
+    engine."""
+    with pytest.raises(NoApplicableRate):
+        price_line(
+            request=LineRequest(variant="korea_wallpaper", width=Length(0)),
+            card=CARD,
+            stage=PricingStage.FINAL,
+        )
+
+
 def test_a_placeholder_rate_cannot_be_priced() -> None:
     """Stairs and landings exist before their rates do. SPEC.md §13 A22.
 

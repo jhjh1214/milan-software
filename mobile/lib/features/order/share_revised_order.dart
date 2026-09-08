@@ -43,6 +43,7 @@ RevisedOrderData? revisedOrderDataFor({
   required FinalPricing pricing,
   required String language,
   required DateTime fallbackMeasuredOn,
+  required L l,
 }) {
   final byId = {for (final priced in pricing.lines) priced.id: priced};
 
@@ -58,7 +59,12 @@ RevisedOrderData? revisedOrderDataFor({
         // key -- printing "night_curtain" on a customer's paper is worse than
         // printing nothing, because it looks like the system is broken.
         product: priced.priced?.rule.labels(language) ?? line.variant,
-        quotedSize: _size(line.estWidthTmm, line.estHeightTmm),
+        // §13 A25: a per_roll line quoted at the fair can carry no height at
+        // all -- the wall was never asked for, so there is no size to print
+        // on the "quoted" side.
+        quotedSize: line.estHeightTmm == null
+            ? l.wallpaperUnmeasured
+            : _size(line.estWidthTmm, line.estHeightTmm),
         measuredSize: _size(line.finalWidthTmm, line.finalHeightTmm),
         isUpgrade: line.parentLineId != null,
       ),
@@ -119,6 +125,7 @@ Future<void> shareRevisedOrder(
     pricing: pricing,
     language: ref.read(languageProvider),
     fallbackMeasuredOn: DateTime.now(),
+    l: l,
   );
   if (data == null) {
     messenger

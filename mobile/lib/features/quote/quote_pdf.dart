@@ -277,8 +277,13 @@ pw.TableRow _lineRow(
         note: notes.isEmpty ? null : notes.join(' · '),
       ),
       // §5.5 and §8.3: entered and billed always travel together, so the
-      // customer can check the number against their own tape.
-      _td('${p.line.rawWidth} × ${p.line.rawHeight}'),
+      // customer can check the number against their own tape. §13 A25: a
+      // per_roll line can carry no measurement at all.
+      _td(
+        p.line.height == null
+            ? l.wallpaperUnmeasured
+            : '${p.line.rawWidth} × ${p.line.rawHeight}',
+      ),
       _td(
         priced == null
             ? '—'

@@ -225,7 +225,7 @@ def price_line(
             ),
         )
 
-    raw_qty = _raw_quantity(rule, request)
+    raw_qty = _raw_quantity(rule, request, stage)
 
     # 6. Wastage. Not on the current card; the step exists so both engines keep
     #    the same ordering when it arrives.
@@ -361,7 +361,9 @@ def _resolve_material(
     return max(candidates, key=lambda r: r.rate_sen), True
 
 
-def _raw_quantity(rule: PricingRule, request: LineRequest) -> Fraction:
+def _raw_quantity(
+    rule: PricingRule, request: LineRequest, stage: PricingStage
+) -> Fraction:
     basis = rule.basis
     if basis is PriceBasis.PER_FT_WIDTH:
         return request.width.feet_exact
@@ -389,12 +391,27 @@ def _raw_quantity(rule: PricingRule, request: LineRequest) -> Fraction:
     # Pattern-repeat wastage is NOT applied: §13 A7 asks whether it is already
     # absorbed in the roll price, and a guessed percentage would silently
     # overcharge on every wall.
-    if request.height is None or not rule.coverage_sqft:
+    if not rule.coverage_sqft:
         raise NoApplicableRate(
             variant=request.variant,
             material_key=request.material_key,
             band_value=None,
-            detail="per_roll needs a height and a coverage_sqft on the rule",
+            detail="per_roll needs a coverage_sqft on the rule",
+        )
+    # SPEC.md A25: at the fair the wall does not have to be measured at all --
+    # "normally just do one set of two rolls". No height means no measurement
+    # was offered, and the default is exactly one pack. At final pricing the
+    # site has been measured, so the same silence would hide a wall nobody
+    # actually looked at -- refuse instead, same as every other basis missing
+    # its final dimension.
+    if request.height is None:
+        if stage is PricingStage.ESTIMATE:
+            return Fraction(1)
+        raise NoApplicableRate(
+            variant=request.variant,
+            material_key=request.material_key,
+            band_value=None,
+            detail="per_roll needs a height at final pricing",
         )
     return area_sqft(request.width, request.height) / rule.coverage_sqft
 

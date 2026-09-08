@@ -279,6 +279,18 @@ abstract class L {
   /// **'报价按最贵的料算，选了较便宜的会更低。'**
   String get materialLaterNote;
 
+  /// No description provided for @wallpaperMeasureHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'非必填 · 输入墙面尺寸可计算是否需要多于一包'**
+  String get wallpaperMeasureHint;
+
+  /// No description provided for @wallpaperUnmeasured.
+  ///
+  /// In zh, this message translates to:
+  /// **'未丈量'**
+  String get wallpaperUnmeasured;
+
   /// No description provided for @stepProgress.
   ///
   /// In zh, this message translates to:
@@ -404,6 +416,12 @@ abstract class L {
   /// In zh, this message translates to:
   /// **'平方尺'**
   String get unitSqft;
+
+  /// No description provided for @unitPack.
+  ///
+  /// In zh, this message translates to:
+  /// **'包'**
+  String get unitPack;
 
   /// Shows the billed quantity beside the entered one
   ///

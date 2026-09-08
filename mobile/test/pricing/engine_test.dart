@@ -352,6 +352,40 @@ void main() {
       );
     });
 
+    test(
+      'a per_roll product with no height defaults to one pack at the fair',
+      () {
+        // SPEC.md §13 A25: "normally just do one set of two rolls" — the
+        // wall does not have to be measured to be quoted.
+        final priced = priceLine(
+          request: const LineRequest(
+            variant: 'korea_wallpaper',
+            width: Length.zero,
+          ),
+          card: card,
+          stage: PricingStage.estimate,
+        );
+        expect(priced.billedQty, Rational.one);
+        expect(priced.total, const Money.sen(80000));
+      },
+    );
+
+    test('a per_roll product with no height raises at final pricing', () {
+      // The site has been measured by then, so silence would hide a wall
+      // nobody actually looked at — same as every other basis.
+      expect(
+        () => priceLine(
+          request: const LineRequest(
+            variant: 'korea_wallpaper',
+            width: Length.zero,
+          ),
+          card: card,
+          stage: PricingStage.finalPricing,
+        ),
+        throwsA(isA<NoApplicableRate>()),
+      );
+    });
+
     test('the wrong material key does not silently match another rate', () {
       // Zebra J/BL and TBL differ by RM3/sqft. Falling through to the other
       // one would be invisible and wrong.

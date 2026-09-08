@@ -103,6 +103,12 @@ class LZh extends L {
   String get materialLaterNote => '报价按最贵的料算，选了较便宜的会更低。';
 
   @override
+  String get wallpaperMeasureHint => '非必填 · 输入墙面尺寸可计算是否需要多于一包';
+
+  @override
+  String get wallpaperUnmeasured => '未丈量';
+
+  @override
   String stepProgress(int current, int total, String room) {
     return '第 $current 个，共 $total 个 · $room';
   }
@@ -168,6 +174,9 @@ class LZh extends L {
 
   @override
   String get unitSqft => '平方尺';
+
+  @override
+  String get unitPack => '包';
 
   @override
   String billedAs(String qty, String unit) {

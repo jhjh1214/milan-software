@@ -499,10 +499,15 @@ class _LineDetail extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // §5.5 and §8.3: entered and billed, always together.
+        // §5.5 and §8.3: entered and billed, always together. §13 A25: a
+        // per_roll line can carry no measurement at all — the wall was never
+        // asked for, so there is nothing to say was "entered".
         Text(
-          '${l.enteredAs('${line.rawWidth} × ${line.rawHeight}')}  ·  '
-          '${l.billedAs(p.billedQty.toString(), billedUnitLabel(l, p.rule.basis))}',
+          line.height == null
+              ? '${l.wallpaperUnmeasured}  ·  '
+                    '${l.billedAs(p.billedQty.toString(), billedUnitLabel(l, p.rule.basis))}'
+              : '${l.enteredAs('${line.rawWidth} × ${line.rawHeight}')}  ·  '
+                    '${l.billedAs(p.billedQty.toString(), billedUnitLabel(l, p.rule.basis))}',
           style: AppText.caption,
         ),
         if (p.rule.bandLabels != null) ...[

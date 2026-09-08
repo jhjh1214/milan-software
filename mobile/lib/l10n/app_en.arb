@@ -34,6 +34,8 @@
   "familyService": "Services",
   "materialLater": "Material chosen at measurement",
   "materialLaterNote": "Quoted at the dearest material. A cheaper choice lowers this.",
+  "wallpaperMeasureHint": "Optional — enter the wall size to check whether more than one pack is needed",
+  "wallpaperUnmeasured": "not measured",
   "stepProgress": "Window {current} of {total} · {room}",
 
   "roomLiving": "Living room",
@@ -58,6 +60,7 @@
   "unitCm": "cm",
   "unitMetre": "m",
   "unitSqft": "sqft",
+  "unitPack": "pack",
 
   "billedAs": "billed as {qty} {unit}",
   "enteredAs": "entered {value}",

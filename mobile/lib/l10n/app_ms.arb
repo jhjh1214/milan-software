@@ -34,6 +34,8 @@
   "familyService": "Perkhidmatan",
   "materialLater": "Bahan dipilih semasa pengukuran",
   "materialLaterNote": "Disebut harga pada bahan termahal. Pilihan lebih murah menurunkannya.",
+  "wallpaperMeasureHint": "Pilihan — masukkan saiz dinding untuk semak jika lebih daripada satu pek diperlukan",
+  "wallpaperUnmeasured": "tidak diukur",
   "stepProgress": "Tingkap {current} daripada {total} · {room}",
 
   "roomLiving": "Ruang tamu",
@@ -58,6 +60,7 @@
   "unitCm": "cm",
   "unitMetre": "m",
   "unitSqft": "kaki persegi",
+  "unitPack": "pek",
 
   "billedAs": "dikira {qty} {unit}",
   "enteredAs": "dimasukkan {value}",

@@ -2364,6 +2364,30 @@
       }
     },
     {
+      "id": "wallpaper-defaults-to-one-pack-with-no-measurement",
+      "source": "Client, Sep 2026 (SPEC.md A25): \"normally just do one set of two rolls, but still have the calculator there to suggest how many rolls needed, but not a must\"",
+      "why": "The wall does not have to be measured at all at the fair. No height means no measurement was offered, and the default is exactly one pack — the same RM800 a measured wall under 280sqft would bill.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "korea_wallpaper",
+        "material_key": null,
+        "layer": "single",
+        "fulfilment": "supply_install",
+        "width_tmm": 0,
+        "height_tmm": null,
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "korea-wallpaper",
+        "billed_qty": "1",
+        "billed_unit": "roll",
+        "min_qty_applied": false,
+        "rate_sen": 80000,
+        "total_sen": 80000
+      }
+    },
+    {
       "id": "wallpaper-charges-whole-bogo-bundles",
       "source": "MITC price list — Korea Wallpaper, buy 1 free 1, 14ft x 10ft, RM800 (2 roll)",
       "why": "ANSWERED A14: RM800 buys two rolls covering 280sqft in total. A 20ft x 10ft wall is 200sqft, so one charge covers it. Pattern-repeat wastage is deliberately NOT applied — §13 A7 is unanswered and a guessed percentage would silently overcharge every wall.",
