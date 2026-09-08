@@ -126,10 +126,20 @@ class PricedLine {
     required this.total,
     this.materialDeferred = false,
     this.materialOptions = const [],
+    this.parentFamily,
   });
 
+  /// The family of the line this one hangs off, when it hangs off one.
+  final Family? parentFamily;
+
   /// The deposit category this line's rate hold would belong to.
-  DepositCategory get depositCategory => rule.depositCategory;
+  ///
+  /// An add-on takes its **parent's** category. A rule that names one outright
+  /// still wins — a flooring service belongs to the work it prepares — and a
+  /// parentless add-on raises rather than guessing (hard rule 6).
+  DepositCategory get depositCategory =>
+      rule.depositCategoryOverride ??
+      depositCategoryOf(rule.family, parentFamily: parentFamily);
 
   /// True when a tier rate replaced the standard one.
   bool get tierRateApplied => rateSen != standardRateSen;
@@ -147,6 +157,18 @@ class LineRequest {
   /// Identical windows priced together. Multiplies **after** the line rounds.
   final int quantity;
 
+  /// The family of the line this one hangs off, when it hangs off one.
+  ///
+  /// An add-on has no deposit category of its own: a motor is charged on top
+  /// of the curtain it drives, and dismantling an old floor belongs to the
+  /// floor going over it. Without this the category cannot be decided, and
+  /// `depositCategoryOf` raises rather than guessing — which is right, because
+  /// hard rule 6 makes filing a flooring line under a curtain lock the
+  /// expensive bug in this design.
+  ///
+  /// Null for a line that starts its own window, which is most of them.
+  final Family? parentFamily;
+
   const LineRequest({
     required this.variant,
     required this.width,
@@ -155,6 +177,7 @@ class LineRequest {
     this.fulfilment = Fulfilment.supplyInstall,
     this.height,
     this.quantity = 1,
+    this.parentFamily,
   });
 }
 
@@ -317,6 +340,7 @@ PricedLine priceLine({
     materialOptions: materialDeferred
         ? (availableMaterials.toList()..sort())
         : const [],
+    parentFamily: request.parentFamily,
   );
 }
 

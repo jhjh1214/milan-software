@@ -2484,6 +2484,84 @@
         "total_sen": 120000,
         "deposit_category": "flooring"
       }
+    },
+    {
+      "id": "addon-takes-its-parents-deposit-category",
+      "source": "SPEC.md §6.1, §13 B10",
+      "why": "A motor is charged on top of the curtain it drives and has no deposit category of its own. Priced without its parent it raised UnknownDepositCategory, which crashed the whole quote total -- so ticking the RM800 motor replaced every price on the screen with an error. The parent's family is what decides.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "motor",
+        "material_key": null,
+        "layer": "single",
+        "fulfilment": "supply_install",
+        "width_tmm": 36576,
+        "height_tmm": 27432,
+        "quantity": 1,
+        "parent_family": "curtain"
+      },
+      "expect": {
+        "rule_id": "motor",
+        "billed_qty": "1",
+        "billed_unit": "pc",
+        "min_qty_applied": false,
+        "rate_sen": 80000,
+        "total_sen": 80000,
+        "deposit_category": "curtain"
+      }
+    },
+    {
+      "id": "addon-on-a-floor-rides-the-flooring-deposit",
+      "source": "SPEC.md §6.1",
+      "why": "Hard rule 6: applying a curtain lock to a flooring line is the expensive bug in this design. Dismantling an old SPC floor is an add-on now, so the category has to follow the floor it prepares and not the commonest case.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "dismantle_old_spc",
+        "material_key": null,
+        "layer": "single",
+        "fulfilment": "supply_install",
+        "width_tmm": 30480,
+        "height_tmm": 30480,
+        "quantity": 1,
+        "parent_family": "flooring"
+      },
+      "expect": {
+        "rule_id": "dismantle-old-spc",
+        "billed_qty": "100",
+        "billed_unit": "sqft",
+        "min_qty_applied": false,
+        "rate_sen": 100,
+        "total_sen": 10000,
+        "deposit_category": "flooring"
+      }
+    },
+    {
+      "id": "side-guide-rides-the-blind-it-holds",
+      "source": "Client, Sep 2026",
+      "why": "The stainless steel side guide is added automatically to an outdoor roller blind, so it reaches the total on every one of them. A blind is a curtain-category deposit.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "side_guide_cable",
+        "material_key": null,
+        "layer": "single",
+        "fulfilment": "supply_install",
+        "width_tmm": 24384,
+        "height_tmm": 18288,
+        "quantity": 1,
+        "parent_family": "blind"
+      },
+      "expect": {
+        "rule_id": "side-guide-cable",
+        "billed_qty": "1",
+        "billed_unit": "set",
+        "min_qty_applied": false,
+        "rate_sen": 40000,
+        "total_sen": 40000,
+        "deposit_category": "curtain"
+      }
     }
   ],
   "quote_total_cases": [

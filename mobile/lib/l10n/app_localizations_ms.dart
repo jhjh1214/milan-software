@@ -61,6 +61,9 @@ class LMs extends L {
       'Trek biasa sudah termasuk. Ini adalah naik taraf.';
 
   @override
+  String get upgradeRequired => 'Wajib untuk produk ini, dan dikira di bawah';
+
+  @override
   String upgradeAdded(String name) {
     return '$name ditambah';
   }

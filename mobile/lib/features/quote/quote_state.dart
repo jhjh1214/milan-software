@@ -16,6 +16,9 @@ import '../../data/settings_repository.dart';
 import '../../pricing/einvoice_threshold.dart';
 import '../../pricing/engine.dart';
 import '../../pricing/models.dart';
+// `Family` is Riverpod's too. Prefixed so the pricing one can be named where
+// both are in scope.
+import '../../pricing/models.dart' as models;
 import '../../pricing/rate_lock.dart' show Channel;
 
 /// The on-device database. Overridden with an in-memory one in tests.
@@ -415,6 +418,16 @@ final pricedQuoteProvider = Provider<AsyncValue<PricedQuote>>((ref) {
   }
   final card = active.card;
 
+  // What family each line belongs to, so an add-on can be told whose it is.
+  // A motor has no deposit category of its own — it takes the curtain's — and
+  // without this the total raises rather than guessing (hard rule 6). Built
+  // once for the whole quote rather than looked up per line.
+  final familyOfLine = <String, models.Family>{
+    for (final line in quote.lines)
+      for (final rule in card.rules)
+        if (rule.variant == line.variant) line.id: rule.family,
+  };
+
   final priced = <PricedQuoteLine>[];
   for (final line in quote.lines) {
     try {
@@ -429,6 +442,9 @@ final pricedQuoteProvider = Provider<AsyncValue<PricedQuote>>((ref) {
               width: line.width,
               height: line.height,
               quantity: line.quantity,
+              parentFamily: line.parentLineId == null
+                  ? null
+                  : familyOfLine[line.parentLineId],
             ),
             card: card,
             stage: PricingStage.estimate,

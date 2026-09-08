@@ -162,6 +162,41 @@ void main() {
     });
   });
 
+  group('a required add-on is not a choice', () {
+    // Client, Sep 2026: the stainless steel side guide is a **must** on an
+    // outdoor roller blind, and it is still charged. The wizard adds it, so
+    // the one product that cannot go up without it is not the one somebody
+    // forgets to tick.
+
+    test('the side guide is flagged as required', () {
+      expect(ruleFor('side-guide-cable').mandatory, isTrue);
+    });
+
+    test('and it is still charged, at RM400 a set', () {
+      // "Charged, added automatically" — not folded into the blind's rate and
+      // not quietly dropped. The customer sees the line.
+      expect(ruleFor('side-guide-cable').rateSen, 40000);
+    });
+
+    test('nothing else on the card is required', () {
+      // A flag that spread would start adding lines nobody chose, which is
+      // the exact opposite of §4.1.
+      final required = card.rules
+          .where((r) => r.mandatory)
+          .map((r) => r.id)
+          .toSet();
+      expect(required, {'side-guide-cable'});
+    });
+
+    test('a rule with no flag is optional, and that is the default', () {
+      // The card was written before this flag existed. Every row that does not
+      // mention it has to stay a choice.
+      expect(ruleFor('motor').mandatory, isFalse);
+      expect(ruleFor('doso-track').mandatory, isFalse);
+      expect(ruleFor('self-levelling').mandatory, isFalse);
+    });
+  });
+
   group('a service is quoted on the product, not on its own', () {
     // Client, Sep 2026: "make charging them an option instead while quoting
     // for that product, not a separate service quote, so it is clearer".

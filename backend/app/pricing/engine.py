@@ -21,6 +21,7 @@ from .models import (
     CustomerTier,
     DeliveryZone,
     DepositCategory,
+    Family,
     Fulfilment,
     Layer,
     PriceBasis,
@@ -28,6 +29,7 @@ from .models import (
     PricingStage,
     ProductRule,
     RateCard,
+    deposit_category_of,
 )
 
 
@@ -80,6 +82,18 @@ class LineRequest:
     #: Identical windows priced together. Multiplies **after** the line rounds.
     quantity: int = 1
 
+    #: The family of the line this one hangs off, when it hangs off one.
+    #:
+    #: An add-on has no deposit category of its own: a motor is charged on top
+    #: of the curtain it drives, and dismantling an old floor belongs to the
+    #: floor going over it. Without this the category cannot be decided and
+    #: ``deposit_category_of`` raises rather than guessing -- which is right,
+    #: because hard rule 6 makes filing a flooring line under a curtain lock
+    #: the expensive bug in this design.
+    #:
+    #: None for a line that starts its own window, which is most of them.
+    parent_family: Family | None = None
+
 
 @dataclass(frozen=True)
 class PricedLine:
@@ -109,9 +123,21 @@ class PricedLine:
     material_deferred: bool = False
     material_options: tuple[str, ...] = ()
 
+    #: The family of the line this one hangs off, when it hangs off one.
+    parent_family: Family | None = None
+
     @property
     def deposit_category(self) -> DepositCategory:
-        return self.rule.deposit_category
+        """The deposit category this line's rate hold would belong to.
+
+        An add-on takes its **parent's** category. A rule that names one
+        outright still wins -- a flooring service belongs to the work it
+        prepares -- and a parentless add-on raises rather than guessing
+        (hard rule 6).
+        """
+        if self.rule.deposit_category_override is not None:
+            return self.rule.deposit_category_override
+        return deposit_category_of(self.rule.family, parent_family=self.parent_family)
 
     @property
     def tier_rate_applied(self) -> bool:
@@ -259,6 +285,7 @@ def price_line(
         material_options=(
             tuple(sorted(available_materials)) if material_deferred else ()
         ),
+        parent_family=request.parent_family,
     )
 
 

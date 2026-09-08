@@ -61,6 +61,9 @@ class LEn extends L {
       'A normal track is already included. These are upgrades.';
 
   @override
+  String get upgradeRequired => 'Required for this product, and priced below';
+
+  @override
   String upgradeAdded(String name) {
     return 'Added $name';
   }

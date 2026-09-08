@@ -60,6 +60,9 @@ class LZh extends L {
   String get upgradeIncluded => '普通轨道已包在价格里，以下是升级选项';
 
   @override
+  String get upgradeRequired => '这个产品一定要配，价钱已算在下面';
+
+  @override
   String upgradeAdded(String name) {
     return '已加 $name';
   }

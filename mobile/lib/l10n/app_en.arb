@@ -21,6 +21,7 @@
   "stepUpgrade": "Add anything?",
   "upgradeNone": "No, that is all",
   "upgradeIncluded": "A normal track is already included. These are upgrades.",
+  "upgradeRequired": "Required for this product, and priced below",
   "upgradeAdded": "Added {name}",
   "upgradeOf": "with {parent}",
   "stepFamily": "Which category?",

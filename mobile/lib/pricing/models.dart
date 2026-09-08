@@ -276,6 +276,17 @@ class PricingRule {
   /// Variants this add-on may attach to. Null means any.
   final List<String>? attachesTo;
 
+  /// This add-on is not a choice: the product cannot be installed without it.
+  ///
+  /// Client, Sep 2026 — the stainless steel side guide is a **must** on an
+  /// outdoor roller blind. It is still charged, so the wizard adds the line
+  /// itself and says why, rather than leaving RM400 to a tick box somebody
+  /// forgets on the one product that cannot go up without it.
+  ///
+  /// Nothing prices differently. A mandatory add-on is an ordinary line once
+  /// it exists; this only decides who put it there.
+  final bool mandatory;
+
   /// Free text from the price list — series, warranty, openness. Not priced.
   final String? note;
 
@@ -304,6 +315,7 @@ class PricingRule {
     this.depositCategoryOverride,
     this.isAddon = false,
     this.attachesTo,
+    this.mandatory = false,
     this.note,
   });
 
@@ -348,6 +360,7 @@ class PricingRule {
       attachesTo: (json['attaches_to'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList(growable: false),
+      mandatory: json['mandatory'] as bool? ?? false,
       note: json['note'] as String?,
     );
   }

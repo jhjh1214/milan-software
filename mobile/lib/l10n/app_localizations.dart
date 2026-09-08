@@ -201,6 +201,12 @@ abstract class L {
   /// **'普通轨道已包在价格里，以下是升级选项'**
   String get upgradeIncluded;
 
+  /// No description provided for @upgradeRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'这个产品一定要配，价钱已算在下面'**
+  String get upgradeRequired;
+
   /// No description provided for @upgradeAdded.
   ///
   /// In zh, this message translates to:

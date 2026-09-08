@@ -21,6 +21,7 @@
   "stepUpgrade": "Tambah apa-apa?",
   "upgradeNone": "Tidak, itu sahaja",
   "upgradeIncluded": "Trek biasa sudah termasuk. Ini adalah naik taraf.",
+  "upgradeRequired": "Wajib untuk produk ini, dan dikira di bawah",
   "upgradeAdded": "{name} ditambah",
   "upgradeOf": "dengan {parent}",
   "stepFamily": "Kategori yang mana?",

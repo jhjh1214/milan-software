@@ -430,40 +430,62 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
       Navigator.of(context).pop();
       return;
     }
+
+    // A must, not an offer. The stainless steel side guide is what holds an
+    // outdoor roller blind, so the blind cannot go up without it — leaving
+    // RM400 to a tick box means the one product that needs it is the one
+    // somebody forgets. Added here and shown as required, never as a choice.
+    for (final required in upgrades.where((r) => r.mandatory)) {
+      await _addUpgrade(card, required);
+      if (!mounted) return;
+    }
+
     setState(() => _step = _Step.upgrade);
   }
 
   /// Adds or removes one upgrade line.
   ///
-  /// The upgrade carries a copy of the parent's dimensions, so a per-foot track
-  /// bills the curtain's width. Instantiated, not referenced — editing the
-  /// parent later must not silently reprice a line already agreed.
+  /// A mandatory upgrade cannot be removed: the product does not exist without
+  /// it, so a tap that took it off would leave a quote for something nobody
+  /// can install.
   Future<void> _toggleUpgrade(RateCard card, PricingRule upgrade) async {
-    final notifier = ref.read(quoteProvider.notifier);
-    final existing = _addedUpgrades[upgrade.variant];
+    if (upgrade.mandatory) return;
 
+    final existing = _addedUpgrades[upgrade.variant];
     if (existing != null) {
-      await notifier.removeLine(existing);
+      await ref.read(quoteProvider.notifier).removeLine(existing);
       if (!mounted) return;
       setState(() => _addedUpgrades.remove(upgrade.variant));
       return;
     }
 
+    await _addUpgrade(card, upgrade);
+  }
+
+  /// Adds one upgrade line on top of the parent.
+  ///
+  /// The upgrade carries a copy of the parent's dimensions, so a per-foot track
+  /// bills the curtain's width and dismantling an old floor bills the same
+  /// square footage as the floor going over it. Instantiated, not referenced —
+  /// editing the parent later must not silently reprice a line already agreed.
+  Future<void> _addUpgrade(RateCard card, PricingRule upgrade) async {
     final width = parseLength(_rawWidth, _widthUnit)!;
     final height = parseLength(_rawHeight, _heightUnit)!;
-    final id = await notifier.addLine(
-      room: _room!,
-      variant: upgrade.variant,
-      materialKey: card.materialsFor(upgrade.variant).length > 1
-          ? null
-          : upgrade.materialKey,
-      layer: upgrade.layer,
-      width: width.length,
-      height: height.length,
-      rawWidth: width.raw,
-      rawHeight: height.raw,
-      parentLineId: _parentLineId,
-    );
+    final id = await ref
+        .read(quoteProvider.notifier)
+        .addLine(
+          room: _room!,
+          variant: upgrade.variant,
+          materialKey: card.materialsFor(upgrade.variant).length > 1
+              ? null
+              : upgrade.materialKey,
+          layer: upgrade.layer,
+          width: width.length,
+          height: height.length,
+          rawWidth: width.raw,
+          rawHeight: height.raw,
+          parentLineId: _parentLineId,
+        );
     if (!mounted || id == null) return;
     setState(() => _addedUpgrades[upgrade.variant] = id);
   }
@@ -550,10 +572,16 @@ class _UpgradeStep extends ConsumerWidget {
                   padding: const EdgeInsets.only(bottom: Space.md),
                   child: _UpgradeChoice(
                     label: rule.labels(language),
-                    subtitle: card.materialsFor(rule.variant).length > 1
+                    // A required add-on says why it is there instead of what
+                    // is still to be decided about it. It is on the quote, it
+                    // is charged, and nothing about it is a choice.
+                    subtitle: rule.mandatory
+                        ? l.upgradeRequired
+                        : card.materialsFor(rule.variant).length > 1
                         ? l.materialLater
                         : null,
                     selected: added.containsKey(rule.variant),
+                    locked: rule.mandatory,
                     onTap: () => onToggle(card, rule),
                   ),
                 ),
@@ -585,6 +613,11 @@ class _UpgradeChoice extends StatelessWidget {
   final String label;
   final String? subtitle;
   final bool selected;
+
+  /// Required, so there is nothing to tap. The product cannot go up without
+  /// it and a tap that removed it would quote something nobody can install.
+  final bool locked;
+
   final VoidCallback onTap;
 
   const _UpgradeChoice({
@@ -592,6 +625,7 @@ class _UpgradeChoice extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.subtitle,
+    this.locked = false,
   });
 
   @override
@@ -600,7 +634,7 @@ class _UpgradeChoice extends StatelessWidget {
       color: selected ? AppColors.muted : AppColors.surface,
       borderRadius: BorderRadius.circular(Radii.lg),
       child: InkWell(
-        onTap: onTap,
+        onTap: locked ? null : onTap,
         borderRadius: BorderRadius.circular(Radii.lg),
         child: Container(
           constraints: const BoxConstraints(minHeight: Touch.primary),
@@ -615,7 +649,11 @@ class _UpgradeChoice extends StatelessWidget {
           child: Row(
             children: [
               Icon(
-                selected ? Icons.check_circle : Icons.add_circle_outline,
+                locked
+                    ? Icons.lock
+                    : selected
+                    ? Icons.check_circle
+                    : Icons.add_circle_outline,
                 color: selected ? AppColors.accent : AppColors.mutedForeground,
               ),
               const SizedBox(width: Space.md),

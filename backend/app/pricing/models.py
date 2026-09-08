@@ -195,6 +195,17 @@ class PricingRule:
     deposit_category_override: DepositCategory | None = None
     is_addon: bool = False
     attaches_to: tuple[str, ...] | None = None
+
+    #: This add-on is not a choice: the product cannot be installed without it.
+    #:
+    #: Client, Sep 2026 -- the stainless steel side guide is a **must** on an
+    #: outdoor roller blind. It is still charged, so the wizard adds the line
+    #: itself and tells the customer why rather than leaving RM400 to a tick
+    #: box somebody forgets on the one product that cannot go up without it.
+    #:
+    #: Nothing here prices differently. A mandatory add-on is an ordinary line
+    #: once it exists; this only decides who put it there.
+    mandatory: bool = False
     note: str | None = None
 
     @classmethod
@@ -234,6 +245,7 @@ class PricingRule:
             deposit_category_override=(DepositCategory(deposit) if deposit else None),
             is_addon=data.get("is_addon", False),
             attaches_to=tuple(attaches) if attaches else None,
+            mandatory=data.get("mandatory", False),
             note=data.get("note"),
         )
 

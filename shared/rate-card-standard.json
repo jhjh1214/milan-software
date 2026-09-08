@@ -2375,6 +2375,7 @@
       "attaches_to": [
         "outdoor_roller_fabric"
       ],
+      "mandatory": true,
       "note": null,
       "sort_order": 710
     },

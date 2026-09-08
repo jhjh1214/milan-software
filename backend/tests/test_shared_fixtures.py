@@ -46,6 +46,7 @@ from app.pricing.final_pricing import (
 from app.pricing.models import (
     CustomerTier,
     DepositCategory,
+    Family,
     Fulfilment,
     Layer,
     PriceBasis,
@@ -92,6 +93,13 @@ def test_line_case(case: dict) -> None:
             width=Length(line["width_tmm"]),
             height=None if line["height_tmm"] is None else Length(line["height_tmm"]),
             quantity=line["quantity"],
+            # Optional: only an add-on has one, and without it the deposit
+            # category cannot be decided at all.
+            parent_family=(
+                None
+                if line.get("parent_family") is None
+                else Family(line["parent_family"])
+            ),
         ),
         card=CARD,
         stage=STAGES[case["stage"]],

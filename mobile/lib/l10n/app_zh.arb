@@ -22,6 +22,7 @@
   "stepUpgrade": "要加什么吗？",
   "upgradeNone": "不用，就这样",
   "upgradeIncluded": "普通轨道已包在价格里，以下是升级选项",
+  "upgradeRequired": "这个产品一定要配，价钱已算在下面",
   "upgradeAdded": "已加 {name}",
   "@upgradeAdded": { "placeholders": { "name": { "type": "String" } } },
   "upgradeOf": "配 {parent}",

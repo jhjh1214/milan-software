@@ -151,6 +151,11 @@ void main() {
                 ? null
                 : Length.tenths(line['height_tmm'] as int),
             quantity: line['quantity'] as int,
+            // Optional: only an add-on has one, and without it the deposit
+            // category cannot be decided at all.
+            parentFamily: line['parent_family'] == null
+                ? null
+                : Family.values.byName(line['parent_family'] as String),
           ),
           card: card,
           stage: _stage(c['stage'] as String),
