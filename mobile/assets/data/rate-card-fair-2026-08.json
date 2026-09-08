@@ -2183,7 +2183,16 @@
       "bundle_qty": 1,
       "deposit_category": null,
       "is_addon": true,
-      "attaches_to": null,
+      "attaches_to": [
+        "night_curtain",
+        "day_curtain",
+        "s_track_night",
+        "s_track_day",
+        "iron_rod_sgp_pleat",
+        "iron_rod_eyelet",
+        "wooden_rod_sgp_pleat",
+        "wooden_rod_eyelet"
+      ],
       "note": null,
       "sort_order": 650
     },
@@ -2211,7 +2220,16 @@
       "bundle_qty": 1,
       "deposit_category": null,
       "is_addon": true,
-      "attaches_to": null,
+      "attaches_to": [
+        "night_curtain",
+        "day_curtain",
+        "s_track_night",
+        "s_track_day",
+        "iron_rod_sgp_pleat",
+        "iron_rod_eyelet",
+        "wooden_rod_sgp_pleat",
+        "wooden_rod_eyelet"
+      ],
       "note": null,
       "sort_order": 660
     },
@@ -2359,7 +2377,9 @@
       "bundle_qty": 1,
       "deposit_category": null,
       "is_addon": true,
-      "attaches_to": null,
+      "attaches_to": [
+        "outdoor_roller_fabric"
+      ],
       "note": null,
       "sort_order": 710
     },
@@ -2387,7 +2407,16 @@
       "bundle_qty": 1,
       "deposit_category": null,
       "is_addon": true,
-      "attaches_to": null,
+      "attaches_to": [
+        "night_curtain",
+        "day_curtain",
+        "s_track_night",
+        "s_track_day",
+        "iron_rod_sgp_pleat",
+        "iron_rod_eyelet",
+        "wooden_rod_sgp_pleat",
+        "wooden_rod_eyelet"
+      ],
       "note": "Must use with motor",
       "sort_order": 720
     },
@@ -2447,8 +2476,17 @@
       "coverage_sqft": null,
       "bundle_qty": 1,
       "deposit_category": "flooring",
-      "is_addon": false,
-      "attaches_to": null,
+      "is_addon": true,
+      "attaches_to": [
+        "spc_4mm_1mm",
+        "spc_5mm_1mm",
+        "spc_6mm_1mm",
+        "spc_8mm_hrw",
+        "spc_herringbone_5mm_1mm",
+        "laminate_robina_8mm",
+        "vinyl_5mm_click",
+        "vinyl_3mm"
+      ],
       "note": null,
       "sort_order": 740
     },
@@ -2475,8 +2513,17 @@
       "coverage_sqft": null,
       "bundle_qty": 1,
       "deposit_category": "flooring",
-      "is_addon": false,
-      "attaches_to": null,
+      "is_addon": true,
+      "attaches_to": [
+        "spc_4mm_1mm",
+        "spc_5mm_1mm",
+        "spc_6mm_1mm",
+        "spc_8mm_hrw",
+        "spc_herringbone_5mm_1mm",
+        "laminate_robina_8mm",
+        "vinyl_5mm_click",
+        "vinyl_3mm"
+      ],
       "note": null,
       "sort_order": 750
     },
@@ -2503,8 +2550,10 @@
       "coverage_sqft": null,
       "bundle_qty": 1,
       "deposit_category": "wallpaper",
-      "is_addon": false,
-      "attaches_to": null,
+      "is_addon": true,
+      "attaches_to": [
+        "korea_wallpaper"
+      ],
       "note": null,
       "sort_order": 760
     }
