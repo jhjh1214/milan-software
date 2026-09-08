@@ -3,6 +3,9 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    /* Same as tsconfig.app.json: TypeScript 6 wants the output root stated
+       rather than inferred from the common source directory. */
+    "rootDir": "./src",
     "outDir": "./out-tsc/spec",
     "types": [
       "vitest/globals"

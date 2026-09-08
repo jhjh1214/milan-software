@@ -3,6 +3,11 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    /* Explicit, not inferred. TypeScript 6 stops deriving the output layout
+       from the common source directory: with an `outDir` and no `rootDir` it
+       reports ts6 and the editor marks the whole project. Every input here is
+       under `src`, which is what it was inferring anyway. */
+    "rootDir": "./src",
     "outDir": "./out-tsc/app",
     "types": []
   },
