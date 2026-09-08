@@ -356,6 +356,47 @@ class BuyerDetailsResult(BaseModel):
     refused_because: str | None = None
 
 
+class MeasurementIn(BaseModel):
+    """A site measurement pushed up after the device took it.
+
+    SPEC.md §11 Phase 6. Its own push, for the same reason buyer details get
+    one: an order is pushed **once at confirmation**, before the site visit
+    happens. Staled on the line's own ``measured_at`` rather than the order's
+    -- each line is measured independently, sometimes by different people on
+    different visits, so a per-order timestamp would let a late line refuse a
+    push that has nothing to do with it.
+    """
+
+    order_id: str = Field(min_length=36, max_length=36)
+    line_id: str = Field(min_length=36, max_length=36)
+    #: When the tape was read. The only ordering signal available when a line
+    #: can be remeasured, or two handsets race on the same order offline.
+    measured_at: datetime
+
+    final_width_tmm: int | None = Field(default=None, ge=0)
+    final_height_tmm: int | None = Field(default=None, ge=0)
+    #: Absent means "leave it" -- a null measurer choice must never clear a
+    #: material already chosen, the same rule as buyer details.
+    material_key: str | None = None
+
+    #: What the device's own repricing came to for this one line, so the
+    #: server can compare and log a disagreement (hard rule 4) rather than
+    #: silently trust either number. Null when the device's own reprice
+    #: refused this line.
+    device_final_total_sen: int | None = None
+
+
+class MeasurementResult(BaseModel):
+    order_id: str
+    line_id: str
+    is_site_measured: bool
+    #: This order's total once every line has priced, null otherwise.
+    final_total_sen: int | None = None
+    has_unmeasured_lines: bool = True
+    #: ``unknown_order``, ``unknown_line`` or ``stale``. Null when applied.
+    refused_because: str | None = None
+
+
 class CategoryLockIn(BaseModel):
     """A hold opened on a handset. §6.1.
 

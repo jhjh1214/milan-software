@@ -121,6 +121,17 @@ class Outboxer {
     Map<String, dynamic> payload,
   ) => _enqueue('buyer_details', orderId, payload);
 
+  /// Queues one site measurement to go up. §11 Phase 6.
+  ///
+  /// Keyed on the **line id**, not the order — a measurement is naturally per
+  /// line. Several lines on one order can each be queued independently, and
+  /// each is its own record rather than one that supersedes another the way
+  /// a buyer capture does.
+  Future<void> enqueueMeasurement(
+    String lineId,
+    Map<String, dynamic> payload,
+  ) => _enqueue('measurement', lineId, payload);
+
   /// Queues a hold to go up. Â§6.1.
   ///
   /// A hold that never leaves the handset that took the deposit is a hold the
@@ -182,7 +193,7 @@ class Outboxer {
     for (final row in await db.pendingOutbox()) {
       final body = jsonDecode(row.payload) as Map<String, dynamic>;
 
-      // One queue, six kinds of work. None of them can wait behind another
+      // One queue, seven kinds of work. None of them can wait behind another
       // that is failing â€” they drain in the order they happened, which is the
       // order they matter in.
       final SyncResult<Object> result = switch (row.entityType) {
@@ -190,6 +201,7 @@ class Outboxer {
         'order' => await api.pushOrder(credentials.token, body),
         'order_status' => await api.pushStatusChange(credentials.token, body),
         'buyer_details' => await api.pushBuyerDetails(credentials.token, body),
+        'measurement' => await api.pushMeasurement(credentials.token, body),
         'lock' => await api.pushLock(credentials.token, body),
         'deposit_prompt' => await api.pushDepositPrompt(
           credentials.token,
@@ -259,6 +271,16 @@ class Outboxer {
               // silent success — CLAUDE.md's promise that a stale push
               // "reads as a failure" only ever held for the dashboard's own
               // correction form until this branch existed.
+              disagreed.add(row.entityId);
+            }
+          } else if (response is MeasurementAccepted) {
+            await db.dropOutbox(row.id);
+            if (response.refusedBecause != null) {
+              // A `stale` refusal means a newer tape reading already landed;
+              // `unknown_order`/`unknown_line` mean the push arrived before
+              // what it refers to, and this measurement is lost until
+              // somebody remeasures. Flagged rather than swallowed, the same
+              // pattern as the buyer-details branch above.
               disagreed.add(row.entityId);
             }
           } else {

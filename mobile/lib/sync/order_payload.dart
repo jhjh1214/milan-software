@@ -23,6 +23,7 @@
 /// the second legitimate move look like a retry of the first.
 library;
 
+import '../core/money.dart';
 import '../data/database.dart';
 
 /// Builds the request body for `POST /api/orders`.
@@ -169,4 +170,32 @@ Map<String, dynamic> buyerDetailsPayload({
   'postcode': order.buyerPostcode,
   'msic_code': order.buyerMsicCode,
   'einvoice_requested': order.einvoiceRequested,
+};
+
+/// Builds the request body for `POST /api/orders/measurement`.
+///
+/// Its own push, for the same reason buyer details get one: an order is
+/// pushed **once at confirmation**, before the site visit happens. Without
+/// this the server's `is_site_measured` never leaves the `False` it was
+/// pushed with, and `advance_order_status`'s `measured` guard refuses every
+/// order forever regardless of what is actually done in the field.
+///
+/// [deviceFinalTotal] is this line's own freshly-repriced total, carried only
+/// so the server can compare and log a disagreement (hard rule 4) rather than
+/// silently trust either number — never stored back from it.
+Map<String, dynamic> measurementPayload({
+  required String orderId,
+  required OrderLineRow line,
+  required DateTime measuredAt,
+  Money? deviceFinalTotal,
+}) => {
+  'order_id': orderId,
+  'line_id': line.id,
+  // UTC on the wire. The only ordering signal the server has when a line can
+  // be remeasured, or two handsets race on the same order offline.
+  'measured_at': measuredAt.toUtc().toIso8601String(),
+  'final_width_tmm': line.finalWidthTmm,
+  'final_height_tmm': line.finalHeightTmm,
+  'material_key': line.materialKey,
+  'device_final_total_sen': deviceFinalTotal?.sen,
 };

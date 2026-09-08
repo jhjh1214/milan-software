@@ -41,7 +41,9 @@ from .api.schemas import (
     LockPushResult,
     LocksOut,
     LoginIn,
+    MeasurementIn,
     MeasurementQueueOut,
+    MeasurementResult,
     OrderDetailOut,
     OrderIn,
     OrderResult,
@@ -85,6 +87,7 @@ from .services.ingest import (
     push_buyer_details,
     push_category_lock,
     push_deposit_prompt,
+    push_measurement,
     push_order,
     push_payment,
     push_quote,
@@ -408,6 +411,27 @@ def push_buyer_details_route(
     """
     _ = who
     return push_buyer_details(session, payload)
+
+
+@app.post("/api/orders/measurement", response_model=MeasurementResult)
+def push_measurement_route(
+    payload: MeasurementIn, session: SessionDep, who: CurrentDep
+) -> MeasurementResult:
+    """Records a site measurement pushed up after the device took it.
+    SPEC.md §11 Phase 6.
+
+    Its own push, for the same reason buyer details get one: an order is
+    pushed once at confirmation, before the site visit happens, and a retry
+    of that push is treated as a pure duplicate that never touches its lines
+    again.
+
+    Staled on the LINE's own measured_at, not the order's, so one line being
+    remeasured never refuses a push about a different line. Reprices the
+    whole order, so its stored total never drifts out of step with the lines
+    under it.
+    """
+    user, _ = who
+    return push_measurement(session, payload, by=user)
 
 
 @app.post("/api/locks", response_model=LockPushResult)

@@ -29,6 +29,8 @@ from ..api.schemas import (
     DepositPromptResult,
     LineResult,
     LockPushResult,
+    MeasurementIn,
+    MeasurementResult,
     OrderIn,
     OrderResult,
     PaymentIn,
@@ -39,6 +41,7 @@ from ..api.schemas import (
     StatusChangeResult,
 )
 from ..core.length import Length
+from ..core.money import Money
 from ..models.db import (
     CategoryLock,
     DepositPrompt,
@@ -66,6 +69,7 @@ from ..pricing.engine import (
     price_line,
     total_quote,
 )
+from ..pricing.final_pricing import MeasuredLine, reprice_order
 from ..pricing.models import (
     CustomerTier,
     Fulfilment,
@@ -729,6 +733,152 @@ def _as_utc(value: datetime) -> datetime:
     the first time somebody pushed a correction in production.
     """
     return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+
+def push_measurement(
+    session: Session, payload: MeasurementIn, *, by: User | None = None
+) -> MeasurementResult:
+    """Records a site measurement pushed up after the device took it.
+
+    SPEC.md §11 Phase 6. Its own endpoint, for the same reason buyer details
+    get one: an order is pushed **once at confirmation**, before the site
+    visit happens -- ``push_order``'s idempotency check treats a retry with
+    an existing order id as a pure duplicate and never touches its lines
+    again, so without this a tape reading taken in the field never reaches
+    the server. That is what left ``advance_order_status``'s ``measured``
+    guard permanently starved: it reads ``OrderLine.is_site_measured`` fresh
+    on every call, but nothing ever wrote it after the initial
+    (always-``False``) insert.
+
+    Staled on the LINE's own ``measured_at``, not the order's -- each line is
+    measured independently, sometimes on different visits, so an order-wide
+    timestamp would let one late line refuse a push about a different one. A
+    later ``measured_at`` always wins, which is what §6.3 means by a
+    remeasure being new dimensions on the same order rather than a rewind.
+
+    Reprices the WHOLE order on every measurement, mirroring
+    ``MeasurementRepository._repriceAndStore`` on the device: the stored
+    totals must not drift out of step with the lines under them.
+
+    ``measured_by_user_id`` comes from the authenticated session, never the
+    payload -- the same rule ``push_quote``'s ``taken_by`` follows, so a
+    handset cannot claim a measurement was someone else's.
+
+    A device/server total disagreement on the line just measured is logged to
+    ``pricing_discrepancies`` rather than argued about -- hard rule 4, the
+    same as every other pricing push.
+    """
+    order = session.get(Order, payload.order_id)
+    if order is None:
+        # The order push has not landed. The outbox is FIFO so this should
+        # not happen, but saying so plainly beats writing a measurement onto
+        # nothing.
+        return MeasurementResult(
+            order_id=payload.order_id,
+            line_id=payload.line_id,
+            is_site_measured=False,
+            refused_because="unknown_order",
+        )
+
+    line = session.get(OrderLine, payload.line_id)
+    if line is None or line.order_id != order.id:
+        return MeasurementResult(
+            order_id=order.id,
+            line_id=payload.line_id,
+            is_site_measured=False,
+            final_total_sen=order.final_total_sen,
+            has_unmeasured_lines=order.has_unmeasured_lines,
+            refused_because="unknown_line",
+        )
+
+    if line.measured_at is not None and payload.measured_at < _as_utc(line.measured_at):
+        return MeasurementResult(
+            order_id=order.id,
+            line_id=line.id,
+            is_site_measured=line.is_site_measured,
+            final_total_sen=order.final_total_sen,
+            has_unmeasured_lines=order.has_unmeasured_lines,
+            refused_because="stale",
+        )
+
+    line.final_width_tmm = payload.final_width_tmm
+    line.final_height_tmm = payload.final_height_tmm
+    line.is_site_measured = True
+    line.measured_by_user_id = None if by is None else by.id
+    line.measured_at = payload.measured_at
+    if payload.material_key is not None:
+        line.material_key = payload.material_key
+
+    all_lines = session.scalars(
+        select(OrderLine).where(OrderLine.order_id == order.id)
+    ).all()
+
+    cards: dict[int, RateCard] = {}
+    for version in {row.applied_rate_card_version for row in all_lines}:
+        card_row = session.get(RateCardVersion, version)
+        if card_row is not None:
+            cards[version] = RateCard.from_json(card_row.payload)
+
+    pricing = reprice_order(
+        lines=[
+            MeasuredLine(
+                id=row.id,
+                variant=row.variant,
+                estimate_total=Money(row.line_total_sen),
+                applied_rate_card_version=row.applied_rate_card_version,
+                material_key=row.material_key,
+                layer=Layer(row.layer),
+                quantity=row.quantity,
+                final_width=(
+                    None if row.final_width_tmm is None else Length(row.final_width_tmm)
+                ),
+                final_height=(
+                    None
+                    if row.final_height_tmm is None
+                    else Length(row.final_height_tmm)
+                ),
+                material_deferred=row.material_deferred,
+            )
+            for row in all_lines
+        ],
+        cards=cards,
+    )
+
+    order.final_total_sen = pricing.final_total.sen if pricing.is_complete else None
+    order.has_unmeasured_lines = not pricing.is_complete
+
+    this_line = next((pl for pl in pricing.lines if pl.id == line.id), None)
+    server_total_sen = (
+        this_line.final_total.sen
+        if this_line is not None and this_line.final_total is not None
+        else None
+    )
+    if (
+        payload.device_final_total_sen is not None
+        and server_total_sen is not None
+        and payload.device_final_total_sen != server_total_sen
+    ):
+        session.add(
+            PricingDiscrepancy(
+                id=str(uuid.uuid4()),
+                quote_id=order.quote_id,
+                line_id=line.id,
+                rate_card_version=line.applied_rate_card_version,
+                device_total_sen=payload.device_final_total_sen,
+                server_total_sen=server_total_sen,
+                detail="final pricing",
+            )
+        )
+
+    session.flush()
+
+    return MeasurementResult(
+        order_id=order.id,
+        line_id=line.id,
+        is_site_measured=line.is_site_measured,
+        final_total_sen=order.final_total_sen,
+        has_unmeasured_lines=order.has_unmeasured_lines,
+    )
 
 
 def push_category_lock(

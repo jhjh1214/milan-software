@@ -72,6 +72,13 @@ class FakeServer {
   /// When set, POST /api/orders/buyer refuses every capture with this reason.
   String? refuseBuyerDetailsBecause;
 
+  /// When set, POST /api/orders/measurement refuses every push with this
+  /// reason.
+  String? refuseMeasurementBecause;
+
+  /// Line ids the server has accepted a measurement for.
+  final Set<String> measuredLines = {};
+
   /// customer_key -> the holds this server will serve for them, as a handset
   /// other than this one would have left them.
   final Map<String, List<Map<String, dynamic>>> heldRates = {};
@@ -294,6 +301,34 @@ class FakeServer {
         'complete': refuseBuyerDetailsBecause == null,
         'missing': <String>[],
         'refused_because': refuseBuyerDetailsBecause,
+      });
+    }
+
+    if (path == '/api/orders/measurement') {
+      final body =
+          jsonDecode(utf8.decode(request.bodyBytes)) as Map<String, dynamic>;
+      final orderId = body['order_id'] as String;
+      final lineId = body['line_id'] as String;
+
+      if (refuseMeasurementBecause != null) {
+        return _json({
+          'order_id': orderId,
+          'line_id': lineId,
+          'is_site_measured': false,
+          'final_total_sen': null,
+          'has_unmeasured_lines': true,
+          'refused_because': refuseMeasurementBecause,
+        });
+      }
+
+      measuredLines.add(lineId);
+      return _json({
+        'order_id': orderId,
+        'line_id': lineId,
+        'is_site_measured': true,
+        'final_total_sen': 50600,
+        'has_unmeasured_lines': false,
+        'refused_because': null,
       });
     }
 

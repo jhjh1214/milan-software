@@ -244,6 +244,29 @@ class BuyerDetailsAccepted {
   });
 }
 
+/// What the server made of a site measurement. §11 Phase 6.
+class MeasurementAccepted {
+  final String orderId;
+  final String lineId;
+  final bool isSiteMeasured;
+
+  /// This order's total once every line has priced, null otherwise.
+  final int? finalTotalSen;
+  final bool hasUnmeasuredLines;
+
+  /// `unknown_order`, `unknown_line` or `stale`. Null when it was written.
+  final String? refusedBecause;
+
+  const MeasurementAccepted({
+    required this.orderId,
+    required this.lineId,
+    required this.isSiteMeasured,
+    required this.hasUnmeasuredLines,
+    this.finalTotalSen,
+    this.refusedBecause,
+  });
+}
+
 class StatusAccepted {
   final String orderId;
 
@@ -558,6 +581,30 @@ class ApiClient {
       orderId: json['order_id'] as String,
       complete: json['complete'] as bool,
       missing: [for (final m in json['missing'] as List) m as String],
+      refusedBecause: json['refused_because'] as String?,
+    ),
+  );
+
+  /// Sends a site measurement taken after the order was confirmed. §11
+  /// Phase 6.
+  ///
+  /// Its own call, for the same reason buyer details get one: an order goes
+  /// up once at confirmation, before the site visit happens.
+  Future<SyncResult<MeasurementAccepted>> pushMeasurement(
+    String token,
+    Map<String, dynamic> measurement,
+  ) => _send(
+    () => _http.post(
+      _url('/api/orders/measurement'),
+      headers: _headers(token),
+      body: jsonEncode(measurement),
+    ),
+    (json) => MeasurementAccepted(
+      orderId: json['order_id'] as String,
+      lineId: json['line_id'] as String,
+      isSiteMeasured: json['is_site_measured'] as bool,
+      finalTotalSen: json['final_total_sen'] as int?,
+      hasUnmeasuredLines: json['has_unmeasured_lines'] as bool,
       refusedBecause: json['refused_because'] as String?,
     ),
   );

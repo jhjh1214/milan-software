@@ -22,6 +22,8 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:milan_quote/data/database.dart';
 import 'package:milan_quote/features/measure/measure_screen.dart';
 import 'package:milan_quote/features/order/order_screen.dart'
@@ -207,6 +209,19 @@ void main() {
           todayProvider.overrideWithValue(at),
           credentialsProvider.overrideWith(() => _Signed(_measurer)),
           heldCardsProvider.overrideWith((_) async => cards),
+          // Queuing a measurement touches this provider, and `ApiClient`'s
+          // default constructor builds a real `dart:io` `HttpClient()`
+          // eagerly — which is exactly what `_NoNetwork` below makes throw,
+          // even though nothing here ever issues a request. A `MockClient`
+          // never goes near `dart:io`, so it proves the same thing the real
+          // test cares about (no socket is dialled) without that construction
+          // quirk.
+          apiClientProvider.overrideWithValue(
+            ApiClient(
+              baseUrl: Uri.parse('https://example.test'),
+              client: MockClient((_) async => http.Response('{}', 200)),
+            ),
+          ),
         ],
         child: MaterialApp(
           locale: const Locale('en'),
@@ -411,6 +426,32 @@ void main() {
       expect(find.text('RM 506.00'), findsWidgets);
       expect(find.text('RM 46.00 below the quote'), findsOneWidget);
     });
+
+    testWidgets(
+      'saving queues the measurement to go up, offline, same as everything '
+      'else — FINDINGS.md #1',
+      (tester) async {
+        await addLine('l1');
+        await pump(tester);
+
+        await tester.tap(find.text('Measure'));
+        await tester.pumpAndSettle();
+        await measure(tester, width: '11', height: '9');
+
+        final rows = await db.pendingOutbox();
+        final queued = rows.where((r) => r.entityType == 'measurement');
+        expect(queued, hasLength(1));
+
+        final body = jsonDecode(queued.single.payload) as Map<String, dynamic>;
+        expect(body['order_id'], orderId);
+        expect(body['line_id'], 'l1');
+        expect(body['final_width_tmm'], 33528);
+        expect(body['final_height_tmm'], 27432);
+        // The freshly-repriced total, for the server's own agreement check —
+        // never trusted back, only compared.
+        expect(body['device_final_total_sen'], 50600);
+      },
+    );
 
     testWidgets('the measured size sits beside the quoted one, not over it', (
       tester,

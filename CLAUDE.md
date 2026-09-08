@@ -48,8 +48,8 @@ could finish "measuring" a wall nobody's tape ever touched. Fixed to ask the
 applied rule's basis directly rather than the quote-time coincidence, and a
 widget test now pins it.
 
-**A targeted bug hunt on the strength of that finding surfaced five more.**
-Full detail in `FINDINGS.md`. Two are fixed, each with a test that failed
+**A targeted bug hunt on the strength of that finding surfaced six more.**
+Full detail in `FINDINGS.md`. Three are fixed, each with a test that failed
 before the fix and passes after, mutation-confirmed:
 
 - The Dart and Python engines disagreed on an unrecognised `ProductRule.
@@ -65,20 +65,32 @@ before the fix and passes after, mutation-confirmed:
   disagreement, the same as every other refusable push. Whether an
   `unknown_order` refusal should retry rather than just flag — the capture
   is genuinely lost either way right now — is still open.
+- **Site measurements never reached the server after confirmation**, and it
+  was the one that mattered most. `enqueueOrder` fires exactly once, before
+  the site visit; nothing in `measurement_repository.dart` ever pushed a
+  final measurement up, and even a naive retry was silently ignored
+  (`push_order` treats any order with an existing id as a pure duplicate).
+  The server's `is_site_measured` stayed `False` forever, so
+  `advance_order_status`'s guard refused `measured` server-side on every real
+  order, and the office's measurement queue showed everything as permanently
+  unmeasured no matter what was done in the field — Phase 6/7 looked complete
+  in every test that ran on the device and meant nothing to the dashboard.
 
-**One is not fixed, and it is the one that matters most: §13 gains a new
-entry.** Site measurements never reach the server after confirmation.
-`enqueueOrder` fires exactly once, before the site visit; nothing in
-`measurement_repository.dart` ever pushes a final measurement up, and even a
-naive retry would be silently ignored (`push_order` treats any order with an
-existing id as a pure duplicate). The server's `is_site_measured` stays
-`False` forever, so `advance_order_status`'s guard refuses `measured`
-server-side on every real order, and the office's measurement queue shows
-everything as permanently unmeasured no matter what's done in the field.
-This is why Phase 6/7 look complete in every test that runs on the device and
-don't yet mean anything to the dashboard. Needs a new sync endpoint —
-staleness/merge semantics, similar in shape to how `POST /api/orders/buyer`
-was designed — not a one-line fix. Planning it is next.
+  Fixed with a new `POST /api/orders/measurement` endpoint, planned before
+  writing any code and mirroring `POST /api/orders/buyer`'s shape: staled on
+  the **line's own** `measured_at` rather than the order's (a measurement is
+  naturally per line), refusal-as-200, `measured_by_user_id` sourced from the
+  session rather than the payload. It reprices the whole order server-side —
+  `reprice_order` existed, pure and fixture-tested, but was wired to nothing;
+  `Order.final_total_sen`/`has_unmeasured_lines` are now real. A device/server
+  total mismatch on the measured line logs to the existing
+  `pricing_discrepancies` table rather than blocking the push (hard rule 4).
+  `advance_order_status`'s guard itself needed no change — it always read
+  `OrderLine` fresh on every call; it was purely starved of data. Proven by
+  `backend/tests/test_measurement_push.py` (11 cases, including the exact
+  scenario that motivated this: push a measurement, then watch
+  `advance_order_status` succeed to `measured` where it previously refused
+  with `lines_not_measured`) plus outbox and widget tests on the device side.
 
 Two more, lower severity, still open: removing an auto-adding upgrade (Motor)
 can delete an independently-chosen line sharing a variant with its
@@ -186,7 +198,7 @@ trilingual PDF.
 
 Built and green on the server: the Python engine passing the same fixtures, the
 sync endpoints, Alembic migrations with a test that they match the models, users
-and roles, and rate card publishing. **863 Dart tests, 629 Python tests,
+and roles, and rate card publishing. **866 Dart tests, 640 Python tests,
 243 dashboard tests.** 100% coverage on `Length`, `Money` and `Rational`.
 
 **An upgrade is only offered where it can belong** (client, Sep 2026). Four

@@ -27,7 +27,8 @@ import '../../ui/theme.dart';
 import '../../ui/unit_labels.dart';
 import '../../ui/widgets/dimension_field.dart';
 import '../../ui/widgets/numeric_keypad.dart';
-import '../../sync/sync_state.dart' show credentialsProvider;
+import '../../sync/order_payload.dart';
+import '../../sync/sync_state.dart' show credentialsProvider, outboxerProvider;
 import '../quote/quote_state.dart';
 import 'measure_screen.dart' show measurementRepositoryProvider;
 
@@ -362,6 +363,35 @@ class _MeasureSheetState extends ConsumerState<MeasureSheet> {
       );
       return;
     }
+
+    // Queued, never sent from here — the same reason the buyer-details form
+    // queues rather than dials out. §11 Phase 6 requires the whole flow to
+    // work with no signal, and the tape is already in the local database by
+    // this point regardless of what the network does next.
+    final db = ref.read(databaseProvider);
+    final savedLine = await (db.select(
+      db.orderLines,
+    )..where((l) => l.id.equals(widget.line.id))).getSingleOrNull();
+    if (savedLine != null) {
+      final pricedLines = outcome.pricing?.lines ?? const [];
+      final finalTotal = pricedLines
+          .where((l) => l.id == widget.line.id)
+          .firstOrNull
+          ?.finalTotal;
+      await ref
+          .read(outboxerProvider)
+          .enqueueMeasurement(
+            widget.line.id,
+            measurementPayload(
+              orderId: widget.orderId,
+              line: savedLine,
+              measuredAt: ref.read(todayProvider),
+              deviceFinalTotal: finalTotal,
+            ),
+          );
+    }
+
+    if (!context.mounted) return;
     Navigator.of(context).pop(outcome);
   }
 }

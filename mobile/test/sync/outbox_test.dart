@@ -315,6 +315,45 @@ void main() {
     },
   );
 
+  test('a site measurement reaches the server', () async {
+    // FINDINGS.md #1 — the whole reason this push exists. Before it, a tape
+    // reading taken in the field never left the handset.
+    await outboxer.enqueueMeasurement('line-1', {
+      'order_id': 'order-1',
+      'line_id': 'line-1',
+      'measured_at': at.toUtc().toIso8601String(),
+      'final_width_tmm': 33528,
+      'final_height_tmm': 27432,
+    });
+
+    final report = await outboxer.drain(credentials);
+
+    expect(report.sent, ['line-1']);
+    expect(report.disagreed, isEmpty);
+    expect(server.measuredLines, contains('line-1'));
+    expect(await db.pendingOutbox(), isEmpty);
+  });
+
+  test(
+    'a stale measurement refusal is reported, not treated as delivered',
+    () async {
+      await outboxer.enqueueMeasurement('line-1', {
+        'order_id': 'order-1',
+        'line_id': 'line-1',
+        'measured_at': at.toUtc().toIso8601String(),
+        'final_width_tmm': 33528,
+        'final_height_tmm': 27432,
+      });
+      server.refuseMeasurementBecause = 'stale';
+
+      final report = await outboxer.drain(credentials);
+
+      expect(report.sent, ['line-1']);
+      expect(report.disagreed, ['line-1']);
+      expect(await db.pendingOutbox(), isEmpty);
+    },
+  );
+
   test('the queue drains oldest first', () async {
     await queueAQuote(room: 'first');
     await queueAQuote(room: 'second');
