@@ -106,6 +106,11 @@ void main() {
     String variant = 'night_curtain',
     String layer = 'night',
     bool materialDeferred = false,
+    String appliedRuleId = 'night-curtain-lo',
+    int standardRateSen = 4600,
+    int rateSen = 4600,
+    String billedQty = '12',
+    String billedUnit = 'ft',
   }) => db
       .into(db.orderLines)
       .insert(
@@ -119,12 +124,12 @@ void main() {
           layer: layer,
           estWidthTmm: estWidthTmm,
           estHeightTmm: Value(estHeightTmm),
-          appliedRuleId: 'night-curtain-lo',
+          appliedRuleId: appliedRuleId,
           appliedRateCardVersion: version,
-          standardRateSen: 4600,
-          rateSen: 4600,
-          billedQty: '12',
-          billedUnit: 'ft',
+          standardRateSen: standardRateSen,
+          rateSen: rateSen,
+          billedQty: billedQty,
+          billedUnit: billedUnit,
           lineTotalSen: lineTotalSen,
           materialDeferred: Value(materialDeferred),
         ),
@@ -481,6 +486,47 @@ void main() {
         isNull,
       );
     });
+
+    testWidgets(
+      'a wallpaper line quoted with no height still asks for one here',
+      (tester) async {
+        // §13 A25: the fair let this line default to one pack with no wall
+        // size recorded (estHeightTmm null). Final pricing must still see the
+        // real wall — a `needsHeight` derived from "did the quote happen to
+        // record one" would silently skip the field for exactly this line.
+        await addLine(
+          'l1',
+          variant: 'korea_wallpaper',
+          estWidthTmm: 0,
+          estHeightTmm: null,
+          lineTotalSen: 80000,
+          appliedRuleId: 'korea-wallpaper',
+          standardRateSen: 80000,
+          rateSen: 80000,
+          billedQty: '1',
+          billedUnit: 'roll',
+        );
+        await pump(tester);
+
+        await tester.tap(find.text('Measure'));
+        await tester.pumpAndSettle();
+
+        // Both fields present — a missing height on a per_roll line must not
+        // read as "this product has no second dimension".
+        expect(find.byType(DimensionField), findsNWidgets(2));
+
+        FilledButton save() => tester.widget<FilledButton>(
+          find.widgetWithText(FilledButton, 'Save').last,
+        );
+        await type(tester, '20');
+        expect(save().onPressed, isNull, reason: 'width only, no real wall');
+
+        await tester.tap(find.byType(DimensionField).last);
+        await tester.pump();
+        await type(tester, '10');
+        expect(save().onPressed, isNotNull, reason: 'both, so it can price');
+      },
+    );
 
     testWidgets('a tape above the estimate is flagged, not hidden', (
       tester,

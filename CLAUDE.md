@@ -37,6 +37,17 @@ gating, the quote screen and PDF, and the revised-order document all changed;
 three-way contract, and each engine separately tests the final-stage refusal
 that the shared-fixture format has no way to express.
 
+**Mutation-checking A25 found one real gap.** `measure_sheet.dart`'s
+`needsHeight` was derived from *whether the quote happened to record a
+height* (`line.estHeightTmm != null`), not from the product's basis. Before
+A25 those always agreed, because quote-time height was never optional for
+anything — the mutation reverting the fix passed the **entire 861-test
+suite**. A wallpaper line quoted with no measurement would never show the
+height field at all, and Save would enable off a width alone, so a measurer
+could finish "measuring" a wall nobody's tape ever touched. Fixed to ask the
+applied rule's basis directly rather than the quote-time coincidence, and a
+widget test now pins it.
+
 - **The handset form.** Without it an order over RM10,000 was *stuck* —
   `advanceOrder` refused to move it and nothing could supply what the refusal
   asked for. The refusal now opens the form, and the form is also reachable
@@ -137,7 +148,7 @@ trilingual PDF.
 
 Built and green on the server: the Python engine passing the same fixtures, the
 sync endpoints, Alembic migrations with a test that they match the models, users
-and roles, and rate card publishing. **860 Dart tests, 628 Python tests,
+and roles, and rate card publishing. **861 Dart tests, 628 Python tests,
 243 dashboard tests.** 100% coverage on `Length`, `Money` and `Rational`.
 
 **An upgrade is only offered where it can belong** (client, Sep 2026). Four
