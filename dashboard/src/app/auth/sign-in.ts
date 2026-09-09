@@ -8,22 +8,22 @@
  * staff list to anyone who opens it, and the same reasoning that keeps it off
  * the handset keeps it off a browser on a desk people walk past.
  *
- * The language picker is on this screen because it has to be: the default is
- * Chinese, and the account that would say otherwise is on the far side of the
- * button somebody cannot read (§13 C9).
+ * No language picker here any more. Every office PC now belongs to one
+ * person, so there is nobody on this screen yet to ask — the language is the
+ * signed-in account's own, and it takes over the moment sign-in succeeds.
  */
 
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { LanguagePicker } from '../i18n/language-picker';
 import { Text } from '../i18n/text';
+import { ThemeToggle } from '../theme/theme-toggle';
 import { Session, type SignInFailure } from './session';
 
 @Component({
   selector: 'app-sign-in',
-  imports: [FormsModule, LanguagePicker],
+  imports: [FormsModule, ThemeToggle],
   templateUrl: './sign-in.html',
   styleUrl: './sign-in.css',
 })
@@ -80,9 +80,10 @@ export class SignIn {
     if (failed === null) {
       // The PIN does not stay in a field behind a route change.
       this.pin = '';
-      // Whoever picked a language here was choosing for this screen. The
-      // person who just signed in has a language on their own account, and
-      // that is the one that should follow them to every machine in the shop.
+      // A language picked from the nav bar on a previous account, on this
+      // same browser, must not leak onto whoever just signed in. Their own
+      // account's language — the one that now just arrived with `user` —
+      // takes over.
       this.text.followTheAccount();
       // Back to where they were headed, so a colleague's link to a filtered
       // board survives being asked to sign in on the way.

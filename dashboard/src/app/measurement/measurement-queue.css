@@ -1,6 +1,6 @@
 :host {
   display: block;
-  padding: 24px;
+  padding: var(--space-5);
   max-width: 1100px;
   margin: 0 auto;
 }
@@ -9,36 +9,33 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
 }
 
 h1 {
   margin: 0;
   font-size: 24px;
-  font-weight: 600;
-  color: #0f172a;
 }
 
 h2 {
   margin: 0;
   font-size: 17px;
   font-weight: 600;
-  color: #0f172a;
 }
 
 .count {
   margin: 0;
   font-size: 14px;
-  color: #56637a;
+  color: var(--color-fg-muted);
   font-variant-numeric: tabular-nums;
 }
 
 .filters {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
   flex-wrap: wrap;
 }
 
@@ -47,39 +44,35 @@ h2 {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #56637a;
+  color: var(--color-fg-muted);
 }
 
 button {
   min-height: 40px;
   padding: 0 14px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-fg);
   font: inherit;
   font-size: 14px;
   cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease);
 }
 
 button + button {
-  margin-left: 8px;
+  margin-left: var(--space-2);
 }
 
 button:hover {
-  border-color: #94a3b8;
+  border-color: var(--color-fg-faint);
 }
 
 button.on {
-  background: #1e3a5f;
-  border-color: #1e3a5f;
-  color: #fff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
   font-weight: 600;
-}
-
-button:focus-visible,
-a:focus-visible {
-  outline: 3px solid #2563eb;
-  outline-offset: 2px;
 }
 
 .trips,
@@ -91,15 +84,16 @@ a:focus-visible {
 
 .trips {
   display: grid;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .trip {
-  border: 1px solid #cbd5e1;
-  border-left: 4px solid #cbd5e1;
-  border-radius: 8px;
-  background: #fff;
-  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-4);
 }
 
 /* How long somebody has waited since paying a deposit. Not the board's 60/30
@@ -107,18 +101,18 @@ a:focus-visible {
    money taken. Colour is never the only carrier — the card says the number of
    days in words beside it. */
 .trip[data-wait='slow'] {
-  border-left-color: #b45309;
+  border-left-color: var(--color-warning);
 }
 
 .trip[data-wait='overdue'] {
-  border-left-color: #b91c1c;
+  border-left-color: var(--color-danger);
 }
 
 .trip-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .trip-meta {
@@ -133,40 +127,40 @@ a:focus-visible {
 .trip-total {
   margin: 4px 0 0;
   font-size: 13px;
-  color: #56637a;
+  color: var(--color-fg-muted);
 }
 
 .waiting {
   font-weight: 600;
-  color: #0f172a;
+  color: var(--color-fg);
   font-variant-numeric: tabular-nums;
 }
 
 .trip[data-wait='overdue'] .waiting {
-  color: #b91c1c;
+  color: var(--color-danger);
 }
 
 .trip[data-wait='slow'] .waiting {
-  color: #b45309;
+  color: var(--color-warning);
 }
 
 /* The saving §11 Phase 5 is after. It is only real if somebody can see it. */
 .together {
-  margin-top: 12px;
+  margin-top: var(--space-3);
   padding: 6px 10px;
-  border-radius: 6px;
-  background: #eff6ff;
-  color: #1e3a5f;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-bg);
+  color: var(--color-primary);
   font-weight: 600;
 }
 
 .ungrouped {
-  margin-top: 12px;
+  margin-top: var(--space-3);
   font-style: italic;
 }
 
 .jobs {
-  margin-top: 12px;
+  margin-top: var(--space-3);
   display: grid;
   gap: 4px;
 }
@@ -174,17 +168,17 @@ a:focus-visible {
 .job a {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr auto auto;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: baseline;
-  padding: 10px 12px;
-  border-radius: 6px;
+  padding: 10px var(--space-3);
+  border-radius: var(--radius-sm);
   text-decoration: none;
   color: inherit;
   font-size: 14px;
 }
 
 .job a:hover {
-  background: #f1f5f9;
+  background: var(--color-surface-muted);
 }
 
 .reference {
@@ -196,17 +190,17 @@ a:focus-visible {
 .reference.pending {
   font-style: italic;
   font-weight: 400;
-  color: #56637a;
+  color: var(--color-fg-muted);
 }
 
 .lines,
 .materials,
 .stage {
-  color: #56637a;
+  color: var(--color-fg-muted);
 }
 
 .materials {
-  color: #b45309;
+  color: var(--color-warning);
 }
 
 .estimate {
@@ -215,28 +209,19 @@ a:focus-visible {
 }
 
 .trip-total {
-  margin-top: 12px;
+  margin-top: var(--space-3);
   padding-top: 10px;
-  border-top: 1px solid #f1f3f5;
+  border-top: 1px solid var(--color-border-subtle);
   font-variant-numeric: tabular-nums;
 }
 
-.empty {
-  padding: 24px;
-  text-align: center;
-  color: #56637a;
-}
-
-.failure {
-  padding: 12px 16px;
-  border: 1px solid #b91c1c;
-  border-radius: 8px;
-  background: #fee2e2;
-  color: #7f1d1d;
+.trip.skeleton-card {
+  display: grid;
+  gap: var(--space-2);
 }
 
 .failure button {
-  margin-left: 12px;
+  margin-left: var(--space-3);
 }
 
 @media (max-width: 720px) {

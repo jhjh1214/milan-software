@@ -5,22 +5,22 @@
  *
  * ## Precedence, and why
  *
- * 1. What somebody picked from the switcher, **this session only**
+ * 1. What somebody picked from the switcher, **this browser, right now**
  * 2. The signed-in person's own `Identity.language`, from the server
  * 3. `zh`, the default
  *
- * ## The choice is not persisted, on purpose
+ * ## The choice persists to the account, not the browser
  *
- * This is the shared office machine — the same reasoning that keeps the
- * session token out of `localStorage`. A language stored on the device is a
- * per-device setting, which is exactly what CLAUDE.md says this must not be:
- * the next person to sit down would get the last person's language, and the
- * `language` on their own account — the thing that exists so nobody has to
- * choose — would look broken.
+ * Every office PC now belongs to one person (confirmed 2026-09, superseding
+ * the earlier "shared machine" assumption that kept this session-only). A
+ * pick made from the switcher is sent to the account via `Session.
+ * setLanguage`, so it is genuinely the **person's** language: it follows
+ * them to any machine, the same as SPEC.md always said it should.
  *
- * The cost is that somebody who reads only English sees a Chinese sign-in
- * screen and clicks once before signing in. After that their account decides,
- * every time, on any machine in the shop.
+ * `picked` still exists as an immediate, this-tab value — the switcher has
+ * to feel instant and must not wait on a round trip — but it is a cache of
+ * what was just persisted, not the source of truth. A fresh tab or a fresh
+ * sign-in has no `picked` yet and reads straight off the account.
  */
 
 import { Injectable, computed, inject, signal } from '@angular/core';
@@ -57,16 +57,22 @@ export class Text {
    */
   readonly strings = computed<Strings>(() => DICTIONARIES[this.language()]);
 
+  /**
+   * Picks a language. Renders instantly, and — when somebody is signed in —
+   * persists to their account in the background via `Session.setLanguage`.
+   */
   pick(language: Language): void {
     this.picked.set(language);
+    this.session.setLanguage(language);
   }
 
   /**
    * Hands the account's language back the authority.
    *
-   * Called when somebody signs in: whoever picked a language on the sign-in
-   * screen was choosing for the sign-in screen, not for the person who then
-   * signed in — and their account already knows what they read.
+   * Called when somebody signs in: a pick made on this browser by whoever
+   * used it last — before this account, or on the sign-in screen before
+   * anybody was known — must not leak onto the account that just arrived.
+   * Their own account already knows what they read.
    */
   followTheAccount(): void {
     this.picked.set(null);

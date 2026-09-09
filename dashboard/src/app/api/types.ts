@@ -481,3 +481,99 @@ export interface DepositPromptOut {
 export interface DepositPromptsOut {
   readonly prompts: readonly DepositPromptOut[];
 }
+
+/**
+ * The Property / Project / Unit Library. SPEC.md Phase 8.
+ *
+ * Reference measurements are NOT site measurements: nothing here becomes an
+ * order line except through the same site visit every other line takes.
+ */
+export interface ProjectOut {
+  readonly id: string;
+  readonly name: string;
+  readonly developer: string | null;
+  readonly area: string | null;
+  readonly created_at: string;
+}
+
+export interface ProjectsOut {
+  readonly projects: readonly ProjectOut[];
+}
+
+/** draft | pending_review | approved | superseded. `superseded` is reserved
+ * -- nothing server-side sets it yet (SPEC.md §13 C15). */
+export type UnitTypeStatus = 'draft' | 'pending_review' | 'approved' | 'superseded';
+
+export interface UnitTypeOut {
+  readonly id: string;
+  readonly project_id: string;
+  /** Denormalised: this screen has to say "ABC Development, Type B" without
+   * a request per row. */
+  readonly project_name: string;
+  readonly name: string;
+  readonly floor_count: number | null;
+  readonly variant_of: string | null;
+  readonly status: UnitTypeStatus;
+  readonly created_by_user_id: string | null;
+  readonly created_at: string;
+  readonly updated_at: string;
+}
+
+export interface OpeningOut {
+  readonly id: string;
+  readonly label: string;
+  readonly room: string;
+  readonly floor: number | null;
+  readonly nominal_w_tmm: number;
+  readonly nominal_h_tmm: number;
+  readonly sort_order: number;
+}
+
+export interface RoomOut {
+  readonly id: string;
+  readonly name: string;
+  readonly floor: number | null;
+  readonly nominal_area_mm2: number;
+  readonly skirting_run_tmm: number | null;
+}
+
+export interface FloorPlanOut {
+  readonly id: string;
+  readonly file_ref: string;
+  readonly scale_tmm_per_px: string | null;
+  readonly uploaded_by_user_id: string | null;
+  readonly uploaded_at: string;
+}
+
+export interface UnitTypeVersionOut {
+  readonly id: string;
+  readonly version: number;
+  readonly approved_by_user_id: string | null;
+  readonly approved_at: string | null;
+  readonly rejected_by_user_id: string | null;
+  readonly rejected_at: string | null;
+  readonly rejection_reason: string | null;
+  readonly note: string | null;
+  readonly openings: readonly OpeningOut[];
+  readonly rooms: readonly RoomOut[];
+  readonly floor_plan: FloorPlanOut | null;
+}
+
+export interface UnitTypeDetailOut {
+  readonly unit_type: UnitTypeOut;
+  readonly versions: readonly UnitTypeVersionOut[];
+}
+
+/**
+ * A row of `GET /api/unit-types`, with every version's content attached.
+ *
+ * The only screen that lists these today is the admin review queue, and it
+ * has to show what was actually submitted, not just a name.
+ */
+export interface UnitTypeWithVersionsOut extends UnitTypeOut {
+  readonly versions: readonly UnitTypeVersionOut[];
+}
+
+export interface UnitTypesOut {
+  readonly unit_types: readonly UnitTypeWithVersionsOut[];
+}

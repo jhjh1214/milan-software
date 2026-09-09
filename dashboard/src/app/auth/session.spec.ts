@@ -160,4 +160,47 @@ describe('Session', () => {
     const err = new HttpErrorResponse({ status: 503 });
     expect(err.status).toBe(503);
   });
+
+  describe('setLanguage', () => {
+    it('updates the local copy at once and persists to the account', async () => {
+      const promise = attempt();
+      http.expectOne('/api/auth/login').flush({
+        token: 'a-token',
+        user: { id: 'u1', name: 'Boss', role: 'admin', language: 'zh' },
+      });
+      await promise;
+
+      session.setLanguage('en');
+      expect(session.user()?.language).toBe('en');
+
+      const req = http.expectOne('/api/auth/language');
+      expect(req.request.body).toEqual({ language: 'en' });
+      req.flush({ id: 'u1', name: 'Boss', role: 'admin', language: 'en' });
+    });
+
+    it('does nothing when nobody is signed in', () => {
+      // No account to remember it against.
+      session.setLanguage('en');
+      expect(session.user()).toBeNull();
+      http.expectNone('/api/auth/language');
+    });
+
+    it('a failed persist does not undo the local pick', async () => {
+      // A preference, not money moving: the worst case is that it does not
+      // survive to the next sign-in, not that this screen breaks.
+      const promise = attempt();
+      http.expectOne('/api/auth/login').flush({
+        token: 'a-token',
+        user: { id: 'u1', name: 'Boss', role: 'admin', language: 'zh' },
+      });
+      await promise;
+
+      session.setLanguage('en');
+      http
+        .expectOne('/api/auth/language')
+        .flush({ detail: 'no' }, { status: 500, statusText: 'x' });
+
+      expect(session.user()?.language).toBe('en');
+    });
+  });
 });

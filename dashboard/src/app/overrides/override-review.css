@@ -3,7 +3,7 @@
 
 :host {
   display: block;
-  padding: 24px;
+  padding: var(--space-5);
   max-width: 1100px;
   margin: 0 auto;
 }
@@ -13,58 +13,50 @@
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
 }
 
 h1 {
   margin: 0;
   font-size: 24px;
-  font-weight: 600;
-  color: #0f172a;
 }
 
 .week {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .week button {
   min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  background: #fff;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-fg);
   font: inherit;
   font-size: 14px;
   cursor: pointer;
 }
 
-.week button:focus-visible,
-.failure button:focus-visible {
-  outline: 3px solid #2563eb;
-  outline-offset: 2px;
-}
-
 .range {
   font-size: 14px;
-  color: #56637a;
+  color: var(--color-fg-muted);
   font-variant-numeric: tabular-nums;
 }
 
 .net {
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-3);
   font-size: 18px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: #0f172a;
 }
 
 /* Money coming off is the ordinary case and is marked, not alarmed about.
    The alarm on this screen is the size of the total, not its direction. */
 .net.down {
-  color: #92400e;
+  color: var(--color-warning);
 }
 
 table {
@@ -78,14 +70,14 @@ th {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #56637a;
-  padding: 0 12px 8px 0;
-  border-bottom: 1px solid #cbd5e1;
+  color: var(--color-fg-muted);
+  padding: 0 var(--space-3) var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 td {
-  padding: 10px 12px 10px 0;
-  border-bottom: 1px solid #f1f3f5;
+  padding: 10px var(--space-3) 10px 0;
+  border-bottom: 1px solid var(--color-border-subtle);
   vertical-align: top;
 }
 
@@ -98,45 +90,34 @@ td {
 }
 
 .num.down {
-  color: #92400e;
+  color: var(--color-warning);
 }
 
 .why {
   max-width: 34ch;
 }
 
-.empty,
 .muted {
-  padding: 32px 0;
-  color: #56637a;
+  padding: var(--space-6) 0;
+  color: var(--color-fg-muted);
 }
 
 .failure {
-  padding: 16px;
-  border: 1px solid #b91c1c;
-  border-radius: 8px;
-  background: #fee2e2;
-  color: #7f1d1d;
+  padding: var(--space-4);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
 }
 
 .failure button {
-  margin-left: 12px;
+  margin-left: var(--space-3);
   min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid #7f1d1d;
-  border-radius: 6px;
-  background: #fff;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-fg);
   font: inherit;
   cursor: pointer;
-}
-
-/* Present for a screen reader, absent for everybody else. */
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  white-space: nowrap;
 }

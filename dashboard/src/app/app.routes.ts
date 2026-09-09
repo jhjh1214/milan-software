@@ -80,4 +80,13 @@ export const routes: Routes = [
     loadComponent: () => import('./people/people').then((m) => m.People),
     title: 'People',
   },
+  {
+    // Admin only, server-enforced. SPEC.md Phase 8: a part-timer's submission
+    // is never searchable or quotable until this screen's Approve is clicked.
+    path: 'library/review',
+    canActivate: [signedIn],
+    loadComponent: () =>
+      import('./library/unit-type-review').then((m) => m.UnitTypeReview),
+    title: 'Pending unit type reviews',
+  },
 ];

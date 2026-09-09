@@ -5,74 +5,57 @@
   display: grid;
   place-items: center;
   min-height: 100dvh;
-  padding: 24px;
+  padding: var(--space-5);
+  background: var(--color-bg);
+}
+
+.corner {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
 }
 
 .sign-in {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-3);
   width: 100%;
-  max-width: 320px;
+  max-width: 340px;
+  padding: var(--space-6) var(--space-5);
+}
+
+.logo-placeholder {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto var(--space-2);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
 }
 
 h1 {
-  margin: 0 0 16px;
-  font-size: 28px;
-  font-weight: 600;
-  color: #1e3a5f;
+  margin: 0 0 var(--space-4);
+  font-size: 26px;
   text-align: center;
 }
 
-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #56637a;
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
 
 input {
-  /* 44px, so it is a real target and the browser does not zoom on focus. */
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font: inherit;
-  font-size: 16px;
+  width: 100%;
 }
 
-input:focus-visible {
-  outline: 3px solid #2563eb;
-  outline-offset: 1px;
-}
-
-button {
-  margin-top: 16px;
+button[type='submit'] {
+  margin-top: var(--space-3);
+  width: 100%;
   min-height: 48px;
-  border: none;
-  border-radius: 6px;
-  background: #1e3a5f;
-  color: #fff;
-  font: inherit;
   font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-button:disabled {
-  background: #94a3b8;
-  cursor: default;
-}
-
-button:focus-visible {
-  outline: 3px solid #2563eb;
-  outline-offset: 2px;
 }
 
 .failure {
-  margin: 8px 0 0;
-  padding: 10px 12px;
-  border-radius: 6px;
-  background: #fee2e2;
-  color: #7f1d1d;
-  font-size: 14px;
+  margin: 0;
 }

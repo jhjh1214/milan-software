@@ -93,9 +93,14 @@ export interface NavStrings {
   readonly priceList: string;
   readonly reports: string;
   readonly people: string;
+  readonly library: string;
   readonly signOut: string;
   /** The label on the language picker, for a screen reader. */
   readonly language: string;
+  /** The theme toggle's label when it would switch to light. */
+  readonly switchToLight: string;
+  /** The theme toggle's label when it would switch to dark. */
+  readonly switchToDark: string;
 }
 
 /** Where an order came from. §6.3. */
@@ -224,6 +229,9 @@ export interface PeopleStrings {
   readonly notAdmin: string;
   readonly noSuchPerson: string;
   readonly wentWrong: string;
+  /** Never actually reachable — signing in here means being one of them —
+   * but a blank table is still a worse failure mode than a sentence. */
+  readonly noOneYet: string;
 }
 
 /**
@@ -426,6 +434,27 @@ export interface SignInStrings {
   readonly server: string;
 }
 
+/**
+ * The admin review queue. SPEC.md Phase 8.
+ *
+ * A part-timer's submission is never searchable or quotable until this
+ * screen's Approve is clicked — the two-step gate the workflow insists on.
+ */
+export interface LibraryStrings {
+  readonly title: string;
+  readonly nothingWaiting: string;
+  readonly openingsCount: (n: number) => string;
+  readonly roomsCount: (n: number) => string;
+  readonly who: string;
+  readonly approve: string;
+  readonly reject: string;
+  readonly reasonLabel: string;
+  readonly sendBack: string;
+  readonly cancel: string;
+  readonly approvedNote: (name: string) => string;
+  readonly rejectedNote: (name: string) => string;
+}
+
 /** Everything the dashboard can say, in one language. */
 export interface Strings {
   readonly common: CommonStrings;
@@ -442,4 +471,5 @@ export interface Strings {
   readonly order: OrderStrings;
   readonly buyer: BuyerStrings;
   readonly reports: ReportsStrings;
+  readonly library: LibraryStrings;
 }

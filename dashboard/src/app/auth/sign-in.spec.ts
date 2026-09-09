@@ -1,10 +1,10 @@
 /**
  * The sign-in screen. SPEC.md §12, §13 C9.
  *
- * It had no spec at all until the language picker went on it, which is a gap
- * worth naming: it is the one screen everybody sees, the one place a PIN is
- * typed, and it holds the only control that lets somebody who cannot read the
- * default get as far as their own account.
+ * It is the one screen everybody sees and the one place a PIN is typed. No
+ * language picker on it any more — every office PC now belongs to one person,
+ * so there is nobody here yet to ask, and the picker lives in the signed-in
+ * nav bar instead (`app.ts`).
  *
  * Driven through the DOM. The form is bound with `(ngSubmit)` and this
  * component *does* import FormsModule — but that is exactly the pair the
@@ -87,11 +87,6 @@ describe('SignIn', () => {
     await settle();
   };
 
-  const languages = (): HTMLButtonElement[] =>
-    Array.from(
-      fixture.nativeElement.querySelectorAll('.languages button'),
-    ) as HTMLButtonElement[];
-
   it('speaks Chinese before anybody has said who they are', () => {
     // The default, per CLAUDE.md's conventions. There is no account to ask
     // yet, and the shop is a Melaka Chinese-owned business.
@@ -99,14 +94,16 @@ describe('SignIn', () => {
     expect(words()).toContain('手机号码');
   });
 
-  it('the picker gets a Malay reader to a form they can read', () => {
-    // Without it the default is Chinese and the account that would say
-    // otherwise is on the far side of the button they cannot read (§13 C9).
-    languages()[2].click();
-    fixture.detectChanges();
+  it('has a place reserved for the client logo', () => {
+    // No asset yet — just the space, so the screen does not have to be
+    // relaid out the day one arrives.
+    expect(() => el('.logo-placeholder')).not.toThrow();
+  });
 
-    expect(words()).toContain('Log masuk');
-    expect(words()).toContain('Nombor telefon');
+  it('offers the theme toggle before anybody has signed in', () => {
+    // Dark mode is a browser preference, not an account fact, so there is no
+    // reason to make somebody sign in first to get it.
+    expect(() => el('.theme-toggle')).not.toThrow();
   });
 
   it('the button does nothing until both boxes have something in them', async () => {
@@ -138,12 +135,11 @@ describe('SignIn', () => {
     expect(api.token()).toBe('a-token');
   });
 
-  it('the account language wins over whatever was picked to get here', () => {
-    // Somebody picked Malay to read the sign-in screen. The person who then
-    // signed in reads English, and their account says so — on this machine
-    // and on every other one in the shop.
-    languages()[2].click();
-    fixture.detectChanges();
+  it('the account language wins over whatever the last person on this browser picked', () => {
+    // A previous colleague picked Malay from the nav-bar switcher on this
+    // same browser and then signed out. Whoever signs in next reads their
+    // own account's language, not the last person's leftover pick.
+    text.pick('ms');
     expect(text.language()).toBe('ms');
 
     session.user.set({ id: 'u1', name: 'Boss', role: 'admin', language: 'en' });
@@ -195,7 +191,7 @@ describe('SignIn', () => {
     await settle();
     expect(words()).toContain('号码或密码不对');
 
-    languages()[2].click();
+    text.pick('ms');
     fixture.detectChanges();
 
     expect(words()).toContain('Nombor atau PIN salah');

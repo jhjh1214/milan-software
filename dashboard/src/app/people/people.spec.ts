@@ -88,6 +88,15 @@ describe('People', () => {
       expect(JSON.stringify(component['people']())).not.toContain('pin');
     });
 
+    it('says so rather than showing a blank table when there is nobody', () => {
+      // Not reachable in practice — signing in here means being one of them —
+      // but a blank table beneath the header is a worse failure than a
+      // sentence, and costs nothing to avoid.
+      load([]);
+      expect(text()).toContain('Nobody here yet');
+      expect(fixture.nativeElement.querySelector('table')).toBeNull();
+    });
+
     it('offers no removal for the signed-in admin themselves', () => {
       // Locking the last admin out is a mistake nobody can undo from the app.
       // The server refuses it too; this is so nobody is invited to try.

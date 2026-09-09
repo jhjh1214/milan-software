@@ -38,12 +38,24 @@ import type {
   OverridesOut,
   PeopleOut,
   PersonOut,
+  ProjectsOut,
   PublishOut,
+  UnitTypeDetailOut,
+  UnitTypeStatus,
+  UnitTypesOut,
   VarianceReport,
 } from './types';
 
 /** Where the server is. Set once, at build time. */
 export const API_BASE = '/api';
+
+/** What `POST /api/auth/language` hands back: the account, freshly read. */
+export interface MyAccountOut {
+  readonly id: string;
+  readonly name: string;
+  readonly role: string;
+  readonly language: string;
+}
 
 export interface OrderFilters {
   readonly status?: OrderStatus;
@@ -257,6 +269,74 @@ export class Api {
       {},
       { headers: this.authorised() },
     );
+  }
+
+  /**
+   * A person picking their own language. Self-service — no admin check on
+   * the server, because reading the system in your own language needs
+   * nobody else's permission (SPEC.md §13 C9).
+   *
+   * This is what makes the choice follow the **account**: the next machine
+   * that person signs into reads `GET /api/auth/me` and picks it straight
+   * back up, rather than starting over at the default every time.
+   */
+  setMyLanguage(language: string): Observable<MyAccountOut> {
+    return this.http.post<MyAccountOut>(
+      `${API_BASE}/auth/language`,
+      { language },
+      { headers: this.authorised() },
+    );
+  }
+
+  /**
+   * Everything waiting on an admin's decision, or everything full stop.
+   * SPEC.md Phase 8.
+   *
+   * The server eager-loads every version's openings and rooms onto each
+   * row: this is the one screen where an admin has to see the actual
+   * submission, not just its name, before deciding on it.
+   */
+  unitTypes(status?: UnitTypeStatus): Observable<UnitTypesOut> {
+    let params = new HttpParams();
+    if (status) params = params.set('status', status);
+    return this.http.get<UnitTypesOut>(`${API_BASE}/unit-types`, {
+      params,
+      headers: this.authorised(),
+    });
+  }
+
+  unitTypeDetail(id: string): Observable<UnitTypeDetailOut> {
+    return this.http.get<UnitTypeDetailOut>(`${API_BASE}/unit-types/${id}`, {
+      headers: this.authorised(),
+    });
+  }
+
+  /** Admin only, server-enforced. Makes the latest version live. */
+  approveUnitType(id: string): Observable<UnitTypeDetailOut['unit_type']> {
+    return this.http.post<UnitTypeDetailOut['unit_type']>(
+      `${API_BASE}/unit-types/${id}/approve`,
+      {},
+      { headers: this.authorised() },
+    );
+  }
+
+  /** Admin only, server-enforced. Sends a part-timer's submission back. */
+  rejectUnitType(id: string, reason: string): Observable<UnitTypeDetailOut['unit_type']> {
+    return this.http.post<UnitTypeDetailOut['unit_type']>(
+      `${API_BASE}/unit-types/${id}/reject`,
+      { reason },
+      { headers: this.authorised() },
+    );
+  }
+
+  /** What a salesperson finds by typing an area or a development name. */
+  projects(query?: string): Observable<ProjectsOut> {
+    let params = new HttpParams();
+    if (query) params = params.set('q', query);
+    return this.http.get<ProjectsOut>(`${API_BASE}/projects`, {
+      params,
+      headers: this.authorised(),
+    });
   }
 
   private authorised(): Record<string, string> {

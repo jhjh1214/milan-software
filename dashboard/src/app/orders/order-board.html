@@ -68,10 +68,32 @@
        indistinguishable from a quiet week, and somebody would act on that. -->
   <p class="failure" role="alert">
     {{ message(failed) }}
-    <button type="button" (click)="retry()">{{ t().common.tryAgain }}</button>
+    <button type="button" class="btn" (click)="retry()">
+      {{ t().common.tryAgain }}
+    </button>
   </p>
-} @else if (!loading() && orders().length === 0) {
-  <p class="empty">{{ t().board.nothingMatches }}</p>
+} @else if (loading() && orders().length === 0) {
+  <ul class="cards" aria-hidden="true">
+    @for (i of skeletonRows; track i) {
+      <li class="card skeleton-card">
+        <span class="skeleton" style="width: 40%"></span>
+        <span class="skeleton" style="width: 70%; margin-top: 10px"></span>
+        <span class="skeleton" style="width: 50%; margin-top: 8px"></span>
+      </li>
+    }
+  </ul>
+} @else if (orders().length === 0) {
+  <div class="empty-state">
+    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" aria-hidden="true">
+      <path
+        d="M4 7h16M4 12h16M4 17h10"
+        stroke="currentColor"
+        stroke-width="1.6"
+        stroke-linecap="round"
+      />
+    </svg>
+    <p>{{ t().board.nothingMatches }}</p>
+  </div>
 } @else {
   <ul class="cards">
     @for (order of orders(); track order.id) {

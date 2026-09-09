@@ -170,4 +170,22 @@ describe('App', () => {
       ]);
     });
   });
+
+  it('the theme toggle switches light and dark on the whole page', () => {
+    localStorage.clear();
+    document.documentElement.removeAttribute('data-theme');
+    signedInAs('admin');
+    fixture.detectChanges();
+
+    const button: HTMLButtonElement =
+      fixture.nativeElement.querySelector('.theme-toggle');
+    button.click();
+    fixture.detectChanges();
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+
+    button.click();
+    fixture.detectChanges();
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+  });
 });

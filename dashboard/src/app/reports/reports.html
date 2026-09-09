@@ -26,7 +26,14 @@
     <button type="button" (click)="retry()">{{ t().common.tryAgain }}</button>
   </p>
 } @else if (loading()) {
-  <p class="loading" role="status">{{ t().common.loading }}</p>
+  <div class="skeleton-rows" aria-hidden="true" role="status">
+    <span class="visually-hidden">{{ t().common.loading }}</span>
+    <span class="skeleton" style="width: 60%"></span>
+    <span class="skeleton" style="width: 90%"></span>
+    <span class="skeleton" style="width: 80%"></span>
+    <span class="skeleton" style="width: 85%"></span>
+    <span class="skeleton" style="width: 70%"></span>
+  </div>
 } @else {
   @switch (panel()) {
     @case ('variance') {
@@ -38,7 +45,9 @@
         <p class="note">{{ t().reports.varianceBias }}</p>
 
         @if (report.nothing_priced_yet) {
-          <p class="empty">{{ t().reports.nothingPricedYet }}</p>
+          <div class="empty-state">
+            <p>{{ t().reports.nothingPricedYet }}</p>
+          </div>
         }
 
         <table>
@@ -81,7 +90,9 @@
     @case ('fairs') {
       @if (fairs(); as report) {
         @if (report.fairs.length === 0) {
-          <p class="empty">{{ t().reports.noFairsYet }}</p>
+          <div class="empty-state">
+            <p>{{ t().reports.noFairsYet }}</p>
+          </div>
         } @else {
           <table>
             <caption class="visually-hidden">
@@ -160,7 +171,9 @@
         </p>
 
         @if (report.balances.length === 0) {
-          <p class="empty">{{ t().reports.nothingOutstanding }}</p>
+          <div class="empty-state">
+            <p>{{ t().reports.nothingOutstanding }}</p>
+          </div>
         } @else {
           <table>
             <caption class="visually-hidden">

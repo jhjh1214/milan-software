@@ -46,6 +46,9 @@
     [disabled]="!canPreview()"
     (click)="preview()"
   >
+    @if (busy()) {
+      <span class="spinner" aria-hidden="true"></span>
+    }
     {{ busy() ? t().publish.working : t().publish.showMeWhatChanges }}
   </button>
 
@@ -129,7 +132,10 @@
     </section>
 
     @if (canPublish()) {
-      <button type="button" class="danger" (click)="publish()">
+      <button type="button" class="danger" [disabled]="busy()" (click)="publish()">
+        @if (busy()) {
+          <span class="spinner" aria-hidden="true"></span>
+        }
         {{ busy() ? t().publish.publishing : t().publish.publishThis }}
       </button>
       <p class="note">{{ t().publish.liveNote }}</p>

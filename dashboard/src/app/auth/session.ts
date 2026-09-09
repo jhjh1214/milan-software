@@ -81,6 +81,23 @@ export class Session {
     this.api.token.set(null);
     this.user.set(null);
   }
+
+  /**
+   * Persists a language choice to the signed-in account. SPEC.md §13 C9.
+   *
+   * Updates the local copy first, so the switcher feels instant, and fires
+   * the request in the background. A failure is swallowed deliberately —
+   * this is a preference, not money moving, and the worst case is that the
+   * pick does not survive to the next sign-in rather than the screen
+   * blocking on it. Does nothing when nobody is signed in yet: there is no
+   * account to remember it against.
+   */
+  setLanguage(language: string): void {
+    const current = this.user();
+    if (current === null) return;
+    this.user.set({ ...current, language });
+    this.api.setMyLanguage(language).subscribe({ error: () => undefined });
+  }
 }
 
 function classify(err: unknown): SignInFailure {

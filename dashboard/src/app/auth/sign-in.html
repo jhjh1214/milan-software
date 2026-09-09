@@ -1,32 +1,36 @@
-<form class="sign-in" (ngSubmit)="submit()">
+<app-theme-toggle class="corner" />
+
+<form class="sign-in card" (ngSubmit)="submit()">
+  <!-- The client's logo goes here. Until then, a placeholder rather than
+       nothing, so the space it needs is already reserved. -->
+  <div class="logo-placeholder" aria-hidden="true"></div>
   <h1>Milan</h1>
 
-  <!-- Before the picker, nobody who reads only Malay could get past this
-       screen: the default is Chinese and the account that would have said
-       otherwise is on the far side of the button they cannot read. -->
-  <app-language-picker />
+  <div class="field">
+    <label for="phone">{{ t().signIn.phone }}</label>
+    <input
+      id="phone"
+      name="phone"
+      type="tel"
+      inputmode="tel"
+      autocomplete="username"
+      [(ngModel)]="phone"
+      [disabled]="busy()"
+    />
+  </div>
 
-  <label for="phone">{{ t().signIn.phone }}</label>
-  <input
-    id="phone"
-    name="phone"
-    type="tel"
-    inputmode="tel"
-    autocomplete="username"
-    [(ngModel)]="phone"
-    [disabled]="busy()"
-  />
-
-  <label for="pin">{{ t().signIn.pin }}</label>
-  <input
-    id="pin"
-    name="pin"
-    type="password"
-    inputmode="numeric"
-    autocomplete="current-password"
-    [(ngModel)]="pin"
-    [disabled]="busy()"
-  />
+  <div class="field">
+    <label for="pin">{{ t().signIn.pin }}</label>
+    <input
+      id="pin"
+      name="pin"
+      type="password"
+      inputmode="numeric"
+      autocomplete="current-password"
+      [(ngModel)]="pin"
+      [disabled]="busy()"
+    />
+  </div>
 
   @if (failure(); as failed) {
     <!-- role=alert so a screen reader hears it. The message never says which
@@ -35,7 +39,10 @@
     <p class="failure" role="alert">{{ message(failed) }}</p>
   }
 
-  <button type="submit" [disabled]="!ready || busy()">
+  <button type="submit" class="btn btn-primary" [disabled]="!ready || busy()">
+    @if (busy()) {
+      <span class="spinner" aria-hidden="true"></span>
+    }
     {{ busy() ? t().signIn.busy : t().signIn.action }}
   </button>
 </form>

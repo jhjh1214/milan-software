@@ -50,6 +50,9 @@ export class OrderBoard {
   protected readonly statuses = PIPELINE;
   protected readonly channels = CHANNELS;
 
+  /** How many placeholder cards to draw while nothing has arrived yet. */
+  protected readonly skeletonRows = [0, 1, 2, 3, 4, 5];
+
   protected readonly orders = signal<readonly OrderSummary[]>([]);
   protected readonly total = signal(0);
   protected readonly loading = signal(false);

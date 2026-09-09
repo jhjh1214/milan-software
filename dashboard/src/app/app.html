@@ -16,6 +16,9 @@
         <a routerLink="/rates" routerLinkActive="on">{{ t().nav.priceList }}</a>
         <a routerLink="/reports" routerLinkActive="on">{{ t().nav.reports }}</a>
         <a routerLink="/people" routerLinkActive="on">{{ t().nav.people }}</a>
+        <a routerLink="/library/review" routerLinkActive="on">
+          {{ t().nav.library }}
+        </a>
       }
     </nav>
 
@@ -24,6 +27,7 @@
            English can still be handed the machine by a colleague reading
            Chinese, and neither of them should have to sign out to read it. -->
       <app-language-picker />
+      <app-theme-toggle />
       <span>{{ session.user()?.name }}</span>
       <button type="button" class="sign-out" (click)="signOut()">
         {{ t().nav.signOut }}

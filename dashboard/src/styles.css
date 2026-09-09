@@ -1,1 +1,466 @@
-/* You can add global styles to this file, and also import other style files */
+/**
+ * Design tokens and base styles for the whole dashboard.
+ *
+ * Every screen already used roughly this palette (#1e3a5f navy, #2563eb blue,
+ * #56637a muted text) scattered as literal hex values in each component's own
+ * CSS. This file makes it one system instead of nine independent guesses: a
+ * token changed here changes everywhere, and a screen that used a slightly
+ * different grey by accident stops being possible.
+ *
+ * Light values live on `:root`. Dark is `prefers-color-scheme: dark` by
+ * default, with `[data-theme]` on `<html>` (set by `Theme`, `app/theme/
+ * theme.ts`) able to force either mode regardless of the OS setting — the
+ * same three-state pattern used for the language pick, because an office PC's
+ * OS theme is not always the reader's own choice.
+ *
+ * Dark mode uses desaturated, lighter tonal variants rather than a literal
+ * inversion — an inverted navy is closer to black than a colour, and reads as
+ * a mistake rather than a theme.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Brand and semantic colour. Names describe ROLE, not the hex behind them —
+     a component asking for --color-danger should never need to know it is
+     #DC2626 today. */
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f1f4f8;
+  --color-fg: #0f172a;
+  --color-fg-muted: #56637a;
+  --color-fg-faint: #94a3b8;
+  --color-border: #cbd5e1;
+  --color-border-subtle: #e2e8f0;
+
+  --color-primary: #1e3a5f;
+  --color-primary-hover: #163050;
+  --color-on-primary: #ffffff;
+
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-accent-bg: #eff6ff;
+
+  --color-success: #059669;
+  --color-success-bg: #ecfdf5;
+  --color-warning: #d97706;
+  --color-warning-bg: #fffbeb;
+  --color-danger: #dc2626;
+  --color-danger-bg: #fee2e2;
+  --color-on-danger: #ffffff;
+  --color-disabled: #94a3b8;
+
+  --shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.06);
+  --shadow-md: 0 4px 12px -2px rgb(15 23 42 / 0.1), 0 2px 4px -2px rgb(15 23 42 / 0.06);
+
+  /* 4px rhythm, per CLAUDE.md's spacing conventions elsewhere in the repo. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  /* Source Sans 3 covers Latin (English and Malay) and falls through to the
+     OS's own CJK font for Chinese — loading a Latin-only webfont never blocks
+     or misrenders a Chinese screen, it simply does not apply to it. */
+  --font-body:
+    'Source Sans 3', -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei',
+    'Noto Sans SC', sans-serif;
+  --font-heading: 'Lexend', var(--font-body);
+
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-bg: #0b1220;
+    --color-surface: #121a2b;
+    --color-surface-muted: #1a2436;
+    --color-fg: #e7ecf3;
+    --color-fg-muted: #9aa8bd;
+    --color-fg-faint: #64748b;
+    --color-border: #2a3548;
+    --color-border-subtle: #202a3c;
+
+    --color-primary: #4f7cb0;
+    --color-primary-hover: #6791c0;
+    --color-on-primary: #071019;
+
+    --color-accent: #60a5fa;
+    --color-accent-hover: #7fb5fb;
+    --color-accent-bg: #14243f;
+
+    --color-success: #34d399;
+    --color-success-bg: #052e22;
+    --color-warning: #fbbf24;
+    --color-warning-bg: #3a2a05;
+    --color-danger: #f87171;
+    --color-danger-bg: #3a0d0d;
+    --color-on-danger: #1a0a0a;
+    --color-disabled: #475569;
+
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+    --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --color-bg: #0b1220;
+  --color-surface: #121a2b;
+  --color-surface-muted: #1a2436;
+  --color-fg: #e7ecf3;
+  --color-fg-muted: #9aa8bd;
+  --color-fg-faint: #64748b;
+  --color-border: #2a3548;
+  --color-border-subtle: #202a3c;
+
+  --color-primary: #4f7cb0;
+  --color-primary-hover: #6791c0;
+  --color-on-primary: #071019;
+
+  --color-accent: #60a5fa;
+  --color-accent-hover: #7fb5fb;
+
+  --color-success: #34d399;
+  --color-success-bg: #052e22;
+  --color-warning: #fbbf24;
+  --color-warning-bg: #3a2a05;
+  --color-danger: #f87171;
+  --color-danger-bg: #3a0d0d;
+  --color-on-danger: #1a0a0a;
+  --color-disabled: #475569;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--color-fg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Every interactive element in the app shares one focus ring so keyboard
+   navigation looks and feels the same everywhere. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* --- Shared component classes ---------------------------------------
+   Global rather than per-component so nine screens cannot independently
+   drift into nine slightly different buttons. Angular's view encapsulation
+   still lets any component override a more specific selector locally. */
+
+button {
+  font: inherit;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-fg);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease),
+    border-color var(--duration-fast) var(--ease),
+    color var(--duration-fast) var(--ease);
+}
+
+.btn:hover {
+  border-color: var(--color-fg-faint);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+  border-color: var(--color-border);
+}
+
+.btn-primary {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.btn-danger {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+  background: var(--color-surface);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--color-danger-bg);
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-fg-muted);
+}
+
+input,
+select,
+textarea {
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-fg);
+  font: inherit;
+  font-size: 16px;
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: var(--color-surface-muted);
+  color: var(--color-fg-faint);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th {
+  padding: var(--space-3) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-fg-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: left;
+}
+
+td {
+  padding: var(--space-3) var(--space-3);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+/* Numbers in a column, so money and dimensions do not shift as digits
+   change — the UX guidance this project's own reports depend on reading
+   accurately at a glance. */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-neutral {
+  background: var(--color-surface-muted);
+  color: var(--color-fg-muted);
+}
+
+.badge-success {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.badge-warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.badge-danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.muted {
+  color: var(--color-fg-muted);
+}
+
+.failure {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  font-size: 14px;
+}
+
+.note {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  font-size: 14px;
+}
+
+/* Tables can overflow on a narrow window before they overflow the screen
+   they were designed for — wrap rather than let one wide report break the
+   page's own layout. */
+.table-scroll {
+  overflow-x: auto;
+}
+
+/* A spinning ring, for inside a busy button or beside "loading" text. Never
+   the only signal something is happening — every use sites this next to
+   words, for the same reason a colour is never the only signal a state. */
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  opacity: 0.7;
+  animation: spin 700ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+    border-right-color: currentColor;
+  }
+}
+
+/* A row of grey bars standing in for content that has not arrived yet.
+   Used instead of a bare "loading…" line wherever a screen's shape is known
+   ahead of the data — a table, a card, a list of names. */
+.skeleton {
+  display: block;
+  height: 1em;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-muted) 25%,
+    var(--color-border-subtle) 37%,
+    var(--color-surface-muted) 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: var(--color-surface-muted);
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-7) var(--space-4);
+  color: var(--color-fg-muted);
+  text-align: center;
+}
+
+.empty-state svg {
+  color: var(--color-fg-faint);
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 15px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

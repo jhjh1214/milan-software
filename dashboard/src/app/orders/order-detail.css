@@ -1,43 +1,39 @@
 :host {
   display: block;
-  padding: 24px;
+  padding: var(--space-5);
   max-width: 900px;
   margin: 0 auto;
 }
 
 .back a {
-  color: #2563eb;
+  color: var(--color-accent);
   text-decoration: none;
   font-size: 14px;
 }
 
-.back a:focus-visible {
-  outline: 3px solid #2563eb;
-  outline-offset: 2px;
-}
-
 .head {
-  padding: 16px;
-  border: 1px solid #cbd5e1;
-  border-left: 4px solid #cbd5e1;
-  border-radius: 8px;
-  background: #fff;
-  margin-bottom: 24px;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-5);
 }
 
 /* The same one thing colour means everywhere on this dashboard: how soon a
    rate hold runs out. Nothing else on any screen is coloured. */
 .head[data-urgency='soon'] {
-  border-left-color: #d97706;
+  border-left-color: var(--color-warning);
 }
 
 .head[data-urgency='urgent'] {
-  border-left-color: #b91c1c;
+  border-left-color: var(--color-danger);
 }
 
 .head[data-urgency='gone'] {
-  border-left-color: #7f1d1d;
-  background: #fef2f2;
+  border-left-color: var(--color-danger);
+  background: var(--color-danger-bg);
 }
 
 h1 {
@@ -50,7 +46,7 @@ h1.pending {
   font-size: 16px;
   font-weight: 400;
   font-style: italic;
-  color: #56637a;
+  color: var(--color-fg-muted);
 }
 
 h2 {
@@ -58,31 +54,31 @@ h2 {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #56637a;
-  margin: 0 0 8px;
+  color: var(--color-fg-muted);
+  margin: 0 0 var(--space-2);
 }
 
 .who {
-  margin: 4px 0 0;
+  margin: var(--space-1) 0 0;
   font-size: 16px;
 }
 
 .stage {
-  margin: 2px 0 12px;
+  margin: 2px 0 var(--space-3);
   font-size: 13px;
-  color: #56637a;
+  color: var(--color-fg-muted);
   text-transform: capitalize;
 }
 
 .money {
   display: flex;
-  gap: 32px;
+  gap: var(--space-6);
   margin: 0;
 }
 
 .money dt {
   font-size: 12px;
-  color: #56637a;
+  color: var(--color-fg-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -96,19 +92,19 @@ h2 {
 }
 
 .note {
-  margin: 12px 0 0;
+  margin: var(--space-3) 0 0;
   font-size: 13px;
-  color: #56637a;
+  color: var(--color-fg-muted);
 }
 
 .hold {
-  margin: 6px 0 0;
+  margin: var(--space-2) 0 0;
   font-size: 13px;
-  color: #92400e;
+  color: var(--color-warning);
 }
 
 section {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-5);
 }
 
 .lines,
@@ -122,14 +118,14 @@ section {
 .lines li,
 .audit li,
 .history li {
-  padding: 12px 0;
-  border-bottom: 1px solid #f1f3f5;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .line-head {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: baseline;
 }
 
@@ -148,7 +144,7 @@ section {
 .when {
   margin: 4px 0 0;
   font-size: 13px;
-  color: #56637a;
+  color: var(--color-fg-muted);
 }
 
 .basis {
@@ -158,7 +154,7 @@ section {
 .flag {
   margin: 4px 0 0;
   font-size: 13px;
-  color: #92400e;
+  color: var(--color-warning);
 }
 
 .flag.overridden {
@@ -183,30 +179,39 @@ section {
 
 .history .when {
   display: inline;
-  margin-left: 8px;
+  margin-left: var(--space-2);
 }
 
 .muted {
-  color: #56637a;
+  color: var(--color-fg-muted);
 }
 
 .failure {
-  padding: 16px;
-  border: 1px solid #b91c1c;
-  border-radius: 8px;
-  background: #fee2e2;
-  color: #7f1d1d;
+  padding: var(--space-4);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
 }
 
 .failure button {
-  margin-left: 12px;
+  margin-left: var(--space-3);
   min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid #7f1d1d;
-  border-radius: 6px;
-  background: #fff;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-fg);
   font: inherit;
   cursor: pointer;
+}
+
+.skeleton-block {
+  display: block;
+}
+
+.empty-state {
+  padding: var(--space-6) var(--space-4);
 }
 
 /* SPEC.md §10.3. What the office needs to see before it can export an order,
@@ -214,13 +219,13 @@ section {
 .buyer dl {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 4px 16px;
-  margin: 0 0 12px;
+  gap: 4px var(--space-4);
+  margin: 0 0 var(--space-3);
 }
 
 .buyer dt {
   font-size: 12px;
-  color: #56637a;
+  color: var(--color-fg-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -231,22 +236,22 @@ section {
 }
 
 .buyer .why {
-  margin: 0 0 12px;
-  padding: 10px 12px;
-  border-radius: 6px;
-  background: #fef3c7;
-  color: #92400e;
+  margin: 0 0 var(--space-3);
+  padding: 10px var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
   font-size: 13px;
 }
 
 .buyer .none {
-  margin: 0 0 12px;
-  color: #56637a;
+  margin: 0 0 var(--space-3);
+  color: var(--color-fg-muted);
 }
 
 .buyer .complete {
   margin: 0;
-  color: #047857;
+  color: var(--color-success);
   font-weight: 600;
 }
 
@@ -260,7 +265,7 @@ section {
 .buyer .missing {
   margin: 0;
   padding-left: 20px;
-  color: #7f1d1d;
+  color: var(--color-danger);
 }
 
 /* The office's correction form. SPEC.md §11 Phase 7, §13 C14.
@@ -272,35 +277,36 @@ section {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .buyer-head button {
   min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid #c3cbd9;
-  border-radius: 6px;
-  background: #fff;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-fg);
   font: inherit;
   cursor: pointer;
 }
 
 .buyer .saved {
-  margin: 0 0 12px;
-  color: #047857;
+  margin: 0 0 var(--space-3);
+  color: var(--color-success);
   font-weight: 600;
 }
 
 .buyer .failure {
-  margin: 0 0 12px;
-  padding: 10px 12px;
+  margin: 0 0 var(--space-3);
+  padding: 10px var(--space-3);
   font-size: 13px;
 }
 
 .buyer-edit .hint {
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-3);
   font-size: 13px;
-  color: #56637a;
+  color: var(--color-fg-muted);
 }
 
 .buyer-edit .field {
@@ -311,7 +317,7 @@ section {
   display: block;
   margin-bottom: 4px;
   font-size: 13px;
-  color: #56637a;
+  color: var(--color-fg-muted);
 }
 
 .buyer-edit input[type='text'],
@@ -321,17 +327,18 @@ section {
   max-width: 420px;
   min-height: 40px;
   padding: 0 10px;
-  border: 1px solid #c3cbd9;
-  border-radius: 6px;
-  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-fg);
   font: inherit;
 }
 
 .buyer-edit .checkbox label {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #1f2937;
+  gap: var(--space-2);
+  color: var(--color-fg);
   font-size: 14px;
 }
 
@@ -342,24 +349,30 @@ section {
 
 .buyer-edit .actions {
   display: flex;
-  gap: 8px;
-  margin: 16px 0 12px;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 var(--space-3);
 }
 
 .buyer-edit .actions button {
   min-height: 40px;
-  padding: 0 16px;
-  border: 1px solid #c3cbd9;
-  border-radius: 6px;
-  background: #fff;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-fg);
   font: inherit;
   cursor: pointer;
 }
 
 .buyer-edit .actions .primary {
-  border-color: #1d4ed8;
-  background: #1d4ed8;
-  color: #fff;
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.buyer-edit .actions .primary:hover:not([disabled]) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
 }
 
 .buyer-edit .actions button[disabled] {

@@ -49,8 +49,11 @@ export const EN: Strings = {
     priceList: 'Price list',
     reports: 'Reports',
     people: 'People',
+    library: 'Pending reviews',
     signOut: 'Sign out',
     language: 'Language',
+    switchToLight: 'Switch to light mode',
+    switchToDark: 'Switch to dark mode',
   },
 
   signIn: {
@@ -165,6 +168,7 @@ export const EN: Strings = {
     notAdmin: 'Only an admin can manage people.',
     noSuchPerson: 'That person no longer exists.',
     wentWrong: 'Something went wrong.',
+    noOneYet: 'Nobody here yet.',
   },
 
   publish: {
@@ -361,5 +365,20 @@ export const EN: Strings = {
     takeRate: 'Take rate',
     leftOnTheTable: 'Left on the table',
     takeRateOf: (taken, asked) => `${taken} of ${asked}`,
+  },
+
+  library: {
+    title: 'Pending unit type reviews',
+    nothingWaiting: 'Nothing waiting for review.',
+    openingsCount: (n) => `${n} opening${n === 1 ? '' : 's'}`,
+    roomsCount: (n) => `${n} room${n === 1 ? '' : 's'}`,
+    who: 'Submitted by',
+    approve: 'Approve',
+    reject: 'Reject',
+    reasonLabel: 'Reason',
+    sendBack: 'Send back',
+    cancel: 'Cancel',
+    approvedNote: (name) => `${name} is now live in the library.`,
+    rejectedNote: (name) => `${name} was sent back for correction.`,
   },
 };

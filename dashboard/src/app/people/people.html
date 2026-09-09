@@ -66,7 +66,10 @@
     </div>
     <div class="actions">
       <button type="submit" class="primary" [disabled]="!canAdd()">
-        {{ t().people.add }}
+        @if (saving()) {
+          <span class="spinner" aria-hidden="true"></span>
+        }
+        {{ saving() ? t().common.saving : t().people.add }}
       </button>
       <button type="button" (click)="adding.set(false)">
         {{ t().common.cancel }}
@@ -76,8 +79,29 @@
 }
 
 @if (loading()) {
-  <p class="muted" role="status">{{ t().common.loading }}</p>
-} @else if (people().length > 0) {
+  <table aria-hidden="true">
+    <tbody>
+      @for (i of [0, 1, 2, 3]; track i) {
+        <tr class="empty-row">
+          <td colspan="5"><span class="skeleton" style="width: 60%"></span></td>
+        </tr>
+      }
+    </tbody>
+  </table>
+} @else if (people().length === 0) {
+  <div class="empty-state">
+    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" aria-hidden="true">
+      <circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.6" />
+      <path
+        d="M5 20c0-3.6 3-6 7-6s7 2.4 7 6"
+        stroke="currentColor"
+        stroke-width="1.6"
+        stroke-linecap="round"
+      />
+    </svg>
+    <p>{{ t().people.noOneYet }}</p>
+  </div>
+} @else {
   <table>
     <thead>
       <tr>

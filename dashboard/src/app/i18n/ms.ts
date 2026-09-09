@@ -51,8 +51,11 @@ export const MS: Strings = {
     priceList: 'Senarai harga',
     reports: 'Laporan',
     people: 'Pengguna',
+    library: 'Semakan tertunda',
     signOut: 'Log keluar',
     language: 'Bahasa',
+    switchToLight: 'Tukar ke mod cerah',
+    switchToDark: 'Tukar ke mod gelap',
   },
 
   signIn: {
@@ -170,6 +173,7 @@ export const MS: Strings = {
     notAdmin: 'Hanya admin boleh menguruskan pengguna.',
     noSuchPerson: 'Orang itu tidak wujud lagi.',
     wentWrong: 'Ada sesuatu yang tidak kena.',
+    noOneYet: 'Belum ada sesiapa lagi.',
   },
 
   publish: {
@@ -373,5 +377,20 @@ export const MS: Strings = {
     takeRate: 'Kadar berjaya',
     leftOnTheTable: 'Nilai terlepas',
     takeRateOf: (taken, asked) => `${taken} daripada ${asked}`,
+  },
+
+  library: {
+    title: 'Jenis unit menunggu semakan',
+    nothingWaiting: 'Tiada apa-apa menunggu semakan.',
+    openingsCount: (n) => `${n} bukaan`,
+    roomsCount: (n) => `${n} bilik`,
+    who: 'Dihantar oleh',
+    approve: 'Lulus',
+    reject: 'Tolak',
+    reasonLabel: 'Sebab',
+    sendBack: 'Hantar balik',
+    cancel: 'Jangan dahulu',
+    approvedNote: (name) => `${name} kini aktif dalam pustaka.`,
+    rejectedNote: (name) => `${name} dihantar balik untuk pembetulan.`,
   },
 };

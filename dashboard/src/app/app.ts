@@ -4,6 +4,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { Session } from './auth/session';
 import { LanguagePicker } from './i18n/language-picker';
 import { Text } from './i18n/text';
+import { ThemeToggle } from './theme/theme-toggle';
 
 /**
  * The shell: a thin bar with the way between screens, and nothing else.
@@ -17,7 +18,7 @@ import { Text } from './i18n/text';
  */
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, LanguagePicker],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, LanguagePicker, ThemeToggle],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })

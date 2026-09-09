@@ -1,0 +1,126 @@
+<header class="head">
+  <h1>{{ t().library.title }}</h1>
+</header>
+
+@if (note(); as what) {
+  <p class="note" role="status">{{ noteText(what) }}</p>
+}
+@if (failure(); as failed) {
+  <p class="failure" role="alert">
+    {{ message(failed) }}
+    <button type="button" class="btn" (click)="retry()">
+      {{ t().common.tryAgain }}
+    </button>
+  </p>
+}
+
+@if (loading()) {
+  <ul class="queue" aria-hidden="true">
+    @for (i of [0, 1]; track i) {
+      <li class="card skeleton-card">
+        <span class="skeleton" style="width: 40%"></span>
+        <span class="skeleton" style="width: 70%; margin-top: 10px"></span>
+        <span class="skeleton" style="width: 55%; margin-top: 8px"></span>
+      </li>
+    }
+  </ul>
+} @else if (items().length === 0) {
+  <div class="empty-state">
+    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" />
+      <path
+        d="M8.5 12.5l2.3 2.3 4.7-5"
+        stroke="currentColor"
+        stroke-width="1.6"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+    <p>{{ t().library.nothingWaiting }}</p>
+  </div>
+} @else {
+  <ul class="queue">
+    @for (item of items(); track item.id) {
+      <li class="card">
+        <div class="card-head">
+          <h2>{{ label(item) }}</h2>
+          <span class="who">{{ t().library.who }}: {{ item.created_by_user_id }}</span>
+        </div>
+
+        <p class="counts">
+          {{ t().library.openingsCount(openings(item).length) }} ·
+          {{ t().library.roomsCount(rooms(item).length) }}
+        </p>
+
+        @if (openings(item).length > 0) {
+          <ul class="openings">
+            @for (o of openings(item); track o.id) {
+              <li>
+                {{ o.label }} · {{ o.room }} · {{ feet(o.nominal_w_tmm) }} ×
+                {{ feet(o.nominal_h_tmm) }} ft
+              </li>
+            }
+          </ul>
+        }
+
+        @if (rooms(item).length > 0) {
+          <ul class="rooms">
+            @for (r of rooms(item); track r.id) {
+              <li>{{ r.name }} · {{ sqft(r.nominal_area_mm2) }} sqft</li>
+            }
+          </ul>
+        }
+
+        @if (rejectingId() === item.id) {
+          <div class="reject-form">
+            <label [attr.for]="'reason-' + item.id">{{ t().library.reasonLabel }}</label>
+            <textarea
+              [id]="'reason-' + item.id"
+              rows="2"
+              [value]="reason()"
+              (input)="reason.set($any($event.target).value)"
+            ></textarea>
+            <div class="actions">
+              <button
+                type="button"
+                class="btn btn-danger"
+                [disabled]="!canSendBack()"
+                (click)="confirmReject(item)"
+              >
+                @if (acting() === item.id) {
+                  <span class="spinner" aria-hidden="true"></span>
+                }
+                {{ t().library.sendBack }}
+              </button>
+              <button type="button" class="btn" (click)="cancelRejecting()">
+                {{ t().library.cancel }}
+              </button>
+            </div>
+          </div>
+        } @else {
+          <div class="actions">
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="acting() !== null"
+              (click)="approve(item)"
+            >
+              @if (acting() === item.id) {
+                <span class="spinner" aria-hidden="true"></span>
+              }
+              {{ t().library.approve }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-danger"
+              [disabled]="acting() !== null"
+              (click)="startRejecting(item)"
+            >
+              {{ t().library.reject }}
+            </button>
+          </div>
+        }
+      </li>
+    }
+  </ul>
+}

@@ -1,6 +1,6 @@
 :host {
   display: block;
-  padding: 24px;
+  padding: var(--space-5);
   max-width: 1000px;
   margin: 0 auto;
 }
@@ -9,19 +9,17 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
 }
 
 h1 {
   margin: 0;
   font-size: 24px;
-  font-weight: 600;
-  color: #0f172a;
 }
 
 h2 {
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-2);
   font-size: 18px;
   font-weight: 600;
 }
@@ -29,58 +27,60 @@ h2 {
 button {
   min-height: 40px;
   padding: 0 14px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-fg);
   font: inherit;
   font-size: 14px;
   cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease);
 }
 
 button:hover:not(:disabled) {
-  border-color: #94a3b8;
-}
-
-button:focus-visible,
-input:focus-visible,
-select:focus-visible {
-  outline: 3px solid #2563eb;
-  outline-offset: 2px;
+  border-color: var(--color-fg-faint);
 }
 
 button.primary {
-  background: #1e3a5f;
-  border-color: #1e3a5f;
-  color: #fff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
   font-weight: 600;
+}
+
+button.primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
 }
 
 /* Removing somebody's access stops the handset in their pocket. It should not
    look like the button that opens a form. */
 button.danger {
-  background: #b91c1c;
-  border-color: #b91c1c;
-  color: #fff;
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: var(--color-on-danger);
   font-weight: 600;
 }
 
 button:disabled {
-  background: #94a3b8;
-  border-color: #94a3b8;
+  background: var(--color-disabled);
+  border-color: var(--color-disabled);
   color: #fff;
   cursor: default;
+  opacity: 0.7;
 }
 
 .add {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: flex-end;
-  padding: 16px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  background: #fff;
-  margin-bottom: 20px;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-5);
 }
 
 label {
@@ -89,16 +89,18 @@ label {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #56637a;
-  margin-bottom: 4px;
+  color: var(--color-fg-muted);
+  margin-bottom: var(--space-1);
 }
 
 input,
 select {
   min-height: 40px;
   padding: 0 10px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-fg);
   font: inherit;
   /* 16px so a browser does not zoom the field on focus. */
   font-size: 16px;
@@ -106,7 +108,7 @@ select {
 
 .actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 table {
@@ -120,21 +122,21 @@ th {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #56637a;
-  padding: 0 12px 8px 0;
-  border-bottom: 1px solid #cbd5e1;
+  color: var(--color-fg-muted);
+  padding: 0 var(--space-3) var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 td {
-  padding: 10px 12px 10px 0;
-  border-bottom: 1px solid #f1f3f5;
+  padding: 10px var(--space-3) 10px 0;
+  border-bottom: 1px solid var(--color-border-subtle);
   vertical-align: middle;
 }
 
 /* A leaver is dimmed, not hidden, and the row still says when they left —
    colour alone would not carry it. */
 tr.gone td {
-  color: #56637a;
+  color: var(--color-fg-muted);
 }
 
 .num {
@@ -146,46 +148,50 @@ tr.gone td {
 }
 
 .confirm {
-  margin-top: 20px;
-  padding: 16px;
-  border: 2px solid #b91c1c;
-  border-radius: 8px;
-  background: #fef2f2;
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  border: 2px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-bg);
 }
 
 .confirm p {
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-3);
   font-size: 14px;
 }
 
 .confirm input {
   width: 100%;
   max-width: 320px;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .note {
-  padding: 12px 16px;
-  border: 1px solid #047857;
-  border-radius: 8px;
-  background: #ecfdf5;
-  color: #065f46;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius-md);
+  background: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 .failure {
-  padding: 12px 16px;
-  border: 1px solid #b91c1c;
-  border-radius: 8px;
-  background: #fee2e2;
-  color: #7f1d1d;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
 }
 
 .failure button {
-  margin-left: 12px;
+  margin-left: var(--space-3);
 }
 
 .muted {
-  color: #56637a;
+  color: var(--color-fg-muted);
+}
+
+.empty-row td {
+  padding: var(--space-7) 0;
 }
 
 .visually-hidden {

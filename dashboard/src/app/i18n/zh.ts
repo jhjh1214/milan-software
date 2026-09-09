@@ -51,8 +51,11 @@ export const ZH: Strings = {
     priceList: '价格表',
     reports: '报表',
     people: '人员',
+    library: '待审核户型',
     signOut: '登出',
     language: '语言',
+    switchToLight: '切换为浅色模式',
+    switchToDark: '切换为深色模式',
   },
 
   signIn: {
@@ -160,6 +163,7 @@ export const ZH: Strings = {
     notAdmin: '只有管理员可以管理人员。',
     noSuchPerson: '找不到这个人。',
     wentWrong: '出了点问题。',
+    noOneYet: '还没有人。',
   },
 
   publish: {
@@ -328,5 +332,20 @@ export const ZH: Strings = {
     takeRate: '成功率',
     leftOnTheTable: '流失金额',
     takeRateOf: (taken, asked) => `${asked} 问 ${taken} 成`,
+  },
+
+  library: {
+    title: '待审核户型',
+    nothingWaiting: '目前没有待审核的项目。',
+    openingsCount: (n) => `${n} 个门窗`,
+    roomsCount: (n) => `${n} 个房间`,
+    who: '提交者',
+    approve: '通过',
+    reject: '退回',
+    reasonLabel: '原因',
+    sendBack: '退回并说明原因',
+    cancel: '先不要',
+    approvedNote: (name) => `${name} 已经通过，现在可以使用了。`,
+    rejectedNote: (name) => `${name} 已退回，请修正后重新提交。`,
   },
 };

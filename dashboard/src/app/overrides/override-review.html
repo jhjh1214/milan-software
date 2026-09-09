@@ -16,11 +16,29 @@
     <button type="button" (click)="retry()">{{ t().common.tryAgain }}</button>
   </p>
 } @else if (loading()) {
-  <p class="muted" role="status">{{ t().common.loading }}</p>
+  <div class="skeleton-rows" aria-hidden="true" role="status">
+    <span class="visually-hidden">{{ t().common.loading }}</span>
+    <span class="skeleton" style="width: 40%"></span>
+    <span class="skeleton" style="width: 90%"></span>
+    <span class="skeleton" style="width: 85%"></span>
+    <span class="skeleton" style="width: 75%"></span>
+  </div>
 } @else if (rows().length === 0) {
   <!-- Said in words. An empty list reads as "failed to load", and this screen
        has to be trustworthy about a week in which nobody changed anything. -->
-  <p class="empty">{{ t().overrides.quietWeek }}</p>
+  <div class="empty-state">
+    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" />
+      <path
+        d="M8.5 12.5l2.3 2.3 4.7-5"
+        stroke="currentColor"
+        stroke-width="1.6"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+    <p>{{ t().overrides.quietWeek }}</p>
+  </div>
 } @else {
   <!-- The number to see before reading a single row. A week full of
        individually reasonable-looking changes can still add up to something
