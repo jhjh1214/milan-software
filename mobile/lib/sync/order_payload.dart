@@ -85,6 +85,10 @@ Map<String, dynamic> orderPayload({
         'line_total_sen': l.lineTotalSen,
         'material_deferred': l.materialDeferred,
         'is_overridden': l.isOverridden,
+        'measurement_source': l.measurementSource,
+        'source_project_id': l.sourceProjectId,
+        'source_unit_type_id': l.sourceUnitTypeId,
+        'source_version': l.sourceVersion,
       },
   ],
   'events': [

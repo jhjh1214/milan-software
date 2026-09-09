@@ -165,6 +165,13 @@ class QuoteLine {
   /// On-device path to this window's photo, if one was taken.
   final String? photoPath;
 
+  /// Where this line's dimensions came from. SPEC.md Phase 8's Property /
+  /// Project / Unit Library. Null means typed by hand — true of every line
+  /// before this library existed.
+  final String? sourceProjectId;
+  final String? sourceUnitTypeId;
+  final int? sourceVersion;
+
   const QuoteLine({
     required this.id,
     required this.room,
@@ -178,9 +185,16 @@ class QuoteLine {
     required this.rawHeight,
     this.parentLineId,
     this.photoPath,
+    this.sourceProjectId,
+    this.sourceUnitTypeId,
+    this.sourceVersion,
   });
 
   bool get isUpgrade => parentLineId != null;
+
+  /// Whether the dimensions on this line came from a saved plan rather than
+  /// being typed at the moment of quoting.
+  bool get isFromLibrary => sourceUnitTypeId != null;
 
   factory QuoteLine.fromRow(QuoteLineRow row) => QuoteLine(
     id: row.id,
@@ -195,6 +209,9 @@ class QuoteLine {
     rawHeight: row.rawHeight,
     parentLineId: row.parentLineId,
     photoPath: row.photoPath,
+    sourceProjectId: row.sourceProjectId,
+    sourceUnitTypeId: row.sourceUnitTypeId,
+    sourceVersion: row.sourceVersion,
   );
 }
 
@@ -280,6 +297,9 @@ class QuoteNotifier extends AsyncNotifier<QuoteState> {
     required String rawHeight,
     int quantity = 1,
     String? parentLineId,
+    String? sourceProjectId,
+    String? sourceUnitTypeId,
+    int? sourceVersion,
   }) async {
     final current = state.valueOrNull;
     if (current == null) return null;
@@ -295,6 +315,9 @@ class QuoteNotifier extends AsyncNotifier<QuoteState> {
       rawHeight: rawHeight,
       quantity: quantity,
       parentLineId: parentLineId,
+      sourceProjectId: sourceProjectId,
+      sourceUnitTypeId: sourceUnitTypeId,
+      sourceVersion: sourceVersion,
     );
     await _refresh();
     return id;

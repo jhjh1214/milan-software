@@ -1281,4 +1281,40 @@ class LEn extends L {
   String declinesTakeRate(int percent) {
     return '$percent% of the answers were money';
   }
+
+  @override
+  String get startFromPlan => 'Start from a saved plan';
+
+  @override
+  String get pickerFindProject => 'Find a project';
+
+  @override
+  String get pickerSearchProjectHint => 'Area or project name';
+
+  @override
+  String get pickerNoProjects => 'No projects found.';
+
+  @override
+  String get pickerPickUnitType => 'Choose a unit type';
+
+  @override
+  String get pickerNoUnitTypes =>
+      'No approved unit types for this project yet.';
+
+  @override
+  String get pickerPickOpening => 'Choose a window';
+
+  @override
+  String get pickerNoOpenings => 'No windows saved for this unit type.';
+
+  @override
+  String get pickerCouldNotReach => 'Couldn\'t reach the server. Try again.';
+
+  @override
+  String get pickerTryAgain => 'Try again';
+
+  @override
+  String pickerOpeningSize(String width, String height) {
+    return '$width × $height ft';
+  }
 }

@@ -435,6 +435,10 @@ def push_order(
                 line_total_sen=line.line_total_sen,
                 material_deferred=line.material_deferred,
                 is_overridden=line.is_overridden,
+                measurement_source=line.measurement_source,
+                source_project_id=line.source_project_id,
+                source_unit_type_id=line.source_unit_type_id,
+                source_version=line.source_version,
             )
         )
 

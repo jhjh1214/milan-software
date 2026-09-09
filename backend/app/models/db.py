@@ -544,6 +544,18 @@ class OrderLine(Base):
     #: Somebody moved this total by hand. Never cleared. §6.5.
     is_overridden: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    #: Where the dimensions on this line actually came from. SPEC.md Phase 8.
+    #: An enum from the start rather than a boolean: adding a third source
+    #: later to a boolean ``is_site_measured`` would be a migration across
+    #: every order ever written, and Phase 8 is exactly that third source.
+    #: A plan-sourced line is a better-informed estimate, never a measured
+    #: one -- it still has to earn `is_site_measured=True` the same way any
+    #: other line does, through a real site visit.
+    measurement_source: Mapped[str] = mapped_column(String(16), default="manual")
+    source_project_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    source_unit_type_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    source_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
     order: Mapped[Order] = relationship(back_populates="lines")
 
     __table_args__ = (Index("ix_order_lines_order", "order_id", "sort_order"),)
@@ -728,3 +740,255 @@ class DepositPrompt(Base):
         Index("ix_deposit_prompts_at", "at"),
         Index("ix_deposit_prompts_quote", "quote_id"),
     )
+
+
+class Project(Base):
+    """A development the company quotes repeatedly. SPEC.md Phase 8.
+
+    *Reference property measurements are NOT site measurements.* This table
+    and everything under it accelerate quoting; they never substitute for the
+    site visit a real order still needs (§6.3's pipeline is unchanged).
+
+    ``id`` is server-generated, like ``User.id`` -- created here at a desk
+    with a connection, not client-side at a fair, so there is no offline
+    collision to guard against.
+    """
+
+    __tablename__ = "projects"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    name: Mapped[str] = mapped_column(String(160))
+    developer: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    #: Free text. What a salesperson types to find this again -- "entering the
+    #: area or development name offers the unit types already digitised."
+    area: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    unit_types: Mapped[list[UnitType]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        Index("ix_projects_area", "area"),
+        Index("ix_projects_name", "name"),
+    )
+
+
+class UnitType(Base):
+    """One floor plan, within a project. SPEC.md Phase 8.
+
+    ``status`` is the lifecycle stage of the type itself, not of any one
+    version: ``draft`` (being worked on, not yet submitted for review),
+    ``pending_review`` (a part-timer's submission, or an admin's draft they
+    have chosen to verify), ``approved`` (live in the library, quotable), and
+    ``superseded`` (reserved for the type as a whole being replaced --
+    nothing in this phase sets it; a *version* changing is handled by
+    ``UnitTypeVersion`` instead, which is the whole reason versioning exists).
+
+    A **part-timer's submission is never searchable or quotable until an
+    admin has approved it** -- the two-step workflow the spec insists on,
+    because a plan digitised in a hurry at a fair, wrong by a factor of the
+    scale, produces a confident wrong number on every quote after it.
+
+    Variants (``Type A mirror``, ``end lot``, ``corner``) are their own rows
+    with ``variant_of`` pointing at the type they are a variant of -- an
+    explicit relationship, not an inheritance system, because a mirrored unit
+    that shares nine openings and differs in one is easier to read, and safer
+    to price from, as its own list than as a diff.
+    """
+
+    __tablename__ = "unit_types"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("projects.id", ondelete="CASCADE")
+    )
+    name: Mapped[str] = mapped_column(String(120))
+    floor_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    variant_of: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("unit_types.id"), nullable=True
+    )
+    status: Mapped[str] = mapped_column(String(16), default="draft")
+    created_by_user_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    project: Mapped[Project] = relationship(back_populates="unit_types")
+    versions: Mapped[list[UnitTypeVersion]] = relationship(
+        back_populates="unit_type",
+        cascade="all, delete-orphan",
+        order_by="UnitTypeVersion.version",
+    )
+
+    __table_args__ = (
+        Index("ix_unit_types_project", "project_id"),
+        Index("ix_unit_types_status", "status"),
+    )
+
+
+class UnitTypeVersion(Base):
+    """A plan changes; history does not. SPEC.md Phase 8.
+
+    **Never updated in place and never deleted** -- the same rule as a rate
+    card, for the same reason: a version applies to future quotations and
+    never touches an order already instantiated from it (Phase 8's own
+    provenance columns on ``OrderLine`` are what let a line still point back
+    at the exact version it came from, a year later).
+
+    Both an approval and a rejection are audited with the reviewer's name
+    (§6.7). The spec's own column list names only ``approved_by``/
+    ``approved_at``; the ``rejected_*`` columns are this file's extension of
+    that same requirement to the other half of the same decision -- see
+    SPEC.md §13, this phase's open question about what a rejection does to
+    the *type's* status.
+    """
+
+    __tablename__ = "unit_type_versions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    unit_type_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("unit_types.id", ondelete="CASCADE")
+    )
+    version: Mapped[int] = mapped_column(Integer)
+
+    approved_by_user_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    rejected_by_user_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    rejected_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    rejection_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    #: Whatever the admin wants on record about this version -- a correction
+    #: made while verifying it, or why it superseded the last one.
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_by_user_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    unit_type: Mapped[UnitType] = relationship(back_populates="versions")
+    openings: Mapped[list[Opening]] = relationship(
+        back_populates="version", cascade="all, delete-orphan"
+    )
+    rooms: Mapped[list[Room]] = relationship(
+        back_populates="version", cascade="all, delete-orphan"
+    )
+    floor_plan: Mapped[FloorPlan | None] = relationship(
+        back_populates="version", cascade="all, delete-orphan", uselist=False
+    )
+
+    __table_args__ = (
+        Index(
+            "ix_unit_type_versions_unique",
+            "unit_type_id",
+            "version",
+            unique=True,
+        ),
+    )
+
+
+class Opening(Base):
+    """One window or door, from the developer's schedule. SPEC.md Phase 8.
+
+    The numbers come from the schedule, typed once by an admin who can check
+    them -- **never** from reading the uploaded image. ``FloorPlan`` is a
+    backdrop for tapping and a reference for the salesperson, not a ruler.
+    """
+
+    __tablename__ = "openings"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    unit_type_version_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("unit_type_versions.id", ondelete="CASCADE")
+    )
+    label: Mapped[str] = mapped_column(String(80))
+    room: Mapped[str] = mapped_column(String(80))
+    floor: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    nominal_w_tmm: Mapped[int] = mapped_column(Integer)
+    nominal_h_tmm: Mapped[int] = mapped_column(Integer)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+
+    version: Mapped[UnitTypeVersion] = relationship(back_populates="openings")
+
+    __table_args__ = (
+        Index("ix_openings_version", "unit_type_version_id", "sort_order"),
+    )
+
+
+class Room(Base):
+    """One room's floor, from the developer's schedule. SPEC.md Phase 8.
+
+    What lets "store all floor plans so it can auto-calculate a full SPC
+    flooring quote" actually work: the area is typed once here, and a
+    whole-house flooring line then prices like any other ``per_sqft`` line --
+    no different from a room somebody measured with a tape.
+
+    ``nominal_area_mm2`` is plain mm2, not tenths: a tenth-of-a-millimetre
+    squared would demand a rescale on every read for no precision anything
+    here needs, and a room's area still fits comfortably under
+    ``BigInteger`` at that unit.
+    """
+
+    __tablename__ = "rooms"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    unit_type_version_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("unit_type_versions.id", ondelete="CASCADE")
+    )
+    name: Mapped[str] = mapped_column(String(80))
+    floor: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    nominal_area_mm2: Mapped[int] = mapped_column(BigInteger)
+    skirting_run_tmm: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    version: Mapped[UnitTypeVersion] = relationship(back_populates="rooms")
+
+    __table_args__ = (Index("ix_rooms_version", "unit_type_version_id"),)
+
+
+class FloorPlan(Base):
+    """The original uploaded document. SPEC.md Phase 8.
+
+    Kept as source material alongside the structured measurements extracted
+    from it, so a disputed dimension can be checked against what was
+    actually submitted -- the same reasoning that keeps a photo per window on
+    the handset (§8).
+
+    ``scale_tmm_per_px`` is an exact rational written as a string, exactly
+    like ``OrderLine.applied_discount_pct`` -- never a float, because it is a
+    ratio used to place taps on the image and CLAUDE.md's arithmetic
+    invariant does not carve out an exception for "just a calibration aid".
+    It plays no part in pricing: the numbers that price a quote are
+    ``Opening``/``Room``'s own columns, typed from the schedule, never read
+    off the image.
+    """
+
+    __tablename__ = "floor_plans"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    unit_type_version_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("unit_type_versions.id", ondelete="CASCADE"), unique=True
+    )
+    #: Wherever the file actually lives -- object storage key or path. This
+    #: table stores the reference, not the bytes.
+    file_ref: Mapped[str] = mapped_column(String(300))
+    #: "12/1" style rational: tenths-of-a-millimetre per pixel. Null until an
+    #: admin calibrates it by tapping two points of a known dimension.
+    scale_tmm_per_px: Mapped[str | None] = mapped_column(String(24), nullable=True)
+    uploaded_by_user_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    uploaded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    version: Mapped[UnitTypeVersion] = relationship(back_populates="floor_plan")

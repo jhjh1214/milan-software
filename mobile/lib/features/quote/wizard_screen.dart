@@ -13,6 +13,7 @@ import '../../ui/unit_labels.dart';
 import '../../ui/widgets/dimension_field.dart';
 import '../../ui/widgets/numeric_keypad.dart';
 import 'quote_state.dart';
+import 'unit_type_picker.dart';
 
 /// The add-a-window wizard.
 ///
@@ -71,6 +72,38 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
   LengthUnit _heightUnit = LengthUnit.foot;
   _Field _focused = _Field.width;
 
+  /// Set when this line starts from a saved plan. SPEC.md Phase 8.
+  ///
+  /// [_libraryWidth]/[_libraryHeight] are the *exact* tenths-of-a-millimetre
+  /// values from the opening -- used directly in [_add] rather than being
+  /// re-parsed from the rounded display text `_rawWidth`/`_rawHeight` show,
+  /// which would be exactly the lossy round-trip CLAUDE.md's arithmetic
+  /// invariant exists to forbid.
+  Length? _libraryWidth;
+  Length? _libraryHeight;
+  String? _sourceProjectId;
+  String? _sourceUnitTypeId;
+  int? _sourceVersion;
+
+  Future<void> _startFromLibrary() async {
+    final picked = await showUnitTypePicker(context, ref);
+    if (picked == null || !mounted) return;
+    setState(() {
+      _room = picked.room;
+      _libraryWidth = Length.tenths(picked.nominalWTmm);
+      _libraryHeight = Length.tenths(picked.nominalHTmm);
+      _sourceProjectId = picked.sourceProjectId;
+      _sourceUnitTypeId = picked.sourceUnitTypeId;
+      _sourceVersion = picked.sourceVersion;
+      _step = _Step.family;
+    });
+  }
+
+  /// One decimal place, in [unit] -- for prefilling the sizes step only.
+  /// Never fed back into a [Length] or a price; see [_libraryWidth].
+  String _formatForUnit(Length length, LengthUnit unit) =>
+      (length.tmm / unit.tenthsPerUnit).toStringAsFixed(1);
+
   void _back() {
     if (_step == _Step.room) {
       Navigator.of(context).pop();
@@ -114,8 +147,18 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
             _Step.room => _RoomStep(
               onPick: (room) => setState(() {
                 _room = room;
+                // A plain pick, however this screen was reached. Clearing
+                // these here means backing out of a library pick and then
+                // choosing a room by hand can never leave a stale plan's
+                // dimensions on a line nobody picked it for.
+                _libraryWidth = null;
+                _libraryHeight = null;
+                _sourceProjectId = null;
+                _sourceUnitTypeId = null;
+                _sourceVersion = null;
                 _step = _Step.family;
               }),
+              onStartFromLibrary: _startFromLibrary,
             ),
             _Step.family => _FamilyStep(
               card: card,
@@ -137,6 +180,17 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
                 _deferMaterial = card.materialsFor(rule.variant).length > 1;
                 _widthUnit = _unitFromWire(card.config.defaultUnitWidth);
                 _heightUnit = _unitFromWire(card.config.defaultUnitHeight);
+                // The known size from the plan, shown already filled in --
+                // "choose products and a reference quotation exists in
+                // seconds." `_add` below reads the exact tenths-of-a-
+                // millimetre value directly whenever these strings are
+                // still untouched, never by re-parsing this display text.
+                if (_libraryWidth != null) {
+                  _rawWidth = _formatForUnit(_libraryWidth!, _widthUnit);
+                  _rawHeight = _libraryHeight == null
+                      ? ''
+                      : _formatForUnit(_libraryHeight!, _heightUnit);
+                }
                 _step = _Step.sizes;
               }),
             ),
@@ -457,12 +511,32 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
   }
 
   Future<void> _add(RateCard card) async {
+    // SPEC.md Phase 8. Whole line, not per-field: a plan is what this window
+    // started from only if *neither* field was touched after being filled
+    // in. Re-parsing the rounded display text for an untouched field would
+    // be exactly the lossy round-trip CLAUDE.md's arithmetic invariant
+    // forbids, so an untouched library value is read from the exact
+    // tenths-of-a-millimetre source instead of from `_rawWidth`/`_rawHeight`
+    // at all.
+    final usingLibraryDims =
+        _libraryWidth != null &&
+        _rawWidth == _formatForUnit(_libraryWidth!, _widthUnit) &&
+        (_libraryHeight == null
+            ? _rawHeight.isEmpty
+            : _rawHeight == _formatForUnit(_libraryHeight!, _heightUnit));
+
     // §13 A25: a per_roll product can reach here with both fields left
     // blank — the default is one pack, not a measured wall. `Length.zero`
     // is the sentinel width the engine never reads once height is null.
-    final width = parseLength(_rawWidth, _widthUnit);
-    final height = parseLength(_rawHeight, _heightUnit);
-    final measured = height != null;
+    final width = usingLibraryDims ? null : parseLength(_rawWidth, _widthUnit);
+    final height = usingLibraryDims
+        ? null
+        : parseLength(_rawHeight, _heightUnit);
+    final finalWidth = usingLibraryDims
+        ? _libraryWidth!
+        : (width?.length ?? Length.zero);
+    final finalHeight = usingLibraryDims ? _libraryHeight : height?.length;
+    final measured = finalHeight != null;
     final id = await ref
         .read(quoteProvider.notifier)
         .addLine(
@@ -470,10 +544,13 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
           variant: _product!.variant,
           materialKey: _deferMaterial ? null : _product!.materialKey,
           layer: _product!.layer,
-          width: width?.length ?? Length.zero,
-          height: height?.length,
-          rawWidth: width?.raw ?? '',
-          rawHeight: height?.raw ?? '',
+          width: finalWidth,
+          height: finalHeight,
+          rawWidth: usingLibraryDims ? _rawWidth : (width?.raw ?? ''),
+          rawHeight: usingLibraryDims ? _rawHeight : (height?.raw ?? ''),
+          sourceProjectId: usingLibraryDims ? _sourceProjectId : null,
+          sourceUnitTypeId: usingLibraryDims ? _sourceUnitTypeId : null,
+          sourceVersion: usingLibraryDims ? _sourceVersion : null,
         );
     if (!mounted) return;
 
@@ -607,7 +684,11 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
 class _RoomStep extends StatelessWidget {
   final ValueChanged<String> onPick;
 
-  const _RoomStep({required this.onPick});
+  /// SPEC.md Phase 8: an alternative way into this step, alongside the
+  /// fixed room list.
+  final VoidCallback onStartFromLibrary;
+
+  const _RoomStep({required this.onPick, required this.onStartFromLibrary});
 
   @override
   Widget build(BuildContext context) {
@@ -625,6 +706,17 @@ class _RoomStep extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(Space.lg),
       children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: Space.lg),
+          child: OutlinedButton.icon(
+            onPressed: onStartFromLibrary,
+            icon: const Icon(Icons.folder_open),
+            label: Text(l.startFromPlan),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(Touch.primary),
+            ),
+          ),
+        ),
         for (final room in rooms)
           Padding(
             padding: const EdgeInsets.only(bottom: Space.md),

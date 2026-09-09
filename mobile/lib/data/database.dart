@@ -122,6 +122,17 @@ class QuoteLines extends Table {
   /// `remote_key` after, and the upload half arrives with sync in Phase 3.
   TextColumn get photoPath => text().nullable()();
 
+  /// Where this line's dimensions came from. SPEC.md Phase 8's Property /
+  /// Project / Unit Library.
+  ///
+  /// Null means typed by hand, true of every line before this library
+  /// existed. No separate "source" flag beside these: a non-null
+  /// [sourceUnitTypeId] already says "the library", and a flag that could
+  /// disagree with the id it sits beside is a second place to be wrong.
+  TextColumn get sourceProjectId => text().nullable()();
+  TextColumn get sourceUnitTypeId => text().nullable()();
+  IntColumn get sourceVersion => integer().nullable()();
+
   DateTimeColumn get createdAt => dateTime()();
 
   @override
@@ -379,6 +390,17 @@ class OrderLines extends Table {
   /// What the line actually bills. Integer sen.
   IntColumn get finalLineTotalSen => integer().nullable()();
 
+  /// Where the estimate dimensions actually came from. SPEC.md Phase 8.
+  ///
+  /// `manual` (the default, and every line before this library existed) or
+  /// `project_library`. Never `site_measurement` here -- that is earned
+  /// through [isSiteMeasured] and a real visit, not claimed at confirmation.
+  TextColumn get measurementSource =>
+      text().withDefault(const Constant('manual'))();
+  TextColumn get sourceProjectId => text().nullable()();
+  TextColumn get sourceUnitTypeId => text().nullable()();
+  IntColumn get sourceVersion => integer().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -619,7 +641,7 @@ class AppDatabase extends _$AppDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -706,6 +728,19 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(orders, orders.buyerPostcode);
         await m.addColumn(orders, orders.buyerMsicCode);
         await m.addColumn(orders, orders.einvoiceRequested);
+      }
+      // v13: where a line's dimensions actually came from (SPEC.md Phase 8's
+      // Property/Project/Unit Library). Nullable/defaulted on every existing
+      // row, which reads as `manual` -- the truth for every line ever typed
+      // before this library existed.
+      if (from < 13) {
+        await m.addColumn(quoteLines, quoteLines.sourceProjectId);
+        await m.addColumn(quoteLines, quoteLines.sourceUnitTypeId);
+        await m.addColumn(quoteLines, quoteLines.sourceVersion);
+        await m.addColumn(orderLines, orderLines.measurementSource);
+        await m.addColumn(orderLines, orderLines.sourceProjectId);
+        await m.addColumn(orderLines, orderLines.sourceUnitTypeId);
+        await m.addColumn(orderLines, orderLines.sourceVersion);
       }
     },
     beforeOpen: (details) async {

@@ -198,6 +198,51 @@ void main() {
       expect((body['events'] as List).length, 1);
     });
 
+    test(
+      'a line typed by hand goes up as manual, with no source ids',
+      () async {
+        // SPEC.md Phase 8. `seed()` writes a line with no source columns set
+        // -- the truth for every order before the library existed.
+        await seed();
+        await queueOrder();
+        await outboxer.drain(credentials);
+
+        final body =
+            jsonDecode(utf8.decode(server.lastOrderBody!))
+                as Map<String, dynamic>;
+        final line = (body['lines'] as List).single as Map<String, dynamic>;
+        expect(line['measurement_source'], 'manual');
+        expect(line['source_project_id'], null);
+        expect(line['source_unit_type_id'], null);
+        expect(line['source_version'], null);
+      },
+    );
+
+    test('a line from a saved plan keeps its trail up to the server', () async {
+      // SPEC.md Phase 8: the whole point of the provenance columns is that
+      // this survives the trip, not just the local row.
+      await seed();
+      await (db.update(db.orderLines)..where((l) => l.id.equals(lineId))).write(
+        const OrderLinesCompanion(
+          measurementSource: Value('project_library'),
+          sourceProjectId: Value('p-1'),
+          sourceUnitTypeId: Value('ut-1'),
+          sourceVersion: Value(2),
+        ),
+      );
+      await queueOrder();
+      await outboxer.drain(credentials);
+
+      final body =
+          jsonDecode(utf8.decode(server.lastOrderBody!))
+              as Map<String, dynamic>;
+      final line = (body['lines'] as List).single as Map<String, dynamic>;
+      expect(line['measurement_source'], 'project_library');
+      expect(line['source_project_id'], 'p-1');
+      expect(line['source_unit_type_id'], 'ut-1');
+      expect(line['source_version'], 2);
+    });
+
     test('timestamps go up in UTC', () async {
       // An order confirmed at 11pm on the last night of a fair must not become
       // the next month in transit — the number is issued from this date.

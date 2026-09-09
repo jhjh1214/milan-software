@@ -387,5 +387,17 @@
   "declinesDismissed": "{count} tidak menjawab",
   "declinesRemoved": "{count} membuang barisnya",
   "declinesLeftOnTable": "{amount} disebut harga, tiada deposit",
-  "declinesTakeRate": "{percent}% daripada jawapan adalah wang"
+  "declinesTakeRate": "{percent}% daripada jawapan adalah wang",
+
+  "startFromPlan": "Mula dari pelan yang disimpan",
+  "pickerFindProject": "Cari projek",
+  "pickerSearchProjectHint": "Kawasan atau nama projek",
+  "pickerNoProjects": "Tiada projek dijumpai.",
+  "pickerPickUnitType": "Pilih jenis unit",
+  "pickerNoUnitTypes": "Belum ada jenis unit yang diluluskan untuk projek ini.",
+  "pickerPickOpening": "Pilih tingkap",
+  "pickerNoOpenings": "Tiada tingkap disimpan untuk jenis unit ini.",
+  "pickerCouldNotReach": "Tidak dapat menghubungi pelayan. Cuba lagi.",
+  "pickerTryAgain": "Cuba lagi",
+  "pickerOpeningSize": "{width} × {height} ft"
 }

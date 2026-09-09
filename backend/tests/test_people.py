@@ -33,6 +33,7 @@ from app.services.people import (
     deactivate,
     list_people,
     reactivate,
+    set_language,
     set_pin,
 )
 from tests.helpers import assert_pin_is_not_recoverable
@@ -144,6 +145,24 @@ class TestChangingAPin:
     def test_an_unknown_user_is_an_error(self, db) -> None:
         with db() as session, pytest.raises(NoSuchUser):
             set_pin(session, str(uuid.uuid4()), "4821")
+
+
+class TestChangingLanguage:
+    def test_it_sticks_to_the_account(self, db) -> None:
+        with db() as session:
+            user = add_person(session, name="Ah Lian", phone="0123", pin="4821")
+            assert user.language == "zh"
+            session.commit()
+
+            set_language(session, user.id, "en")
+            session.commit()
+
+            fresh = session.get(User, user.id)
+            assert fresh.language == "en"
+
+    def test_an_unknown_user_is_an_error(self, db) -> None:
+        with db() as session, pytest.raises(NoSuchUser):
+            set_language(session, str(uuid.uuid4()), "en")
 
 
 class TestLeavers:

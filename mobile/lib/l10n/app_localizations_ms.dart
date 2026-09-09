@@ -1280,4 +1280,41 @@ class LMs extends L {
   String declinesTakeRate(int percent) {
     return '$percent% daripada jawapan adalah wang';
   }
+
+  @override
+  String get startFromPlan => 'Mula dari pelan yang disimpan';
+
+  @override
+  String get pickerFindProject => 'Cari projek';
+
+  @override
+  String get pickerSearchProjectHint => 'Kawasan atau nama projek';
+
+  @override
+  String get pickerNoProjects => 'Tiada projek dijumpai.';
+
+  @override
+  String get pickerPickUnitType => 'Pilih jenis unit';
+
+  @override
+  String get pickerNoUnitTypes =>
+      'Belum ada jenis unit yang diluluskan untuk projek ini.';
+
+  @override
+  String get pickerPickOpening => 'Pilih tingkap';
+
+  @override
+  String get pickerNoOpenings => 'Tiada tingkap disimpan untuk jenis unit ini.';
+
+  @override
+  String get pickerCouldNotReach =>
+      'Tidak dapat menghubungi pelayan. Cuba lagi.';
+
+  @override
+  String get pickerTryAgain => 'Cuba lagi';
+
+  @override
+  String pickerOpeningSize(String width, String height) {
+    return '$width × $height ft';
+  }
 }

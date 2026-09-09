@@ -188,6 +188,29 @@ class TestSigningIn:
         assert r.status_code == 200
         assert r.json()["role"] == "admin"
 
+    def test_picking_a_language_follows_the_account_not_the_session(
+        self, client: TestClient
+    ) -> None:
+        # The point of this endpoint: it is the ACCOUNT that remembers, not
+        # this one token. A second, independent sign-in sees the same pick.
+        token = sign_in(client, "admin")
+        r = client.post(
+            "/api/auth/language", json={"language": "en"}, headers=auth(token)
+        )
+        assert r.status_code == 200
+        assert r.json()["language"] == "en"
+
+        second_token = sign_in(client, "admin")
+        again = client.get("/api/auth/me", headers=auth(second_token))
+        assert again.json()["language"] == "en"
+
+    def test_an_unrecognised_language_is_rejected(self, client: TestClient) -> None:
+        token = sign_in(client, "admin")
+        r = client.post(
+            "/api/auth/language", json={"language": "fr"}, headers=auth(token)
+        )
+        assert r.status_code == 422
+
     def test_signing_out_ends_the_session(self, client: TestClient) -> None:
         token = sign_in(client)
         assert client.post("/api/auth/logout", headers=auth(token)).status_code == 204

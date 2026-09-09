@@ -38,12 +38,15 @@ from .api.schemas import (
     DepositPromptResult,
     DepositPromptsOut,
     FairReport,
+    FloorPlanOut,
     LockPushResult,
     LocksOut,
     LoginIn,
     MeasurementIn,
     MeasurementQueueOut,
     MeasurementResult,
+    NewVersionIn,
+    OpeningOut,
     OrderDetailOut,
     OrderIn,
     OrderResult,
@@ -54,21 +57,51 @@ from .api.schemas import (
     PeopleOut,
     PersonOut,
     PreviewIn,
+    ProjectIn,
+    ProjectOut,
+    ProjectsOut,
     PublishIn,
     PublishOut,
     PushResult,
     QuoteIn,
     RateChangeOut,
+    RejectUnitTypeIn,
+    RoomOut,
     SessionOut,
+    SetLanguageIn,
     SetPinIn,
     StatusChangeIn,
     StatusChangeResult,
+    UnitTypeCreateIn,
+    UnitTypeDetailOut,
+    UnitTypeOut,
+    UnitTypesOut,
+    UnitTypeVersionOut,
+    UnitTypeWithVersionsOut,
     UserOut,
     VarianceReport,
 )
+from .api.schemas import (
+    FloorPlanIn as FloorPlanApiIn,
+)
+from .api.schemas import (
+    OpeningIn as OpeningApiIn,
+)
+from .api.schemas import (
+    RoomIn as RoomApiIn,
+)
 from .core.security import WeakPin
 from .db import session_scope
-from .models.db import DeviceSession, User
+from .models.db import (
+    DeviceSession,
+    FloorPlan,
+    Opening,
+    Project,
+    Room,
+    UnitType,
+    UnitTypeVersion,
+    User,
+)
 from .services.auth import (
     AuthenticationFailed,
     TooManyAttempts,
@@ -92,6 +125,29 @@ from .services.ingest import (
     push_payment,
     push_quote,
 )
+from .services.library import (
+    FloorPlanIn as FloorPlanServiceIn,
+)
+from .services.library import (
+    NoSuchProject,
+    NoSuchUnitType,
+    WrongStatus,
+    add_corrected_version,
+    approve_unit_type,
+    create_project,
+    create_unit_type,
+    list_unit_types,
+    reject_unit_type,
+    search_projects,
+    submit_for_review,
+    unit_type_detail,
+)
+from .services.library import (
+    OpeningIn as OpeningServiceIn,
+)
+from .services.library import (
+    RoomIn as RoomServiceIn,
+)
 from .services.measurement_queue import measurement_queue
 from .services.people import (
     BadRole,
@@ -101,6 +157,7 @@ from .services.people import (
     deactivate,
     list_people,
     reactivate,
+    set_language,
     set_pin,
 )
 from .services.reads import (
@@ -236,6 +293,25 @@ def me(who: CurrentDep) -> UserOut:
     """
     user, _ = who
     return UserOut(id=user.id, name=user.name, role=user.role, language=user.language)
+
+
+@app.post("/api/auth/language", response_model=UserOut)
+def set_my_language(
+    payload: SetLanguageIn, session: SessionDep, who: CurrentDep
+) -> UserOut:
+    """A person picking their own language. Self-service, unlike everything
+    else that changes a `User` row: no admin check, because reading this
+    system in your own language needs nobody else's permission.
+
+    SPEC.md §13 C9 — switchable per user, not per device. It follows the
+    account rather than the browser: the next machine that person signs into
+    picks it straight back up.
+    """
+    user, _ = who
+    updated = set_language(session, user.id, payload.language)
+    return UserOut(
+        id=updated.id, name=updated.name, role=updated.role, language=updated.language
+    )
 
 
 @app.post("/api/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
@@ -818,3 +894,297 @@ def push(payload: QuoteIn, session: SessionDep, who: CurrentDep) -> PushResult:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail=str(exc)
         ) from exc
+
+
+# --- Property / Project / Unit Library. SPEC.md Phase 8. -------------------
+
+
+def _project_out(project: Project) -> ProjectOut:
+    return ProjectOut(
+        id=project.id,
+        name=project.name,
+        developer=project.developer,
+        area=project.area,
+        created_at=project.created_at,
+    )
+
+
+def _unit_type_out(unit_type: UnitType) -> UnitTypeOut:
+    return UnitTypeOut(
+        id=unit_type.id,
+        project_id=unit_type.project_id,
+        project_name=unit_type.project.name,
+        name=unit_type.name,
+        floor_count=unit_type.floor_count,
+        variant_of=unit_type.variant_of,
+        status=unit_type.status,
+        created_by_user_id=unit_type.created_by_user_id,
+        created_at=unit_type.created_at,
+        updated_at=unit_type.updated_at,
+    )
+
+
+def _opening_out(opening: Opening) -> OpeningOut:
+    return OpeningOut(
+        id=opening.id,
+        label=opening.label,
+        room=opening.room,
+        floor=opening.floor,
+        nominal_w_tmm=opening.nominal_w_tmm,
+        nominal_h_tmm=opening.nominal_h_tmm,
+        sort_order=opening.sort_order,
+    )
+
+
+def _room_out(room: Room) -> RoomOut:
+    return RoomOut(
+        id=room.id,
+        name=room.name,
+        floor=room.floor,
+        nominal_area_mm2=room.nominal_area_mm2,
+        skirting_run_tmm=room.skirting_run_tmm,
+    )
+
+
+def _floor_plan_out(plan: FloorPlan) -> FloorPlanOut:
+    return FloorPlanOut(
+        id=plan.id,
+        file_ref=plan.file_ref,
+        scale_tmm_per_px=plan.scale_tmm_per_px,
+        uploaded_by_user_id=plan.uploaded_by_user_id,
+        uploaded_at=plan.uploaded_at,
+    )
+
+
+def _version_out(version: UnitTypeVersion) -> UnitTypeVersionOut:
+    return UnitTypeVersionOut(
+        id=version.id,
+        version=version.version,
+        approved_by_user_id=version.approved_by_user_id,
+        approved_at=version.approved_at,
+        rejected_by_user_id=version.rejected_by_user_id,
+        rejected_at=version.rejected_at,
+        rejection_reason=version.rejection_reason,
+        note=version.note,
+        openings=[
+            _opening_out(o)
+            for o in sorted(version.openings, key=lambda o: o.sort_order)
+        ],
+        rooms=[_room_out(r) for r in version.rooms],
+        floor_plan=_floor_plan_out(version.floor_plan) if version.floor_plan else None,
+    )
+
+
+def _detail_out(unit_type: UnitType) -> UnitTypeDetailOut:
+    return UnitTypeDetailOut(
+        unit_type=_unit_type_out(unit_type),
+        versions=[_version_out(v) for v in unit_type.versions],
+    )
+
+
+def _with_versions_out(unit_type: UnitType) -> UnitTypeWithVersionsOut:
+    return UnitTypeWithVersionsOut(
+        **_unit_type_out(unit_type).model_dump(),
+        versions=[_version_out(v) for v in unit_type.versions],
+    )
+
+
+def _service_openings(openings: list[OpeningApiIn]) -> list[OpeningServiceIn]:
+    return [
+        OpeningServiceIn(
+            label=o.label,
+            room=o.room,
+            nominal_w_tmm=o.nominal_w_tmm,
+            nominal_h_tmm=o.nominal_h_tmm,
+            floor=o.floor,
+            sort_order=o.sort_order,
+        )
+        for o in openings
+    ]
+
+
+def _service_rooms(rooms: list[RoomApiIn]) -> list[RoomServiceIn]:
+    return [
+        RoomServiceIn(
+            name=r.name,
+            nominal_area_mm2=r.nominal_area_mm2,
+            floor=r.floor,
+            skirting_run_tmm=r.skirting_run_tmm,
+        )
+        for r in rooms
+    ]
+
+
+def _service_floor_plan(plan: FloorPlanApiIn | None) -> FloorPlanServiceIn | None:
+    if plan is None:
+        return None
+    return FloorPlanServiceIn(
+        file_ref=plan.file_ref, scale_tmm_per_px=plan.scale_tmm_per_px
+    )
+
+
+@app.post(
+    "/api/projects", response_model=ProjectOut, status_code=status.HTTP_201_CREATED
+)
+def create_project_route(
+    payload: ProjectIn, session: SessionDep, who: CurrentDep
+) -> ProjectOut:
+    """A development, so its unit types have somewhere to live.
+
+    Not admin-only: creating the shell a unit type lives under is ordinary
+    data entry, the same trust level as adding a quote or a payment.
+    """
+    _ = who
+    return _project_out(
+        create_project(
+            session, name=payload.name, developer=payload.developer, area=payload.area
+        )
+    )
+
+
+@app.get("/api/projects", response_model=ProjectsOut)
+def search_projects_route(
+    session: SessionDep, who: CurrentDep, q: str | None = None
+) -> ProjectsOut:
+    """What a salesperson finds by typing an area or a development name."""
+    _ = who
+    return ProjectsOut(
+        projects=[_project_out(p) for p in search_projects(session, query=q)]
+    )
+
+
+@app.post(
+    "/api/unit-types",
+    response_model=UnitTypeDetailOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_unit_type_route(
+    payload: UnitTypeCreateIn, session: SessionDep, who: CurrentDep
+) -> UnitTypeDetailOut:
+    """Digitises a floor plan once. SPEC.md Phase 8.
+
+    ``submit=true`` is the part-timer's one-shot path, straight to
+    ``pending_review``. Anybody signed in may create one -- the gate that
+    matters is on *approval*, not on who may draft or submit.
+    """
+    user, _ = who
+    try:
+        unit_type = create_unit_type(
+            session,
+            project_id=payload.project_id,
+            name=payload.name,
+            floor_count=payload.floor_count,
+            variant_of=payload.variant_of,
+            created_by_user_id=user.id,
+            openings=_service_openings(payload.openings),
+            rooms=_service_rooms(payload.rooms),
+            floor_plan=_service_floor_plan(payload.floor_plan),
+            submit=payload.submit,
+        )
+    except NoSuchProject as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such project") from exc
+
+    return _detail_out(unit_type_detail(session, unit_type.id))
+
+
+@app.get("/api/unit-types", response_model=UnitTypesOut)
+def list_unit_types_route(
+    session: SessionDep,
+    who: CurrentDep,
+    project_id: str | None = None,
+    status_filter: str | None = Query(default=None, alias="status"),
+) -> UnitTypesOut:
+    _ = who
+    return UnitTypesOut(
+        unit_types=[
+            _with_versions_out(u)
+            for u in list_unit_types(
+                session, project_id=project_id, status=status_filter
+            )
+        ]
+    )
+
+
+@app.get("/api/unit-types/{unit_type_id}", response_model=UnitTypeDetailOut)
+def unit_type_detail_route(
+    unit_type_id: str, session: SessionDep, who: CurrentDep
+) -> UnitTypeDetailOut:
+    _ = who
+    detail = unit_type_detail(session, unit_type_id)
+    if detail is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such unit type")
+    return _detail_out(detail)
+
+
+@app.post("/api/unit-types/{unit_type_id}/submit", response_model=UnitTypeOut)
+def submit_unit_type_route(
+    unit_type_id: str, session: SessionDep, who: CurrentDep
+) -> UnitTypeOut:
+    """The part-timer path, when the submission was not made in one shot:
+    ``draft`` -> ``pending_review``."""
+    _ = who
+    try:
+        return _unit_type_out(submit_for_review(session, unit_type_id))
+    except NoSuchUnitType as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such unit type") from exc
+    except WrongStatus as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+
+
+@app.post("/api/unit-types/{unit_type_id}/approve", response_model=UnitTypeOut)
+def approve_unit_type_route(
+    unit_type_id: str, session: SessionDep, admin: AdminDep
+) -> UnitTypeOut:
+    """Makes the latest version live in the library. Admin only, per the
+    workflow diagram naming ADMIN as who approves either path."""
+    try:
+        return _unit_type_out(
+            approve_unit_type(session, unit_type_id, by_user_id=admin.id)
+        )
+    except NoSuchUnitType as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such unit type") from exc
+    except WrongStatus as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+
+
+@app.post("/api/unit-types/{unit_type_id}/reject", response_model=UnitTypeOut)
+def reject_unit_type_route(
+    unit_type_id: str,
+    payload: RejectUnitTypeIn,
+    session: SessionDep,
+    admin: AdminDep,
+) -> UnitTypeOut:
+    """Sends a part-timer's submission back, with a reason on record. Admin
+    only, same as approval."""
+    try:
+        return _unit_type_out(
+            reject_unit_type(
+                session, unit_type_id, by_user_id=admin.id, reason=payload.reason
+            )
+        )
+    except NoSuchUnitType as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such unit type") from exc
+    except WrongStatus as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+
+
+@app.post("/api/unit-types/{unit_type_id}/versions", response_model=UnitTypeDetailOut)
+def new_version_route(
+    unit_type_id: str, payload: NewVersionIn, session: SessionDep, who: CurrentDep
+) -> UnitTypeDetailOut:
+    """The plan changed. A new version, never an edit to the old one."""
+    user, _ = who
+    try:
+        add_corrected_version(
+            session,
+            unit_type_id,
+            created_by_user_id=user.id,
+            openings=_service_openings(payload.openings),
+            rooms=_service_rooms(payload.rooms),
+            floor_plan=_service_floor_plan(payload.floor_plan),
+            note=payload.note,
+        )
+    except NoSuchUnitType as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such unit type") from exc
+
+    return _detail_out(unit_type_detail(session, unit_type_id))

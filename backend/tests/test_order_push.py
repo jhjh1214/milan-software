@@ -200,6 +200,52 @@ class TestPushingAnOrder:
             )
 
 
+class TestProvenance:
+    """Where a line's dimensions came from. SPEC.md Phase 8.
+
+    Every order pushed before this field existed was typed by hand -- so the
+    default, and every line that omits the field, must read as ``manual``.
+    """
+
+    def test_a_plain_line_defaults_to_manual(self, db) -> None:
+        payload = an_order(lines=[a_line()])
+        with db() as session:
+            push_order(session, payload)
+            session.commit()
+            line = session.scalars(select(OrderLine)).one()
+            assert line.measurement_source == "manual"
+            assert line.source_project_id is None
+
+    def test_a_library_sourced_line_keeps_its_trail(self, db) -> None:
+        project_id = str(uuid.uuid4())
+        unit_type_id = str(uuid.uuid4())
+        payload = an_order(
+            lines=[
+                a_line(
+                    measurement_source="project_library",
+                    source_project_id=project_id,
+                    source_unit_type_id=unit_type_id,
+                    source_version=2,
+                )
+            ]
+        )
+        with db() as session:
+            push_order(session, payload)
+            session.commit()
+            line = session.scalars(select(OrderLine)).one()
+            assert line.measurement_source == "project_library"
+            assert line.source_project_id == project_id
+            assert line.source_unit_type_id == unit_type_id
+            assert line.source_version == 2
+
+    def test_a_device_cannot_claim_a_site_measurement_at_push_time(self, db) -> None:
+        # A line only earns `site_measurement` through the dedicated
+        # measurement endpoint, after a real site visit -- never by simply
+        # being pushed that way at order confirmation.
+        with pytest.raises(ValueError):
+            a_line(measurement_source="site_measurement")
+
+
 class TestTheStatusIsRevalidated:
     def test_a_device_may_push_a_confirmed_order(self, db) -> None:
         with db() as session:

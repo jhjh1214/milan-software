@@ -387,5 +387,17 @@
   "declinesDismissed": "{count} never answered",
   "declinesRemoved": "{count} took the lines off",
   "declinesLeftOnTable": "{amount} quoted and not deposited on",
-  "declinesTakeRate": "{percent}% of the answers were money"
+  "declinesTakeRate": "{percent}% of the answers were money",
+
+  "startFromPlan": "Start from a saved plan",
+  "pickerFindProject": "Find a project",
+  "pickerSearchProjectHint": "Area or project name",
+  "pickerNoProjects": "No projects found.",
+  "pickerPickUnitType": "Choose a unit type",
+  "pickerNoUnitTypes": "No approved unit types for this project yet.",
+  "pickerPickOpening": "Choose a window",
+  "pickerNoOpenings": "No windows saved for this unit type.",
+  "pickerCouldNotReach": "Couldn't reach the server. Try again.",
+  "pickerTryAgain": "Try again",
+  "pickerOpeningSize": "{width} × {height} ft"
 }

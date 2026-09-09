@@ -129,6 +129,12 @@ class SessionOut(BaseModel):
     user: UserOut
 
 
+class SetLanguageIn(BaseModel):
+    """A signed-in person changing their own account's language. SPEC.md §13 C9."""
+
+    language: str = Field(pattern="^(zh|en|ms)$")
+
+
 class PublishIn(BaseModel):
     """An admin publishing a price list.
 
@@ -195,6 +201,19 @@ class OrderLineIn(BaseModel):
 
     material_deferred: bool = False
     is_overridden: bool = False
+
+    #: Where the estimate dimensions actually came from. SPEC.md Phase 8.
+    #: Never ``site_measurement`` at push time -- a line only earns that
+    #: through the dedicated measurement endpoint, after a real site visit,
+    #: never by a device simply claiming it at order confirmation. Absent
+    #: means ``manual``, true of every order ever pushed before this field
+    #: existed.
+    measurement_source: str = Field(
+        default="manual", pattern="^(manual|project_library)$"
+    )
+    source_project_id: str | None = Field(default=None, max_length=36)
+    source_unit_type_id: str | None = Field(default=None, max_length=36)
+    source_version: int | None = Field(default=None, ge=1)
 
 
 class OrderEventIn(BaseModel):
@@ -916,3 +935,151 @@ class BalancesReport(BaseModel):
     #: A report that mixed the two without saying so would overstate what is
     #: collectable.
     estimated_balance_sen: int = 0
+
+
+# --- Property / Project / Unit Library. SPEC.md Phase 8. ---------------
+
+
+class OpeningIn(BaseModel):
+    label: str = Field(min_length=1, max_length=80)
+    room: str = Field(min_length=1, max_length=80)
+    floor: int | None = None
+    nominal_w_tmm: int = Field(gt=0)
+    nominal_h_tmm: int = Field(gt=0)
+    sort_order: int = 0
+
+
+class OpeningOut(BaseModel):
+    id: str
+    label: str
+    room: str
+    floor: int | None
+    nominal_w_tmm: int
+    nominal_h_tmm: int
+    sort_order: int
+
+
+class RoomIn(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    floor: int | None = None
+    nominal_area_mm2: int = Field(gt=0)
+    skirting_run_tmm: int | None = Field(default=None, ge=0)
+
+
+class RoomOut(BaseModel):
+    id: str
+    name: str
+    floor: int | None
+    nominal_area_mm2: int
+    skirting_run_tmm: int | None
+
+
+class FloorPlanIn(BaseModel):
+    file_ref: str = Field(min_length=1, max_length=300)
+    #: "12/1" style rational string. Never a float -- CLAUDE.md's arithmetic
+    #: invariant carves out no exception for a calibration aid.
+    scale_tmm_per_px: str | None = None
+
+
+class FloorPlanOut(BaseModel):
+    id: str
+    file_ref: str
+    scale_tmm_per_px: str | None
+    uploaded_by_user_id: str | None
+    uploaded_at: datetime
+
+
+class ProjectIn(BaseModel):
+    name: str = Field(min_length=1, max_length=160)
+    developer: str | None = Field(default=None, max_length=160)
+    area: str | None = Field(default=None, max_length=120)
+
+
+class ProjectOut(BaseModel):
+    id: str
+    name: str
+    developer: str | None
+    area: str | None
+    created_at: datetime
+
+
+class ProjectsOut(BaseModel):
+    projects: list[ProjectOut] = []
+
+
+class UnitTypeCreateIn(BaseModel):
+    project_id: str = Field(min_length=36, max_length=36)
+    name: str = Field(min_length=1, max_length=120)
+    floor_count: int | None = Field(default=None, ge=1)
+    variant_of: str | None = Field(default=None, min_length=36, max_length=36)
+    openings: list[OpeningIn] = []
+    rooms: list[RoomIn] = []
+    floor_plan: FloorPlanIn | None = None
+    #: True for a part-timer's one-shot submission: straight to
+    #: `pending_review`, skipping `draft`. False (the default) is an admin's
+    #: own upload, which starts as `draft` until they choose to approve it.
+    submit: bool = False
+
+
+class UnitTypeOut(BaseModel):
+    id: str
+    project_id: str
+    #: Denormalised onto this row because the one screen that reads a list of
+    #: these -- the admin review queue -- has to say "ABC Development, Type
+    #: B" without a second round trip per row.
+    project_name: str
+    name: str
+    floor_count: int | None
+    variant_of: str | None
+    status: str
+    created_by_user_id: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class UnitTypeVersionOut(BaseModel):
+    id: str
+    version: int
+    approved_by_user_id: str | None
+    approved_at: datetime | None
+    rejected_by_user_id: str | None
+    rejected_at: datetime | None
+    rejection_reason: str | None
+    note: str | None
+    openings: list[OpeningOut] = []
+    rooms: list[RoomOut] = []
+    floor_plan: FloorPlanOut | None = None
+
+
+class UnitTypeDetailOut(BaseModel):
+    unit_type: UnitTypeOut
+    versions: list[UnitTypeVersionOut] = []
+
+
+class UnitTypeWithVersionsOut(UnitTypeOut):
+    """A row of the list endpoint, with every version's content attached.
+
+    The only screen that lists these today is the admin review queue, and it
+    has to show what was actually submitted, not just a name -- so the list
+    carries the same content `UnitTypeDetailOut` does, flattened onto one
+    object per row instead of nested one level deeper.
+    """
+
+    versions: list[UnitTypeVersionOut] = []
+
+
+class UnitTypesOut(BaseModel):
+    unit_types: list[UnitTypeWithVersionsOut] = []
+
+
+class RejectUnitTypeIn(BaseModel):
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class NewVersionIn(BaseModel):
+    """A correction. §7's versioning rule: never an edit, always a new row."""
+
+    openings: list[OpeningIn] = []
+    rooms: list[RoomIn] = []
+    floor_plan: FloorPlanIn | None = None
+    note: str | None = Field(default=None, max_length=2000)

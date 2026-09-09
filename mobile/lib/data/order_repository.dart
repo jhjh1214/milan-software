@@ -80,6 +80,10 @@ class OrderRepository {
                   billedUnit: line.billedUnit,
                   lineTotalSen: line.lineTotal.sen,
                   materialDeferred: Value(line.materialDeferred),
+                  measurementSource: Value(line.measurementSource),
+                  sourceProjectId: Value(line.sourceProjectId),
+                  sourceUnitTypeId: Value(line.sourceUnitTypeId),
+                  sourceVersion: Value(line.sourceVersion),
                 ),
               );
         }

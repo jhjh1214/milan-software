@@ -110,6 +110,9 @@ Future<ConversionRefusal?> confirmOrderForDeposit(
           width: line.line.width,
           height: line.line.height,
           priced: line.priced,
+          sourceProjectId: line.line.sourceProjectId,
+          sourceUnitTypeId: line.line.sourceUnitTypeId,
+          sourceVersion: line.line.sourceVersion,
           // The same resolver the pricing side uses, so an order can never
           // record a basis the quote was not priced on.
           basis: resolveRateBasis(

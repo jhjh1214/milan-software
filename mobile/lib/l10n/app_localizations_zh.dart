@@ -1233,4 +1233,39 @@ class LZh extends L {
   String declinesTakeRate(int percent) {
     return '有答复的当中 $percent% 付了钱';
   }
+
+  @override
+  String get startFromPlan => '从已存的户型开始';
+
+  @override
+  String get pickerFindProject => '找项目';
+
+  @override
+  String get pickerSearchProjectHint => '输入地区或项目名称';
+
+  @override
+  String get pickerNoProjects => '找不到符合的项目。';
+
+  @override
+  String get pickerPickUnitType => '选户型';
+
+  @override
+  String get pickerNoUnitTypes => '这个项目还没有核准的户型。';
+
+  @override
+  String get pickerPickOpening => '选窗户';
+
+  @override
+  String get pickerNoOpenings => '这个户型还没有存窗户资料。';
+
+  @override
+  String get pickerCouldNotReach => '连不上服务器，请再试一次。';
+
+  @override
+  String get pickerTryAgain => '再试一次';
+
+  @override
+  String pickerOpeningSize(String width, String height) {
+    return '$width × $height ft';
+  }
 }

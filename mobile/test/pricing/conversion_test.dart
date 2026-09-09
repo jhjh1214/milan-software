@@ -55,6 +55,9 @@ ConvertibleLine convertible({
   PricedLine? line,
   RateBasis? basis,
   String? parentLineId,
+  String? sourceProjectId,
+  String? sourceUnitTypeId,
+  int? sourceVersion,
 }) => ConvertibleLine(
   id: id,
   sortOrder: 0,
@@ -64,6 +67,9 @@ ConvertibleLine convertible({
   height: Length.tenths(27432),
   parentLineId: parentLineId,
   priced: line ?? priced(),
+  sourceProjectId: sourceProjectId,
+  sourceUnitTypeId: sourceUnitTypeId,
+  sourceVersion: sourceVersion,
   basis:
       basis ??
       const RateBasis(
@@ -282,6 +288,33 @@ void main() {
       ).order!;
 
       expect(order.lines.last.parentLineId, 'line-1');
+    });
+
+    test('a line typed by hand carries no source at all', () {
+      // The truth for every line before Phase 8's library existed, and for
+      // every one typed at the fair after it.
+      final line = confirm().order!.lines.single;
+      expect(line.measurementSource, 'manual');
+      expect(line.sourceProjectId, null);
+      expect(line.sourceUnitTypeId, null);
+      expect(line.sourceVersion, null);
+    });
+
+    test('a line from the library keeps its trail. SPEC.md Phase 8', () {
+      final line = confirm(
+        lines: [
+          convertible(
+            sourceProjectId: 'p-1',
+            sourceUnitTypeId: 'ut-1',
+            sourceVersion: 2,
+          ),
+        ],
+      ).order!.lines.single;
+
+      expect(line.measurementSource, 'project_library');
+      expect(line.sourceProjectId, 'p-1');
+      expect(line.sourceUnitTypeId, 'ut-1');
+      expect(line.sourceVersion, 2);
     });
   });
 

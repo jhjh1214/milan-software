@@ -76,6 +76,9 @@ class QuoteRepository {
     required String rawHeight,
     int quantity = 1,
     String? parentLineId,
+    String? sourceProjectId,
+    String? sourceUnitTypeId,
+    int? sourceVersion,
   }) async {
     final existing = await _db.linesFor(quoteId);
     final id = newId();
@@ -95,6 +98,9 @@ class QuoteRepository {
         rawHeight: rawHeight,
         quantity: Value(quantity),
         createdAt: DateTime.now(),
+        sourceProjectId: Value(sourceProjectId),
+        sourceUnitTypeId: Value(sourceUnitTypeId),
+        sourceVersion: Value(sourceVersion),
       ),
       quoteId,
     );

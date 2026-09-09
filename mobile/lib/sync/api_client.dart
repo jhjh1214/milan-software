@@ -139,6 +139,121 @@ class BundleResponse {
   });
 }
 
+/// One development. SPEC.md Phase 8's Property / Project / Unit Library.
+class ProjectSummary {
+  final String id;
+  final String name;
+  final String? developer;
+  final String? area;
+
+  const ProjectSummary({
+    required this.id,
+    required this.name,
+    this.developer,
+    this.area,
+  });
+
+  factory ProjectSummary.fromJson(Map<String, dynamic> json) => ProjectSummary(
+    id: json['id'] as String,
+    name: json['name'] as String,
+    developer: json['developer'] as String?,
+    area: json['area'] as String?,
+  );
+}
+
+/// One floor plan within a project, without its openings and rooms.
+///
+/// Fetched only at `status=approved` (`ApiClient.unitTypes`) -- a part-timer's
+/// own pending submission is never searchable or quotable until an admin has
+/// approved it, and this is where that gate is enforced on the reading side.
+class UnitTypeSummary {
+  final String id;
+  final String projectId;
+  final String projectName;
+  final String name;
+
+  const UnitTypeSummary({
+    required this.id,
+    required this.projectId,
+    required this.projectName,
+    required this.name,
+  });
+
+  factory UnitTypeSummary.fromJson(Map<String, dynamic> json) =>
+      UnitTypeSummary(
+        id: json['id'] as String,
+        projectId: json['project_id'] as String,
+        projectName: json['project_name'] as String,
+        name: json['name'] as String,
+      );
+}
+
+/// One window or door from the developer's schedule, as digitised.
+///
+/// The numbers came from the schedule, typed once by an admin who could
+/// check them -- never read off the uploaded plan image.
+class OpeningRef {
+  final String id;
+  final String label;
+  final String room;
+  final int nominalWTmm;
+  final int nominalHTmm;
+
+  const OpeningRef({
+    required this.id,
+    required this.label,
+    required this.room,
+    required this.nominalWTmm,
+    required this.nominalHTmm,
+  });
+
+  factory OpeningRef.fromJson(Map<String, dynamic> json) => OpeningRef(
+    id: json['id'] as String,
+    label: json['label'] as String,
+    room: json['room'] as String,
+    nominalWTmm: json['nominal_w_tmm'] as int,
+    nominalHTmm: json['nominal_h_tmm'] as int,
+  );
+}
+
+/// The one version of a unit type that is actually live in the library.
+///
+/// [ApiClient.unitTypeDetail] hands back every version ever submitted, oldest
+/// first (§6.7); this is what picks out the one a quote may start from.
+class ApprovedUnitType {
+  final String versionId;
+  final int version;
+  final List<OpeningRef> openings;
+
+  const ApprovedUnitType({
+    required this.versionId,
+    required this.version,
+    required this.openings,
+  });
+
+  /// The latest version with `approved_at` set, or null when none does --
+  /// a draft or pending submission is not searchable or quotable, by design.
+  static ApprovedUnitType? latestApproved(Map<String, dynamic> detail) {
+    final versions = (detail['versions'] as List)
+        .cast<Map<String, dynamic>>()
+        .where((v) => v['approved_at'] != null)
+        .toList();
+    if (versions.isEmpty) return null;
+    versions.sort(
+      (a, b) => (a['version'] as int).compareTo(b['version'] as int),
+    );
+    final latest = versions.last;
+    return ApprovedUnitType(
+      versionId: latest['id'] as String,
+      version: latest['version'] as int,
+      openings: (latest['openings'] as List)
+          .cast<Map<String, dynamic>>()
+          .map(OpeningRef.fromJson)
+          .toList(),
+    );
+  }
+}
+
 /// The server's verdict on a pushed quote.
 class PushResponse {
   final String quoteId;
@@ -466,6 +581,60 @@ class ApiClient {
       payload: json['payload'] as Map<String, dynamic>?,
       upToDate: json['up_to_date'] as bool,
     ),
+  );
+
+  /// What a salesperson finds by typing an area or a development name.
+  /// SPEC.md Phase 8.
+  ///
+  /// Deliberately **not** cached on the device the way a rate card is: the
+  /// library is row-level and growing, not a small versioned document, and
+  /// picking a unit type is something that happens with a connection in
+  /// hand, not mid-fair with none. See SPEC.md §13's open question about
+  /// whether this ever needs to work fully offline.
+  Future<SyncResult<List<ProjectSummary>>> projects({
+    required String token,
+    String? query,
+  }) => _send(
+    () => _http.get(
+      _url('/api/projects', {
+        if (query != null && query.isNotEmpty) 'q': query,
+      }),
+      headers: _headers(token),
+    ),
+    (json) => (json['projects'] as List)
+        .cast<Map<String, dynamic>>()
+        .map(ProjectSummary.fromJson)
+        .toList(),
+  );
+
+  /// A project's unit types. **Always `approved` for quoting** -- a
+  /// part-timer's own pending submission must stay invisible until it is
+  /// reviewed, and asking for anything else here would defeat that gate.
+  Future<SyncResult<List<UnitTypeSummary>>> unitTypes({
+    required String token,
+    required String projectId,
+  }) => _send(
+    () => _http.get(
+      _url('/api/unit-types', {'project_id': projectId, 'status': 'approved'}),
+      headers: _headers(token),
+    ),
+    (json) => (json['unit_types'] as List)
+        .cast<Map<String, dynamic>>()
+        .map(UnitTypeSummary.fromJson)
+        .toList(),
+  );
+
+  /// One unit type's full history, so [ApprovedUnitType.latestApproved] can
+  /// pick out the version that is actually live.
+  Future<SyncResult<Map<String, dynamic>>> unitTypeDetail({
+    required String token,
+    required String unitTypeId,
+  }) => _send(
+    () => _http.get(
+      _url('/api/unit-types/$unitTypeId'),
+      headers: _headers(token),
+    ),
+    (json) => json,
   );
 
   /// Pushes one quote. §9.2 — idempotent on the quote's own id, so this is

@@ -119,6 +119,22 @@ def set_pin(session: Session, user_id: str, pin: str) -> User:
     return user
 
 
+def set_language(session: Session, user_id: str, language: str) -> User:
+    """A person's own choice, and it follows their account everywhere.
+
+    Self-service, unlike everything else in this file: SPEC.md §13 C9 says
+    the language is switchable per user, not per device, and a person does
+    not need an admin's permission to read this system in their own language.
+    """
+    user = session.get(User, user_id)
+    if user is None:
+        raise NoSuchUser(user_id)
+
+    user.language = language
+    session.flush()
+    return user
+
+
 def deactivate(session: Session, user_id: str) -> tuple[User, int]:
     """Ends somebody's access, and returns how many sessions that killed.
 

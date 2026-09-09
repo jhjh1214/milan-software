@@ -80,6 +80,14 @@ class OrderLineDraft {
   /// quoted at the **dearest** option in its group.
   final bool materialDeferred;
 
+  /// Where the estimate dimensions actually came from. SPEC.md Phase 8.
+  /// `manual` (the default) or `project_library` — never `site_measurement`
+  /// here, which is earned only through a real visit, after confirmation.
+  final String measurementSource;
+  final String? sourceProjectId;
+  final String? sourceUnitTypeId;
+  final int? sourceVersion;
+
   const OrderLineDraft({
     required this.id,
     required this.quoteLineId,
@@ -103,6 +111,10 @@ class OrderLineDraft {
     this.categoryLockId,
     this.appliedBandLabel,
     this.materialDeferred = false,
+    this.measurementSource = 'manual',
+    this.sourceProjectId,
+    this.sourceUnitTypeId,
+    this.sourceVersion,
   });
 
   /// Whether this line still needs a tape measure taking to it.
@@ -232,6 +244,12 @@ class ConvertibleLine {
   /// The lock that decided its card and discount, if one did.
   final RateBasis basis;
 
+  /// Where the dimensions came from. SPEC.md Phase 8. Null means typed by
+  /// hand.
+  final String? sourceProjectId;
+  final String? sourceUnitTypeId;
+  final int? sourceVersion;
+
   const ConvertibleLine({
     required this.id,
     required this.sortOrder,
@@ -242,6 +260,9 @@ class ConvertibleLine {
     required this.basis,
     this.priced,
     this.parentLineId,
+    this.sourceProjectId,
+    this.sourceUnitTypeId,
+    this.sourceVersion,
   });
 }
 
@@ -318,6 +339,12 @@ ConversionResult confirmQuoteAsOrder({
             estHeight: line.height,
             quantity: line.priced!.quantity,
             categoryLockId: line.basis.lockId,
+            measurementSource: line.sourceUnitTypeId == null
+                ? 'manual'
+                : 'project_library',
+            sourceProjectId: line.sourceProjectId,
+            sourceUnitTypeId: line.sourceUnitTypeId,
+            sourceVersion: line.sourceVersion,
             appliedRuleId: line.priced!.rule.id,
             appliedBandLabel: line.priced!.rule.bandLabels?.call('en'),
             // The version that actually produced this number. Checked above to

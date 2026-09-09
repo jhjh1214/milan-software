@@ -97,6 +97,15 @@ class FakeServer {
   /// really is skipped.
   final List<http.BaseRequest> seen = [];
 
+  /// SPEC.md Phase 8's Property / Project / Unit Library, read-only.
+  List<Map<String, dynamic>> projects = [];
+
+  /// unit_type_id -> the full detail `GET /api/unit-types/{id}` returns
+  /// (`unit_type` plus `versions`), and unit_type_id -> its summary for the
+  /// `GET /api/unit-types?project_id=` list.
+  final Map<String, Map<String, dynamic>> unitTypeDetails = {};
+  final Map<String, List<Map<String, dynamic>>> unitTypesByProject = {};
+
   FakeServer({Map<String, Map<String, dynamic>>? cards, Set<String>? tokens})
     : cards = cards ?? {},
       validTokens = tokens ?? {'good-token'};
@@ -375,6 +384,37 @@ class FakeServer {
         'duplicate': duplicate,
         'conflicts_with': clash.isEmpty ? null : clash.first['id'],
       });
+    }
+
+    if (path == '/api/projects') {
+      final q = (request.url.queryParameters['q'] ?? '').toLowerCase();
+      final matches = q.isEmpty
+          ? projects
+          : projects
+                .where(
+                  (p) =>
+                      (p['name'] as String).toLowerCase().contains(q) ||
+                      ((p['area'] as String?) ?? '').toLowerCase().contains(q),
+                )
+                .toList();
+      return _json({'projects': matches});
+    }
+
+    if (path == '/api/unit-types') {
+      final projectId = request.url.queryParameters['project_id'];
+      final status = request.url.queryParameters['status'];
+      final all = unitTypesByProject[projectId] ?? const [];
+      final filtered = status == null
+          ? all
+          : all.where((u) => u['status'] == status).toList();
+      return _json({'unit_types': filtered});
+    }
+
+    if (path.startsWith('/api/unit-types/')) {
+      final id = path.substring('/api/unit-types/'.length);
+      final detail = unitTypeDetails[id];
+      if (detail == null) return _json({'detail': 'no such unit type'}, 404);
+      return _json(detail);
     }
 
     if (path == '/api/deposit-prompts') {

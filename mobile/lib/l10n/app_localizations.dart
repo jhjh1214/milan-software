@@ -2233,6 +2233,72 @@ abstract class L {
   /// In zh, this message translates to:
   /// **'有答复的当中 {percent}% 付了钱'**
   String declinesTakeRate(int percent);
+
+  /// Button on the room step. SPEC.md Phase 8.
+  ///
+  /// In zh, this message translates to:
+  /// **'从已存的户型开始'**
+  String get startFromPlan;
+
+  /// No description provided for @pickerFindProject.
+  ///
+  /// In zh, this message translates to:
+  /// **'找项目'**
+  String get pickerFindProject;
+
+  /// No description provided for @pickerSearchProjectHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'输入地区或项目名称'**
+  String get pickerSearchProjectHint;
+
+  /// No description provided for @pickerNoProjects.
+  ///
+  /// In zh, this message translates to:
+  /// **'找不到符合的项目。'**
+  String get pickerNoProjects;
+
+  /// No description provided for @pickerPickUnitType.
+  ///
+  /// In zh, this message translates to:
+  /// **'选户型'**
+  String get pickerPickUnitType;
+
+  /// No description provided for @pickerNoUnitTypes.
+  ///
+  /// In zh, this message translates to:
+  /// **'这个项目还没有核准的户型。'**
+  String get pickerNoUnitTypes;
+
+  /// No description provided for @pickerPickOpening.
+  ///
+  /// In zh, this message translates to:
+  /// **'选窗户'**
+  String get pickerPickOpening;
+
+  /// No description provided for @pickerNoOpenings.
+  ///
+  /// In zh, this message translates to:
+  /// **'这个户型还没有存窗户资料。'**
+  String get pickerNoOpenings;
+
+  /// No description provided for @pickerCouldNotReach.
+  ///
+  /// In zh, this message translates to:
+  /// **'连不上服务器，请再试一次。'**
+  String get pickerCouldNotReach;
+
+  /// No description provided for @pickerTryAgain.
+  ///
+  /// In zh, this message translates to:
+  /// **'再试一次'**
+  String get pickerTryAgain;
+
+  /// No description provided for @pickerOpeningSize.
+  ///
+  /// In zh, this message translates to:
+  /// **'{width} × {height} ft'**
+  String pickerOpeningSize(String width, String height);
 }
 
 class _LDelegate extends LocalizationsDelegate<L> {

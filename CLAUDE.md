@@ -12,8 +12,8 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 
 ## Current state
 
-**Phases 1-6 complete. Phase 7 in progress** — Flutter app,
-FastAPI backend, Postgres, and sync between them.
+**Phases 1-6 complete. Phase 7 in progress. Phase 8 started, server side
+only** — Flutter app, FastAPI backend, Postgres, and sync between them.
 
 **Phase 7 so far.** The buyer-detail capture screens, both sides, the sync
 between them, and the document labelling audit. **Only the export is left, and
@@ -21,6 +21,107 @@ it is blocked**: it needs a sample import template (§13 **E1**) and the
 accountant's ruling on **E2**, and §13 **C12** and **C13** decide where the
 guard bites and which fields MyInvois actually rejects. Do not guess any of the
 four. Everything else on Phase 7's "In" list is built.
+
+**The dashboard has a real design system now** (client, Sep 2026): light and
+dark mode, a token-driven palette (`dashboard/design-system/MASTER.md`
+records why, mirroring the handset's own doc), skeleton loading and empty
+states on every screen that lacked one, and a self-service `POST /api/auth/
+language` so a language pick now follows the **account** rather than dying
+with the browser tab — the office turned out to be one PC per person, not the
+shared machine the original design assumed, so that reasoning is retired. The
+sign-in screen lost its own language picker (nothing there yet to ask) and
+gained a reserved space for the client's logo, still a placeholder. Dark mode
+is a `localStorage` browser preference, deliberately not tied to the account:
+unlike language, it is not a fact about the person. 258 dashboard tests.
+
+**Phase 8 — Property / Project / Unit Library — has started, server side
+only.** Brought forward from its stated "Stage 2, quoted after Phase 5 runs
+live two months" per direction given this session; the client's own Sep 2026
+request (store repeat-project measurements) already maps onto this exact
+design, per SPEC.md's own Phase 8 section, so the commercial case predates
+this build rather than being assumed by it. Migration 0007: `projects`,
+`unit_types`, `unit_type_versions`, `openings`, `rooms`, `floor_plans`, and
+provenance columns on `order_lines` (`measurement_source`,
+`source_project_id`, `source_unit_type_id`, `source_version`) — an enum from
+day one rather than a boolean, because adding a third measurement source
+later to `is_site_measured` would be a migration across every order ever
+written, and this is that third source arriving.
+
+**Reference measurements are not site measurements**, enforced by omission:
+`app/services/library.py` has no idea what an order is, and nothing it
+returns can become an `OrderLine` except through the pipeline's existing
+site-visit gate. Two routes into the library, one gate out of it: an admin's
+own upload passes `draft -> approved`; a part-timer's one-shot submission
+(`submit=true`) lands straight at `pending_review` and is invisible to
+quoting until an admin approves or rejects it, both audited with the
+reviewer's name. A correction is a new `unit_type_version`, never an edit —
+the same never-updated-in-place rule as a rate card, so an order that
+instantiated from version 1 stays explainable after version 2 is approved.
+`floor_plans.scale_tmm_per_px` is an exact rational string, matching
+`applied_discount_pct` — a calibration aid is still a quantity, and
+CLAUDE.md's no-float invariant does not carve out an exception for one.
+
+§13 gained **C15**: the status enum's `superseded` value has no column or
+event that ever sets it — versioning already handles "the plan changed"
+without retiring the type — so nothing writes it yet. And a rejection
+reverts the type to `draft` and records the reviewer and reason on the
+*version*, the conservative reading of a workflow whose enum names no
+separate rejected state; flagged rather than assumed final.
+
+**The dashboard review screen is in** — `/library/review`, admin-only,
+mirroring override-review's own "the whole control is on this being read"
+ethos. Lists everything at `pending_review` with the actual submission
+attached (openings, rooms, who sent it), not just a name: approving or
+rejecting removes it from the queue and the list endpoint now carries each
+row's full latest version so the screen needs one request, not one per row
+(`UnitTypeWithVersionsOut`, and `project_name` denormalised onto the row for
+the same reason). A reject cannot be sent with an empty reason. 39 backend
+tests for the library (`test_library.py`, `test_library_api.py`), 8 new
+dashboard tests.
+
+**The piece that actually pays for all of it is in: a quote can start from a
+saved plan.** In the wizard, "Start from a saved plan" opens a three-step
+picker — project, unit type, window — that only ever asks the server for
+`status=approved`, the same two-step gate the review screen enforces on the
+write side. Picking an opening pre-fills the room and the sizes step, and
+Done is enabled immediately: "choose products and a reference quotation
+exists in seconds," not "type it in again."
+
+**Deliberately online-only**, unlike the rate card pull: no local cache, no
+outbox, a call to the server at the moment of picking. §13 gained **C16**
+for the question this leaves open — whether a fair with no signal is ever
+where this actually gets reached for — and named the second design call
+that shipped without one: editing a pre-filled dimension clears the line's
+library provenance entirely rather than keeping it with a note, because a
+provenance column that can disagree with the number beside it is worse than
+one left absent.
+
+The exact tenths-of-a-millimetre value is used directly from the opening,
+never by re-parsing the rounded display text back into a length — the same
+round-trip CLAUDE.md's arithmetic invariant already forbids everywhere
+else. Provenance (`measurement_source`, `source_project_id`,
+`source_unit_type_id`, `source_version`) threads all the way through: new
+columns on both `QuoteLines` and `OrderLines` (Drift schema v13), the pure
+quote-to-order conversion layer, the order push payload, and a new
+`OrderLineIn` field on the server that a device may only ever set to
+`manual` or `project_library` — never `site_measurement`, which is earned
+solely through the dedicated measurement endpoint after a real visit.
+
+A real bug surfaced building this, not by inspection but by a widget test
+hanging: the picker's own loading spinner could get stuck forever if
+`credentialsProvider` had not resolved on the very first frame, because the
+early-return path never cleared it. Fixed by awaiting the session properly
+(`.future`) instead of racing a synchronous read of it — the kind of gap a
+pure unit test cannot see and only driving the real widget tree catches.
+
+**Not built yet, and named rather than skipped silently:** the admin
+floor-plan upload + tap-to-calibrate UI, and the part-timer submission
+screen on the handset — both still need a decision this session flagged
+rather than guessed: where an uploaded floor-plan image actually lives.
+Nothing in `deploy/docker-compose.yml` names an object store or a mounted
+upload volume today, and inventing one silently is exactly the kind of
+infrastructure choice CLAUDE.md's working agreement reserves for a person,
+not a guess.
 
 **§13 A25 is answered and built** (client, Sep 2026). Korea wallpaper does not
 have to be measured at the fair — leaving it blank quotes the default one
@@ -243,9 +344,20 @@ template: the alphabetical-placeholder trap cannot happen to a named parameter,
 and it is what lets English take its plural `s`, Chinese its measure word, and
 Malay neither.
 
-The picked language is **not persisted** — shared office machine, the same
-reasoning that keeps the token out of `localStorage`. Precedence is: what
-somebody picked this session, then the account's `language`, then `zh`.
+**The picked language now persists to the account** (client, Sep 2026,
+superseding the shared-office-machine assumption below the picker was
+originally built under — every office PC now belongs to one person). Picking
+from the nav-bar switcher calls the new self-service `POST /api/auth/language`
+and updates the local copy at once; a failed persist is swallowed rather than
+undoing the pick, since this is a preference, not money moving. Precedence is:
+what somebody picked on this browser this session, then the account's
+`language`, then `zh` — the first two collapse to one path in practice, since
+a pick immediately becomes the account's `language` too. The sign-in screen
+lost its own picker: there is no account yet to ask, and it was needless
+friction on a per-person machine. A logo placeholder sits where it stood,
+reserved for the client's mark. The session **token** stays memory-only
+(unrelated decision, §12) — nothing here changes that.
+
 A failure or a note is held as **what happened**, never as a rendered sentence,
 so switching language re-renders it; freezing it leaves one line of the old
 language on the very line explaining why somebody cannot see their work.
@@ -266,8 +378,8 @@ trilingual PDF.
 
 Built and green on the server: the Python engine passing the same fixtures, the
 sync endpoints, Alembic migrations with a test that they match the models, users
-and roles, and rate card publishing. **873 Dart tests, 640 Python tests,
-249 dashboard tests.** 100% coverage on `Length`, `Money` and `Rational`.
+and roles, and rate card publishing. **888 Dart tests, 683 Python tests,
+266 dashboard tests.** 100% coverage on `Length`, `Money` and `Rational`.
 
 **An upgrade is only offered where it can belong** (client, Sep 2026). Four
 add-ons carried `attaches_to: null`, which the wizard reads as *offer this on

@@ -2726,6 +2726,48 @@ orders, supplier management and costing come later.
   office form is not admin-gated. That is deliberate rather than overlooked —
   gating it would be inventing an answer to this question — but it is a third
   thing this question decides, and the one that touches a legal record.
+- **C15.** Phase 8's `unit_types.status` enum is `draft, pending_review,
+  approved, superseded` — and this section's own schema block gives no
+  column, and the workflow prose no event, that ever sets a type to
+  `superseded`. Versioning already handles "the plan changed" without
+  retiring the unit type itself, so what would make the *type* as a whole
+  obsolete, rather than one of its versions? Built without an answer:
+  nothing in `app/services/library.py` ever writes `superseded`, and the
+  value exists on the column only so a future answer has somewhere to land.
+
+  A second, smaller gap in the same corner: the workflow names a rejection
+  outcome ("or rejected, with a reason") but the enum has no rejected state
+  either. Built the conservative way rather than guessed — a rejection
+  reverts the type to `draft` (so the same submission can be corrected and
+  resubmitted) and the reason is recorded on the *version* that was rejected
+  (`rejected_by_user_id`, `rejected_at`, `rejection_reason` — columns this
+  codebase added beyond this section's own schema block, which lists only
+  `approved_by`/`approved_at`/`note`). If the intended design instead wants
+  a rejection to stay visible as its own status rather than collapsing back
+  to `draft`, that is a different, larger change: a fifth enum value, and a
+  dashboard screen that lists rejections separately from plain drafts.
+- **C16.** Does browsing the Property / Project / Unit Library ever need to
+  work with no signal? Built **online-only** on the handset: picking a unit
+  type calls the server at the moment of picking, with no local cache and no
+  outbox, unlike the rate card pull. The reasoning, not just the choice: the
+  library is row-level and growing, not a small versioned document a
+  wholesale replace suits, and picking one happens with a connection in
+  hand far more reliably than a live quote does — the office already needs
+  one to upload and approve anything in it. If a fair with dead signal turns
+  out to be exactly when this gets reached for, that is a real requirement
+  this build does not meet, and the fix is a genuine offline cache (its own
+  Drift tables and sync direction), not a small patch.
+
+  A second design call landed without a question attached, named here so it
+  can be revisited rather than rediscovered: a salesperson may edit a
+  pre-filled dimension before adding the line, and doing so clears the
+  line's library provenance entirely — `source_project_id`/
+  `source_unit_type_id`/`source_version` all become null, as if the line had
+  been typed by hand from the start. The alternative (keep the provenance,
+  note that the number was adjusted) was not built. Both readings are
+  defensible; this one was chosen because a provenance column that can
+  silently disagree with the number beside it is worse than one that is
+  simply absent.
 
 ## D. Documents
 - `[BLOCKING P2]` **D1.** Two or three existing quote and order samples.

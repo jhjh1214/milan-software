@@ -127,6 +127,26 @@ void main() {
         'user_version',
       );
 
+  /// Undoes exactly what v13 added: where a line's dimensions came from
+  /// (SPEC.md Phase 8's Property / Project / Unit Library).
+  Future<void> undoV13(AppDatabase db) async {
+    for (final column in const [
+      'source_project_id',
+      'source_unit_type_id',
+      'source_version',
+    ]) {
+      await db.customStatement('ALTER TABLE quote_lines DROP COLUMN $column');
+    }
+    for (final column in const [
+      'measurement_source',
+      'source_project_id',
+      'source_unit_type_id',
+      'source_version',
+    ]) {
+      await db.customStatement('ALTER TABLE order_lines DROP COLUMN $column');
+    }
+  }
+
   /// Undoes exactly what v12 added: the buyer's details for an e-invoice.
   Future<void> undoV12(AppDatabase db) async {
     for (final column in const [
@@ -174,6 +194,7 @@ void main() {
   /// that already has them -- which throws, and is exactly the failure this
   /// suite exists to catch, arriving as a false one.
   Future<void> windBackTo(AppDatabase db, int version) async {
+    if (version < 13) await undoV13(db);
     if (version < 12) await undoV12(db);
     if (version < 11) await undoV11(db);
     if (version < 10) await undoV10(db);
@@ -182,7 +203,7 @@ void main() {
 
   test('a fresh database opens at the current version', () async {
     final db = await open();
-    expect(await userVersion(db), 12);
+    expect(await userVersion(db), 13);
     expect(await tablesIn(db), contains('price_overrides'));
     await db.close();
   });
@@ -208,7 +229,7 @@ void main() {
     final after = await open();
     expect(
       await userVersion(after),
-      12,
+      13,
       reason: 'every step from 9 should have run, and recorded itself',
     );
     expect(
@@ -302,7 +323,7 @@ void main() {
     await first.close();
 
     final second = await open();
-    expect(await userVersion(second), 12);
+    expect(await userVersion(second), 13);
     expect(await tablesIn(second), contains('price_overrides'));
     await second.close();
   });
@@ -335,7 +356,7 @@ void main() {
       final after = await open();
       expect(
         await userVersion(after),
-        12,
+        13,
         reason: 'the upgrade should have run and recorded itself',
       );
 
@@ -405,7 +426,7 @@ void main() {
       await first.close();
 
       final second = await open();
-      expect(await userVersion(second), 12);
+      expect(await userVersion(second), 13);
       await second.close();
     });
   });
@@ -418,7 +439,7 @@ void main() {
       await before.close();
 
       final after = await open();
-      expect(await userVersion(after), 12);
+      expect(await userVersion(after), 13);
 
       final order = await (after.select(
         after.orders,
@@ -487,7 +508,113 @@ void main() {
       await first.close();
 
       final second = await open();
-      expect(await userVersion(second), 12);
+      expect(await userVersion(second), 13);
+      await second.close();
+    });
+  });
+
+  group('v12 → v13 — where a line\'s dimensions came from (Phase 8)', () {
+    test('the order line already on the handset survives it', () async {
+      final before = await open();
+      await seedOrderLine(before);
+      await windBackTo(before, 12);
+      await before.close();
+
+      final after = await open();
+      expect(await userVersion(after), 13);
+
+      final line = await (after.select(
+        after.orderLines,
+      )..where((l) => l.id.equals('ol-1'))).getSingle();
+
+      expect(
+        line.lineTotalSen,
+        96000,
+        reason: 'the money on a line in the field is untouched',
+      );
+      expect(
+        line.measurementSource,
+        'manual',
+        reason:
+            'every line before this library existed was typed by hand, and '
+            'that is the truth an existing row has to keep reading as',
+      );
+      expect(line.sourceUnitTypeId, null);
+
+      await after.close();
+    });
+
+    test('the new columns are writable, on both tables', () async {
+      // A migration that adds a column of the wrong type passes a "does it
+      // exist" check and fails on the first write, which is a salesperson
+      // picking a unit type mid-quote.
+      final before = await open();
+      await seedOrderLine(before);
+      await windBackTo(before, 12);
+      await before.close();
+
+      final after = await open();
+
+      await after
+          .into(after.quoteLines)
+          .insert(
+            QuoteLinesCompanion.insert(
+              id: 'ql-2',
+              quoteId: 'q-1',
+              sortOrder: 0,
+              room: 'Living',
+              variant: 'night_curtain_sfold',
+              layer: 'night',
+              widthTmm: 54864,
+              rawWidth: '18',
+              rawHeight: '',
+              createdAt: DateTime(2026, 9, 9, 9),
+              sourceProjectId: const Value('p-1'),
+              sourceUnitTypeId: const Value('ut-1'),
+              sourceVersion: const Value(1),
+            ),
+          );
+
+      final quoteLine = await (after.select(
+        after.quoteLines,
+      )..where((l) => l.id.equals('ql-2'))).getSingle();
+      expect(quoteLine.sourceProjectId, 'p-1');
+      expect(quoteLine.sourceUnitTypeId, 'ut-1');
+      expect(quoteLine.sourceVersion, 1);
+
+      await (after.update(
+        after.orderLines,
+      )..where((l) => l.id.equals('ol-1'))).write(
+        const OrderLinesCompanion(
+          measurementSource: Value('project_library'),
+          sourceProjectId: Value('p-1'),
+          sourceUnitTypeId: Value('ut-1'),
+          sourceVersion: Value(1),
+        ),
+      );
+
+      final orderLine = await (after.select(
+        after.orderLines,
+      )..where((l) => l.id.equals('ol-1'))).getSingle();
+      expect(orderLine.measurementSource, 'project_library');
+      expect(orderLine.sourceUnitTypeId, 'ut-1');
+      expect(
+        orderLine.lineTotalSen,
+        96000,
+        reason: 'setting provenance must not touch the money on the line',
+      );
+
+      await after.close();
+    });
+
+    test('running the upgrade twice does not throw', () async {
+      // `addColumn` is not idempotent. A loosened guard fails with a duplicate
+      // column name, on launch, on a handset that already migrated.
+      final first = await open();
+      await first.close();
+
+      final second = await open();
+      expect(await userVersion(second), 13);
       await second.close();
     });
   });
