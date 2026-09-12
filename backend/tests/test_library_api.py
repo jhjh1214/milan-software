@@ -378,6 +378,25 @@ class TestFloorPlanUpload:
         assert served.status_code == 200
         assert served.headers["content-type"] == "image/jpeg"
         assert served.content == b"\xff\xd8\xff fake jpeg"
+        # A browser must never be left to guess this response's type --
+        # the whole point of pinning `content-type` is that it never drifts.
+        assert served.headers["x-content-type-options"] == "nosniff"
+
+    def test_a_non_image_content_type_is_422_not_stored(
+        self, client: TestClient
+    ) -> None:
+        # This endpoint's response serves `content_type` straight back as
+        # the reply's media type -- accepting `text/html` here would make an
+        # upload a stored-XSS vector for whatever fetches that URL later.
+        token = sign_in(client, "admin")
+        unit_type_id = self._draft_unit_type(client, token)
+
+        upload = client.post(
+            f"/api/unit-types/{unit_type_id}/floor-plan",
+            files={"file": ("plan.html", b"<script>alert(1)</script>", "text/html")},
+            headers=auth(token),
+        )
+        assert upload.status_code == 422, upload.text
 
     def test_a_part_timer_may_upload_too(self, client: TestClient) -> None:
         # No admin gate here, same as drafting and submitting a unit type --

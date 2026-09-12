@@ -352,6 +352,15 @@ def list_unit_types(
 #: single upload from turning into an unbounded row.
 MAX_FLOOR_PLAN_BYTES = 10 * 1024 * 1024
 
+#: `GET /api/floor-plans/{id}/image` serves `content_type` back verbatim as
+#: the response's `media_type`. Anything other than a plain image type
+#: stored here -- `text/html`, `image/svg+xml`, which browsers render as a
+#: document rather than a picture -- would turn a floor-plan upload into a
+#: stored-XSS vector the moment something fetches that URL and renders the
+#: result somewhere other than an `<img>`. Refused at the one point a client
+#: controls this value at all.
+ALLOWED_FLOOR_PLAN_CONTENT_TYPES = frozenset({"image/jpeg", "image/png", "image/webp"})
+
 
 def upload_floor_plan(
     session: Session,
@@ -371,6 +380,8 @@ def upload_floor_plan(
     """
     if session.get(UnitType, unit_type_id) is None:
         raise NoSuchUnitType(unit_type_id)
+    if content_type not in ALLOWED_FLOOR_PLAN_CONTENT_TYPES:
+        raise ValueError(f'unsupported floor plan content type "{content_type}"')
     if len(image_data) > MAX_FLOOR_PLAN_BYTES:
         raise ValueError(f"floor plan exceeds {MAX_FLOOR_PLAN_BYTES} bytes")
 

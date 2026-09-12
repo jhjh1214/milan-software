@@ -492,6 +492,24 @@ class TestFloorPlanUpload:
                 uploaded_by_user_id="admin-1",
             )
 
+    def test_a_non_image_content_type_is_refused(self, db) -> None:
+        # `GET .../image` serves `content_type` back verbatim as the response
+        # media type -- accepting anything a client claims would let an
+        # upload declare `text/html` and turn this into a stored-XSS vector
+        # the moment something ever fetches and renders that URL outside an
+        # `<img>` tag.
+        with db() as session:
+            unit_type_id = self._draft(session)
+            with pytest.raises(ValueError):
+                upload_floor_plan(
+                    session,
+                    unit_type_id,
+                    filename="not-a-plan.html",
+                    content_type="text/html",
+                    image_data=b"<script>alert(1)</script>",
+                    uploaded_by_user_id="admin-1",
+                )
+
 
 class TestCalibration:
     def _floor_plan(self, session) -> tuple[str, str]:

@@ -137,9 +137,7 @@ from .services.ingest import (
     push_quote,
 )
 from .services.library import (
-    FloorPlanIn as FloorPlanServiceIn,
-)
-from .services.library import (
+    ALLOWED_FLOOR_PLAN_CONTENT_TYPES,
     NoSuchFloorPlan,
     NoSuchProject,
     NoSuchUnitType,
@@ -157,6 +155,9 @@ from .services.library import (
     submit_for_review,
     unit_type_detail,
     upload_floor_plan,
+)
+from .services.library import (
+    FloorPlanIn as FloorPlanServiceIn,
 )
 from .services.library import (
     OpeningIn as OpeningServiceIn,
@@ -1253,9 +1254,18 @@ def floor_plan_image_route(
     plan = floor_plan_detail(session, floor_plan_id)
     if plan is None or plan.image_data is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "no such image")
+    # Upload already refuses anything outside this allowlist; re-checking on
+    # the way out is what stops a row from an older, less careful build (or
+    # a direct DB edit) from being served as a document a browser executes
+    # rather than a picture it draws.
+    if plan.content_type in ALLOWED_FLOOR_PLAN_CONTENT_TYPES:
+        media_type = plan.content_type
+    else:
+        media_type = "application/octet-stream"
     return Response(
         content=plan.image_data,
-        media_type=plan.content_type or "application/octet-stream",
+        media_type=media_type,
+        headers={"X-Content-Type-Options": "nosniff"},
     )
 
 
