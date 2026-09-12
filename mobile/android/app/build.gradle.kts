@@ -6,7 +6,14 @@ plugins {
 
 android {
     namespace = "com.milan.milan_quote"
-    compileSdk = flutter.compileSdkVersion
+    // Pinned rather than `flutter.compileSdkVersion` (36 today): AGP 9's
+    // integer `compileSdk` resolves against whatever minor SDK version is
+    // actually installed (e.g. `android-37.0`), so this is no longer the
+    // "android-37" hash-string trap the root build file's comment describes
+    // -- that trap was AGP resolving a bare major version literally. Kept
+    // at the highest version any plugin needs (flutter_secure_storage 11
+    // wants 37) so the root file's align-downward script has nothing to do.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
