@@ -35,6 +35,12 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       TZ: Asia/Kuala_Lumpur
+      # SPEC.md §14.7. Defaults to "none" (disabled) when unset in .env --
+      # a fresh deploy stays exactly as it is today until someone chooses a
+      # real provider. Not a real provider yet: RECOGNITION_PROVIDER only
+      # ever registers the disabled placeholder (app/services/recognition.py).
+      RECOGNITION_PROVIDER: ${RECOGNITION_PROVIDER:-none}
+      RECOGNITION_MODEL: ${RECOGNITION_MODEL:-}
     depends_on:
       db:
         condition: service_healthy

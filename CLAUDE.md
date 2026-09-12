@@ -12,8 +12,11 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 
 ## Current state
 
-**Phases 1-6 complete. Phase 7 in progress. Phase 8 complete** — Flutter app,
-FastAPI backend, Postgres, and sync between them.
+**Stage 1 — the core Milan system — is complete through Phase 8.** Flutter
+app, FastAPI backend, Postgres, and sync between them. Phase 7 has exactly
+one remaining piece — the SQL Account export — and that blocker is isolated
+to it; it does not describe Stage 1 as a whole, and it does not hold up
+Stage 2 (SPEC.md §2.4, §11).
 
 **Phase 7 so far.** The buyer-detail capture screens, both sides, the sync
 between them, and the document labelling audit. **Only the export is left, and
@@ -21,6 +24,20 @@ it is blocked**: it needs a sample import template (§13 **E1**) and the
 accountant's ruling on **E2**, and §13 **C12** and **C13** decide where the
 guard bites and which fields MyInvois actually rejects. Do not guess any of the
 four. Everything else on Phase 7's "In" list is built.
+
+**Stage 2 — the next tier — has a defined shape now, not just a name.**
+SPEC.md §2.4 and §11's roadmap table now say explicitly what it holds:
+Phase 9 (Inventory, gated on its own precondition — §13 F needs a named
+person accountable for stock movements, unrelated to SQL Account), further
+property-library depth, and the AI-capability boundary SPEC.md §14.7
+documents. **AI is not implemented and is not required for anything.**
+§14.7 fixes where a future capability would plug in — domain → capability →
+provider interface → adapter → provider, one interface per capability,
+provider/model chosen by env var, credentials backend-only, a proposal
+never production truth without a human step — using
+`app/services/recognition.py` (Phase 8) as the one existing instance of the
+pattern. Choosing an actual provider, or building a second capability, is
+future work named in SPEC.md §13 **H**, not scheduled here.
 
 **The dashboard has a real design system now** (client, Sep 2026): light and
 dark mode, a token-driven palette (`dashboard/design-system/MASTER.md`

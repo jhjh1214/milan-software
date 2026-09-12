@@ -18,7 +18,7 @@ Section map:
 | 11 | Phases 1–9, scope and acceptance criteria |
 | 12 | Non-functional targets |
 | 13 | Open questions |
-| 14 | Architecture, boundaries, extensibility |
+| 14 | Architecture, boundaries, extensibility, the AI capability boundary (§14.7) |
 
 ---
 
@@ -76,6 +76,32 @@ quotation · pricing · deposits and rate locks · orders · payments · site
 measurement · final pricing · fulfilment lifecycle · printed documents ·
 offline operation · auditability · the property/project library foundations.
 
+**V1 has two stages, both internal/staff-facing — neither is the customer
+ecosystem in §2.5.**
+
+- **Stage 1 — the core system, Phases 1 through 8.** Quotation, pricing,
+  deposits and rate locks, orders, payments, site measurement, the
+  fulfilment lifecycle, printed documents, offline operation, auditability,
+  and the Property/Project/Unit Library. Complete, in the sense every phase's
+  own acceptance list names a test and passes it — with one named exception:
+  Phase 7's SQL Account export, blocked on an external dependency (§10, §13
+  E1/E2), isolated to that one piece rather than describing the system as a
+  whole as blocked.
+- **Stage 2 — the next tier, not yet started except where noted.** Inventory
+  (Phase 9, §11), further depth on the property library (assisted
+  floor-plan digitisation, more repeat-project workflows), and the
+  AI-capability boundary this document establishes (§14.7) so that whichever
+  of those future capabilities gets built first has somewhere to plug in
+  without redesigning the domains above it. Building the boundary is Stage
+  2 work; building an actual AI feature behind it is not — see §14.7 for
+  why that line is deliberate.
+
+`Stage 2` was originally a commercial label meaning only "Phase 8 and 9,
+quoted after Phase 5 ran live" (§11 still records that pricing history).
+Phase 8 has since shipped and moved into Stage 1's completed scope; `Stage
+2` now names *whatever comes next*, which is Phase 9 plus the items above.
+The commercial quote for Phase 9 is unchanged by this relabelling.
+
 ## 2.5 V2 — the customer-facing ecosystem, later
 
 Not in scope, not costed, not a requirement of any current phase:
@@ -84,7 +110,13 @@ a customer app or web portal · customer accounts · rewards and loyalty ·
 referral incentives · a customer-facing catalogue · fabric and material
 browsing · product discovery · customer order tracking · self-service ·
 home-photo capture · AI-generated curtain and interior visualisations ·
-AI-assisted design suggestions.
+AI-assisted design suggestions · an AI assistant answering questions over
+Milan's own data.
+
+None of this is scheduled or costed. §14.7 establishes *where* a capability
+like this would plug in, as Stage 2 groundwork — it does not schedule
+*building* one, and a capability boundary existing is not an implicit
+promise that the feature behind it ships next.
 
 **The only V1 obligation is not to make V2 hard.** Concretely, and these are the
 decisions that would be expensive to reverse:
@@ -1573,12 +1605,17 @@ RM150 (P2) → RM450 (P3–4) → RM750 (P5) → RM950 (P6–7). 12-month minimu
 
 ### Where we are, and what comes next
 
+> **Stage 1 — the core Milan system — is complete through Phase 8.** Phase 7
+> has exactly one remaining piece, an external integration: SQL Account.
+> That dependency is isolated to Phase 7's own export step and does not
+> describe, and must not be read as describing, the system as a whole.
+
 | | |
 |---|---|
-| **Done** | Phases 1–6 and **Phase 8**. Every acceptance criterion names a test |
-| **Now** | **Phase 7** (blocked on E1/E2/C12/C13) |
-| **Later** | A real AI recognition provider (the seam for one is built; see Phase 8) |
-| **V2** | The customer-facing ecosystem and AI visualisation (§2.5) |
+| **Stage 1 — done** | Phases 1–6 and **8**, every acceptance criterion named and tested. Phase 7 done except its one external blocker |
+| **Blocked, isolated** | Phase 7's SQL Account export only — E1 (sample import template) and E2 (the accountant's ruling), §13 |
+| **Stage 2 — next** | Phase 9 (Inventory, gated on its own precondition, §13 F), continued property-library depth, and the AI-capability boundary (§14.7) |
+| **Future / V2** | The customer-facing ecosystem, and actual AI capabilities built behind Stage 2's boundary (§2.5) |
 
 **Phase 8 was brought forward**, Sep 2026, ahead of the "quoted after Phase 5
 runs live two months" sequencing below — a commercial decision, not a
@@ -1586,9 +1623,17 @@ technical one, made because the client's own request that month already maps
 onto this exact design (see Phase 8's own section). Said here rather than
 quietly reordering. It is now complete, including the handset's own
 floor-plan submission screen and a swappable, currently-placeholder AI
-recognition provider. **Phase 7 stays blocked** on a sample SQL Account
-import template (E1), the accountant's ruling on E2, and §13 C12/C13 — none
-of the four may be guessed.
+recognition provider (§14.7). **Phase 7 stays blocked, but only on its
+export step**: a sample SQL Account import template (E1), the accountant's
+ruling on E2, and §13 C12/C13 — none of the four may be guessed, and none of
+the four hold up Stage 2 work, which does not depend on Phase 7 at all.
+
+**Phase 9 has its own precondition, unrelated to SQL Account.** §13 F asks
+for a named person accountable for recording stock movements before
+Inventory is worth starting — software cannot supply that discipline, and
+building the tables first would just be a confident wrong number waiting to
+happen. Until that name exists, Phase 9 is Stage 2's next *quoted* phase,
+not its next *coded* one.
 
 ---
 
@@ -2049,7 +2094,10 @@ the blob it already fetched) without a database row needing to exist first.
 The rule below, written before any of this existed, is exactly what this
 keeps: a proposal is never production truth, only ever copied into the form
 by a person. Turning on a real provider is a config change; no caller of
-`get_recognition_provider` needs to change.
+`get_recognition_provider` needs to change. **This is the first instance of
+the general pattern §14.7 now documents** — domain, capability, provider
+interface, adapter, provider — not a one-off; a second capability follows
+the same shape rather than growing a special case onto this one.
 
 **Acceptance**
 - [x] A plan-sourced line can never become an `OrderLine` except through the
@@ -2234,7 +2282,10 @@ needs to change shape when a provider is chosen. Choosing and wiring an
 **actual** recognition provider remains unscheduled and uncosted: it needs a
 real decision about which provider, what it costs per call or to host, and
 whether developer floor plans are consistent enough for it to be worth
-trusting at all — none of which this session had grounds to guess.
+trusting at all — none of which this session had grounds to guess. See
+§14.7 for the general shape this is one instance of, and §13 H for the
+specific open questions (provider, cost, privacy review) that stay
+unanswered until choosing one is actually worth doing.
 
 ---
 
@@ -2884,6 +2935,22 @@ orders, supplier management and costing come later.
 - **G1.** IP: licence, not assignment. Confirm before signing.
 - **G2.** Will there ever be an in-house dev team, Java-shop by policy?
 
+## H. AI (Stage 2, §14.7) — none of these are blocking anything
+- **H1.** Which capability is actually worth building first, once one is
+  wanted — floor-plan recognition (the seam already exists), a quotation
+  assistant, something else from §2.5's list? Not decided, and not this
+  document's decision to make; §14.7's boundary does not favour one.
+- **H2.** Which provider, hosted or local, and at what per-call or hosting
+  cost, once a capability is chosen? `RECOGNITION_PROVIDER` currently
+  registers only the disabled placeholder.
+- **H3.** A real provider's data-retention and model-training-use policy,
+  reviewed before it ever sees a customer's floor plan, quotation or
+  message — a privacy question, not a technical one, and one this document
+  cannot answer on the client's behalf ahead of choosing H2.
+- **H4.** Whether usage/cost tracking (§14.7) is ever worth its own table —
+  only answerable once a paid provider is actually enabled and there is a
+  real bill to reconcile against.
+
 ## Answered
 - **Standard prices are the fair price plus 20% on curtains and 50% on blinds**,
   provisionally, until a real list arrives (A3). The date picks the list ✓
@@ -3036,3 +3103,236 @@ business rule that only exists inside a widget
 `{zh, en, ms}` map. That is what lets a customer-facing catalogue (§2.5) layer
 its own presentation on the same keys later, and what stops a renamed product
 silently repricing.
+
+## 14.7 The AI capability boundary
+
+Stage 2 work (§2.4), not a current feature. **Nothing in this section makes AI
+a requirement of Milan.** Every rule in CLAUDE.md and every domain above —
+pricing, orders, payments, measurements, invoicing — is unchanged, unaware
+that this section exists, and correct with no AI provider configured at all.
+What this section fixes is *where a future AI capability would plug in*, so
+that when one is actually wanted, adding it is a capability behind a proven
+seam and a config value, not a redesign of the domains above it.
+
+### The shape
+
+```
+Milan domain (pricing, orders, library, ...)
+        |  never calls a provider directly
+        v
+AI capability            -- e.g. "recognise a floor plan", one per use case
+        |  a plain function/class in app/services/, same as any other domain
+        v
+provider interface        -- e.g. RecognitionProvider: one method, typed in
+        |                     and out, nothing provider-specific in its shape
+        v
+provider adapter          -- translates the interface into one vendor's
+        |                     request/response shape
+        v
+hosted API  |  local/self-hosted model
+```
+
+**Never**: `Milan domain -> hardcoded Anthropic/OpenAI/etc. call`. A
+capability's own code never imports a vendor SDK or names a vendor directly;
+only its adapter does. `app/services/recognition.py` is the first, and so
+far only, instance of this shape — `RecognitionProvider` is the interface,
+`NullRecognitionProvider` is the one adapter registered today, and it
+answers every call with "not configured" rather than calling anything. A
+future capability (a quotation assistant, a customer-message drafter,
+anything from §2.5's list) gets its own interface and registry the same
+way, not a shared entry point bent to fit a second, unrelated use.
+
+**Why one interface per capability, not one generic "AI service."** A
+recognition call and a message-drafting call take different input, return
+different output, and fail differently. A single generic interface wide
+enough for both ends up typed as `Map<String, dynamic> in, Map<String,
+dynamic> out` — which is exactly the "trust arbitrary JSON from a provider"
+failure mode this document forbids elsewhere in this section. Each
+capability keeps its own narrow, typed contract; only the *pattern* — domain
+→ capability → interface → adapter → provider — repeats.
+
+### Configuration, not business logic
+
+Provider and model choice are environment configuration, read once, at the
+same boundary the rest of this codebase already reads config from
+(`backend/app/db.py`'s `DATABASE_URL` is the existing precedent — plain
+`os.environ`, no settings framework). `app/services/recognition.py`
+establishes the convention: `RECOGNITION_PROVIDER` (default `none`, meaning
+disabled) and `RECOGNITION_MODEL` (passed through, unused by the
+placeholder), looked up by a small registry (`_PROVIDERS: dict[str, type]`)
+that falls back to the disabled provider on an unrecognised name rather than
+raising — a mistyped env var must degrade a capability, never take a route
+down.
+
+Every future capability follows the same `<CAPABILITY>_PROVIDER` /
+`<CAPABILITY>_MODEL` naming, each independently disable-able. **A shared
+`AI_PROVIDER`/`AI_MODEL` pair that every capability defaults to, with a
+per-capability override only where one differs, is the natural next
+refactor once a second capability actually exists and the two agree on a
+vendor.** Introducing that shared pair now, for one capability, would be
+exactly the "a generic AI service nothing needs yet" this document warns
+against — so it stays undone until a second capability makes the
+duplication real rather than hypothetical.
+
+None of this is wired to a real vendor. Choosing one is: register an adapter
+class implementing the interface, add it to that capability's `_PROVIDERS`
+dict, set the env var. No caller of `get_recognition_provider()` (or its
+future siblings) changes.
+
+**Credentials never leave the backend.** A provider adapter reads its own
+API key from the backend's environment (`RECOGNITION_MODEL`'s companion
+credential, when a real provider needs one, follows the same pattern —
+never committed, never in `deploy/.env.example`'s real values, only its
+documented placeholder). Flutter and Angular call Milan's own API
+(`/api/recognize` today), authenticated the same way every other endpoint
+is; neither ever holds, sees, or forwards a provider key. There is no path
+of the shape `Flutter -> provider API` or `Angular -> provider API` — every
+request goes `client -> FastAPI -> capability -> provider`, and ordinary
+Milan session authentication gates the first hop the same as any other
+route. An AI capability is not a bypass of §3's role rules: a part-timer
+calling `/api/recognize` gets exactly the same "nothing selectable, nothing
+to get wrong" treatment as every other endpoint they can reach, and nothing
+about being an AI-backed route raises what a role may do.
+
+### Never production truth, and who has to say yes
+
+§14.5 already states the invariant this section inherits rather than
+relaxes: a proposal is not a record, and a person's approval is what makes
+it one. This is what that means for a *write*, not just a picture:
+
+```
+input -> AI capability -> typed result -> schema validation
+      -> domain validation -> human review where consequential
+      -> ordinary Milan mutation, through ordinary authorisation -> audit row
+```
+
+**Read-only by default.** A capability answering a question about existing
+Milan data (§2.5's "what is the status of quotation Q-123" family) reads
+through the same domain functions any other authenticated caller would —
+`getOrder`, `getQuotation`, and so on — never a raw query the capability
+composes itself. It receives only what the one request needs, not a data
+export; sending a customer's whole order history to answer a question about
+one order is the "entire database" failure this document rules out, not a
+convenience.
+
+**Nothing about being an AI capability grants a write.** No future
+capability may silently change a price, a quotation total, a measurement, an
+order status, inventory quantities, a rate card, or a payment; may approve
+anything; may delete anything; or may act with any authority a signed-in
+human at that role could not already exercise. Where a capability's whole
+point *is* to produce something consequential — an extracted dimension, a
+drafted customer message someone sends — the result is a proposal exactly
+the shape §14.5 already describes, sitting in front of the same human step
+that already exists for that kind of record (the library's `pending_review`
+gate for a dimension; a send button a person presses for a message). A
+capability is never given a shortcut past a gate that already exists for
+that data.
+
+### Reliability: treat every provider as an unreliable external service
+
+The same posture CLAUDE.md already takes toward a fair's connection (hard
+rule 9) applies to a provider call: it may time out, refuse, rate-limit,
+return malformed or truncated output, or simply be unavailable, and none of
+that may corrupt Milan data or block a domain operation that does not need
+it. `POST /api/recognize` today is the concrete pattern: a failure or an
+unconfigured provider answers with a typed, unremarkable result
+(`configured: false`, an empty proposal list), never an exception that
+reaches a caller expecting a normal response, and never a silent retry that
+could return a different answer for the same input without anyone asking
+for one.
+
+**Structured output is validated, not trusted.** Whatever a provider
+returns is parsed into the capability's own typed schema
+(`ExtractionOut`/`ProposedOpeningOut` today, on both the wire and in
+`recognition.py`'s own dataclasses) before anything downstream sees it.
+Output that does not fit the schema is a failure of that call, handled the
+same as a timeout — never passed through as "the AI said so."
+
+### Synchronous first; no queue until one is earned
+
+Every capability today is a plain request/response call inside an ordinary
+FastAPI route, the same shape as everything else in `main.py`. **No
+message bus, no job queue, no distributed worker is introduced for AI.**
+If a future capability is genuinely long-running (image generation, a large
+document), the FastAPI backend can defer it the same lightweight way it
+already could for anything else — a status a client polls, or a callback —
+without reaching for infrastructure this system does not otherwise run.
+Building that before a capability exists which actually needs it is
+exactly the speculative engineering CLAUDE.md warns against.
+
+### Structured Milan data does not become embeddings
+
+`products`, `quotations`, `orders`, `measurements`, `payments` and the
+property library — plus a `customers` table, whenever §13 B9 gives Milan one
+— are relational data with exact answers, reached by the domain functions
+that already exist. **A capability answering a question about them queries
+through those functions, not a vector search over an embedded copy.** A retrieval/vector store may earn its place for
+genuinely unstructured material — brochures, installation guides, SOPs —
+*if* a concrete capability needs one, and even then it holds reference
+documents, never a shadow copy of transactional data that can drift from
+the database that is actually authoritative. No vector database exists in
+this system today, and none should be added until a specific capability's
+requirement names it.
+
+### No AI columns scattered through domain tables
+
+If a capability ever needs to persist something — a proposal awaiting
+review, a usage log — it gets its own table, named for what it holds, the
+same as every other domain in §7. **Do not add `ai_response`, `ai_prompt`,
+`ai_model` or `ai_confidence` columns to `quotations`, `orders`,
+`order_lines`, or any other existing table.** `POST /api/recognize` needs no
+table at all today — it is stateless by design (§11 Phase 8) precisely
+because nothing has yet needed a capability's output to outlive the one
+request that produced it. Persistence gets added when a real requirement
+names what must survive and why, not preemptively.
+
+### Usage and cost, lightly
+
+Leave room to answer "what did this cost" and "what actually ran" without
+building a billing platform now. A capability response already carries
+enough to log if the need arises — provider name, whether it was configured,
+success/failure — and a future paid provider would add latency and token
+counts the same way. A dedicated log table is Stage-2-when-needed work, not
+built speculatively per the rule immediately above; do not retain raw
+prompts or provider responses indefinitely merely for analytics; a customer's
+own data went into that prompt and privacy below governs it the same as
+anywhere else.
+
+### Privacy: minimum necessary, not a database dump
+
+A capability call sends only the fields that capability needs — a
+quotation's own lines for a quotation assistant, one image for recognition —
+never a bulk export and never data unrelated to the request. Before any
+hosted provider is actually enabled in production, its data-retention and
+training-use policy is a real question to answer, not an assumption; this
+document does not answer it because no provider is chosen yet, and answering
+it prematurely for a hypothetical vendor would be exactly the kind of guess
+CLAUDE.md's hard rule 2 forbids for money — the same caution applies to a
+customer's personal data.
+
+### Hosted first; local inference stays a future option, not a laptop
+
+The initial deployment assumption is a hosted API, reached over HTTPS from
+the backend the same way any other external call would be. **Nothing in
+this shape depends on that.** A local or self-hosted model is a different
+adapter behind the same provider interface — the domain and the capability
+above it do not know or care which. What this rules out is treating anyone's
+personal laptop or GPU as production inference: `deploy/docker-compose.yml`
+(CLAUDE.md: "no Kubernetes, no microservices... the right shape for one
+developer supporting one client") is where a real local-inference option
+would eventually be added as another service, not a standing exception run
+off a machine that is not the server.
+
+### Offline compatibility
+
+CLAUDE.md hard rule 9 — offline is the default, not a fallback — is
+unchanged and unweakened by any of this. An AI capability is, by
+definition, an external call, and every existing offline-designed feature
+(quote, PDF, deposit, measurement, the part-timer's own floor-plan
+submission) continues to work with zero AI connectivity exactly as it does
+with zero Milan-server connectivity today. No screen may gate its existing
+offline path on an AI capability being reachable. Where a capability
+optionally *assists* an existing offline flow (recognition on the
+handset's own submission screen is the current example), it degrades to
+"unavailable, continue by hand" — never to "the feature you were already
+using no longer works."
