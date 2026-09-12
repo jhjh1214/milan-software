@@ -72,6 +72,16 @@ const item = (
   ...over,
 });
 
+const floorPlan = (over: Partial<UnitTypeWithVersionsOut['versions'][number]['floor_plan']> = {}) => ({
+  id: 'fp1',
+  file_ref: 'plan.png',
+  content_type: 'image/png',
+  scale_tmm_per_px: null,
+  uploaded_by_user_id: 'admin-1',
+  uploaded_at: '2026-09-08T09:00:00Z',
+  ...over,
+});
+
 describe('UnitTypeReview', () => {
   let fixture: ComponentFixture<UnitTypeReview>;
   let http: HttpTestingController;
@@ -84,6 +94,9 @@ describe('UnitTypeReview', () => {
     http = TestBed.inject(HttpTestingController);
     // Pinned rather than assumed: the dashboard defaults to Chinese (§13 C9).
     TestBed.inject(Text).pick('en');
+    // jsdom has no real object-URL machinery; the component only ever uses
+    // the string it gets back, so a stub is enough.
+    URL.createObjectURL = () => 'blob:mock-url';
   });
 
   const load = (items: UnitTypeWithVersionsOut[]): void => {
@@ -230,5 +243,96 @@ describe('UnitTypeReview', () => {
 
     button('Try again').click();
     http.expectOne((r) => r.url === '/api/unit-types').flush({ unit_types: [] });
+  });
+
+  it('offers an upload control when the version has no floor plan yet', () => {
+    load([item()]);
+    expect(text()).toContain('Upload a floor plan image');
+    expect(fixture.nativeElement.querySelector('input[type="file"]')).toBeTruthy();
+  });
+
+  it('uploading a floor plan shows the image once both requests resolve', () => {
+    load([item()]);
+
+    const file = new File(['x'], 'plan.png', { type: 'image/png' });
+    const input = el<HTMLInputElement>('input[type="file"]');
+    Object.defineProperty(input, 'files', { value: [file] });
+    input.dispatchEvent(new Event('change'));
+
+    const uploadReq = http.expectOne('/api/unit-types/ut1/floor-plan');
+    expect(uploadReq.request.method).toBe('POST');
+    expect(uploadReq.request.body instanceof FormData).toBe(true);
+    uploadReq.flush(floorPlan());
+    fixture.detectChanges();
+
+    const imageReq = http.expectOne('/api/floor-plans/fp1/image');
+    imageReq.flush(new Blob(['x'], { type: 'image/png' }));
+    fixture.detectChanges();
+
+    expect(el<HTMLImageElement>('.floor-plan-image').src).toContain('blob:mock-url');
+  });
+
+  it('fetches the image for a plan already on the item when the queue loads', () => {
+    load([item({ versions: [{ ...item().versions[0], floor_plan: floorPlan() }] })]);
+    http.expectOne('/api/floor-plans/fp1/image').flush(new Blob(['x'], { type: 'image/png' }));
+    fixture.detectChanges();
+    expect(el<HTMLImageElement>('.floor-plan-image').src).toContain('blob:mock-url');
+  });
+
+  it('two clicks on the image and a real distance produce a calibration post', () => {
+    load([item({ versions: [{ ...item().versions[0], floor_plan: floorPlan() }] })]);
+    http.expectOne('/api/floor-plans/fp1/image').flush(new Blob(['x'], { type: 'image/png' }));
+    fixture.detectChanges();
+
+    button('Calibrate scale').click();
+    fixture.detectChanges();
+    expect(text()).toContain('Click two points');
+
+    const img = el<HTMLImageElement>('.floor-plan-image');
+    Object.defineProperty(img, 'naturalWidth', { value: 1000 });
+    Object.defineProperty(img, 'naturalHeight', { value: 1000 });
+    img.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, width: 500, height: 500 }) as DOMRect;
+
+    // Two natural-pixel points 300 apart on the x-axis (150 apart on screen,
+    // doubled by the 1000/500 natural-to-screen scale).
+    img.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100 }));
+    fixture.detectChanges();
+    expect(text()).toContain('click the second');
+
+    img.dispatchEvent(new MouseEvent('click', { clientX: 250, clientY: 100 }));
+    fixture.detectChanges();
+
+    const distanceInput = el<HTMLInputElement>('.calibrate-form input[type="number"]');
+    distanceInput.value = '3000';
+    distanceInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    fixture.nativeElement
+      .querySelector('.calibrate-form .btn-primary')
+      .click();
+
+    const req = http.expectOne('/api/floor-plans/fp1/calibrate');
+    expect(req.request.body).toEqual({ pixel_distance: 300, real_distance_tmm: 30000 });
+    req.flush(floorPlan({ scale_tmm_per_px: '100' }));
+    fixture.detectChanges();
+
+    expect(text()).toContain('Scale set');
+    expect(text()).toContain('Recalibrate');
+  });
+
+  it('cancelling calibration closes the form without sending anything', () => {
+    load([item({ versions: [{ ...item().versions[0], floor_plan: floorPlan() }] })]);
+    http.expectOne('/api/floor-plans/fp1/image').flush(new Blob(['x'], { type: 'image/png' }));
+    fixture.detectChanges();
+
+    button('Calibrate scale').click();
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('.calibrate-form .btn:not(.btn-primary)').click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.calibrate-form')).toBeFalsy();
+    http.expectNone('/api/floor-plans/fp1/calibrate');
   });
 });

@@ -30,6 +30,7 @@ import type {
   DeactivateOut,
   DepositPromptsOut,
   FairReport,
+  FloorPlanOut,
   ListId,
   MeasurementQueueOut,
   OrderDetailOut,
@@ -337,6 +338,46 @@ export class Api {
       params,
       headers: this.authorised(),
     });
+  }
+
+  /**
+   * Attaches an image to a unit type's latest version. Refused (409) once
+   * that version is approved -- a correction needs a new version, never an
+   * edit to this one.
+   */
+  uploadFloorPlan(unitTypeId: string, file: File): Observable<FloorPlanOut> {
+    const body = new FormData();
+    body.append('file', file);
+    return this.http.post<FloorPlanOut>(
+      `${API_BASE}/unit-types/${unitTypeId}/floor-plan`,
+      body,
+      { headers: this.authorised() },
+    );
+  }
+
+  /**
+   * The image itself, as a blob. An `<img src>` cannot carry the
+   * Authorization header this endpoint requires, so the component reads
+   * this into an object URL instead.
+   */
+  floorPlanImage(floorPlanId: string): Observable<Blob> {
+    return this.http.get(`${API_BASE}/floor-plans/${floorPlanId}/image`, {
+      headers: this.authorised(),
+      responseType: 'blob',
+    });
+  }
+
+  /** Two clicks on the image and a real-world distance become a scale. */
+  calibrateFloorPlan(
+    floorPlanId: string,
+    pixelDistance: number,
+    realDistanceTmm: number,
+  ): Observable<FloorPlanOut> {
+    return this.http.post<FloorPlanOut>(
+      `${API_BASE}/floor-plans/${floorPlanId}/calibrate`,
+      { pixel_distance: pixelDistance, real_distance_tmm: realDistanceTmm },
+      { headers: this.authorised() },
+    );
   }
 
   private authorised(): Record<string, string> {

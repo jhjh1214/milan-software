@@ -21,7 +21,17 @@ from collections.abc import Iterator
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, Response, status
+from fastapi import (
+    Depends,
+    FastAPI,
+    File,
+    Header,
+    HTTPException,
+    Query,
+    Response,
+    UploadFile,
+    status,
+)
 from sqlalchemy.orm import Session
 
 from .api.schemas import (
@@ -30,6 +40,7 @@ from .api.schemas import (
     BundleOut,
     BuyerDetailsIn,
     BuyerDetailsResult,
+    CalibrateFloorPlanIn,
     CardDiffOut,
     CategoryLockIn,
     CategoryLockOut,
@@ -129,18 +140,23 @@ from .services.library import (
     FloorPlanIn as FloorPlanServiceIn,
 )
 from .services.library import (
+    NoSuchFloorPlan,
     NoSuchProject,
     NoSuchUnitType,
+    NoVersionYet,
     WrongStatus,
     add_corrected_version,
     approve_unit_type,
+    calibrate_floor_plan,
     create_project,
     create_unit_type,
+    floor_plan_detail,
     list_unit_types,
     reject_unit_type,
     search_projects,
     submit_for_review,
     unit_type_detail,
+    upload_floor_plan,
 )
 from .services.library import (
     OpeningIn as OpeningServiceIn,
@@ -950,6 +966,7 @@ def _floor_plan_out(plan: FloorPlan) -> FloorPlanOut:
     return FloorPlanOut(
         id=plan.id,
         file_ref=plan.file_ref,
+        content_type=plan.content_type,
         scale_tmm_per_px=plan.scale_tmm_per_px,
         uploaded_by_user_id=plan.uploaded_by_user_id,
         uploaded_at=plan.uploaded_at,
@@ -1188,3 +1205,77 @@ def new_version_route(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "no such unit type") from exc
 
     return _detail_out(unit_type_detail(session, unit_type_id))
+
+
+@app.post("/api/unit-types/{unit_type_id}/floor-plan", response_model=FloorPlanOut)
+async def upload_floor_plan_route(
+    unit_type_id: str,
+    session: SessionDep,
+    who: CurrentDep,
+    file: Annotated[UploadFile, File()],
+) -> FloorPlanOut:
+    """The original document, kept alongside the numbers typed from it.
+    SPEC.md Phase 8.
+
+    Refuses onto an already-approved version -- a correction to the image
+    is a new version, via `POST .../versions`, not an edit in place.
+    """
+    _ = who
+    image_data = await file.read()
+    try:
+        plan = upload_floor_plan(
+            session,
+            unit_type_id,
+            filename=file.filename or "floor-plan",
+            content_type=file.content_type or "application/octet-stream",
+            image_data=image_data,
+            uploaded_by_user_id=who[0].id,
+        )
+    except NoSuchUnitType as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such unit type") from exc
+    except NoVersionYet as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    except WrongStatus as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(HTTP_422_UNPROCESSABLE, str(exc)) from exc
+
+    return _floor_plan_out(plan)
+
+
+@app.get("/api/floor-plans/{floor_plan_id}/image")
+def floor_plan_image_route(
+    floor_plan_id: str, session: SessionDep, who: CurrentDep
+) -> Response:
+    """The bytes themselves. Never embedded in a JSON response -- this is
+    the one place they leave the server."""
+    _ = who
+    plan = floor_plan_detail(session, floor_plan_id)
+    if plan is None or plan.image_data is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such image")
+    return Response(
+        content=plan.image_data,
+        media_type=plan.content_type or "application/octet-stream",
+    )
+
+
+@app.post("/api/floor-plans/{floor_plan_id}/calibrate", response_model=FloorPlanOut)
+def calibrate_floor_plan_route(
+    floor_plan_id: str,
+    payload: CalibrateFloorPlanIn,
+    session: SessionDep,
+    who: CurrentDep,
+) -> FloorPlanOut:
+    """Two tapped points, turned into an exact scale. SPEC.md Phase 8."""
+    _ = who
+    try:
+        plan = calibrate_floor_plan(
+            session,
+            floor_plan_id,
+            pixel_distance=payload.pixel_distance,
+            real_distance_tmm=payload.real_distance_tmm,
+        )
+    except NoSuchFloorPlan as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such floor plan") from exc
+
+    return _floor_plan_out(plan)

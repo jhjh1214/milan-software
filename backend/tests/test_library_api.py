@@ -343,3 +343,136 @@ class TestTheLifecycleEndToEnd:
         assert len(body["versions"]) == 2
         assert body["versions"][0]["approved_at"] is not None
         assert body["versions"][1]["approved_at"] is None
+
+
+class TestFloorPlanUpload:
+    def _draft_unit_type(self, client: TestClient, token: str) -> str:
+        project_id = make_project(client, token)
+        return client.post(
+            "/api/unit-types",
+            json={"project_id": project_id, "name": "Type B"},
+            headers=auth(token),
+        ).json()["unit_type"]["id"]
+
+    def test_the_image_round_trips_through_the_serving_endpoint(
+        self, client: TestClient
+    ) -> None:
+        token = sign_in(client, "admin")
+        unit_type_id = self._draft_unit_type(client, token)
+
+        upload = client.post(
+            f"/api/unit-types/{unit_type_id}/floor-plan",
+            files={"file": ("plan.jpg", b"\xff\xd8\xff fake jpeg", "image/jpeg")},
+            headers=auth(token),
+        )
+        assert upload.status_code == 200, upload.text
+        body = upload.json()
+        assert body["file_ref"] == "plan.jpg"
+        assert body["content_type"] == "image/jpeg"
+        assert body["scale_tmm_per_px"] is None
+        floor_plan_id = body["id"]
+
+        served = client.get(
+            f"/api/floor-plans/{floor_plan_id}/image", headers=auth(token)
+        )
+        assert served.status_code == 200
+        assert served.headers["content-type"] == "image/jpeg"
+        assert served.content == b"\xff\xd8\xff fake jpeg"
+
+    def test_a_part_timer_may_upload_too(self, client: TestClient) -> None:
+        # No admin gate here, same as drafting and submitting a unit type --
+        # only approval and rejection are admin-only.
+        admin_token = sign_in(client, "admin")
+        unit_type_id = self._draft_unit_type(client, admin_token)
+
+        parttime_token = sign_in(client, "parttime")
+        upload = client.post(
+            f"/api/unit-types/{unit_type_id}/floor-plan",
+            files={"file": ("plan.jpg", b"data", "image/jpeg")},
+            headers=auth(parttime_token),
+        )
+        assert upload.status_code == 200, upload.text
+
+    def test_uploading_onto_an_approved_version_is_409_not_500(
+        self, client: TestClient
+    ) -> None:
+        token = sign_in(client, "admin")
+        unit_type_id = self._draft_unit_type(client, token)
+        client.post(f"/api/unit-types/{unit_type_id}/approve", headers=auth(token))
+
+        upload = client.post(
+            f"/api/unit-types/{unit_type_id}/floor-plan",
+            files={"file": ("plan.jpg", b"data", "image/jpeg")},
+            headers=auth(token),
+        )
+        assert upload.status_code == 409, upload.text
+
+    def test_an_unknown_unit_type_is_404_not_500(self, client: TestClient) -> None:
+        token = sign_in(client, "admin")
+        upload = client.post(
+            f"/api/unit-types/{uuid.uuid4()}/floor-plan",
+            files={"file": ("plan.jpg", b"data", "image/jpeg")},
+            headers=auth(token),
+        )
+        assert upload.status_code == 404, upload.text
+
+    def test_an_unknown_image_is_404_not_500(self, client: TestClient) -> None:
+        token = sign_in(client, "admin")
+        r = client.get(f"/api/floor-plans/{uuid.uuid4()}/image", headers=auth(token))
+        assert r.status_code == 404, r.text
+
+    def test_nobody_without_a_token(self, client: TestClient) -> None:
+        r = client.post(
+            f"/api/unit-types/{uuid.uuid4()}/floor-plan",
+            files={"file": ("plan.jpg", b"data", "image/jpeg")},
+        )
+        assert r.status_code == 401, r.text
+
+
+class TestCalibrationApi:
+    def _uploaded_floor_plan(self, client: TestClient, token: str) -> str:
+        project_id = make_project(client, token)
+        unit_type_id = client.post(
+            "/api/unit-types",
+            json={"project_id": project_id, "name": "Type B"},
+            headers=auth(token),
+        ).json()["unit_type"]["id"]
+        return client.post(
+            f"/api/unit-types/{unit_type_id}/floor-plan",
+            files={"file": ("plan.jpg", b"data", "image/jpeg")},
+            headers=auth(token),
+        ).json()["id"]
+
+    def test_the_stored_scale_is_an_exact_rational_on_the_wire(
+        self, client: TestClient
+    ) -> None:
+        token = sign_in(client, "admin")
+        floor_plan_id = self._uploaded_floor_plan(client, token)
+
+        r = client.post(
+            f"/api/floor-plans/{floor_plan_id}/calibrate",
+            json={"pixel_distance": 381, "real_distance_tmm": 4375},
+            headers=auth(token),
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["scale_tmm_per_px"] == "4375/381"
+
+    def test_a_zero_pixel_distance_is_422_not_500(self, client: TestClient) -> None:
+        token = sign_in(client, "admin")
+        floor_plan_id = self._uploaded_floor_plan(client, token)
+
+        r = client.post(
+            f"/api/floor-plans/{floor_plan_id}/calibrate",
+            json={"pixel_distance": 0, "real_distance_tmm": 4375},
+            headers=auth(token),
+        )
+        assert r.status_code == 422, r.text
+
+    def test_an_unknown_floor_plan_is_404_not_500(self, client: TestClient) -> None:
+        token = sign_in(client, "admin")
+        r = client.post(
+            f"/api/floor-plans/{uuid.uuid4()}/calibrate",
+            json={"pixel_distance": 100, "real_distance_tmm": 1000},
+            headers=auth(token),
+        )
+        assert r.status_code == 404, r.text

@@ -540,6 +540,8 @@ export interface RoomOut {
 export interface FloorPlanOut {
   readonly id: string;
   readonly file_ref: string;
+  /** Null means metadata exists but no image has actually been uploaded. */
+  readonly content_type: string | null;
   readonly scale_tmm_per_px: string | null;
   readonly uploaded_by_user_id: string | null;
   readonly uploaded_at: string;

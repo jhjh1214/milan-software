@@ -453,6 +453,16 @@ export interface LibraryStrings {
   readonly cancel: string;
   readonly approvedNote: (name: string) => string;
   readonly rejectedNote: (name: string) => string;
+  readonly uploadFloorPlan: string;
+  readonly uploading: string;
+  readonly calibrate: string;
+  readonly recalibrate: string;
+  readonly calibrated: string;
+  readonly clickTwoPoints: string;
+  readonly onePointChosen: string;
+  readonly realDistanceLabel: string;
+  readonly confirmCalibration: string;
+  readonly cancelCalibration: string;
 }
 
 /** Everything the dashboard can say, in one language. */

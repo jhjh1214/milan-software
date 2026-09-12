@@ -87,3 +87,46 @@ h2 {
   display: grid;
   gap: var(--space-2);
 }
+
+.floor-plan {
+  margin-top: var(--space-2);
+}
+
+.floor-plan-image {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  cursor: default;
+}
+
+.floor-plan-image.calibrating {
+  cursor: crosshair;
+}
+
+.upload-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.calibrate-form {
+  margin-top: var(--space-2);
+  display: grid;
+  gap: 4px;
+  max-width: 320px;
+}
+
+.calibrate-form .hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-fg-muted);
+}
+
+.calibrated-note {
+  align-self: center;
+  font-size: 13px;
+  color: var(--color-fg-muted);
+}

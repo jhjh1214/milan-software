@@ -22,6 +22,7 @@ from sqlalchemy.pool import StaticPool
 from app.models.db import Base
 from app.services.library import (
     FloorPlanIn,
+    NoSuchFloorPlan,
     NoSuchProject,
     NoSuchUnitType,
     OpeningIn,
@@ -30,6 +31,7 @@ from app.services.library import (
     add_corrected_version,
     approve_unit_type,
     approved_version,
+    calibrate_floor_plan,
     create_project,
     create_unit_type,
     list_unit_types,
@@ -37,6 +39,7 @@ from app.services.library import (
     search_projects,
     submit_for_review,
     unit_type_detail,
+    upload_floor_plan,
 )
 
 
@@ -384,3 +387,183 @@ class TestListing:
             assert [u.name for u in list_unit_types(session, status="approved")] == [
                 "Type Z"
             ]
+
+
+class TestFloorPlanUpload:
+    def _draft(self, session) -> str:
+        project = create_project(session, name="ABC Development")
+        session.commit()
+        unit_type = create_unit_type(
+            session, project_id=project.id, name="Type B", created_by_user_id="admin-1"
+        )
+        session.commit()
+        return unit_type.id
+
+    def test_the_image_and_who_uploaded_it_are_kept(self, db) -> None:
+        with db() as session:
+            unit_type_id = self._draft(session)
+            upload_floor_plan(
+                session,
+                unit_type_id,
+                filename="type-b.jpg",
+                content_type="image/jpeg",
+                image_data=b"\xff\xd8\xff fake jpeg bytes",
+                uploaded_by_user_id="admin-1",
+            )
+            session.commit()
+
+            detail = unit_type_detail(session, unit_type_id)
+            plan = detail.versions[0].floor_plan
+            assert plan.file_ref == "type-b.jpg"
+            assert plan.content_type == "image/jpeg"
+            assert plan.image_data == b"\xff\xd8\xff fake jpeg bytes"
+            assert plan.uploaded_by_user_id == "admin-1"
+            assert plan.scale_tmm_per_px is None
+
+    def test_uploading_again_replaces_the_image_not_the_row(self, db) -> None:
+        # One floor plan per version -- a second upload before approval is a
+        # correction to the same draft, not a second document.
+        with db() as session:
+            unit_type_id = self._draft(session)
+            first = upload_floor_plan(
+                session,
+                unit_type_id,
+                filename="v1.jpg",
+                content_type="image/jpeg",
+                image_data=b"first",
+                uploaded_by_user_id="admin-1",
+            )
+            session.commit()
+
+            second = upload_floor_plan(
+                session,
+                unit_type_id,
+                filename="v2.jpg",
+                content_type="image/png",
+                image_data=b"second",
+                uploaded_by_user_id="admin-1",
+            )
+            session.commit()
+
+            assert second.id == first.id
+            detail = unit_type_detail(session, unit_type_id)
+            assert len(detail.versions) == 1
+            plan = detail.versions[0].floor_plan
+            assert plan.file_ref == "v2.jpg"
+            assert plan.image_data == b"second"
+
+    def test_an_already_approved_version_refuses_a_new_image(self, db) -> None:
+        with db() as session:
+            unit_type_id = self._draft(session)
+            approve_unit_type(session, unit_type_id, by_user_id="admin-1")
+            session.commit()
+
+            with pytest.raises(WrongStatus):
+                upload_floor_plan(
+                    session,
+                    unit_type_id,
+                    filename="v2.jpg",
+                    content_type="image/jpeg",
+                    image_data=b"data",
+                    uploaded_by_user_id="admin-1",
+                )
+
+    def test_too_large_is_refused(self, db) -> None:
+        with db() as session:
+            unit_type_id = self._draft(session)
+            with pytest.raises(ValueError):
+                upload_floor_plan(
+                    session,
+                    unit_type_id,
+                    filename="huge.jpg",
+                    content_type="image/jpeg",
+                    image_data=b"x" * (10 * 1024 * 1024 + 1),
+                    uploaded_by_user_id="admin-1",
+                )
+
+    def test_an_unknown_unit_type_is_an_error(self, db) -> None:
+        with db() as session, pytest.raises(NoSuchUnitType):
+            upload_floor_plan(
+                session,
+                "not-a-real-id",
+                filename="x.jpg",
+                content_type="image/jpeg",
+                image_data=b"x",
+                uploaded_by_user_id="admin-1",
+            )
+
+
+class TestCalibration:
+    def _floor_plan(self, session) -> tuple[str, str]:
+        """Returns (unit_type_id, floor_plan_id)."""
+        project = create_project(session, name="ABC Development")
+        session.commit()
+        unit_type = create_unit_type(
+            session, project_id=project.id, name="Type B", created_by_user_id="admin-1"
+        )
+        session.commit()
+        plan = upload_floor_plan(
+            session,
+            unit_type.id,
+            filename="plan.jpg",
+            content_type="image/jpeg",
+            image_data=b"data",
+            uploaded_by_user_id="admin-1",
+        )
+        session.commit()
+        return unit_type.id, plan.id
+
+    def _floor_plan_id(self, session) -> str:
+        return self._floor_plan(session)[1]
+
+    def test_the_scale_is_an_exact_rational(self, db) -> None:
+        with db() as session:
+            floor_plan_id = self._floor_plan_id(session)
+            # A wall photographed as 500px, known from the schedule to be
+            # 3000mm (30000 tenths) -- 30000/500 reduces to 60/1, printed as
+            # a whole number the same way Fraction always does.
+            plan = calibrate_floor_plan(
+                session, floor_plan_id, pixel_distance=500, real_distance_tmm=30000
+            )
+            session.commit()
+            assert plan.scale_tmm_per_px == "60"
+
+    def test_a_ratio_that_does_not_reduce_to_a_whole_number_stays_exact(
+        self, db
+    ) -> None:
+        with db() as session:
+            floor_plan_id = self._floor_plan_id(session)
+            plan = calibrate_floor_plan(
+                session, floor_plan_id, pixel_distance=381, real_distance_tmm=4375
+            )
+            session.commit()
+            assert plan.scale_tmm_per_px == "4375/381"
+
+    def test_recalibrating_overwrites_the_old_scale(self, db) -> None:
+        with db() as session:
+            unit_type_id, floor_plan_id = self._floor_plan(session)
+            calibrate_floor_plan(
+                session, floor_plan_id, pixel_distance=500, real_distance_tmm=30000
+            )
+            session.commit()
+            calibrate_floor_plan(
+                session, floor_plan_id, pixel_distance=250, real_distance_tmm=30000
+            )
+            session.commit()
+
+            detail = unit_type_detail(session, unit_type_id)
+            assert detail.versions[0].floor_plan.scale_tmm_per_px == "120"
+
+    def test_zero_pixels_is_refused_not_a_division_error(self, db) -> None:
+        with db() as session:
+            floor_plan_id = self._floor_plan_id(session)
+            with pytest.raises(ValueError):
+                calibrate_floor_plan(
+                    session, floor_plan_id, pixel_distance=0, real_distance_tmm=30000
+                )
+
+    def test_an_unknown_floor_plan_is_an_error(self, db) -> None:
+        with db() as session, pytest.raises(NoSuchFloorPlan):
+            calibrate_floor_plan(
+                session, "not-a-real-id", pixel_distance=100, real_distance_tmm=1000
+            )

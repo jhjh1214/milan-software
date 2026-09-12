@@ -23,6 +23,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     String,
     Text,
     UniqueConstraint,
@@ -965,6 +966,14 @@ class FloorPlan(Base):
     actually submitted -- the same reasoning that keeps a photo per window on
     the handset (§8).
 
+    ``image_data`` lives in Postgres rather than an object store. There is no
+    deployed environment yet to hold a bucket's credentials, and a
+    business at this scale's floor plans are a handful of images, not a
+    media library -- ``deploy/backup.sh`` already covers this table for free,
+    which a separate store would not. If usage ever outgrows a database
+    column, the fix is changing what's behind ``GET /api/floor-plans/{id}/
+    image``, not the contract in front of it.
+
     ``scale_tmm_per_px`` is an exact rational written as a string, exactly
     like ``OrderLine.applied_discount_pct`` -- never a float, because it is a
     ratio used to place taps on the image and CLAUDE.md's arithmetic
@@ -980,9 +989,11 @@ class FloorPlan(Base):
     unit_type_version_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("unit_type_versions.id", ondelete="CASCADE"), unique=True
     )
-    #: Wherever the file actually lives -- object storage key or path. This
-    #: table stores the reference, not the bytes.
+    #: The original filename, kept for display. Never a path -- the bytes
+    #: are `image_data`, not a file this column points at.
     file_ref: Mapped[str] = mapped_column(String(300))
+    content_type: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    image_data: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     #: "12/1" style rational: tenths-of-a-millimetre per pixel. Null until an
     #: admin calibrates it by tapping two points of a known dimension.
     scale_tmm_per_px: Mapped[str | None] = mapped_column(String(24), nullable=True)

@@ -6,3 +6,7 @@ alembic==1.14.0
 psycopg[binary]==3.2.3
 pydantic==2.10.4
 pydantic-settings==2.7.0
+# Multipart form parsing -- FastAPI's UploadFile needs it, but does not
+# depend on it directly. The floor plan upload is the first thing in this
+# app that takes a file rather than JSON.
+python-multipart==0.0.20

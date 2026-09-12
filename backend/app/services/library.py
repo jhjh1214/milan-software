@@ -35,6 +35,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from fractions import Fraction
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
@@ -58,6 +59,20 @@ class NoSuchUnitType(Exception):
 
 class WrongStatus(Exception):
     """The unit type is not in the status this action requires."""
+
+
+class NoSuchFloorPlan(Exception):
+    pass
+
+
+class NoVersionYet(Exception):
+    """A unit type with no version to attach a floor plan to.
+
+    Cannot actually happen through this module's own `create_unit_type` --
+    every unit type is created with a version 1 -- but a caller reaching
+    this by id rather than by the object it just created should not be
+    trusted to have gotten that right.
+    """
 
 
 @dataclass(frozen=True)
@@ -330,6 +345,101 @@ def list_unit_types(
     if status:
         stmt = stmt.where(UnitType.status == status)
     return list(session.scalars(stmt))
+
+
+#: A generous cap for a scanned floor plan. Stored in Postgres rather than
+#: an object store (see `FloorPlan`'s own docstring for why) -- this keeps a
+#: single upload from turning into an unbounded row.
+MAX_FLOOR_PLAN_BYTES = 10 * 1024 * 1024
+
+
+def upload_floor_plan(
+    session: Session,
+    unit_type_id: str,
+    *,
+    filename: str,
+    content_type: str,
+    image_data: bytes,
+    uploaded_by_user_id: str | None,
+) -> FloorPlan:
+    """Attaches (or replaces) the image on a unit type's latest version.
+
+    Refuses once that version is `approved`: a correction to the image is a
+    new version, the same rule as a correction to the openings or rooms --
+    not an edit to a row already live in the library. `add_corrected_version`
+    is the way in after that point.
+    """
+    if session.get(UnitType, unit_type_id) is None:
+        raise NoSuchUnitType(unit_type_id)
+    if len(image_data) > MAX_FLOOR_PLAN_BYTES:
+        raise ValueError(f"floor plan exceeds {MAX_FLOOR_PLAN_BYTES} bytes")
+
+    version = _latest_version(session, unit_type_id)
+    if version is None:
+        raise NoVersionYet(unit_type_id)
+    if version.approved_at is not None:
+        raise WrongStatus(
+            f'version {version.version} of "{unit_type_id}" is already approved'
+        )
+
+    existing = session.scalars(
+        select(FloorPlan).where(FloorPlan.unit_type_version_id == version.id)
+    ).first()
+    if existing is not None:
+        existing.file_ref = filename
+        existing.content_type = content_type
+        existing.image_data = image_data
+        existing.uploaded_by_user_id = uploaded_by_user_id
+        existing.uploaded_at = datetime.now(UTC)
+        session.flush()
+        return existing
+
+    plan = FloorPlan(
+        id=str(uuid.uuid4()),
+        unit_type_version_id=version.id,
+        file_ref=filename,
+        content_type=content_type,
+        image_data=image_data,
+        uploaded_by_user_id=uploaded_by_user_id,
+    )
+    session.add(plan)
+    session.flush()
+    return plan
+
+
+def floor_plan_detail(session: Session, floor_plan_id: str) -> FloorPlan | None:
+    return session.get(FloorPlan, floor_plan_id)
+
+
+def calibrate_floor_plan(
+    session: Session,
+    floor_plan_id: str,
+    *,
+    pixel_distance: int,
+    real_distance_tmm: int,
+) -> FloorPlan:
+    """Turns two tapped points into an exact scale. SPEC.md Phase 8.
+
+    `pixel_distance` is deliberately a single integer, never two pairs of
+    coordinates. The Euclidean distance between two arbitrary points is
+    irrational in general -- no representation makes that exact -- so the
+    one place this can stay a genuine rational is by never computing a
+    square root here at all. Whatever rounding a diagonal tap needs happens
+    in the calibration UI, constrained to an axis-aligned measurement or a
+    rounded on-screen distance; this function's own arithmetic is
+    `real_distance_tmm / pixel_distance`, integer over integer, exact.
+    """
+    plan = session.get(FloorPlan, floor_plan_id)
+    if plan is None:
+        raise NoSuchFloorPlan(floor_plan_id)
+    if pixel_distance <= 0:
+        raise ValueError("pixel_distance must be positive")
+    if real_distance_tmm <= 0:
+        raise ValueError("real_distance_tmm must be positive")
+
+    plan.scale_tmm_per_px = str(Fraction(real_distance_tmm, pixel_distance))
+    session.flush()
+    return plan
 
 
 def _latest_version(session: Session, unit_type_id: str) -> UnitTypeVersion | None:

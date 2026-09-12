@@ -984,6 +984,10 @@ class FloorPlanIn(BaseModel):
 class FloorPlanOut(BaseModel):
     id: str
     file_ref: str
+    #: Null means metadata exists (from `FloorPlanIn` at creation) but no
+    #: image has actually been uploaded yet -- `content_type is not None` is
+    #: what a client checks before offering to show or calibrate the image.
+    content_type: str | None
     scale_tmm_per_px: str | None
     uploaded_by_user_id: str | None
     uploaded_at: datetime
@@ -1083,3 +1087,18 @@ class NewVersionIn(BaseModel):
     rooms: list[RoomIn] = []
     floor_plan: FloorPlanIn | None = None
     note: str | None = Field(default=None, max_length=2000)
+
+
+class CalibrateFloorPlanIn(BaseModel):
+    """Two tapped points, reduced to one integer. SPEC.md Phase 8.
+
+    Not two pairs of coordinates: the Euclidean distance between two
+    arbitrary points is irrational in general, and nothing about this
+    endpoint should have to pretend otherwise. Whatever rounding a diagonal
+    tap needs happens in the calibration UI; this is what is left once that
+    is done -- a plain pixel count, so the server's own arithmetic
+    (`real_distance_tmm / pixel_distance`) stays exactly rational.
+    """
+
+    pixel_distance: int = Field(gt=0)
+    real_distance_tmm: int = Field(gt=0)

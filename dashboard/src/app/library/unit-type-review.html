@@ -71,6 +71,75 @@
           </ul>
         }
 
+        <div class="floor-plan">
+          @if (floorPlan(item); as plan) {
+            @if (imageUrl(plan.id); as url) {
+              <img
+                [src]="url"
+                [alt]="label(item)"
+                class="floor-plan-image"
+                [class.calibrating]="calibrating() === plan.id"
+                (click)="onImageClick($event, plan.id)"
+              />
+            }
+
+            @if (calibrating() === plan.id) {
+              <div class="calibrate-form">
+                <p class="hint">
+                  {{ calibPoints().length === 1 ? t().library.onePointChosen : t().library.clickTwoPoints }}
+                </p>
+                @if (calibError(); as err) {
+                  <p class="failure" role="alert">{{ err }}</p>
+                }
+                <label [attr.for]="'realdist-' + plan.id">{{ t().library.realDistanceLabel }}</label>
+                <input
+                  type="number"
+                  min="1"
+                  [id]="'realdist-' + plan.id"
+                  [value]="realDistance()"
+                  (input)="realDistance.set($any($event.target).value)"
+                />
+                <div class="actions">
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    [disabled]="!canConfirmCalibration()"
+                    (click)="confirmCalibration(item)"
+                  >
+                    {{ t().library.confirmCalibration }}
+                  </button>
+                  <button type="button" class="btn" (click)="cancelCalibrating()">
+                    {{ t().library.cancelCalibration }}
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <div class="actions">
+                <button type="button" class="btn" (click)="startCalibrating(plan.id)">
+                  {{ plan.scale_tmm_per_px === null ? t().library.calibrate : t().library.recalibrate }}
+                </button>
+                @if (plan.scale_tmm_per_px !== null) {
+                  <span class="calibrated-note">{{ t().library.calibrated }}</span>
+                }
+              </div>
+            }
+          } @else {
+            <label class="btn upload-label">
+              @if (uploading() === item.id) {
+                <span class="spinner" aria-hidden="true"></span>
+              }
+              {{ t().library.uploadFloorPlan }}
+              <input
+                type="file"
+                accept="image/*"
+                class="visually-hidden"
+                [disabled]="uploading() !== null"
+                (change)="onFileSelected(item, $event)"
+              />
+            </label>
+          }
+        </div>
+
         @if (rejectingId() === item.id) {
           <div class="reject-form">
             <label [attr.for]="'reason-' + item.id">{{ t().library.reasonLabel }}</label>
