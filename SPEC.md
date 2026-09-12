@@ -1575,17 +1575,19 @@ RM150 (P2) → RM450 (P3–4) → RM750 (P5) → RM950 (P6–7). 12-month minimu
 
 | | |
 |---|---|
-| **Done** | Phases 1–5. Every acceptance criterion names a test |
-| **Now** | **Phase 6** — finish site measurement and stabilise it |
-| **Next** | Phase 7, SQL Account export and the compliance handover |
-| **Later** | Phase 8, the Property / Project / Unit Library |
-| **Later still** | Assisted floor-plan digitisation (a Phase 8 extension) |
+| **Done** | Phases 1–6. Every acceptance criterion names a test |
+| **Now** | **Phase 7** (blocked on E1/E2/C12/C13) and **Phase 8**, running in parallel |
+| **Next** | The one piece Phase 8 has left — the handset's own floor-plan submission screen |
+| **Later** | Assisted floor-plan digitisation (a Phase 8 extension) |
 | **V2** | The customer-facing ecosystem and AI visualisation (§2.5) |
 
-**Nothing below Phase 7 is a current requirement.** They are written down so
-today's decisions do not make them expensive, not so they get built early.
-Bringing Phase 8 forward is a commercial decision, not a technical one — say so
-rather than quietly reordering.
+**Phase 8 was brought forward**, Sep 2026, ahead of the "quoted after Phase 5
+runs live two months" sequencing below — a commercial decision, not a
+technical one, made because the client's own request that month already maps
+onto this exact design (see Phase 8's own section). Said here rather than
+quietly reordering. **Phase 7 stays blocked** on a sample SQL Account import
+template (E1), the accountant's ruling on E2, and §13 C12/C13 — none of the
+four may be guessed.
 
 ---
 
@@ -1987,7 +1989,49 @@ on E2, and C12 and C13.
 ---
 
 ## PHASE 8 — Property / Project / Unit Library
-**Stage 2 · quoted after Phase 5 has run live two months**
+**Brought forward from Stage 2, Sep 2026 — in progress**
+
+Originally quoted as Stage 2, after Phase 5 had run live two months (see below
+for that reasoning — it still applies to *why* the sequencing existed, just not
+to *when* this build actually started). Brought forward because the client's
+own Sep 2026 request — store repeat-project measurements, auto-calculate a
+flooring quote from stored room areas — already maps onto this exact design;
+the commercial case predates this build rather than being assumed by it.
+
+**Done.** Migration 0007 (`projects`, `unit_types`, `unit_type_versions`,
+`openings`, `rooms`, `floor_plans`, and the provenance columns on
+`order_lines`) and migration 0008 (`floor_plans` gains `content_type` and
+`image_data` — the image itself lives in Postgres as bytes, not an object
+store: nothing in `deploy/` names one, and nothing is deployed yet to give
+one real credentials). The two-route, one-gate submission workflow below,
+the dashboard's admin review screen, and the quote wizard's "start from a
+saved plan" picker are all built and tested. The admin floor-plan upload and
+tap-to-calibrate UI is in, in all three languages: an admin's own upload
+replaces a version's image in place and is refused once that version is
+approved (a correction is a new version, never an edit to this one), and
+calibration takes a single pre-computed integer pixel distance — never two
+coordinate pairs — so the server's own scale arithmetic stays exactly
+rational even though the on-screen distance it comes from is not.
+
+**Still open.** The part-timer's own submission screen on the handset — its
+own upload + tap-to-calibrate flow, mirroring the admin one, but offline-
+capable and without the session token the dashboard's authenticated blob
+fetch relies on. This is the one item on Phase 8's scope below not yet built.
+
+**Acceptance**
+- [x] A plan-sourced line can never become an `OrderLine` except through the
+      pipeline's own site-visit gate — enforced by omission:
+      `app/services/library.py` has no concept of an order at all
+- [x] A part-timer's submission is invisible to quoting until an admin
+      approves or rejects it, both audited with the reviewer's name
+- [x] A correction to an approved unit type is a new version, never an edit
+      in place — including a correction to its floor-plan image
+- [x] A quote can start from a saved plan: project → unit type → opening,
+      gated on `status=approved` the same way the review screen gates writes
+- [x] An admin can upload a floor-plan image and calibrate its scale from the
+      dashboard, in zh/en/ms
+- [ ] A part-timer can submit a floor-plan image and calibration from the
+      handset, offline — not built
 
 ### The workflow this is for
 
