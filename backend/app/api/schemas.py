@@ -1185,3 +1185,149 @@ class UnitTypeSubmissionResult(BaseModel):
     #: True when the device's id was already known -- a retry the server had
     #: already applied, not a second submission. Mirrors `OrderResult`.
     duplicate: bool
+
+
+# ---------------------------------------------------------------------------
+# Inventory. SPEC.md Phase 9.
+# ---------------------------------------------------------------------------
+
+
+class MaterialIn(BaseModel):
+    family: str = Field(min_length=1, max_length=32)
+    #: The pricing engine's own `variant` keys this material can allocate
+    #: against -- stable identifiers, never a display string (§14.6).
+    variant_compat: list[str] = []
+    code: str = Field(min_length=1, max_length=64)
+    names: dict[str, str]
+    uom: str = Field(min_length=1, max_length=16)
+    #: Exact rational as a string, e.g. "18" -- billed-quantity units one
+    #: stock unit covers. Absent means no exact conversion is known yet
+    #: (§13 F3): allocation for this material stays manual.
+    coverage_per_unit: str | None = None
+    reorder_level: str | None = None
+
+
+class MaterialOut(BaseModel):
+    id: str
+    family: str
+    variant_compat: list[str]
+    code: str
+    names: dict[str, str]
+    uom: str
+    coverage_per_unit: str | None
+    reorder_level: str | None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class MaterialsOut(BaseModel):
+    materials: list[MaterialOut] = []
+
+
+class ReceiveStockIn(BaseModel):
+    material_id: str = Field(min_length=36, max_length=36)
+    lot_ref: str = Field(min_length=1, max_length=80)
+    qty: str = Field(min_length=1)
+    cost_sen: int | None = Field(default=None, ge=0)
+    location: str | None = Field(default=None, max_length=80)
+    received_at: datetime | None = None
+    note: str | None = Field(default=None, max_length=2000)
+
+
+class StockLotOut(BaseModel):
+    id: str
+    material_id: str
+    lot_ref: str
+    qty_on_hand: str
+    location: str | None
+    received_at: datetime
+    #: Admin-only route, so this travels -- see `StockLot`'s own docstring.
+    cost_sen: int | None
+
+
+class StockLotsOut(BaseModel):
+    lots: list[StockLotOut] = []
+
+
+class AdjustStockIn(BaseModel):
+    lot_id: str = Field(min_length=36, max_length=36)
+    #: Signed exact rational -- positive in, negative out.
+    delta: str = Field(min_length=1)
+    reason: str = Field(min_length=1, max_length=24)
+    note: str | None = Field(default=None, max_length=2000)
+
+
+class StockMovementOut(BaseModel):
+    id: str
+    material_id: str
+    lot_id: str
+    delta: str
+    reason: str
+    order_id: str | None
+    by_user_id: str
+    at: datetime
+    note: str | None
+
+
+class StockMovementsOut(BaseModel):
+    movements: list[StockMovementOut] = []
+
+
+class AllocationOut(BaseModel):
+    id: str
+    order_line_id: str
+    order_id: str
+    material_id: str
+    lot_id: str | None
+    qty: str
+    status: str
+    proposed_at: datetime
+    decided_by_user_id: str | None
+    decided_at: datetime | None
+    decision_note: str | None
+    allocated_at: datetime | None
+    released_at: datetime | None
+
+
+class AllocationsOut(BaseModel):
+    allocations: list[AllocationOut] = []
+
+
+class ManualAllocationIn(BaseModel):
+    """An admin allocates directly, already decided -- for a material with
+    no exact auto-proposal conversion (§13 F3), or a manual split across a
+    second lot.
+    """
+
+    order_line_id: str = Field(min_length=1, max_length=36)
+    order_id: str = Field(min_length=36, max_length=36)
+    material_id: str = Field(min_length=36, max_length=36)
+    lot_id: str = Field(min_length=36, max_length=36)
+    qty: str = Field(min_length=1)
+
+
+class ApproveAllocationIn(BaseModel):
+    #: Overrides the auto-picked lot -- required when a proposal had none
+    #: (§13 F3's "no single lot covers it" case), optional otherwise.
+    lot_id: str | None = Field(default=None, min_length=36, max_length=36)
+
+
+class RejectAllocationIn(BaseModel):
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class ReleaseAllocationIn(BaseModel):
+    note: str | None = Field(default=None, max_length=2000)
+
+
+class ReorderAlertOut(BaseModel):
+    material: MaterialOut
+    on_hand: str
+    committed: str
+    available: str
+    reorder_level: str
+
+
+class ReorderAlertsOut(BaseModel):
+    alerts: list[ReorderAlertOut] = []

@@ -1,0 +1,234 @@
+<header class="head">
+  <h1>{{ t().inventory.materialsTitle }}</h1>
+  @if (!adding()) {
+    <button type="button" class="primary" (click)="openAdd()">
+      {{ t().inventory.addMaterial }}
+    </button>
+  }
+</header>
+
+@if (note(); as code) {
+  <p class="note" role="status">{{ t().inventory.deactivated }}: {{ code }}</p>
+}
+@if (failure(); as failed) {
+  <p class="failure" role="alert">
+    {{ message(failed) }}
+    <button type="button" (click)="retry()">{{ t().common.reload }}</button>
+  </p>
+}
+
+@if (adding()) {
+  <form class="add" (submit)="submitAdd($event)">
+    <div>
+      <label for="family">{{ t().inventory.familyLabel }}</label>
+      <input
+        id="family"
+        [value]="family()"
+        (input)="family.set($any($event.target).value)"
+      />
+    </div>
+    <div>
+      <label for="code">{{ t().inventory.codeLabel }}</label>
+      <input
+        id="code"
+        [value]="code()"
+        (input)="code.set($any($event.target).value)"
+      />
+    </div>
+    <div>
+      <label for="name-zh">{{ t().inventory.nameZhLabel }}</label>
+      <input
+        id="name-zh"
+        [value]="nameZh()"
+        (input)="nameZh.set($any($event.target).value)"
+      />
+    </div>
+    <div>
+      <label for="name-en">{{ t().inventory.nameEnLabel }}</label>
+      <input
+        id="name-en"
+        [value]="nameEn()"
+        (input)="nameEn.set($any($event.target).value)"
+      />
+    </div>
+    <div>
+      <label for="name-ms">{{ t().inventory.nameMsLabel }}</label>
+      <input
+        id="name-ms"
+        [value]="nameMs()"
+        (input)="nameMs.set($any($event.target).value)"
+      />
+    </div>
+    <div>
+      <label for="uom">{{ t().inventory.uomLabel }}</label>
+      <select id="uom" [value]="uom()" (change)="uom.set($any($event.target).value)">
+        @for (u of uoms; track u) {
+          <option [value]="u">{{ uomLabel(u) }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label for="coverage">{{ t().inventory.coveragePerUnitLabel }}</label>
+      <input
+        id="coverage"
+        inputmode="decimal"
+        [value]="coveragePerUnit()"
+        (input)="coveragePerUnit.set($any($event.target).value)"
+      />
+      <p class="hint">{{ t().inventory.coveragePerUnitHint }}</p>
+    </div>
+    <div>
+      <label for="reorder">{{ t().inventory.reorderLevelLabel }}</label>
+      <input
+        id="reorder"
+        inputmode="decimal"
+        [value]="reorderLevel()"
+        (input)="reorderLevel.set($any($event.target).value)"
+      />
+    </div>
+    <div class="actions">
+      <button type="submit" class="primary" [disabled]="!canAdd()">
+        @if (saving()) {
+          <span class="spinner" aria-hidden="true"></span>
+        }
+        {{ saving() ? t().common.saving : t().common.save }}
+      </button>
+      <button type="button" (click)="cancelAdd()">{{ t().common.cancel }}</button>
+    </div>
+  </form>
+}
+
+@if (loading()) {
+  <table aria-hidden="true">
+    <tbody>
+      @for (i of [0, 1, 2]; track i) {
+        <tr class="empty-row">
+          <td colspan="6"><span class="skeleton" style="width: 60%"></span></td>
+        </tr>
+      }
+    </tbody>
+  </table>
+} @else if (materials().length === 0) {
+  <div class="empty-state">
+    <p>{{ t().inventory.noMaterials }}</p>
+  </div>
+} @else {
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{{ t().inventory.codeLabel }}</th>
+        <th scope="col">{{ t().inventory.familyLabel }}</th>
+        <th scope="col">{{ t().inventory.onHand }}</th>
+        <th scope="col">{{ t().inventory.available }}</th>
+        <th scope="col"></th>
+        <th scope="col">
+          <span class="visually-hidden">actions</span>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (material of materials(); track material.id) {
+        <tr>
+          <td>{{ material.code }}</td>
+          <td>{{ material.family }}</td>
+          <td class="num">{{ alertByMaterial()[material.id]?.on_hand ?? '—' }}</td>
+          <td class="num">{{ alertByMaterial()[material.id]?.available ?? '—' }}</td>
+          <td>
+            @if (alertByMaterial()[material.id]) {
+              <span class="alert-badge">{{ t().inventory.reorderAlert }}</span>
+            }
+          </td>
+          <td class="actions">
+            <button type="button" (click)="toggleExpand(material)">
+              {{ expanded() === material.id ? t().common.cancel : t().inventory.receiveStock }}
+            </button>
+            <button type="button" [disabled]="saving()" (click)="deactivate(material)">
+              {{ t().inventory.deactivate }}
+            </button>
+          </td>
+        </tr>
+        @if (expanded() === material.id) {
+          <tr class="expanded">
+            <td colspan="6">
+              <div class="lots">
+                @if (lotsFor(material).length === 0) {
+                  <p class="hint">{{ t().inventory.noLotsYet }}</p>
+                } @else {
+                  <table class="lots-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">{{ t().inventory.lotRefLabel }}</th>
+                        <th scope="col">{{ t().inventory.qtyLabel }}</th>
+                        <th scope="col">{{ t().inventory.locationLabel }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (lot of lotsFor(material); track lot.id) {
+                        <tr>
+                          <td>{{ lot.lot_ref }}</td>
+                          <td class="num">{{ lot.qty_on_hand }}</td>
+                          <td>{{ lot.location ?? '—' }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                }
+
+                <form class="receive" (submit)="submitReceive(material.id, $event)">
+                  <div>
+                    <label [attr.for]="'lot-ref-' + material.id">
+                      {{ t().inventory.lotRefLabel }}
+                    </label>
+                    <input
+                      [id]="'lot-ref-' + material.id"
+                      [value]="lotRef()"
+                      (input)="lotRef.set($any($event.target).value)"
+                    />
+                  </div>
+                  <div>
+                    <label [attr.for]="'qty-' + material.id">
+                      {{ t().inventory.qtyLabel }}
+                    </label>
+                    <input
+                      [id]="'qty-' + material.id"
+                      inputmode="decimal"
+                      [value]="receiveQty()"
+                      (input)="receiveQty.set($any($event.target).value)"
+                    />
+                  </div>
+                  <div>
+                    <label [attr.for]="'cost-' + material.id">
+                      {{ t().inventory.costLabel }}
+                    </label>
+                    <input
+                      [id]="'cost-' + material.id"
+                      inputmode="decimal"
+                      [value]="costRm()"
+                      (input)="costRm.set($any($event.target).value)"
+                    />
+                  </div>
+                  <div>
+                    <label [attr.for]="'location-' + material.id">
+                      {{ t().inventory.locationLabel }}
+                    </label>
+                    <input
+                      [id]="'location-' + material.id"
+                      [value]="location()"
+                      (input)="location.set($any($event.target).value)"
+                    />
+                  </div>
+                  <button type="submit" class="primary" [disabled]="!canReceive()">
+                    @if (saving()) {
+                      <span class="spinner" aria-hidden="true"></span>
+                    }
+                    {{ t().inventory.receiveStock }}
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+}

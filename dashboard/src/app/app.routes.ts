@@ -89,4 +89,23 @@ export const routes: Routes = [
       import('./library/unit-type-review').then((m) => m.UnitTypeReview),
     title: 'Pending unit type reviews',
   },
+  {
+    // Admin only, server-enforced. SPEC.md Phase 9. Materials, lots and the
+    // ledger -- §13 F2's named accountable person is this role.
+    path: 'inventory',
+    canActivate: [signedIn],
+    loadComponent: () =>
+      import('./inventory/materials').then((m) => m.Materials),
+    title: 'Materials',
+  },
+  {
+    // Admin only, server-enforced. SPEC.md Phase 9: an auto-proposed
+    // allocation never touches stock until this screen's Approve is clicked
+    // -- the same two-step gate the library's own review screen uses.
+    path: 'inventory/allocations',
+    canActivate: [signedIn],
+    loadComponent: () =>
+      import('./inventory/allocation-review').then((m) => m.AllocationReview),
+    title: 'Stock to approve',
+  },
 ];

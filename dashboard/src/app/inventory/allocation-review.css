@@ -1,0 +1,162 @@
+:host {
+  display: block;
+  padding: var(--space-5);
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.head {
+  margin-bottom: var(--space-4);
+}
+
+h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.card {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-4);
+}
+
+.card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.qty {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.line {
+  margin: var(--space-1) 0 var(--space-3);
+  font-size: 13px;
+  color: var(--color-fg-muted);
+}
+
+.pick-lot {
+  margin-bottom: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-warning-bg, #fff3cd);
+}
+
+.warn {
+  margin: 0 0 var(--space-2);
+  font-size: 13px;
+  color: var(--color-warning, #92650b);
+  font-weight: 600;
+}
+
+.hint {
+  margin: 0 0 var(--space-2);
+  font-size: 12px;
+  color: var(--color-fg-muted);
+}
+
+label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-fg-muted);
+  margin-bottom: var(--space-1);
+}
+
+select,
+textarea {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-fg);
+  font: inherit;
+  font-size: 14px;
+}
+
+.reject-form {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-fg);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+button.primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+  font-weight: 600;
+}
+
+button.danger {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: var(--color-on-danger);
+  font-weight: 600;
+}
+
+button:disabled {
+  background: var(--color-disabled);
+  border-color: var(--color-disabled);
+  color: #fff;
+  cursor: default;
+  opacity: 0.7;
+}
+
+.note {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius-md);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  margin-bottom: var(--space-4);
+}
+
+.failure {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  margin-bottom: var(--space-4);
+}
+
+.failure button {
+  margin-left: var(--space-3);
+}
+
+.empty-state {
+  padding: var(--space-7) 0;
+  text-align: center;
+  color: var(--color-fg-muted);
+}
+
+.skeleton-card .card {
+  height: 60px;
+}

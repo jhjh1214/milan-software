@@ -1,0 +1,195 @@
+:host {
+  display: block;
+  padding: var(--space-5);
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-fg);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease);
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--color-fg-faint);
+}
+
+button.primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+  font-weight: 600;
+}
+
+button.primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+button:disabled {
+  background: var(--color-disabled);
+  border-color: var(--color-disabled);
+  color: #fff;
+  cursor: default;
+  opacity: 0.7;
+}
+
+.add,
+.receive {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: flex-end;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-5);
+}
+
+label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-fg-muted);
+  margin-bottom: var(--space-1);
+}
+
+input,
+select {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-fg);
+  font: inherit;
+  font-size: 16px;
+}
+
+.hint {
+  margin: var(--space-1) 0 0;
+  font-size: 12px;
+  color: var(--color-fg-muted);
+  max-width: 320px;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th {
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-fg-muted);
+  padding: 0 var(--space-3) var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+td {
+  padding: 10px var(--space-3) 10px 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+  vertical-align: middle;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.note {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius-md);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.failure {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.failure button {
+  margin-left: var(--space-3);
+}
+
+.empty-row td {
+  padding: var(--space-7) 0;
+}
+
+.empty-state {
+  padding: var(--space-7) 0;
+  text-align: center;
+  color: var(--color-fg-muted);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Below the reorder level -- reads the same way an amber hold on the order
+   board does: a warning colour, never the only signal on the row. */
+.alert-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--color-warning-bg, #fff3cd);
+  color: var(--color-warning, #92650b);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+tr.expanded td {
+  background: var(--color-surface-subtle, transparent);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.lots {
+  padding: var(--space-3) 0;
+}
+
+.lots-table {
+  margin-bottom: var(--space-4);
+}

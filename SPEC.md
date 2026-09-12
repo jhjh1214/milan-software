@@ -2290,13 +2290,14 @@ unanswered until choosing one is actually worth doing.
 ---
 
 ## PHASE 9 — Inventory
-**Stage 2 · quoted after Phase 5 has run live two months**
+**Stage 2 · in progress, Sep 2026**
 
-**Tell the client before they buy it.** Stock tracking only works if **every**
+**Told the client before building it.** Stock tracking only works if **every**
 movement is recorded. If the workshop cuts fabric without recording it, numbers
 drift, staff stop trusting the screen, and you have built something worse than no
-system: a confident wrong number. This needs a **named person** accountable.
-Software cannot supply that discipline. Get the name before quoting.
+system: a confident wrong number. This needed a **named person** accountable,
+and one exists — the office's own purchasing/supplier-ordering person (§13 F2).
+Everything below is built on that answer, not around the absence of one.
 
 - **Fabric: dye lots matter.** Same code, different lot, visible colour
   difference. One order draws from one lot. Model lot, not just total.
@@ -2304,29 +2305,146 @@ Software cannot supply that discipline. Get the name before quoting.
   an offcut to stock as its own lot.
 - **SPC sells by box, is quoted by sqft.** Store `coverage_per_unit`, round up to
   whole boxes when allocating.
+- **One location.** Factory and showroom are one site (client, Sep 2026), so
+  `stock_lots.location` is a plain descriptive field — no separate locations
+  table, no per-location reorder levels.
 
 ```sql
-materials      id, family, variant_compat text[], code, names jsonb,
+materials      id, family, variant_compat jsonb, code, names jsonb,
                uom enum(metre, sqft, box, piece, roll),
-               coverage_per_unit numeric, reorder_level, is_active
-stock_lots     id, material_id, lot_ref, qty_on_hand, location,
+               coverage_per_unit text,          -- exact rational, e.g. "18"
+               reorder_level text, is_active
+stock_lots     id, material_id, lot_ref, qty_on_hand text, location,
                received_at, cost_sen           -- cost admin-only
 stock_movements  -- APPEND ONLY. The ledger is the truth.
-               id, material_id, lot_id, delta numeric,
-               reason enum(receipt, allocation, consumption, offcut_return,
-                           adjustment, damage, return_to_supplier),
+               id, material_id, lot_id, delta text,
+               reason enum(receipt, allocation, release, consumption,
+                           offcut_return, adjustment, damage,
+                           return_to_supplier),
                order_id, by_user, at, note
-allocations    id, order_line_id, material_id, lot_id, qty,
+allocations    id, order_line_id, material_id, lot_id NULL, qty text,
+               status enum(proposed, approved, rejected, released),
+               proposed_at, decided_by_user_id, decided_at, decision_note,
                allocated_at, released_at
 ```
 
-`qty_on_hand` is **derived from movements**, never edited directly. An adjustment
-is a movement with a reason, not a silent overwrite.
+**Quantities are exact rationals, stored as text** (`coverage_per_unit`,
+`reorder_level`, `qty_on_hand`, `delta`, `qty`) — the same `Fraction`
+convention as `applied_discount_pct` and a line's own `billed_qty`.
+CLAUDE.md's arithmetic invariant does not carve out an exception for a box
+count any more than it does for a calibration scale. `qty_on_hand` is
+**derived from movements**, never edited directly by a route — every write
+to it happens inside the same service function that also writes the
+movement causing it, in one transaction. An adjustment is a movement with a
+reason, not a silent overwrite.
 
-v1 scope: materials, lots, receive, allocate, ledger, reorder alerts. Purchase
-orders, supplier management and costing come later.
+**`release` is a fifth ledger reason**, added beyond the original sketch: a
+reversal of an `allocation`, for the order-cancelled-after-allocating case
+(orders are cancellable up to `ready`, §6.6). It puts the quantity back
+on the lot it came from with its own append-only row — never a deletion or
+an edit of the original `allocation` movement.
 
----
+### Two routes to a decremented lot, one gate — the same shape as the library
+
+```
+AUTO-PROPOSABLE MATERIAL   measurement lands -> auto-PROPOSED -> admin
+                           approves/rejects -> approved decrements stock;
+                           rejected decrements nothing
+EVERYTHING ELSE            admin creates the allocation directly, already
+                           decided -- there is no proposal to review because
+                           there is no automatic guess to check
+```
+
+**Auto-proposal fires once, from exactly one place**: `push_measurement`
+(§11 Phase 6), right after a line's final dimensions are set and it has
+repriced — converted from the **exact quantity `reprice_order` just
+computed**, never `OrderLine.billed_qty`, which is the fair's rounded-up
+estimate, set once at confirmation and never updated; using it here would
+size a box count off the guess instead of the tape. It looks up an active
+`materials` row whose `variant_compat`
+lists the line's `variant` — matched by variant, not `material_key`, which
+is a fabric-family colour choice within a variant and unrelated to which
+stock unit an area-priced material is; finding none, it does nothing — most
+products are never going to be inventory-tracked, and that is the ordinary
+case, not a gap. Finding one, it proposes **only when the conversion from
+billed quantity to stock quantity is exact** (§13 F3) — v1 recognises
+exactly one case: an area-priced material (`uom = box`, billed `per_sqft`),
+converted by `coverage_per_unit` and rounded up to whole boxes. Every other
+combination
+is left for a person to allocate by hand from the same screen, because
+guessing a fabric's yardage from its billed width would be inventing a
+number nobody asked this system to invent.
+
+**Picking a lot is FIFO by `received_at`, single-lot only.** The first lot
+with enough quantity on hand wins the proposal, because using the oldest
+stock first is the ordinary warehouse discipline and because a single lot
+is what keeps one order's visible colour consistent (the reason this table
+exists at all). If no one lot covers the quantity, the proposal is still
+created — `lot_id` is left null and it says so — rather than silently
+splitting across two dye lots on somebody's behalf. A person resolves that
+case: wait for stock, or accept the risk and allocate manually across two
+lots as two rows (nothing stops a second manual allocation against the same
+order line).
+
+**Approval is the only thing that ever decrements `qty_on_hand`.**
+`proposed` and `rejected` allocations never touch it — which is what makes
+"available to promise" meaningful (below): a proposal is a claim on stock,
+not yet a withdrawal of it. Rejecting requires a reason, the same rule the
+library's own reviewer already follows for a rejection.
+
+### Reorder alerts read "available", not raw on-hand
+
+```
+on_hand    = sum(stock_lots.qty_on_hand) for the material
+committed  = sum(qty) of that material's PROPOSED allocations
+             (approved ones already left on_hand, via their own movement)
+available  = on_hand - committed
+alert      = available < materials.reorder_level
+```
+
+This is **not** a demand forecast. It is what is actually free to promise
+right now, given orders already in the pipeline — deterministic, derived
+entirely from rows this system already has, with no statistical model and
+no assumption about future sales. A real forecasting feature, if it is
+ever wanted, is a different and considerably bigger capability than this,
+and is not what "v1 scope" below means by reorder alerts.
+
+**v1 scope:** materials, lots, receive, adjust, auto-propose-then-approve
+allocation for area-priced materials, manual allocation for everything
+else, the movement ledger, reorder alerts on available-to-promise. **Not
+v1:** purchase orders, supplier management, real costing/margin reporting,
+a workshop-side "mark as actually consumed" step (the `consumption` reason
+exists in the enum for that future distinction but nothing writes it yet),
+and fabric yardage modelling (§13 F3).
+
+**Built, Sep 2026.** Migration 0009 (`materials`, `stock_lots`,
+`stock_movements`, `allocations`). `app/services/inventory.py` — materials
+CRUD, `receive_stock`/`adjust_stock`, the propose→approve/reject→release
+allocation lifecycle, `available_for_material` and `reorder_alerts`. The
+one auto-proposal hook lives in `push_measurement`, sized off the exact
+final quantity `reprice_order` returns, never the line's own `billed_qty`
+column (that stays the fair's rounded-up estimate forever). Admin-only
+throughout, server-enforced (§13 F2). 54 new backend tests
+(`test_inventory.py`, `test_inventory_api.py`, and the end-to-end hook
+case in `test_measurement_push.py`).
+
+**The dashboard has two screens.** `/inventory` — materials, expandable to
+each one's lots, a receive-stock form, and the reorder-alert badge, reading
+"available" straight from the server, never computed on this screen.
+`/inventory/allocations` — the same one-gate review-queue shape the
+library's own screen uses: everything `proposed`, approve or reject, a
+lot picker when auto-proposal could not choose a single one. 15 new
+dashboard tests.
+
+**Not yet built: a dashboard control for a manual allocation.** The
+service and route (`POST /api/allocations`) exist and are tested — an
+admin can allocate a fabric line, or split across a second lot, today
+through the API — but the natural place for that control is the order
+detail screen, where an admin is already looking at an order's lines and
+its material, not the materials screen or the review queue. Left
+unbuilt rather than guessed at, the same as every other named gap in this
+document: the review queue was the one screen §13 F2's own answer made
+urgent, and it is what shipped first.
 
 # 12. NON-FUNCTIONAL TARGETS
 
@@ -2928,8 +3046,33 @@ orders, supplier management and costing come later.
 - **E4.** Company registration number, TIN, MSIC code.
 
 ## F. Inventory (P9)
-- **F1.** Is stock tracked today, or eyeballed?
-- **F2.** Who owns recording movements? A **name**, not a department.
+- ~~**F1.**~~ **ANSWERED — not known to be tracked.** No existing spreadsheet
+  or paper count can be assumed. `stock_lots` starts empty rather than being
+  seeded from an import: the first entry for any material is an ordinary
+  `receipt` movement, dated and noted as an opening balance if one is ever
+  typed in. No separate import tool is built for data that may not exist in
+  a usable form.
+- ~~**F2.**~~ **ANSWERED — the office's purchasing/supplier-ordering person.**
+  A specific individual, not a department, which is what this question
+  needed; the literal name is a business record, not something the software
+  needs to hold. Recording a movement or approving an allocation is
+  **admin-only** — matching `cost_sen` already being admin-only, and matching
+  every other stock-sensitive action in this system landing on the same role
+  that owns rate cards, overrides and exports.
+- **F3.** How much of a material does one order line actually consume? For
+  an area-priced material (SPC/vinyl/laminate, billed `per_sqft`) the
+  billed quantity **is** the area covered, so `coverage_per_unit` converts
+  it to whole boxes exactly. For fabric (curtains, billed `per_ft_width`),
+  the billed quantity is **not** the yardage consumed — real fabric use
+  depends on fullness ratio and drop height, and nothing in this pricing
+  engine models that today. Guessing a conversion here would be exactly the
+  "confident wrong number" this phase's own opening paragraph warns about,
+  so it is not guessed: **auto-proposed allocation is scoped to materials
+  where the conversion is exact** (area-priced, v1); every other material is
+  allocated **manually**, by a person who knows the real yardage, through
+  the same review screen. `[BLOCKING]` only for extending auto-proposal to
+  fabric — manual allocation and everything else in Phase 9 proceeds
+  without an answer.
 
 ## G. Commercial
 - **G1.** IP: licence, not assignment. Confirm before signing.

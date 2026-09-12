@@ -22,6 +22,8 @@ import { Observable, from, switchMap } from 'rxjs';
 
 import type {
   AddPersonIn,
+  AllocationOut,
+  AllocationsOut,
   BalancesReport,
   BuyerDetailsIn,
   BuyerDetailsResult,
@@ -33,6 +35,8 @@ import type {
   FairReport,
   FloorPlanOut,
   ListId,
+  MaterialOut,
+  MaterialsOut,
   MeasurementQueueOut,
   OrderDetailOut,
   OrderStatus,
@@ -42,6 +46,10 @@ import type {
   PersonOut,
   ProjectsOut,
   PublishOut,
+  ReorderAlertsOut,
+  StockLotOut,
+  StockLotsOut,
+  StockMovementOut,
   UnitTypeDetailOut,
   UnitTypeStatus,
   UnitTypesOut,
@@ -415,6 +423,137 @@ export class Api {
         ),
       ),
     );
+  }
+
+  // ---------------------------------------------------------------------
+  // Inventory. SPEC.md Phase 9. Every route is admin-only, server-enforced
+  // (§13 F2).
+  // ---------------------------------------------------------------------
+
+  materials(activeOnly = true): Observable<MaterialsOut> {
+    const params = new HttpParams().set('active_only', String(activeOnly));
+    return this.http.get<MaterialsOut>(`${API_BASE}/materials`, {
+      params,
+      headers: this.authorised(),
+    });
+  }
+
+  createMaterial(material: {
+    family: string;
+    variant_compat: readonly string[];
+    code: string;
+    names: Readonly<Record<string, string>>;
+    uom: string;
+    coverage_per_unit?: string | null;
+    reorder_level?: string | null;
+  }): Observable<MaterialOut> {
+    return this.http.post<MaterialOut>(`${API_BASE}/materials`, material, {
+      headers: this.authorised(),
+    });
+  }
+
+  deactivateMaterial(id: string): Observable<MaterialOut> {
+    return this.http.post<MaterialOut>(
+      `${API_BASE}/materials/${id}/deactivate`,
+      {},
+      { headers: this.authorised() },
+    );
+  }
+
+  stockLots(materialId: string): Observable<StockLotsOut> {
+    const params = new HttpParams().set('material_id', materialId);
+    return this.http.get<StockLotsOut>(`${API_BASE}/stock/lots`, {
+      params,
+      headers: this.authorised(),
+    });
+  }
+
+  receiveStock(receipt: {
+    material_id: string;
+    lot_ref: string;
+    qty: string;
+    cost_sen?: number | null;
+    location?: string | null;
+    note?: string | null;
+  }): Observable<StockLotOut> {
+    return this.http.post<StockLotOut>(`${API_BASE}/stock/receive`, receipt, {
+      headers: this.authorised(),
+    });
+  }
+
+  adjustStock(adjustment: {
+    lot_id: string;
+    delta: string;
+    reason: string;
+    note?: string | null;
+  }): Observable<StockMovementOut> {
+    return this.http.post<StockMovementOut>(
+      `${API_BASE}/stock/adjust`,
+      adjustment,
+      { headers: this.authorised() },
+    );
+  }
+
+  /** Defaults to the review queue -- everything `proposed`. */
+  allocations(status: string = 'proposed'): Observable<AllocationsOut> {
+    const params = new HttpParams().set('status', status);
+    return this.http.get<AllocationsOut>(`${API_BASE}/allocations`, {
+      params,
+      headers: this.authorised(),
+    });
+  }
+
+  /** An admin allocates directly, already decided -- for a material with no
+   * exact auto-proposal conversion (§13 F3), or a manual split across a
+   * second lot. */
+  createManualAllocation(allocation: {
+    order_line_id: string;
+    order_id: string;
+    material_id: string;
+    lot_id: string;
+    qty: string;
+  }): Observable<AllocationOut> {
+    return this.http.post<AllocationOut>(
+      `${API_BASE}/allocations`,
+      allocation,
+      { headers: this.authorised() },
+    );
+  }
+
+  /** `lotId` overrides the auto-picked lot -- required when a proposal had
+   * none (§13 F3's "no single lot covers it" case). */
+  approveAllocation(id: string, lotId?: string | null): Observable<AllocationOut> {
+    return this.http.post<AllocationOut>(
+      `${API_BASE}/allocations/${id}/approve`,
+      { lot_id: lotId ?? null },
+      { headers: this.authorised() },
+    );
+  }
+
+  rejectAllocation(id: string, reason: string): Observable<AllocationOut> {
+    return this.http.post<AllocationOut>(
+      `${API_BASE}/allocations/${id}/reject`,
+      { reason },
+      { headers: this.authorised() },
+    );
+  }
+
+  /** An order cancelled after stock was set aside for it. Puts the
+   * quantity back on the lot it came from. */
+  releaseAllocation(id: string, note?: string | null): Observable<AllocationOut> {
+    return this.http.post<AllocationOut>(
+      `${API_BASE}/allocations/${id}/release`,
+      { note: note ?? null },
+      { headers: this.authorised() },
+    );
+  }
+
+  /** "Available", not raw on-hand -- SPEC.md §11 Phase 9. Not a forecast:
+   * every figure is a row the server already has. */
+  reorderAlerts(): Observable<ReorderAlertsOut> {
+    return this.http.get<ReorderAlertsOut>(`${API_BASE}/inventory/alerts`, {
+      headers: this.authorised(),
+    });
   }
 
   private authorised(): Record<string, string> {

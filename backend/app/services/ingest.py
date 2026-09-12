@@ -84,6 +84,7 @@ from ..pricing.order_status import (
     advance_order,
 )
 from ..pricing.price_override import override_line_price
+from .inventory import propose_allocation_for_line
 from .order_numbers import issue_order_no
 from .receipts import issue_receipt_no
 
@@ -873,6 +874,19 @@ def push_measurement(
                 detail="final pricing",
             )
         )
+
+    # SPEC.md Phase 9's one auto-allocation trigger: right after this line's
+    # final pricing is known. `this_line.billed_qty` is the exact quantity
+    # `reprice_order` just computed, never `line.billed_qty` -- that column
+    # is the fair's rounded-up estimate and never updated. Proposes only
+    # where the conversion is exact (§13 F3); does nothing for the ordinary
+    # case of a non-inventory-tracked or fabric-billed line.
+    propose_allocation_for_line(
+        session,
+        order_line=line,
+        order_id=order.id,
+        final_billed_qty=None if this_line is None else this_line.billed_qty,
+    )
 
     session.flush()
 

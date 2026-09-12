@@ -1003,3 +1003,189 @@ class FloorPlan(Base):
     )
 
     version: Mapped[UnitTypeVersion] = relationship(back_populates="floor_plan")
+
+
+class Material(Base):
+    """A stocked material, tracked so a real order actually consumes real
+    stock. SPEC.md Phase 9.
+
+    ``id`` is **server-generated**, the same exception ``Project`` already
+    makes and for the same reason: created at a desk with a connection, by
+    the one admin role that manages stock (§13 F2), never offline at a fair.
+
+    ``variant_compat`` is a JSON list of the pricing engine's own ``variant``
+    keys (`OrderLine.variant`), not a family name -- matching everything
+    else in this codebase, stable identifiers over display strings (§14.6).
+    It is what `push_measurement`'s auto-allocation hook checks a line
+    against; an empty or missing match means "not inventory-tracked", the
+    ordinary case for most products.
+
+    ``coverage_per_unit`` and ``reorder_level`` are exact rationals stored as
+    text, like ``OrderLine.billed_qty`` -- a box count is still a quantity,
+    and CLAUDE.md's arithmetic invariant does not carve out an exception for
+    inventory any more than it does for a calibration scale.
+    """
+
+    __tablename__ = "materials"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    family: Mapped[str] = mapped_column(String(32))
+    variant_compat: Mapped[list] = mapped_column(JsonColumn, default=list)
+    code: Mapped[str] = mapped_column(String(64), unique=True)
+    names: Mapped[dict] = mapped_column(JsonColumn)
+    #: `metre`, `sqft`, `box`, `piece` or `roll`.
+    uom: Mapped[str] = mapped_column(String(16))
+    #: Billed-quantity units one stock unit covers, e.g. sqft per box. Null
+    #: when no exact conversion is known yet (§13 F3) -- allocation then
+    #: stays manual for this material, never guessed.
+    coverage_per_unit: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    reorder_level: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    lots: Mapped[list[StockLot]] = relationship(back_populates="material")
+
+    __table_args__ = (Index("ix_materials_family", "family"),)
+
+
+class StockLot(Base):
+    """One physical delivery of a material. SPEC.md Phase 9.
+
+    A **new row per delivery**, never merged into an existing lot by the
+    system -- "same code, different lot, visible colour difference" means
+    two deliveries of the same material are two lots even when nothing else
+    about them differs, unless the person receiving it says otherwise by
+    re-using the same ``lot_ref`` (a genuine top-up of one physical batch,
+    e.g. a completed backorder).
+
+    ``qty_on_hand`` is **derived from movements, never edited directly by a
+    route** -- every write to it happens inside the same service function
+    that also inserts the ``StockMovement`` causing it, one transaction,
+    the same discipline `Order.final_total_sen` already keeps with its own
+    pricing.
+    """
+
+    __tablename__ = "stock_lots"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    material_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("materials.id", ondelete="CASCADE")
+    )
+    lot_ref: Mapped[str] = mapped_column(String(80))
+    qty_on_hand: Mapped[str] = mapped_column(String(32))
+    #: Free text -- one site (client, Sep 2026: factory and showroom
+    #: together), so this is descriptive only, never a join key.
+    location: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    #: Admin-only on the way out, the same as everywhere else cost appears.
+    cost_sen: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+
+    material: Mapped[Material] = relationship(back_populates="lots")
+
+    __table_args__ = (
+        Index("ix_stock_lots_material", "material_id"),
+        UniqueConstraint(
+            "material_id", "lot_ref", name="uq_stock_lots_material_lot_ref"
+        ),
+    )
+
+
+class StockMovement(Base):
+    """The ledger. APPEND ONLY. SPEC.md Phase 9.
+
+    The one thing that is ever true about stock is what this table says
+    happened to it. ``qty_on_hand`` is a convenience the service layer keeps
+    in step with this table in the same transaction; if the two ever
+    disagree, this table is what is right.
+    """
+
+    __tablename__ = "stock_movements"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    material_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("materials.id", ondelete="CASCADE")
+    )
+    lot_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("stock_lots.id", ondelete="CASCADE")
+    )
+    #: Exact rational, signed -- positive in, negative out.
+    delta: Mapped[str] = mapped_column(String(32))
+    #: `receipt`, `allocation`, `release`, `consumption`, `offcut_return`,
+    #: `adjustment`, `damage` or `return_to_supplier`. `release` reverses an
+    #: `allocation` (an order cancelled after stock was set aside for it);
+    #: `consumption` is reserved for a future workshop-side "actually used"
+    #: step nothing writes yet (§11 Phase 9).
+    reason: Mapped[str] = mapped_column(String(24))
+    order_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    by_user_id: Mapped[str] = mapped_column(String(36))
+    at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        Index("ix_stock_movements_lot", "lot_id"),
+        Index("ix_stock_movements_material", "material_id"),
+    )
+
+
+class Allocation(Base):
+    """One order line's claim on a material. SPEC.md Phase 9.
+
+    Two routes to `approved`, the same one-gate shape the property library
+    already uses: an auto-proposable material lands at `proposed` from
+    `push_measurement`'s own hook and waits for an admin; everything else is
+    created by an admin already at a decision, because there is no automatic
+    guess to check.
+
+    `lot_id` is null while `proposed` with no single lot covering the
+    quantity -- left for a person to resolve, never a silent multi-lot
+    split. A second manual `Allocation` row against the same
+    `order_line_id` is how a person actually splits one across two lots.
+
+    Only `approved` ever produces a `StockMovement` (reason `allocation`) and
+    decrements a lot; `proposed` and `rejected` never touch stock, which is
+    what makes "available to promise" (on-hand minus proposed) a real
+    number rather than one two different reads disagree about.
+    """
+
+    __tablename__ = "allocations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    order_line_id: Mapped[str] = mapped_column(String(36))
+    order_id: Mapped[str] = mapped_column(String(36))
+    material_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("materials.id", ondelete="CASCADE")
+    )
+    lot_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("stock_lots.id"), nullable=True
+    )
+    qty: Mapped[str] = mapped_column(String(32))
+    #: `proposed`, `approved`, `rejected` or `released`.
+    status: Mapped[str] = mapped_column(String(16), default="proposed")
+    proposed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    decided_by_user_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    decided_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    #: Required on a rejection -- the same rule the library's own reviewer
+    #: already follows (`reject_unit_type`).
+    decision_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    allocated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    released_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        Index("ix_allocations_order_line", "order_line_id"),
+        Index("ix_allocations_material_status", "material_id", "status"),
+    )

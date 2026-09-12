@@ -34,10 +34,15 @@ from fastapi import (
     UploadFile,
     status,
 )
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .api.schemas import (
     AddPersonIn,
+    AdjustStockIn,
+    AllocationOut,
+    AllocationsOut,
+    ApproveAllocationIn,
     BalancesReport,
     BundleOut,
     BuyerDetailsIn,
@@ -56,6 +61,10 @@ from .api.schemas import (
     LockPushResult,
     LocksOut,
     LoginIn,
+    ManualAllocationIn,
+    MaterialIn,
+    MaterialOut,
+    MaterialsOut,
     MeasurementIn,
     MeasurementQueueOut,
     MeasurementResult,
@@ -81,14 +90,22 @@ from .api.schemas import (
     PushResult,
     QuoteIn,
     RateChangeOut,
+    ReceiveStockIn,
     RecognizeIn,
+    RejectAllocationIn,
     RejectUnitTypeIn,
+    ReleaseAllocationIn,
+    ReorderAlertOut,
+    ReorderAlertsOut,
     RoomOut,
     SessionOut,
     SetLanguageIn,
     SetPinIn,
     StatusChangeIn,
     StatusChangeResult,
+    StockLotOut,
+    StockLotsOut,
+    StockMovementOut,
     UnitTypeCreateIn,
     UnitTypeDetailOut,
     UnitTypeOut,
@@ -112,11 +129,16 @@ from .api.schemas import (
 from .core.security import WeakPin
 from .db import session_scope
 from .models.db import (
+    Allocation,
     DeviceSession,
     FloorPlan,
+    Material,
     Opening,
+    OrderLine,
     Project,
     Room,
+    StockLot,
+    StockMovement,
     UnitType,
     UnitTypeVersion,
     User,
@@ -143,6 +165,30 @@ from .services.ingest import (
     push_order,
     push_payment,
     push_quote,
+)
+from .services.inventory import (
+    DuplicateMaterialCode,
+    NoSuchAllocation,
+    adjust_stock,
+    approve_allocation,
+    create_manual_allocation,
+    create_material,
+    deactivate_material,
+    list_materials,
+    pending_allocations,
+    receive_stock,
+    reject_allocation,
+    release_allocation,
+    reorder_alerts,
+)
+from .services.inventory import (
+    NoSuchLot as NoSuchStockLot,
+)
+from .services.inventory import (
+    NoSuchMaterial as NoSuchMaterialForStock,
+)
+from .services.inventory import (
+    WrongStatus as AllocationWrongStatus,
 )
 from .services.library import (
     ALLOWED_FLOOR_PLAN_CONTENT_TYPES,
@@ -1410,3 +1456,327 @@ def submit_unit_type_from_device_route(
         raise HTTPException(HTTP_422_UNPROCESSABLE, str(exc)) from exc
 
     return UnitTypeSubmissionResult(unit_type_id=unit_type.id, duplicate=duplicate)
+
+
+# ---------------------------------------------------------------------------
+# Inventory. SPEC.md Phase 9. Admin-only throughout -- §13 F2's named
+# accountable person is an office role, the same one that already owns rate
+# cards, overrides and exports.
+# ---------------------------------------------------------------------------
+
+
+def _material_out(material: Material) -> MaterialOut:
+    return MaterialOut(
+        id=material.id,
+        family=material.family,
+        variant_compat=list(material.variant_compat or []),
+        code=material.code,
+        names=material.names,
+        uom=material.uom,
+        coverage_per_unit=material.coverage_per_unit,
+        reorder_level=material.reorder_level,
+        is_active=material.is_active,
+        created_at=material.created_at,
+        updated_at=material.updated_at,
+    )
+
+
+def _stock_lot_out(lot: StockLot) -> StockLotOut:
+    return StockLotOut(
+        id=lot.id,
+        material_id=lot.material_id,
+        lot_ref=lot.lot_ref,
+        qty_on_hand=lot.qty_on_hand,
+        location=lot.location,
+        received_at=lot.received_at,
+        cost_sen=lot.cost_sen,
+    )
+
+
+def _movement_out(movement: StockMovement) -> StockMovementOut:
+    return StockMovementOut(
+        id=movement.id,
+        material_id=movement.material_id,
+        lot_id=movement.lot_id,
+        delta=movement.delta,
+        reason=movement.reason,
+        order_id=movement.order_id,
+        by_user_id=movement.by_user_id,
+        at=movement.at,
+        note=movement.note,
+    )
+
+
+def _allocation_out(allocation: Allocation) -> AllocationOut:
+    return AllocationOut(
+        id=allocation.id,
+        order_line_id=allocation.order_line_id,
+        order_id=allocation.order_id,
+        material_id=allocation.material_id,
+        lot_id=allocation.lot_id,
+        qty=allocation.qty,
+        status=allocation.status,
+        proposed_at=allocation.proposed_at,
+        decided_by_user_id=allocation.decided_by_user_id,
+        decided_at=allocation.decided_at,
+        decision_note=allocation.decision_note,
+        allocated_at=allocation.allocated_at,
+        released_at=allocation.released_at,
+    )
+
+
+@app.post(
+    "/api/materials", response_model=MaterialOut, status_code=status.HTTP_201_CREATED
+)
+def create_material_route(
+    payload: MaterialIn, session: SessionDep, admin: AdminDep
+) -> MaterialOut:
+    _ = admin
+    try:
+        material = create_material(
+            session,
+            family=payload.family,
+            variant_compat=payload.variant_compat,
+            code=payload.code,
+            names=payload.names,
+            uom=payload.uom,
+            coverage_per_unit=payload.coverage_per_unit,
+            reorder_level=payload.reorder_level,
+        )
+    except DuplicateMaterialCode as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "material code already exists"
+        ) from exc
+    return _material_out(material)
+
+
+@app.get("/api/materials", response_model=MaterialsOut)
+def list_materials_route(
+    session: SessionDep, admin: AdminDep, active_only: bool = True
+) -> MaterialsOut:
+    _ = admin
+    return MaterialsOut(
+        materials=[
+            _material_out(m) for m in list_materials(session, active_only=active_only)
+        ]
+    )
+
+
+@app.post("/api/materials/{material_id}/deactivate", response_model=MaterialOut)
+def deactivate_material_route(
+    material_id: str, session: SessionDep, admin: AdminDep
+) -> MaterialOut:
+    _ = admin
+    try:
+        material = deactivate_material(session, material_id)
+    except NoSuchMaterialForStock as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such material") from exc
+    return _material_out(material)
+
+
+@app.post("/api/stock/receive", response_model=StockLotOut)
+def receive_stock_route(
+    payload: ReceiveStockIn, session: SessionDep, admin: AdminDep
+) -> StockLotOut:
+    try:
+        lot = receive_stock(
+            session,
+            material_id=payload.material_id,
+            lot_ref=payload.lot_ref,
+            qty=payload.qty,
+            by_user_id=admin.id,
+            cost_sen=payload.cost_sen,
+            location=payload.location,
+            received_at=payload.received_at,
+            note=payload.note,
+        )
+    except NoSuchMaterialForStock as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such material") from exc
+    except ValueError as exc:
+        raise HTTPException(HTTP_422_UNPROCESSABLE, str(exc)) from exc
+    return _stock_lot_out(lot)
+
+
+@app.get("/api/stock/lots", response_model=StockLotsOut)
+def list_stock_lots_route(
+    session: SessionDep, admin: AdminDep, material_id: str | None = None
+) -> StockLotsOut:
+    _ = admin
+    stmt = select(StockLot)
+    if material_id:
+        stmt = stmt.where(StockLot.material_id == material_id)
+    stmt = stmt.order_by(StockLot.received_at)
+    return StockLotsOut(lots=[_stock_lot_out(lot) for lot in session.scalars(stmt)])
+
+
+@app.post("/api/stock/adjust", response_model=StockMovementOut)
+def adjust_stock_route(
+    payload: AdjustStockIn, session: SessionDep, admin: AdminDep
+) -> StockMovementOut:
+    try:
+        movement = adjust_stock(
+            session,
+            lot_id=payload.lot_id,
+            delta=payload.delta,
+            reason=payload.reason,
+            by_user_id=admin.id,
+            note=payload.note,
+        )
+    except NoSuchStockLot as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such stock lot") from exc
+    except ValueError as exc:
+        raise HTTPException(HTTP_422_UNPROCESSABLE, str(exc)) from exc
+    return _movement_out(movement)
+
+
+@app.get("/api/allocations", response_model=AllocationsOut)
+def list_allocations_route(
+    session: SessionDep,
+    admin: AdminDep,
+    status_filter: str | None = Query(default=None, alias="status"),
+) -> AllocationsOut:
+    """Defaults to the review queue -- everything `proposed` -- the same
+    "the whole control is on this being read" ethos as the library's own
+    review screen. Pass `status` to see anything else.
+    """
+    _ = admin
+    if status_filter is None or status_filter == "proposed":
+        rows = pending_allocations(session)
+    else:
+        rows = list(
+            session.scalars(
+                select(Allocation)
+                .where(Allocation.status == status_filter)
+                .order_by(Allocation.proposed_at)
+            )
+        )
+    return AllocationsOut(allocations=[_allocation_out(a) for a in rows])
+
+
+@app.post(
+    "/api/allocations",
+    response_model=AllocationOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_manual_allocation_route(
+    payload: ManualAllocationIn, session: SessionDep, admin: AdminDep
+) -> AllocationOut:
+    """An admin allocates directly, already decided -- for a material with
+    no exact auto-proposal conversion (§13 F3), or a manual split across a
+    second lot.
+    """
+    if session.get(OrderLine, payload.order_line_id) is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such order line")
+    try:
+        allocation = create_manual_allocation(
+            session,
+            order_line_id=payload.order_line_id,
+            order_id=payload.order_id,
+            material_id=payload.material_id,
+            lot_id=payload.lot_id,
+            qty=payload.qty,
+            by_user_id=admin.id,
+        )
+    except NoSuchMaterialForStock as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such material") from exc
+    except NoSuchStockLot as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such stock lot") from exc
+    except ValueError as exc:
+        raise HTTPException(HTTP_422_UNPROCESSABLE, str(exc)) from exc
+    return _allocation_out(allocation)
+
+
+@app.post("/api/allocations/{allocation_id}/approve", response_model=AllocationOut)
+def approve_allocation_route(
+    allocation_id: str,
+    payload: ApproveAllocationIn,
+    session: SessionDep,
+    admin: AdminDep,
+) -> AllocationOut:
+    try:
+        allocation = approve_allocation(
+            session,
+            allocation_id=allocation_id,
+            by_user_id=admin.id,
+            lot_id=payload.lot_id,
+        )
+    except NoSuchAllocation as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such allocation") from exc
+    except NoSuchStockLot as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such stock lot") from exc
+    except AllocationWrongStatus as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(HTTP_422_UNPROCESSABLE, str(exc)) from exc
+    return _allocation_out(allocation)
+
+
+@app.post("/api/allocations/{allocation_id}/reject", response_model=AllocationOut)
+def reject_allocation_route(
+    allocation_id: str,
+    payload: RejectAllocationIn,
+    session: SessionDep,
+    admin: AdminDep,
+) -> AllocationOut:
+    try:
+        allocation = reject_allocation(
+            session,
+            allocation_id=allocation_id,
+            by_user_id=admin.id,
+            reason=payload.reason,
+        )
+    except NoSuchAllocation as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such allocation") from exc
+    except AllocationWrongStatus as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(HTTP_422_UNPROCESSABLE, str(exc)) from exc
+    return _allocation_out(allocation)
+
+
+@app.post("/api/allocations/{allocation_id}/release", response_model=AllocationOut)
+def release_allocation_route(
+    allocation_id: str,
+    payload: ReleaseAllocationIn,
+    session: SessionDep,
+    admin: AdminDep,
+) -> AllocationOut:
+    """An order cancelled after stock was set aside for it (§6.6: orders are
+    cancellable up to `ready`). Puts the quantity back on the lot it came
+    from.
+    """
+    try:
+        allocation = release_allocation(
+            session,
+            allocation_id=allocation_id,
+            by_user_id=admin.id,
+            note=payload.note,
+        )
+    except NoSuchAllocation as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such allocation") from exc
+    except NoSuchStockLot as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such stock lot") from exc
+    except AllocationWrongStatus as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    return _allocation_out(allocation)
+
+
+@app.get("/api/inventory/alerts", response_model=ReorderAlertsOut)
+def reorder_alerts_route(session: SessionDep, admin: AdminDep) -> ReorderAlertsOut:
+    """"Available", not raw on-hand -- on hand minus what is already
+    proposed against a confirmed order. Not a forecast (SPEC.md §11
+    Phase 9): every number in it is a row this system already has.
+    """
+    _ = admin
+    return ReorderAlertsOut(
+        alerts=[
+            ReorderAlertOut(
+                material=_material_out(a.material),
+                on_hand=a.on_hand,
+                committed=a.committed,
+                available=a.available,
+                reorder_level=a.reorder_level,
+            )
+            for a in reorder_alerts(session)
+        ]
+    )

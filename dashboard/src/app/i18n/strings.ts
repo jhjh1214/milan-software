@@ -94,6 +94,8 @@ export interface NavStrings {
   readonly reports: string;
   readonly people: string;
   readonly library: string;
+  readonly inventory: string;
+  readonly stockToApprove: string;
   readonly signOut: string;
   /** The label on the language picker, for a screen reader. */
   readonly language: string;
@@ -471,6 +473,62 @@ export interface LibraryStrings {
   readonly recognitionFailed: string;
 }
 
+/** Materials, stock and allocations. SPEC.md Phase 9. Every action here is
+ * admin-only, server-enforced (§13 F2). */
+export interface InventoryStrings {
+  readonly materialsTitle: string;
+  readonly allocationsTitle: string;
+  readonly addMaterial: string;
+  readonly familyLabel: string;
+  readonly codeLabel: string;
+  readonly nameZhLabel: string;
+  readonly nameEnLabel: string;
+  readonly nameMsLabel: string;
+  readonly uomLabel: string;
+  readonly uomMetre: string;
+  readonly uomSqft: string;
+  readonly uomBox: string;
+  readonly uomPiece: string;
+  readonly uomRoll: string;
+  readonly coveragePerUnitLabel: string;
+  readonly coveragePerUnitHint: string;
+  readonly reorderLevelLabel: string;
+  readonly noMaterials: string;
+  readonly deactivate: string;
+  readonly deactivated: string;
+  readonly onHand: string;
+  readonly committed: string;
+  readonly available: string;
+  readonly reorderAlert: string;
+  readonly receiveStock: string;
+  readonly lotRefLabel: string;
+  readonly qtyLabel: string;
+  readonly costLabel: string;
+  readonly locationLabel: string;
+  readonly noteLabel: string;
+  readonly noLotsYet: string;
+  readonly adjustStock: string;
+  readonly deltaLabel: string;
+  readonly deltaHint: string;
+  readonly reasonLabel: string;
+  readonly reasonDamage: string;
+  readonly reasonOffcutReturn: string;
+  readonly reasonAdjustment: string;
+  readonly reasonReturnToSupplier: string;
+  readonly nothingWaiting: string;
+  readonly proposedFor: (orderLine: string) => string;
+  readonly proposedQty: (qty: string, uom: string) => string;
+  readonly noLotChosen: string;
+  readonly pickALot: string;
+  readonly approve: string;
+  readonly reject: string;
+  readonly sendBack: string;
+  readonly cancel: string;
+  readonly approvedNote: string;
+  readonly rejectedNote: string;
+  readonly duplicateCode: string;
+}
+
 /** Everything the dashboard can say, in one language. */
 export interface Strings {
   readonly common: CommonStrings;
@@ -488,4 +546,5 @@ export interface Strings {
   readonly buyer: BuyerStrings;
   readonly reports: ReportsStrings;
   readonly library: LibraryStrings;
+  readonly inventory: InventoryStrings;
 }

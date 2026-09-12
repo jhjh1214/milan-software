@@ -357,3 +357,99 @@ def test_pushing_a_measurement_unblocks_the_measured_transition(
         session.commit()
         assert allowed.refused_because is None
         assert allowed.status == "measured"
+
+
+def test_a_flooring_measurement_proposes_an_allocation_off_the_exact_tape(
+    db: sessionmaker[Session],
+) -> None:
+    """SPEC.md Phase 9's one auto-allocation trigger, end to end: a real
+    site measurement, through the real pricing engine, produces a box count
+    off the EXACT final area -- never the estimate's rounded-up sqft, which
+    `OrderLine.billed_qty` still holds and never updates.
+    """
+    from app.models.db import Allocation
+    from app.services.inventory import create_material, receive_stock
+
+    flooring_order_id = "55555555-5555-4555-8555-555555555555"
+    flooring_line_id = "66666666-6666-4666-8666-666666666666"
+
+    with db() as session:
+        material = create_material(
+            session,
+            family="flooring",
+            variant_compat=["spc_4mm_1mm"],
+            code="SPC-OAK-4MM",
+            names={"zh": "SPC地板", "en": "SPC flooring", "ms": "Lantai SPC"},
+            uom="box",
+            coverage_per_unit="18",
+        )
+        receive_stock(
+            session,
+            material_id=material.id,
+            lot_ref="DYE-001",
+            qty="20",
+            by_user_id="admin-1",
+            received_at=CONFIRMED_AT,
+        )
+        session.commit()
+
+        push_order(
+            session,
+            OrderIn(
+                id=flooring_order_id,
+                quote_id="77777777-7777-4777-8777-777777777777",
+                channel="fair",
+                pinned_rate_card_version=1,
+                customer_name="Ah Beng",
+                # A rough fair estimate -- deliberately not 100 sqft, so the
+                # test fails if the allocation is ever sized off this
+                # column instead of the tape.
+                estimate_total_sen=99999,
+                deposit_paid_sen=30000,
+                confirmed_at=CONFIRMED_AT,
+                lines=[
+                    OrderLineIn(
+                        id=flooring_line_id,
+                        quote_line_id="88888888-8888-4888-8888-888888888888",
+                        sort_order=0,
+                        room="Living room",
+                        variant="spc_4mm_1mm",
+                        layer="single",
+                        est_width_tmm=30480,
+                        est_height_tmm=30480,
+                        applied_rule_id="spc-4mm-1mm",
+                        applied_rate_card_version=1,
+                        standard_rate_sen=1000,
+                        rate_sen=1000,
+                        billed_qty="150",  # the rough fair estimate
+                        billed_unit="sqft",
+                        line_total_sen=99999,
+                    )
+                ],
+            ),
+        )
+        session.commit()
+
+        # 10ft x 10ft, exactly -- an area with no rounding ambiguity.
+        result = push_measurement(
+            session,
+            MeasurementIn(
+                order_id=flooring_order_id,
+                line_id=flooring_line_id,
+                measured_at=MEASURED_AT,
+                final_width_tmm=30480,
+                final_height_tmm=30480,
+            ),
+        )
+        session.commit()
+        assert result.refused_because is None
+
+        allocation = session.scalars(
+            select(Allocation).where(Allocation.order_line_id == flooring_line_id)
+        ).first()
+
+        assert allocation is not None, "the exact-conversion case should auto-propose"
+        assert allocation.status == "proposed"
+        # 100 sqft / 18 sqft-per-box -> ceil(5.55..) -> 6 boxes. Sized off
+        # the exact 10x10 tape, not the "150" estimate on the line itself.
+        assert allocation.qty == "6"

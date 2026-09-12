@@ -1,0 +1,101 @@
+<header class="head">
+  <h1>{{ t().inventory.allocationsTitle }}</h1>
+</header>
+
+@if (note(); as what) {
+  <p class="note" role="status">
+    {{ what === 'approved' ? t().inventory.approvedNote : t().inventory.rejectedNote }}
+  </p>
+}
+@if (failure(); as failed) {
+  <p class="failure" role="alert">
+    {{ message(failed) }}
+    <button type="button" (click)="retry()">{{ t().common.reload }}</button>
+  </p>
+}
+
+@if (loading()) {
+  <div class="skeleton-card" aria-hidden="true">
+    @for (i of [0, 1]; track i) {
+      <div class="card">
+        <span class="skeleton" style="width: 40%"></span>
+      </div>
+    }
+  </div>
+} @else if (items().length === 0) {
+  <div class="empty-state">
+    <p>{{ t().inventory.nothingWaiting }}</p>
+  </div>
+} @else {
+  @for (item of items(); track item.id) {
+    <div class="card">
+      <div class="card-head">
+        <strong>{{ materialName(item) }}</strong>
+        <span class="qty">{{ item.qty }}</span>
+      </div>
+      <p class="line">{{ t().inventory.proposedFor(item.order_line_id) }}</p>
+
+      @if (item.lot_id === null) {
+        <div class="pick-lot">
+          <p class="warn">{{ t().inventory.noLotChosen }}</p>
+          @if (item.decision_note) {
+            <p class="hint">{{ item.decision_note }}</p>
+          }
+          <label [attr.for]="'lot-' + item.id">{{ t().inventory.pickALot }}</label>
+          <select
+            [id]="'lot-' + item.id"
+            (change)="setPickedLot(item, $any($event.target).value)"
+          >
+            <option value="" disabled selected>{{ t().inventory.pickALot }}</option>
+            @for (lot of lotsFor(item); track lot.id) {
+              <option [value]="lot.id">{{ lot.lot_ref }} ({{ lot.qty_on_hand }})</option>
+            }
+          </select>
+        </div>
+      }
+
+      @if (rejectingId() === item.id) {
+        <div class="reject-form">
+          <label [attr.for]="'reason-' + item.id">{{ t().library.reasonLabel }}</label>
+          <textarea
+            [id]="'reason-' + item.id"
+            rows="2"
+            [value]="reason()"
+            (input)="reason.set($any($event.target).value)"
+          ></textarea>
+          <div class="actions">
+            <button
+              type="button"
+              class="danger"
+              [disabled]="!canSendBack()"
+              (click)="confirmReject(item)"
+            >
+              {{ t().inventory.sendBack }}
+            </button>
+            <button type="button" (click)="cancelRejecting()">
+              {{ t().inventory.cancel }}
+            </button>
+          </div>
+        </div>
+      } @else {
+        <div class="actions">
+          <button
+            type="button"
+            class="primary"
+            [disabled]="!canApprove(item)"
+            (click)="approve(item)"
+          >
+            {{ t().inventory.approve }}
+          </button>
+          <button
+            type="button"
+            [disabled]="acting() !== null"
+            (click)="startRejecting(item)"
+          >
+            {{ t().inventory.reject }}
+          </button>
+        </div>
+      }
+    </div>
+  }
+}

@@ -25,19 +25,43 @@ accountant's ruling on **E2**, and §13 **C12** and **C13** decide where the
 guard bites and which fields MyInvois actually rejects. Do not guess any of the
 four. Everything else on Phase 7's "In" list is built.
 
-**Stage 2 — the next tier — has a defined shape now, not just a name.**
-SPEC.md §2.4 and §11's roadmap table now say explicitly what it holds:
-Phase 9 (Inventory, gated on its own precondition — §13 F needs a named
-person accountable for stock movements, unrelated to SQL Account), further
-property-library depth, and the AI-capability boundary SPEC.md §14.7
-documents. **AI is not implemented and is not required for anything.**
-§14.7 fixes where a future capability would plug in — domain → capability →
-provider interface → adapter → provider, one interface per capability,
-provider/model chosen by env var, credentials backend-only, a proposal
-never production truth without a human step — using
-`app/services/recognition.py` (Phase 8) as the one existing instance of the
-pattern. Choosing an actual provider, or building a second capability, is
-future work named in SPEC.md §13 **H**, not scheduled here.
+**Stage 2 — the next tier — has a defined shape, and Phase 9 has started.**
+SPEC.md §2.4 and §11's roadmap table say what it holds: Phase 9
+(Inventory), further property-library depth, and the AI-capability
+boundary SPEC.md §14.7 documents. **AI is not implemented and is not
+required for anything.** §14.7 fixes where a future capability would plug
+in — domain → capability → provider interface → adapter → provider, one
+interface per capability, provider/model chosen by env var, credentials
+backend-only, a proposal never production truth without a human step —
+using `app/services/recognition.py` (Phase 8) as the one existing instance
+of the pattern. Choosing an actual provider, or building a second
+capability, is future work named in SPEC.md §13 **H**, not scheduled here.
+
+**Phase 9 — Inventory — started, Sep 2026, once §13 F2 had a real
+answer**: the office's own purchasing/supplier-ordering person, a specific
+individual rather than a department, which is what the phase's own opening
+paragraph asked for before anything got built. Migration 0009 (`materials`,
+`stock_lots`, `stock_movements`, `allocations`). `app/services/inventory.py`
+carries the ledger discipline in one place — `qty_on_hand` only ever moves
+alongside a `StockMovement`, in the same transaction, and a movement that
+would take a lot negative is refused. Two routes to an approved allocation,
+one gate, the same shape the library already uses: an area-priced material
+(box-counted, billed `per_sqft`) auto-proposes from `push_measurement`
+itself, sized off the **exact final quantity** `reprice_order` just
+computed — never `OrderLine.billed_qty`, which stays the fair's rounded-up
+estimate forever, so an allocation cannot end up sized off a guess. Every
+other material (fabric, where the billed width is not the yardage — §13
+F3 says why that conversion is not guessed) is allocated manually, already
+decided, through the same route an admin already has. "Available", the
+figure reorder alerts and the dashboard both read, is on-hand minus what
+is only `proposed` — not a forecast, every number in it a row the system
+already has. Admin-only throughout (§13 F2's own answer). The dashboard
+gained two screens: `/inventory` (materials, their lots, receiving stock,
+a reorder-alert badge) and `/inventory/allocations` (the review queue,
+approve or reject, a lot picker when auto-proposal could not choose one).
+54 new backend tests, 15 new dashboard tests. **Not yet built:** a
+dashboard control for a manual allocation — the API exists and is tested,
+but its natural home is the order detail screen, not shipped this round.
 
 **The dashboard has a real design system now** (client, Sep 2026): light and
 dark mode, a token-driven palette (`dashboard/design-system/MASTER.md`

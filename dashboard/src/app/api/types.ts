@@ -606,3 +606,96 @@ export interface UnitTypeWithVersionsOut extends UnitTypeOut {
 export interface UnitTypesOut {
   readonly unit_types: readonly UnitTypeWithVersionsOut[];
 }
+
+// ---------------------------------------------------------------------------
+// Inventory. SPEC.md Phase 9. Every route is admin-only (§13 F2).
+// ---------------------------------------------------------------------------
+
+export interface MaterialOut {
+  readonly id: string;
+  readonly family: string;
+  readonly variant_compat: readonly string[];
+  readonly code: string;
+  readonly names: Readonly<Record<string, string>>;
+  readonly uom: string;
+  /** Exact rational as a string, e.g. "18". Null means no exact conversion
+   * is known yet (§13 F3) -- allocation for this material stays manual. */
+  readonly coverage_per_unit: string | null;
+  readonly reorder_level: string | null;
+  readonly is_active: boolean;
+  readonly created_at: string;
+  readonly updated_at: string;
+}
+
+export interface MaterialsOut {
+  readonly materials: readonly MaterialOut[];
+}
+
+export interface StockLotOut {
+  readonly id: string;
+  readonly material_id: string;
+  readonly lot_ref: string;
+  readonly qty_on_hand: string;
+  readonly location: string | null;
+  readonly received_at: string;
+  readonly cost_sen: number | null;
+}
+
+export interface StockLotsOut {
+  readonly lots: readonly StockLotOut[];
+}
+
+export interface StockMovementOut {
+  readonly id: string;
+  readonly material_id: string;
+  readonly lot_id: string;
+  readonly delta: string;
+  readonly reason: string;
+  readonly order_id: string | null;
+  readonly by_user_id: string;
+  readonly at: string;
+  readonly note: string | null;
+}
+
+/**
+ * One order line's claim on a material. Two routes to `approved` -- an
+ * auto-proposable material lands here `proposed` from `push_measurement`'s
+ * own hook and waits for review; everything else is created already
+ * decided, through the manual-allocation route.
+ */
+export interface AllocationOut {
+  readonly id: string;
+  readonly order_line_id: string;
+  readonly order_id: string;
+  readonly material_id: string;
+  readonly lot_id: string | null;
+  readonly qty: string;
+  readonly status: 'proposed' | 'approved' | 'rejected' | 'released';
+  readonly proposed_at: string;
+  readonly decided_by_user_id: string | null;
+  readonly decided_at: string | null;
+  readonly decision_note: string | null;
+  readonly allocated_at: string | null;
+  readonly released_at: string | null;
+}
+
+export interface AllocationsOut {
+  readonly allocations: readonly AllocationOut[];
+}
+
+/**
+ * "Available", not raw on-hand -- on hand minus what a `proposed`
+ * allocation has already claimed. Not a forecast: every figure here is a
+ * row the server already has (SPEC.md §11 Phase 9).
+ */
+export interface ReorderAlertOut {
+  readonly material: MaterialOut;
+  readonly on_hand: string;
+  readonly committed: string;
+  readonly available: string;
+  readonly reorder_level: string;
+}
+
+export interface ReorderAlertsOut {
+  readonly alerts: readonly ReorderAlertOut[];
+}
