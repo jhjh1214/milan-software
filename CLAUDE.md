@@ -12,8 +12,9 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 
 ## Current state
 
-**Phases 1-6 complete. Phase 7 in progress. Phase 8 started, server side
-only** — Flutter app, FastAPI backend, Postgres, and sync between them.
+**Phases 1-6 complete. Phase 7 in progress. Phase 8 in progress — server and
+dashboard side done, mobile part-timer submission screen still open** —
+Flutter app, FastAPI backend, Postgres, and sync between them.
 
 **Phase 7 so far.** The buyer-detail capture screens, both sides, the sync
 between them, and the document labelling audit. **Only the export is left, and
@@ -114,14 +115,31 @@ early-return path never cleared it. Fixed by awaiting the session properly
 (`.future`) instead of racing a synchronous read of it — the kind of gap a
 pure unit test cannot see and only driving the real widget tree catches.
 
-**Not built yet, and named rather than skipped silently:** the admin
-floor-plan upload + tap-to-calibrate UI, and the part-timer submission
-screen on the handset — both still need a decision this session flagged
-rather than guessed: where an uploaded floor-plan image actually lives.
-Nothing in `deploy/docker-compose.yml` names an object store or a mounted
-upload volume today, and inventing one silently is exactly the kind of
-infrastructure choice CLAUDE.md's working agreement reserves for a person,
-not a guess.
+**The admin floor-plan upload + tap-to-calibrate UI is in** (Sep 2026),
+closing the decision flagged above rather than guessing it: nothing in
+`deploy/docker-compose.yml` names an object store or a mounted upload
+volume, and nothing is deployed yet to give one real credentials, so the
+image itself lives in Postgres as bytes (migration 0008, `FloorPlan.
+image_data`) rather than behind a service that does not exist — a handful
+of floor plans is not a media library, and `backup.sh`/`restore.sh` already
+cover the table for free. An admin's own upload replaces a version's floor
+plan in place; a second upload after that version is approved is refused,
+because a correction is a new version, never an edit to this one, the same
+rule every other part of this library already follows. Calibration takes a
+single pre-computed integer pixel distance rather than two coordinate
+pairs, so the server's own arithmetic (real distance over pixel distance,
+via `Fraction`) stays exactly rational — the `sqrt` an on-screen distance
+needs happens once, in the dashboard, never on the server. The review
+screen gained the upload control, the image itself (fetched as an
+authenticated blob, since `<img src>` cannot carry the session token), and
+a two-click calibrate flow, in all three languages. 34 new backend tests,
+5 new dashboard tests, both suites green.
+
+**Not built yet, and named rather than skipped silently:** the part-timer
+submission screen on the handset — its own upload + tap-to-calibrate flow,
+mirroring the admin one now built, but on a device that must work
+offline and cannot assume a session token the way the dashboard's blob
+fetch does.
 
 **§13 A25 is answered and built** (client, Sep 2026). Korea wallpaper does not
 have to be measured at the fair — leaving it blank quotes the default one
