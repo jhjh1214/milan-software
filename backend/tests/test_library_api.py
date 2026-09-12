@@ -9,6 +9,7 @@ than a 500.
 
 from __future__ import annotations
 
+import base64
 import uuid
 from collections.abc import Iterator
 
@@ -495,3 +496,153 @@ class TestCalibrationApi:
             headers=auth(token),
         )
         assert r.status_code == 404, r.text
+
+
+class TestRecognizeApi:
+    """SPEC.md Phase 8, "Future: assisted digitisation" -- stateless, so no
+    floor plan needs to exist yet. Both the handset (before a submission is
+    queued) and the dashboard (after an upload) call the same route.
+    """
+
+    def test_anyone_signed_in_gets_the_placeholder_response(
+        self, client: TestClient
+    ) -> None:
+        token = sign_in(client, "parttime")
+        r = client.post(
+            "/api/recognize",
+            json={
+                "content_type": "image/jpeg",
+                "image_base64": base64.b64encode(b"\xff\xd8\xff fake jpeg").decode(),
+            },
+            headers=auth(token),
+        )
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["configured"] is False
+        assert body["provider"] == "none"
+        assert body["openings"] == []
+        assert body["rooms"] == []
+
+    def test_a_non_image_content_type_is_422_not_500(
+        self, client: TestClient
+    ) -> None:
+        token = sign_in(client, "parttime")
+        r = client.post(
+            "/api/recognize",
+            json={
+                "content_type": "text/html",
+                "image_base64": base64.b64encode(b"<script>1</script>").decode(),
+            },
+            headers=auth(token),
+        )
+        assert r.status_code == 422, r.text
+
+    def test_invalid_base64_is_422_not_500(self, client: TestClient) -> None:
+        token = sign_in(client, "parttime")
+        r = client.post(
+            "/api/recognize",
+            json={"content_type": "image/jpeg", "image_base64": "not valid base64!!"},
+            headers=auth(token),
+        )
+        assert r.status_code == 422, r.text
+
+    def test_without_a_session_it_is_401(self, client: TestClient) -> None:
+        r = client.post(
+            "/api/recognize",
+            json={
+                "content_type": "image/jpeg",
+                "image_base64": base64.b64encode(b"data").decode(),
+            },
+        )
+        assert r.status_code == 401, r.text
+
+
+class TestUnitTypeSubmissionsApi:
+    """The part-timer's offline path, exercised as the outbox would call it:
+    one JSON POST carrying the whole submission, image included.
+    """
+
+    def test_a_part_timer_can_submit_straight_to_pending_review(
+        self, client: TestClient
+    ) -> None:
+        token = sign_in(client, "parttime")
+        project_id = make_project(client, token)
+        device_id = str(uuid.uuid4())
+
+        r = client.post(
+            "/api/unit-type-submissions",
+            json={
+                "id": device_id,
+                "project_id": project_id,
+                "name": "Type C",
+                "openings": OPENINGS,
+                "floor_plan": {
+                    "filename": "whatsapp-plan.jpg",
+                    "content_type": "image/jpeg",
+                    "image_base64": base64.b64encode(b"fake jpeg bytes").decode(),
+                    "pixel_distance": 500,
+                    "real_distance_tmm": 30000,
+                },
+            },
+            headers=auth(token),
+        )
+        assert r.status_code == 201, r.text
+        body = r.json()
+        assert body["unit_type_id"] == device_id
+        assert body["duplicate"] is False
+
+        detail = client.get(
+            f"/api/unit-types/{device_id}", headers=auth(token)
+        ).json()
+        assert detail["unit_type"]["status"] == "pending_review"
+        plan = detail["versions"][0]["floor_plan"]
+        assert plan["scale_tmm_per_px"] == "60"
+
+    def test_retrying_the_same_id_reports_a_duplicate(
+        self, client: TestClient
+    ) -> None:
+        token = sign_in(client, "parttime")
+        project_id = make_project(client, token)
+        device_id = str(uuid.uuid4())
+        payload = {
+            "id": device_id,
+            "project_id": project_id,
+            "name": "Type C",
+            "openings": OPENINGS,
+        }
+
+        first = client.post(
+            "/api/unit-type-submissions", json=payload, headers=auth(token)
+        )
+        assert first.status_code == 201, first.text
+        assert first.json()["duplicate"] is False
+
+        second = client.post(
+            "/api/unit-type-submissions", json=payload, headers=auth(token)
+        )
+        assert second.status_code == 201, second.text
+        assert second.json()["duplicate"] is True
+
+    def test_an_unknown_project_is_404_not_500(self, client: TestClient) -> None:
+        token = sign_in(client, "parttime")
+        r = client.post(
+            "/api/unit-type-submissions",
+            json={
+                "id": str(uuid.uuid4()),
+                "project_id": str(uuid.uuid4()),
+                "name": "Type C",
+            },
+            headers=auth(token),
+        )
+        assert r.status_code == 404, r.text
+
+    def test_without_a_session_it_is_401(self, client: TestClient) -> None:
+        r = client.post(
+            "/api/unit-type-submissions",
+            json={
+                "id": str(uuid.uuid4()),
+                "project_id": str(uuid.uuid4()),
+                "name": "Type C",
+            },
+        )
+        assert r.status_code == 401, r.text

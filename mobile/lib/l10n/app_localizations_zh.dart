@@ -1268,4 +1268,147 @@ class LZh extends L {
   String pickerOpeningSize(String width, String height) {
     return '$width × $height ft';
   }
+
+  @override
+  String get libTitle => '提交平面图';
+
+  @override
+  String get libIntro => '提交后需经管理员审核，才能用于报价。';
+
+  @override
+  String get libProjectLabel => '项目';
+
+  @override
+  String get libProjectHint => '选择项目';
+
+  @override
+  String get libNoProjectsCached => '还没有项目名单，请连线一次以下载。';
+
+  @override
+  String get libRefreshProjects => '刷新名单';
+
+  @override
+  String get libProjectsFailed => '无法读取项目名单。';
+
+  @override
+  String get libUnitTypeNameLabel => '户型名称';
+
+  @override
+  String get libUnitTypeNameHint => '例如：B座';
+
+  @override
+  String get libFloorCountLabel => '楼层数（选填）';
+
+  @override
+  String get libPhotoSectionTitle => '平面图照片';
+
+  @override
+  String get libPickFromGallery => '从相册选择';
+
+  @override
+  String get libTakePhoto => '拍照';
+
+  @override
+  String get libRemovePhoto => '移除照片';
+
+  @override
+  String get libCalibrate => '设定比例尺';
+
+  @override
+  String get libRecalibrate => '重新设定比例尺';
+
+  @override
+  String get libCalibrated => '比例尺已设定';
+
+  @override
+  String get libClickTwoPoints => '点击两个已知实际距离的点。';
+
+  @override
+  String get libOnePointChosen => '已选一点，请点击第二点。';
+
+  @override
+  String get libRealDistanceLabel => '两点之间的实际距离';
+
+  @override
+  String get libConfirmCalibration => '保存比例尺';
+
+  @override
+  String get libCancelCalibration => '取消';
+
+  @override
+  String get libTryRecognition => '尝试 AI 识别';
+
+  @override
+  String get libRecognizing => '正在识别……';
+
+  @override
+  String get libRecognitionNotConfigured => 'AI 识别功能尚未启用，请自行输入门窗与房间资料。';
+
+  @override
+  String libRecognitionProposedOpenings(int n) {
+    return '识别出 $n 个门窗';
+  }
+
+  @override
+  String get libApplyProposal => '加入识别出的门窗';
+
+  @override
+  String get libRecognitionFailed => '无法连接识别服务。';
+
+  @override
+  String get libOpeningsSectionTitle => '门窗';
+
+  @override
+  String get libAddOpening => '新增门窗';
+
+  @override
+  String get libOpeningLabelField => '名称';
+
+  @override
+  String get libOpeningLabelHint => '例如：W1';
+
+  @override
+  String get libRoomField => '房间';
+
+  @override
+  String get libWidthField => '宽度';
+
+  @override
+  String get libHeightField => '高度';
+
+  @override
+  String get libRemoveOpening => '移除';
+
+  @override
+  String get libRoomsSectionTitle => '房间';
+
+  @override
+  String get libAddRoom => '新增房间';
+
+  @override
+  String get libRoomNameField => '房间名称';
+
+  @override
+  String get libRoomLengthField => '长度';
+
+  @override
+  String get libRemoveRoom => '移除';
+
+  @override
+  String get libInvalidDimension => '请输入正确的尺寸';
+
+  @override
+  String get libSubmit => '提交审核';
+
+  @override
+  String get libSubmitting => '正在发送……';
+
+  @override
+  String get libSubmitted => '已发送，管理员审核后才能用于报价。';
+
+  @override
+  String get libSubmitAnother => '再提交一笔';
+
+  @override
+  String get libNeedProjectAndName => '请先选择项目并填写户型名称。';
 }

@@ -1317,4 +1317,152 @@ class LEn extends L {
   String pickerOpeningSize(String width, String height) {
     return '$width × $height ft';
   }
+
+  @override
+  String get libTitle => 'Submit a floor plan';
+
+  @override
+  String get libIntro =>
+      'An admin reviews this before it can be used in a quote.';
+
+  @override
+  String get libProjectLabel => 'Project';
+
+  @override
+  String get libProjectHint => 'Choose a project';
+
+  @override
+  String get libNoProjectsCached =>
+      'No projects loaded yet. Connect once to load the list.';
+
+  @override
+  String get libRefreshProjects => 'Refresh list';
+
+  @override
+  String get libProjectsFailed => 'Could not load the project list.';
+
+  @override
+  String get libUnitTypeNameLabel => 'Unit type name';
+
+  @override
+  String get libUnitTypeNameHint => 'e.g. Type B';
+
+  @override
+  String get libFloorCountLabel => 'Floors (optional)';
+
+  @override
+  String get libPhotoSectionTitle => 'Floor plan photo';
+
+  @override
+  String get libPickFromGallery => 'Choose from photos';
+
+  @override
+  String get libTakePhoto => 'Take a photo';
+
+  @override
+  String get libRemovePhoto => 'Remove photo';
+
+  @override
+  String get libCalibrate => 'Set scale';
+
+  @override
+  String get libRecalibrate => 'Reset scale';
+
+  @override
+  String get libCalibrated => 'Scale set';
+
+  @override
+  String get libClickTwoPoints => 'Tap two points a known distance apart.';
+
+  @override
+  String get libOnePointChosen => 'One point chosen -- tap the second.';
+
+  @override
+  String get libRealDistanceLabel => 'Real-world distance between the points';
+
+  @override
+  String get libConfirmCalibration => 'Save scale';
+
+  @override
+  String get libCancelCalibration => 'Cancel';
+
+  @override
+  String get libTryRecognition => 'Try AI recognition';
+
+  @override
+  String get libRecognizing => 'Recognising...';
+
+  @override
+  String get libRecognitionNotConfigured =>
+      'AI recognition is not set up yet -- enter the openings and rooms yourself.';
+
+  @override
+  String libRecognitionProposedOpenings(int n) {
+    return '$n opening(s) proposed';
+  }
+
+  @override
+  String get libApplyProposal => 'Add proposed openings';
+
+  @override
+  String get libRecognitionFailed => 'Could not reach the recognition service.';
+
+  @override
+  String get libOpeningsSectionTitle => 'Windows and doors';
+
+  @override
+  String get libAddOpening => 'Add a window or door';
+
+  @override
+  String get libOpeningLabelField => 'Name';
+
+  @override
+  String get libOpeningLabelHint => 'e.g. W1';
+
+  @override
+  String get libRoomField => 'Room';
+
+  @override
+  String get libWidthField => 'Width';
+
+  @override
+  String get libHeightField => 'Height';
+
+  @override
+  String get libRemoveOpening => 'Remove';
+
+  @override
+  String get libRoomsSectionTitle => 'Rooms';
+
+  @override
+  String get libAddRoom => 'Add a room';
+
+  @override
+  String get libRoomNameField => 'Room name';
+
+  @override
+  String get libRoomLengthField => 'Length';
+
+  @override
+  String get libRemoveRoom => 'Remove';
+
+  @override
+  String get libInvalidDimension => 'Enter a valid size';
+
+  @override
+  String get libSubmit => 'Submit for review';
+
+  @override
+  String get libSubmitting => 'Sending...';
+
+  @override
+  String get libSubmitted =>
+      'Sent. An admin will review it before it can be used in a quote.';
+
+  @override
+  String get libSubmitAnother => 'Submit another';
+
+  @override
+  String get libNeedProjectAndName =>
+      'Choose a project and name the unit type first.';
 }

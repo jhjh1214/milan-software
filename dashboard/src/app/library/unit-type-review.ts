@@ -20,6 +20,7 @@ import { Api } from '../api/api';
 import { commonMessage, failureOf, type Failure } from '../i18n/failure';
 import { Text } from '../i18n/text';
 import type {
+  ExtractionOut,
   FloorPlanOut,
   OpeningOut,
   RoomOut,
@@ -70,6 +71,14 @@ export class UnitTypeReview {
   protected readonly calibPoints = signal<readonly CalibrationPoint[]>([]);
   protected readonly realDistance = signal('');
   protected readonly calibError = signal<string | null>(null);
+
+  /** Floor plan id -> the proposal last fetched for it, or the failure that
+   * stopped one arriving. SPEC.md Phase 8, "Future: assisted digitisation" --
+   * a proposal is display-only: there is no form on this screen it can
+   * prefill, only the reviewer's own reading of the submission. */
+  protected readonly recognizing = signal<string | null>(null);
+  protected readonly recognitions = signal<Readonly<Record<string, ExtractionOut>>>({});
+  protected readonly recognizeFailed = signal<string | null>(null);
 
   /** Straight-line pixel distance between the two clicked points, rounded --
    * the one place this screen uses `sqrt`. The server never does: it takes
@@ -312,6 +321,40 @@ export class UnitTypeReview {
       },
       error: (err: unknown) => {
         this.calibError.set(this.message(failureOf(err)));
+      },
+    });
+  }
+
+  protected recognitionFor(floorPlanId: string): ExtractionOut | null {
+    return this.recognitions()[floorPlanId] ?? null;
+  }
+
+  /** Re-sends the image already fetched for display -- `/api/recognize` is
+   * stateless, so this needs no floor plan id on the wire, just the bytes
+   * and their content type. Never writes anything: the result is shown
+   * beside the submission for the reviewer to read, the same as everything
+   * else on this screen, not applied to any field automatically. */
+  protected tryRecognition(floorPlan: FloorPlanOut): void {
+    if (floorPlan.content_type === null) return;
+    this.recognizing.set(floorPlan.id);
+    this.recognizeFailed.set(null);
+
+    this.api.floorPlanImage(floorPlan.id).subscribe({
+      next: (blob) => {
+        this.api.recognizeFloorPlan(blob, floorPlan.content_type!).subscribe({
+          next: (result) => {
+            this.recognizing.set(null);
+            this.recognitions.update((m) => ({ ...m, [floorPlan.id]: result }));
+          },
+          error: () => {
+            this.recognizing.set(null);
+            this.recognizeFailed.set(floorPlan.id);
+          },
+        });
+      },
+      error: () => {
+        this.recognizing.set(null);
+        this.recognizeFailed.set(floorPlan.id);
       },
     });
   }

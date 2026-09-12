@@ -402,5 +402,12 @@ export const MS: Strings = {
     realDistanceLabel: 'Jarak sebenar antara kedua-dua titik (mm)',
     confirmCalibration: 'Simpan skala',
     cancelCalibration: 'Batal',
+    tryRecognition: 'Cuba pengecaman AI',
+    recognizing: 'Sedang mengecam...',
+    recognitionNotConfigured:
+      'Pengecaman AI belum ditetapkan -- masukkan bukaan dan bilik daripada jadual pemaju secara manual.',
+    recognitionProposedOpenings: (n) => `${n} bukaan dicadangkan`,
+    recognitionProposedRooms: (n) => `${n} bilik dicadangkan`,
+    recognitionFailed: 'Tidak dapat menghubungi perkhidmatan pengecaman.',
   },
 };

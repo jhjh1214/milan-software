@@ -89,6 +89,17 @@ class FakeServer {
   /// Prompt ids already accepted.
   final Set<String> acceptedPrompts = {};
 
+  /// Unit type ids already accepted for a part-timer's own submission
+  /// (`POST /api/unit-type-submissions`), for the idempotency check.
+  final Set<String> acceptedSubmissions = {};
+
+  /// The body of the last submission pushed, so a test can assert the image
+  /// and calibration travelled with it.
+  Map<String, dynamic>? lastSubmissionBody;
+
+  /// Set to have `POST /api/recognize` refuse, as it would on a bad image.
+  bool rejectRecognize = false;
+
   /// Set to have the lock endpoints refuse everything.
   bool rejectLocks = false;
 
@@ -423,6 +434,28 @@ class FakeServer {
           jsonDecode(utf8.decode(request.bodyBytes)) as Map<String, dynamic>;
       final id = body['id'] as String;
       return _json({'prompt_id': id, 'duplicate': !acceptedPrompts.add(id)});
+    }
+
+    if (path == '/api/unit-type-submissions') {
+      final body =
+          jsonDecode(utf8.decode(request.bodyBytes)) as Map<String, dynamic>;
+      lastSubmissionBody = body;
+      final id = body['id'] as String;
+      return _json({
+        'unit_type_id': id,
+        'duplicate': !acceptedSubmissions.add(id),
+      }, 201);
+    }
+
+    if (path == '/api/recognize') {
+      if (rejectRecognize) return _json({'detail': 'nope'}, 500);
+      return _json({
+        'configured': false,
+        'provider': 'none',
+        'note': 'not configured',
+        'openings': [],
+        'rooms': [],
+      });
     }
 
     return _json({'detail': 'not found'}, 404);

@@ -11,6 +11,7 @@ import '../../pricing/engine.dart';
 import '../../pricing/models.dart';
 import '../../sync/sync_state.dart';
 import '../../ui/theme.dart';
+import '../library/submit_floor_plan_screen.dart';
 import '../order/declines_report_screen.dart';
 import '../order/order_screen.dart';
 import '../order/overrides_review_screen.dart';
@@ -50,6 +51,7 @@ class QuoteScreen extends ConsumerWidget {
             ),
           ),
           const _OverridesButton(),
+          const _LibrarySubmissionButton(),
           const _SyncButton(),
           const SizedBox(width: Space.sm),
         ],
@@ -1072,6 +1074,28 @@ class _OverridesButton extends ConsumerWidget {
               ? const OverridesReviewScreen()
               : const DeclinesReportScreen(),
         ),
+      ),
+    );
+  }
+}
+
+/// The way to a part-timer's own floor-plan submission. SPEC.md Phase 8.
+///
+/// Available to everyone, not admin-gated -- the part-timer's own workflow
+/// this exists for is exactly the one described in the fair scenario: a
+/// customer WhatsApps a floor plan to a phone that has no desk and no
+/// dashboard.
+class _LibrarySubmissionButton extends StatelessWidget {
+  const _LibrarySubmissionButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final l = L.of(context);
+    return IconButton(
+      tooltip: l.libTitle,
+      icon: const Icon(Icons.map_outlined),
+      onPressed: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const SubmitFloorPlanScreen()),
       ),
     );
   }

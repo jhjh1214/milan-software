@@ -565,4 +565,64 @@ void main() {
         jsonDecode(utf8.decode(server.lastQuoteBody!)) as Map<String, dynamic>;
     expect(body['customer_name'], isNull);
   });
+
+  group('library submissions', () {
+    // SPEC.md Phase 8's last open item -- a part-timer's own floor-plan
+    // submission, pushed through the outbox exactly like an order.
+    final payload = {
+      'id': 'ut-device-1',
+      'project_id': 'p-1',
+      'name': 'Type C',
+      'openings': <Map<String, dynamic>>[],
+      'rooms': <Map<String, dynamic>>[],
+    };
+
+    test('a submission goes up and the row leaves the queue', () async {
+      await outboxer.enqueueLibrarySubmission('ut-device-1', payload);
+      final report = await outboxer.drain(credentials);
+
+      expect(report.sent, ['ut-device-1']);
+      expect(await db.pendingOutbox(), isEmpty);
+      expect(server.acceptedSubmissions, contains('ut-device-1'));
+    });
+
+    test('retrying the same id is a duplicate, not a second submission', () async {
+      // The device's id is what the server keys idempotency on -- a retry
+      // after a dropped fair-tent connection must not create it twice.
+      server.acceptedSubmissions.add('ut-device-1');
+      await outboxer.enqueueLibrarySubmission('ut-device-1', payload);
+      final report = await outboxer.drain(credentials);
+
+      expect(report.sent, ['ut-device-1']);
+      expect(report.disagreed, isEmpty, reason: 'a duplicate is a success');
+    });
+
+    test('the image and calibration travel inside the one payload', () async {
+      final withPhoto = {
+        ...payload,
+        'floor_plan': {
+          'filename': 'whatsapp-plan.jpg',
+          'content_type': 'image/jpeg',
+          'image_base64': base64Encode(utf8.encode('fake jpeg bytes')),
+          'pixel_distance': 500,
+          'real_distance_tmm': 30000,
+        },
+      };
+      await outboxer.enqueueLibrarySubmission('ut-device-2', withPhoto);
+      await outboxer.drain(credentials);
+
+      final sent = server.lastSubmissionBody!;
+      expect(sent['floor_plan']['content_type'], 'image/jpeg');
+      expect(sent['floor_plan']['pixel_distance'], 500);
+    });
+
+    test('offline stops the drain and keeps the row queued', () async {
+      server.offline = true;
+      await outboxer.enqueueLibrarySubmission('ut-device-3', payload);
+      final report = await outboxer.drain(credentials);
+
+      expect(report.failure, SyncFailure.offline);
+      expect(await db.pendingOutbox(), hasLength(1));
+    });
+  });
 }

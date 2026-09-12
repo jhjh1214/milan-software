@@ -610,6 +610,65 @@ class Outbox extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// A part-timer's own floor-plan submission, waiting to be finished or
+/// already queued. SPEC.md Phase 8 -- the offline sibling of the admin's
+/// dashboard upload, so a floor plan a customer WhatsApped to a part-timer's
+/// phone at a fair can become a submission with no signal in the room.
+///
+/// **Reference measurements are not site measurements.** Nothing built on
+/// this table ever reaches a quote or an order directly; it is pushed
+/// through the outbox to `POST /api/unit-type-submissions` (mirroring an
+/// order push), lands at `pending_review` on the server, and stays invisible
+/// to quoting until an admin approves it -- the same two-step gate every
+/// other route into the library already enforces.
+@DataClassName('LibrarySubmissionRow')
+class LibrarySubmissions extends Table {
+  /// Client-generated UUID v4. This becomes the unit type's own id on the
+  /// server, the same way an order's client id becomes its own row there --
+  /// the device must know its id before a connection exists to ask a server
+  /// for one.
+  TextColumn get id => text()();
+
+  /// Chosen from the cached project list (`kLibraryProjectsCacheKey` in
+  /// `Settings`) -- `Project.id` stays server-generated (see the server's
+  /// own docstring for why), so a submission can only ever point at a
+  /// project this handset has already seen with a connection in hand.
+  TextColumn get projectId => text()();
+
+  /// Denormalised for display once the cache has moved on or gone stale.
+  TextColumn get projectName => text()();
+
+  TextColumn get unitTypeName => text()();
+  IntColumn get floorCount => integer().nullable()();
+
+  /// Openings and rooms, as JSON. A list of small records with no query need
+  /// of their own -- the same reasoning that keeps `QuoteLines.photoPath` a
+  /// single field rather than a table only ever read as a whole.
+  TextColumn get openingsJson => text().withDefault(const Constant('[]'))();
+  TextColumn get roomsJson => text().withDefault(const Constant('[]'))();
+
+  /// The local file path to the floor-plan photo, mirroring
+  /// `QuoteLines.photoPath`. Null until one is attached.
+  TextColumn get photoPath => text().nullable()();
+  TextColumn get photoContentType => text().nullable()();
+
+  /// Both null until calibrated, both present once they are -- the same
+  /// pairing the server's `FloorPlanImageIn` enforces on the way in.
+  IntColumn get pixelDistance => integer().nullable()();
+  IntColumn get realDistanceTmm => integer().nullable()();
+
+  DateTimeColumn get createdAt => dateTime()();
+
+  /// Set once this row has been handed to the outbox. A submission can be
+  /// edited freely before this; after, a correction is a fresh submission --
+  /// the same "never edit what is already queued" rule the outbox's own
+  /// payload-freezing enforces everywhere else.
+  DateTimeColumn get queuedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     Quotes,
@@ -623,6 +682,7 @@ class Outbox extends Table {
     Payments,
     PriceOverrides,
     Settings,
+    LibrarySubmissions,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -641,7 +701,7 @@ class AppDatabase extends _$AppDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -741,6 +801,13 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(orderLines, orderLines.sourceProjectId);
         await m.addColumn(orderLines, orderLines.sourceUnitTypeId);
         await m.addColumn(orderLines, orderLines.sourceVersion);
+      }
+      // v14: a part-timer's own floor-plan submission (SPEC.md Phase 8's
+      // last open item) -- created rather than backfilled, the same as the
+      // outbox itself: a submission made before this table existed was never
+      // destined for a server.
+      if (from < 14) {
+        await m.createTable(librarySubmissions);
       }
     },
     beforeOpen: (details) async {

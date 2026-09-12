@@ -1575,19 +1575,20 @@ RM150 (P2) → RM450 (P3–4) → RM750 (P5) → RM950 (P6–7). 12-month minimu
 
 | | |
 |---|---|
-| **Done** | Phases 1–6. Every acceptance criterion names a test |
-| **Now** | **Phase 7** (blocked on E1/E2/C12/C13) and **Phase 8**, running in parallel |
-| **Next** | The one piece Phase 8 has left — the handset's own floor-plan submission screen |
-| **Later** | Assisted floor-plan digitisation (a Phase 8 extension) |
+| **Done** | Phases 1–6 and **Phase 8**. Every acceptance criterion names a test |
+| **Now** | **Phase 7** (blocked on E1/E2/C12/C13) |
+| **Later** | A real AI recognition provider (the seam for one is built; see Phase 8) |
 | **V2** | The customer-facing ecosystem and AI visualisation (§2.5) |
 
 **Phase 8 was brought forward**, Sep 2026, ahead of the "quoted after Phase 5
 runs live two months" sequencing below — a commercial decision, not a
 technical one, made because the client's own request that month already maps
 onto this exact design (see Phase 8's own section). Said here rather than
-quietly reordering. **Phase 7 stays blocked** on a sample SQL Account import
-template (E1), the accountant's ruling on E2, and §13 C12/C13 — none of the
-four may be guessed.
+quietly reordering. It is now complete, including the handset's own
+floor-plan submission screen and a swappable, currently-placeholder AI
+recognition provider. **Phase 7 stays blocked** on a sample SQL Account
+import template (E1), the accountant's ruling on E2, and §13 C12/C13 — none
+of the four may be guessed.
 
 ---
 
@@ -1989,7 +1990,7 @@ on E2, and C12 and C13.
 ---
 
 ## PHASE 8 — Property / Project / Unit Library
-**Brought forward from Stage 2, Sep 2026 — in progress**
+**Brought forward from Stage 2, Sep 2026 — complete**
 
 Originally quoted as Stage 2, after Phase 5 had run live two months (see below
 for that reasoning — it still applies to *why* the sequencing existed, just not
@@ -2013,10 +2014,42 @@ calibration takes a single pre-computed integer pixel distance — never two
 coordinate pairs — so the server's own scale arithmetic stays exactly
 rational even though the on-screen distance it comes from is not.
 
-**Still open.** The part-timer's own submission screen on the handset — its
-own upload + tap-to-calibrate flow, mirroring the admin one, but offline-
-capable and without the session token the dashboard's authenticated blob
-fetch relies on. This is the one item on Phase 8's scope below not yet built.
+**The part-timer's own submission screen is also done** (Sep 2026), closing
+the one item this phase had left. Reachable from the quote screen's app bar
+for every signed-in user. `library.py` gained `submit_from_device`, keyed on
+a **client-generated** id unlike the admin route (`Project.id` itself stays
+server-generated — see `Project`'s own docstring), idempotent on that id the
+same way `push_order` is, so a retry after a dropped fair-tent connection is
+safe. `POST /api/unit-type-submissions` carries the whole submission —
+openings, rooms, the floor-plan image, its calibration — as one JSON body
+with the image as base64, unlike the admin route's multipart upload: the
+whole thing is one outbox row frozen at enqueue time, so a flaky connection
+has one request to get through rather than two. On the handset, Drift schema
+v14 adds `LibrarySubmissions`, a draft the part-timer fills in and the
+outbox then pushes; the project picker reads a list cached from `GET
+/api/projects` whenever a connection exists, because `Project.id` staying
+server-generated means an offline submission can only ever point at a
+project already seen with one in hand. Submitting never blocks on the
+network, the same "never fails visibly" promise a quote's own queue makes.
+**Deliberately not built**: a resumable multi-visit draft the way the quote
+wizard persists on every keystroke — this is shorter, lower-stakes data
+entry, and the app losing an unsent form on force-quit is an accepted
+simplification, not an oversight.
+
+**A swappable AI recognition provider exists, and is a placeholder by
+design.** The client's own direction was to build the seam now and choose
+the actual provider (a hosted API or something run locally) later.
+`app/services/recognition.py` defines a `RecognitionProvider` protocol and a
+registry keyed by the `RECOGNITION_PROVIDER` env var; `NullRecognitionProvider`
+is what runs today, proposing nothing and saying so (`configured: false`).
+`POST /api/recognize` is stateless — no floor-plan id, no persistence, image
+bytes in and a proposal out — so it serves both the handset (a photo not yet
+submitted anywhere) and the dashboard (an already-uploaded image, re-sent as
+the blob it already fetched) without a database row needing to exist first.
+The rule below, written before any of this existed, is exactly what this
+keeps: a proposal is never production truth, only ever copied into the form
+by a person. Turning on a real provider is a config change; no caller of
+`get_recognition_provider` needs to change.
 
 **Acceptance**
 - [x] A plan-sourced line can never become an `OrderLine` except through the
@@ -2030,8 +2063,8 @@ fetch relies on. This is the one item on Phase 8's scope below not yet built.
       gated on `status=approved` the same way the review screen gates writes
 - [x] An admin can upload a floor-plan image and calibrate its scale from the
       dashboard, in zh/en/ms
-- [ ] A part-timer can submit a floor-plan image and calibration from the
-      handset, offline — not built
+- [x] A part-timer can submit a floor-plan image and calibration from the
+      handset, offline, through the outbox
 
 ### The workflow this is for
 
@@ -2165,25 +2198,43 @@ can be checked against what was actually submitted.
 
 ### Future: assisted digitisation
 
-**Not Phase 8, and not something to promise.** Documented here so the data model
-above does not preclude it:
+**The seam is built (Sep 2026); the actual recognition is not, and still is
+not something to promise.** Originally documented here only so the data model
+above did not preclude it:
 
 ```
 uploaded plan -> AI extracts rooms, openings, dimensions -> CONFIDENCE per value
               -> human verification -> approved version -> library
 ```
 
+That workflow is now real up to the point of *proposing* something:
+`app/services/recognition.py`'s `RecognitionProvider` protocol, the
+`RECOGNITION_PROVIDER`/`RECOGNITION_MODEL`-driven registry, and the
+stateless `POST /api/recognize` route all exist, wired into both the
+dashboard's review screen and the handset's own submission screen. What
+does not exist is a provider that recognises anything —
+`NullRecognitionProvider` is the only one registered, and it always answers
+`configured: false`. Choosing a real provider (hosted API, or something run
+locally) is exactly the config change this was built to make cheap, not a
+decision this document is making on the client's behalf.
+
 The extraction proposes; **a person still approves**, and the approval is what
 writes an `approved` version. AI output must never become production truth on
 its own — which is the same rule the part-timer route already follows, so the
-workflow needs no new concept, only a new source of drafts.
+workflow needs no new concept, only a new source of drafts. `POST /api/
+recognize` enforces this by construction: it has no floor-plan id and writes
+nothing, so there is no path from a proposal to a stored row that does not
+pass through a human retyping or copying it into the ordinary submission
+form.
 
-**Sequencing.** This stays Stage 2, after Phase 5 has run live two months, and
-that ordering is not arbitrary: a project library is only worth building once
-the order board shows which developments actually repeat. Digitising twenty unit
-types nobody quotes again is twenty wasted afternoons. Bringing it forward is a
-commercial decision, not a technical one — say so rather than quietly reordering
-the phases.
+**Sequencing.** Bringing the *seam* forward rode along with the rest of Phase
+8's Sep 2026 acceleration — building `POST /api/recognize` cost little once
+the submission screens already existed, and doing so now means neither UI
+needs to change shape when a provider is chosen. Choosing and wiring an
+**actual** recognition provider remains unscheduled and uncosted: it needs a
+real decision about which provider, what it costs per call or to host, and
+whether developer floor plans are consistent enough for it to be worth
+trusting at all — none of which this session had grounds to guess.
 
 ---
 

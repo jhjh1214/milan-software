@@ -2299,6 +2299,288 @@ abstract class L {
   /// In zh, this message translates to:
   /// **'{width} × {height} ft'**
   String pickerOpeningSize(String width, String height);
+
+  /// Part-timer's own floor-plan submission screen. SPEC.md Phase 8.
+  ///
+  /// In zh, this message translates to:
+  /// **'提交平面图'**
+  String get libTitle;
+
+  /// No description provided for @libIntro.
+  ///
+  /// In zh, this message translates to:
+  /// **'提交后需经管理员审核，才能用于报价。'**
+  String get libIntro;
+
+  /// No description provided for @libProjectLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'项目'**
+  String get libProjectLabel;
+
+  /// No description provided for @libProjectHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择项目'**
+  String get libProjectHint;
+
+  /// No description provided for @libNoProjectsCached.
+  ///
+  /// In zh, this message translates to:
+  /// **'还没有项目名单，请连线一次以下载。'**
+  String get libNoProjectsCached;
+
+  /// No description provided for @libRefreshProjects.
+  ///
+  /// In zh, this message translates to:
+  /// **'刷新名单'**
+  String get libRefreshProjects;
+
+  /// No description provided for @libProjectsFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法读取项目名单。'**
+  String get libProjectsFailed;
+
+  /// No description provided for @libUnitTypeNameLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'户型名称'**
+  String get libUnitTypeNameLabel;
+
+  /// No description provided for @libUnitTypeNameHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'例如：B座'**
+  String get libUnitTypeNameHint;
+
+  /// No description provided for @libFloorCountLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'楼层数（选填）'**
+  String get libFloorCountLabel;
+
+  /// No description provided for @libPhotoSectionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'平面图照片'**
+  String get libPhotoSectionTitle;
+
+  /// No description provided for @libPickFromGallery.
+  ///
+  /// In zh, this message translates to:
+  /// **'从相册选择'**
+  String get libPickFromGallery;
+
+  /// No description provided for @libTakePhoto.
+  ///
+  /// In zh, this message translates to:
+  /// **'拍照'**
+  String get libTakePhoto;
+
+  /// No description provided for @libRemovePhoto.
+  ///
+  /// In zh, this message translates to:
+  /// **'移除照片'**
+  String get libRemovePhoto;
+
+  /// No description provided for @libCalibrate.
+  ///
+  /// In zh, this message translates to:
+  /// **'设定比例尺'**
+  String get libCalibrate;
+
+  /// No description provided for @libRecalibrate.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新设定比例尺'**
+  String get libRecalibrate;
+
+  /// No description provided for @libCalibrated.
+  ///
+  /// In zh, this message translates to:
+  /// **'比例尺已设定'**
+  String get libCalibrated;
+
+  /// No description provided for @libClickTwoPoints.
+  ///
+  /// In zh, this message translates to:
+  /// **'点击两个已知实际距离的点。'**
+  String get libClickTwoPoints;
+
+  /// No description provided for @libOnePointChosen.
+  ///
+  /// In zh, this message translates to:
+  /// **'已选一点，请点击第二点。'**
+  String get libOnePointChosen;
+
+  /// No description provided for @libRealDistanceLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'两点之间的实际距离'**
+  String get libRealDistanceLabel;
+
+  /// No description provided for @libConfirmCalibration.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存比例尺'**
+  String get libConfirmCalibration;
+
+  /// No description provided for @libCancelCalibration.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消'**
+  String get libCancelCalibration;
+
+  /// No description provided for @libTryRecognition.
+  ///
+  /// In zh, this message translates to:
+  /// **'尝试 AI 识别'**
+  String get libTryRecognition;
+
+  /// No description provided for @libRecognizing.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在识别……'**
+  String get libRecognizing;
+
+  /// No description provided for @libRecognitionNotConfigured.
+  ///
+  /// In zh, this message translates to:
+  /// **'AI 识别功能尚未启用，请自行输入门窗与房间资料。'**
+  String get libRecognitionNotConfigured;
+
+  /// No description provided for @libRecognitionProposedOpenings.
+  ///
+  /// In zh, this message translates to:
+  /// **'识别出 {n} 个门窗'**
+  String libRecognitionProposedOpenings(int n);
+
+  /// No description provided for @libApplyProposal.
+  ///
+  /// In zh, this message translates to:
+  /// **'加入识别出的门窗'**
+  String get libApplyProposal;
+
+  /// No description provided for @libRecognitionFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法连接识别服务。'**
+  String get libRecognitionFailed;
+
+  /// No description provided for @libOpeningsSectionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'门窗'**
+  String get libOpeningsSectionTitle;
+
+  /// No description provided for @libAddOpening.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增门窗'**
+  String get libAddOpening;
+
+  /// No description provided for @libOpeningLabelField.
+  ///
+  /// In zh, this message translates to:
+  /// **'名称'**
+  String get libOpeningLabelField;
+
+  /// No description provided for @libOpeningLabelHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'例如：W1'**
+  String get libOpeningLabelHint;
+
+  /// No description provided for @libRoomField.
+  ///
+  /// In zh, this message translates to:
+  /// **'房间'**
+  String get libRoomField;
+
+  /// No description provided for @libWidthField.
+  ///
+  /// In zh, this message translates to:
+  /// **'宽度'**
+  String get libWidthField;
+
+  /// No description provided for @libHeightField.
+  ///
+  /// In zh, this message translates to:
+  /// **'高度'**
+  String get libHeightField;
+
+  /// No description provided for @libRemoveOpening.
+  ///
+  /// In zh, this message translates to:
+  /// **'移除'**
+  String get libRemoveOpening;
+
+  /// No description provided for @libRoomsSectionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'房间'**
+  String get libRoomsSectionTitle;
+
+  /// No description provided for @libAddRoom.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增房间'**
+  String get libAddRoom;
+
+  /// No description provided for @libRoomNameField.
+  ///
+  /// In zh, this message translates to:
+  /// **'房间名称'**
+  String get libRoomNameField;
+
+  /// No description provided for @libRoomLengthField.
+  ///
+  /// In zh, this message translates to:
+  /// **'长度'**
+  String get libRoomLengthField;
+
+  /// No description provided for @libRemoveRoom.
+  ///
+  /// In zh, this message translates to:
+  /// **'移除'**
+  String get libRemoveRoom;
+
+  /// No description provided for @libInvalidDimension.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入正确的尺寸'**
+  String get libInvalidDimension;
+
+  /// No description provided for @libSubmit.
+  ///
+  /// In zh, this message translates to:
+  /// **'提交审核'**
+  String get libSubmit;
+
+  /// No description provided for @libSubmitting.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在发送……'**
+  String get libSubmitting;
+
+  /// No description provided for @libSubmitted.
+  ///
+  /// In zh, this message translates to:
+  /// **'已发送，管理员审核后才能用于报价。'**
+  String get libSubmitted;
+
+  /// No description provided for @libSubmitAnother.
+  ///
+  /// In zh, this message translates to:
+  /// **'再提交一笔'**
+  String get libSubmitAnother;
+
+  /// No description provided for @libNeedProjectAndName.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先选择项目并填写户型名称。'**
+  String get libNeedProjectAndName;
 }
 
 class _LDelegate extends LocalizationsDelegate<L> {

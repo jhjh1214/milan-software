@@ -187,6 +187,12 @@ void main() {
     await db.customStatement('DROP TABLE price_overrides');
   }
 
+  /// Undoes exactly what v14 added: a part-timer's own floor-plan
+  /// submission (SPEC.md Phase 8's last open item).
+  Future<void> undoV14(AppDatabase db) async {
+    await db.customStatement('DROP TABLE library_submissions');
+  }
+
   /// Winds a current file back to [version], undoing each step in turn.
   ///
   /// It has to compose. Winding back to 9 by undoing only v10 leaves v11's
@@ -194,6 +200,7 @@ void main() {
   /// that already has them -- which throws, and is exactly the failure this
   /// suite exists to catch, arriving as a false one.
   Future<void> windBackTo(AppDatabase db, int version) async {
+    if (version < 14) await undoV14(db);
     if (version < 13) await undoV13(db);
     if (version < 12) await undoV12(db);
     if (version < 11) await undoV11(db);
@@ -203,8 +210,9 @@ void main() {
 
   test('a fresh database opens at the current version', () async {
     final db = await open();
-    expect(await userVersion(db), 13);
+    expect(await userVersion(db), 14);
     expect(await tablesIn(db), contains('price_overrides'));
+    expect(await tablesIn(db), contains('library_submissions'));
     await db.close();
   });
 
@@ -229,7 +237,7 @@ void main() {
     final after = await open();
     expect(
       await userVersion(after),
-      13,
+      14,
       reason: 'every step from 9 should have run, and recorded itself',
     );
     expect(
@@ -323,7 +331,7 @@ void main() {
     await first.close();
 
     final second = await open();
-    expect(await userVersion(second), 13);
+    expect(await userVersion(second), 14);
     expect(await tablesIn(second), contains('price_overrides'));
     await second.close();
   });
@@ -356,7 +364,7 @@ void main() {
       final after = await open();
       expect(
         await userVersion(after),
-        13,
+        14,
         reason: 'the upgrade should have run and recorded itself',
       );
 
@@ -426,7 +434,7 @@ void main() {
       await first.close();
 
       final second = await open();
-      expect(await userVersion(second), 13);
+      expect(await userVersion(second), 14);
       await second.close();
     });
   });
@@ -439,7 +447,7 @@ void main() {
       await before.close();
 
       final after = await open();
-      expect(await userVersion(after), 13);
+      expect(await userVersion(after), 14);
 
       final order = await (after.select(
         after.orders,
@@ -508,7 +516,7 @@ void main() {
       await first.close();
 
       final second = await open();
-      expect(await userVersion(second), 13);
+      expect(await userVersion(second), 14);
       await second.close();
     });
   });
@@ -521,7 +529,7 @@ void main() {
       await before.close();
 
       final after = await open();
-      expect(await userVersion(after), 13);
+      expect(await userVersion(after), 14);
 
       final line = await (after.select(
         after.orderLines,
@@ -614,8 +622,75 @@ void main() {
       await first.close();
 
       final second = await open();
-      expect(await userVersion(second), 13);
+      expect(await userVersion(second), 14);
       await second.close();
     });
   });
+
+  group(
+    'v13 → v14 — a part-timer\'s own floor-plan submission (Phase 8)',
+    () {
+      test('the order line already on the handset survives it', () async {
+        final before = await open();
+        await seedOrderLine(before);
+        await windBackTo(before, 13);
+        await before.close();
+
+        final after = await open();
+        expect(await userVersion(after), 14);
+
+        final line = await (after.select(
+          after.orderLines,
+        )..where((l) => l.id.equals('ol-1'))).getSingle();
+        expect(
+          line.lineTotalSen,
+          96000,
+          reason: 'a new table must not touch money on a line already there',
+        );
+
+        await after.close();
+      });
+
+      test('the new table is usable', () async {
+        // `createTable` is `IF NOT EXISTS`, so a loose `from < 14` guard
+        // would not throw the way a loose `addColumn` guard does -- but the
+        // table still has to have the right columns, or the first real
+        // submission fails at a fair.
+        final before = await open();
+        await windBackTo(before, 13);
+        await before.close();
+
+        final after = await open();
+        await after
+            .into(after.librarySubmissions)
+            .insert(
+              LibrarySubmissionsCompanion.insert(
+                id: 'ut-device-1',
+                projectId: 'p-1',
+                projectName: 'ABC Development',
+                unitTypeName: 'Type C',
+                createdAt: DateTime(2026, 9, 12, 10),
+              ),
+            );
+
+        final row = await (after.select(
+          after.librarySubmissions,
+        )..where((s) => s.id.equals('ut-device-1'))).getSingle();
+        expect(row.projectId, 'p-1');
+        expect(row.openingsJson, '[]');
+        expect(row.queuedAt, null);
+
+        await after.close();
+      });
+
+      test('running the upgrade twice does not throw', () async {
+        final first = await open();
+        await first.close();
+
+        final second = await open();
+        expect(await userVersion(second), 14);
+        await second.close();
+      });
+    },
+  );
 }

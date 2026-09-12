@@ -130,3 +130,18 @@ h2 {
   font-size: 13px;
   color: var(--color-fg-muted);
 }
+
+.recognition-result {
+  margin-top: var(--space-2);
+  max-width: 320px;
+}
+
+.recognition-result p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-fg-muted);
+}
+
+.recognition-result p + p {
+  margin-top: 2px;
+}

@@ -12,9 +12,8 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 
 ## Current state
 
-**Phases 1-6 complete. Phase 7 in progress. Phase 8 in progress — server and
-dashboard side done, mobile part-timer submission screen still open** —
-Flutter app, FastAPI backend, Postgres, and sync between them.
+**Phases 1-6 complete. Phase 7 in progress. Phase 8 complete** — Flutter app,
+FastAPI backend, Postgres, and sync between them.
 
 **Phase 7 so far.** The buyer-detail capture screens, both sides, the sync
 between them, and the document labelling audit. **Only the export is left, and
@@ -135,11 +134,78 @@ authenticated blob, since `<img src>` cannot carry the session token), and
 a two-click calibrate flow, in all three languages. 34 new backend tests,
 5 new dashboard tests, both suites green.
 
-**Not built yet, and named rather than skipped silently:** the part-timer
-submission screen on the handset — its own upload + tap-to-calibrate flow,
-mirroring the admin one now built, but on a device that must work
-offline and cannot assume a session token the way the dashboard's blob
-fetch does.
+**The part-timer's own submission screen is in (Sep 2026), and Phase 8 is
+now complete.** The handset's sibling of the admin's dashboard upload,
+built for exactly the scenario the client described: a customer WhatsApps a
+floor plan to a part-timer's phone at a fair, and it needs to become
+something quotable without a desk or a connection. Reachable from the quote
+screen's own app bar, for every signed-in user — a part-timer is exactly who
+this is for, so it is never admin-gated.
+
+**Two routes in, one idempotency scheme.** `library.py` gained
+`submit_from_device`, the offline sibling of `create_unit_type`: it takes a
+**client-generated** id (unlike the admin route, which still generates one
+server-side — see `Project`'s own docstring for why that stays true) and is
+idempotent on it, mirroring `push_order` exactly, because a submission
+queued through the outbox can retry after a dropped fair-tent connection the
+same way an order can. `POST /api/unit-type-submissions` carries the whole
+thing — name, openings, rooms, the floor-plan image, its calibration — as
+one JSON body with the image as base64, not the admin route's multipart
+upload, because the whole submission is one outbox row frozen at enqueue
+time and a flaky connection gets one request to complete rather than two
+that must both land. Calibration takes the same single integer pixel
+distance as the admin flow (`_scale_from_calibration`, now shared by both
+routes), computed by a `sqrt` that happens once, on the device, never on the
+server.
+
+**Mobile side:** Drift schema v14 adds `LibrarySubmissions` — a client-side
+draft (project, unit type name, openings/rooms as JSON, a photo path, its
+calibration) that a new `LibrarySubmissionRepository` owns until it is
+handed to the outbox. **A resumable multi-visit draft, the way the quote
+wizard persists on every keystroke, was deliberately not built** — this is
+shorter, lower-stakes data entry than a quote, and if the app is killed
+mid-form the part-timer simply starts again; named as a real simplification
+rather than silently accepted. The project picker reads a **cached** list
+(`Settings`, pulled via the existing `GET /api/projects` whenever a
+connection exists) rather than the wizard's own online-only picker, because
+`Project.id` staying server-generated means a submission can only ever
+point at a project this handset has already seen with a connection in
+hand — a genuinely offline-capable submission screen, built on top of a
+project-creation step that still is not. Openings and rooms are typed
+using the same exact `Length`/`parseLength` machinery as the measurement
+screen — a room's area comes from width × length, rounded once to the
+plain mm² `Room.nominal_area_mm2` actually stores, never typed as a raw
+number. Submitting never blocks on the network: it writes the row and calls
+`Outboxer.enqueueLibrarySubmission`, the same "this never blocks and never
+fails visibly" promise `queueQuoteForOffice` already makes, and shows the
+confirmation immediately — an admin still has to approve it before it
+reaches a quote, the same two-step gate the dashboard's own upload goes
+through.
+
+**AI-assisted recognition exists as a placeholder, deliberately.** The
+client's own request was to have the seam built now and the actual
+provider chosen later, whether a hosted API or something run locally.
+`app/services/recognition.py` defines a `RecognitionProvider` protocol and
+a registry keyed by the `RECOGNITION_PROVIDER` env var (`RECOGNITION_MODEL`
+passed through for whichever one is chosen); `NullRecognitionProvider` is
+what runs today — it proposes nothing, says so (`configured: false`), costs
+nothing, and never guesses. `POST /api/recognize` is **stateless**: no
+floor-plan id, no persistence, just image bytes in and a proposal out, so
+one route serves both the handset (a photo not yet submitted anywhere) and
+the dashboard (an already-uploaded image, re-sent as the blob it already
+fetched) without either needing a database row to exist first. SPEC.md's
+own "Future: assisted digitisation" section already named the rule this
+keeps: **a proposal is never production truth** — nothing it returns can
+become an `Opening` or a `Room` except by a person copying it into the form,
+the same two-step gate a part-timer's own submission already goes through.
+Both UIs are wired against this contract now, so turning on a real
+provider later is a config change, not a UI change.
+
+25 new backend tests (`test_recognition.py`, and additions to
+`test_library.py`/`test_library_api.py`), 3 new dashboard tests, and on the
+handset: 3 new migration tests, 5 repository tests, 4 payload-builder tests, 4
+outbox tests and 3 widget tests. 732 backend tests, 274 dashboard tests, 907
+Dart tests — all three suites green.
 
 **§13 A25 is answered and built** (client, Sep 2026). Korea wallpaper does not
 have to be measured at the fair — leaving it blank quotes the default one

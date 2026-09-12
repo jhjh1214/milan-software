@@ -390,5 +390,12 @@ export const EN: Strings = {
     realDistanceLabel: 'Real-world distance between the points (mm)',
     confirmCalibration: 'Save scale',
     cancelCalibration: 'Cancel',
+    tryRecognition: 'Try AI recognition',
+    recognizing: 'Recognising...',
+    recognitionNotConfigured:
+      'AI recognition is not configured yet -- enter openings and rooms from the developer’s schedule.',
+    recognitionProposedOpenings: (n) => `${n} opening(s) proposed`,
+    recognitionProposedRooms: (n) => `${n} room(s) proposed`,
+    recognitionFailed: 'Could not reach the recognition service.',
   },
 };

@@ -124,6 +124,19 @@ describe('UnitTypeReview', () => {
     return found as HTMLButtonElement;
   };
 
+  /** `blobToBase64` goes through jsdom's `FileReader`, which resolves on a
+   * real task rather than a microtask -- a single `setTimeout(0)` is not
+   * reliably enough ticks for it, so this polls instead of guessing a delay. */
+  const waitForRequest = async (url: string) => {
+    for (let i = 0; i < 40; i++) {
+      const [req] = http.match(url);
+      if (req) return req;
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      fixture.detectChanges();
+    }
+    throw new Error(`no request to ${url}`);
+  };
+
   it('asks only for what is waiting on a decision', () => {
     fixture.detectChanges();
     const req = http.expectOne((r) => r.url === '/api/unit-types');
@@ -334,5 +347,76 @@ describe('UnitTypeReview', () => {
 
     expect(fixture.nativeElement.querySelector('.calibrate-form')).toBeFalsy();
     http.expectNone('/api/floor-plans/fp1/calibrate');
+  });
+
+  it('trying AI recognition shows the placeholder note when nothing is configured', async () => {
+    load([item({ versions: [{ ...item().versions[0], floor_plan: floorPlan() }] })]);
+    http.expectOne('/api/floor-plans/fp1/image').flush(new Blob(['x'], { type: 'image/png' }));
+    fixture.detectChanges();
+
+    button('Try AI recognition').click();
+    fixture.detectChanges();
+
+    // Stateless: the recognise call re-sends the image bytes rather than a
+    // floor plan id, so this re-fetches the blob it already fetched once.
+    http.expectOne('/api/floor-plans/fp1/image').flush(new Blob(['x'], { type: 'image/png' }));
+
+    const req = await waitForRequest('/api/recognize');
+    expect(req.request.body).toEqual(
+      expect.objectContaining({ content_type: 'image/png' }),
+    );
+    req.flush({
+      configured: false,
+      provider: 'none',
+      note: 'not configured',
+      openings: [],
+      rooms: [],
+    });
+    fixture.detectChanges();
+
+    expect(text()).toContain('AI recognition is not configured yet');
+  });
+
+  it('a recognition proposal is shown, never applied to a field', async () => {
+    load([item({ versions: [{ ...item().versions[0], floor_plan: floorPlan() }] })]);
+    http.expectOne('/api/floor-plans/fp1/image').flush(new Blob(['x'], { type: 'image/png' }));
+    fixture.detectChanges();
+
+    button('Try AI recognition').click();
+    fixture.detectChanges();
+    http.expectOne('/api/floor-plans/fp1/image').flush(new Blob(['x'], { type: 'image/png' }));
+
+    const req = await waitForRequest('/api/recognize');
+    req.flush({
+      configured: true,
+      provider: 'some-vendor',
+      note: '',
+      openings: [
+        { label: 'W1', room: 'Living', nominal_w_tmm: 18000, nominal_h_tmm: 24000, confidence: 0.8 },
+      ],
+      rooms: [],
+    });
+    fixture.detectChanges();
+
+    expect(text()).toContain('1 opening(s) proposed');
+    // Still exactly the submission that was there before -- a proposal is
+    // shown beside it, never applied over what was actually submitted.
+    expect(text()).toContain('W1');
+  });
+
+  it('a recognition failure is said in words', async () => {
+    load([item({ versions: [{ ...item().versions[0], floor_plan: floorPlan() }] })]);
+    http.expectOne('/api/floor-plans/fp1/image').flush(new Blob(['x'], { type: 'image/png' }));
+    fixture.detectChanges();
+
+    button('Try AI recognition').click();
+    fixture.detectChanges();
+    http.expectOne('/api/floor-plans/fp1/image').flush(new Blob(['x'], { type: 'image/png' }));
+
+    const req = await waitForRequest('/api/recognize');
+    req.flush('server error', { status: 500, statusText: 'Server Error' });
+    fixture.detectChanges();
+
+    expect(text()).toContain('Could not reach the recognition service');
   });
 });

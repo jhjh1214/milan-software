@@ -149,6 +149,16 @@ class Outboxer {
     Map<String, dynamic> payload,
   ) => _enqueue('deposit_prompt', promptId, payload);
 
+  /// Queues a part-timer's own floor-plan submission. SPEC.md Phase 8.
+  ///
+  /// Keyed on the **device-generated unit type id** -- the same id the
+  /// server will use for the row it creates, so a retry after a dropped
+  /// fair-tent connection is idempotent the same way an order push is.
+  Future<void> enqueueLibrarySubmission(
+    String unitTypeId,
+    Map<String, dynamic> payload,
+  ) => _enqueue('library_submission', unitTypeId, payload);
+
   Future<void> _enqueue(
     String entityType,
     String entityId,
@@ -207,6 +217,10 @@ class Outboxer {
           credentials.token,
           body,
         ),
+        'library_submission' => await api.pushLibrarySubmission(
+          credentials.token,
+          body,
+        ),
         _ => await api.pushQuote(credentials.token, body),
       };
 
@@ -255,6 +269,11 @@ class Outboxer {
             }
           } else if (response is PromptRecorded) {
             await db.settleDepositPrompt(promptId: row.entityId, at: clock());
+            await db.dropOutbox(row.id);
+          } else if (response is UnitTypeSubmissionAccepted) {
+            // Nothing local to settle -- unlike a payment or an order, a
+            // submission has no number that comes back to write down. It
+            // either exists on the server now or it already did.
             await db.dropOutbox(row.id);
           } else if (response is StatusAccepted) {
             await db.settleOrderEvent(eventId: row.entityId, at: clock());

@@ -17,6 +17,8 @@ what replaces expiry.
 
 from __future__ import annotations
 
+import base64
+import binascii
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from typing import Annotated
@@ -48,6 +50,7 @@ from .api.schemas import (
     DepositPromptIn,
     DepositPromptResult,
     DepositPromptsOut,
+    ExtractionOut,
     FairReport,
     FloorPlanOut,
     LockPushResult,
@@ -71,11 +74,14 @@ from .api.schemas import (
     ProjectIn,
     ProjectOut,
     ProjectsOut,
+    ProposedOpeningOut,
+    ProposedRoomOut,
     PublishIn,
     PublishOut,
     PushResult,
     QuoteIn,
     RateChangeOut,
+    RecognizeIn,
     RejectUnitTypeIn,
     RoomOut,
     SessionOut,
@@ -87,6 +93,8 @@ from .api.schemas import (
     UnitTypeDetailOut,
     UnitTypeOut,
     UnitTypesOut,
+    UnitTypeSubmissionIn,
+    UnitTypeSubmissionResult,
     UnitTypeVersionOut,
     UnitTypeWithVersionsOut,
     UserOut,
@@ -150,11 +158,16 @@ from .services.library import (
     create_unit_type,
     floor_plan_detail,
     list_unit_types,
+    recognize_floor_plan_image,
     reject_unit_type,
     search_projects,
     submit_for_review,
+    submit_from_device,
     unit_type_detail,
     upload_floor_plan,
+)
+from .services.library import (
+    FloorPlanImageIn as FloorPlanImageServiceIn,
 )
 from .services.library import (
     FloorPlanIn as FloorPlanServiceIn,
@@ -1289,3 +1302,111 @@ def calibrate_floor_plan_route(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "no such floor plan") from exc
 
     return _floor_plan_out(plan)
+
+
+@app.post("/api/recognize", response_model=ExtractionOut)
+def recognize_route(
+    payload: RecognizeIn, session: SessionDep, who: CurrentDep
+) -> ExtractionOut:
+    """Proposes openings and rooms from a floor-plan image. SPEC.md Phase 8,
+    "Future: assisted digitisation".
+
+    Stateless and never persisted -- no floor plan id is taken or required,
+    so this can run on a photo before it has been submitted anywhere (the
+    handset's own "try recognition" step) as well as on one already stored
+    (the dashboard's review screen, re-sending the blob it already fetched).
+    A proposal is not a version; only a person copying values into the
+    submission form, through the existing draft/pending_review/approved
+    gate, can create one.
+    """
+    _ = session, who
+    try:
+        image_data = base64.b64decode(payload.image_base64, validate=True)
+    except (ValueError, binascii.Error) as exc:
+        raise HTTPException(HTTP_422_UNPROCESSABLE, "invalid image_base64") from exc
+
+    try:
+        result = recognize_floor_plan_image(
+            image_data=image_data, content_type=payload.content_type
+        )
+    except ValueError as exc:
+        raise HTTPException(HTTP_422_UNPROCESSABLE, str(exc)) from exc
+
+    return ExtractionOut(
+        configured=result.configured,
+        provider=result.provider,
+        note=result.note,
+        openings=[
+            ProposedOpeningOut(
+                label=o.label,
+                room=o.room,
+                nominal_w_tmm=o.nominal_w_tmm,
+                nominal_h_tmm=o.nominal_h_tmm,
+                confidence=o.confidence,
+            )
+            for o in result.openings
+        ],
+        rooms=[
+            ProposedRoomOut(
+                name=r.name,
+                nominal_area_mm2=r.nominal_area_mm2,
+                confidence=r.confidence,
+            )
+            for r in result.rooms
+        ],
+    )
+
+
+@app.post(
+    "/api/unit-type-submissions",
+    response_model=UnitTypeSubmissionResult,
+    status_code=status.HTTP_201_CREATED,
+)
+def submit_unit_type_from_device_route(
+    payload: UnitTypeSubmissionIn, session: SessionDep, who: CurrentDep
+) -> UnitTypeSubmissionResult:
+    """The part-timer's offline path, pushed through the outbox like an order
+    or a payment. SPEC.md Phase 8.
+
+    **Idempotent on the device's own id** -- `POST /api/orders`'s own
+    docstring explains why this shape exists: a retry after a dropped
+    fair-tent connection must hand back the same result, not create a second
+    submission. Always lands at `pending_review`; an admin still approves or
+    rejects it from the same review screen a dashboard-drafted submission
+    goes through.
+    """
+    user, _ = who
+    image = None
+    if payload.floor_plan is not None:
+        try:
+            image_data = base64.b64decode(
+                payload.floor_plan.image_base64, validate=True
+            )
+        except (ValueError, binascii.Error) as exc:
+            raise HTTPException(HTTP_422_UNPROCESSABLE, "invalid image_base64") from exc
+        image = FloorPlanImageServiceIn(
+            filename=payload.floor_plan.filename,
+            content_type=payload.floor_plan.content_type,
+            image_data=image_data,
+            pixel_distance=payload.floor_plan.pixel_distance,
+            real_distance_tmm=payload.floor_plan.real_distance_tmm,
+        )
+
+    try:
+        unit_type, duplicate = submit_from_device(
+            session,
+            id=payload.id,
+            project_id=payload.project_id,
+            name=payload.name,
+            floor_count=payload.floor_count,
+            created_by_user_id=user.id,
+            openings=_service_openings(payload.openings),
+            rooms=_service_rooms(payload.rooms),
+            floor_plan_image=image,
+        )
+    except NoSuchProject as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such project") from exc
+    except ValueError as exc:
+        raise HTTPException(HTTP_422_UNPROCESSABLE, str(exc)) from exc
+
+    return UnitTypeSubmissionResult(unit_type_id=unit_type.id, duplicate=duplicate)

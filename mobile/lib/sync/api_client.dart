@@ -159,6 +159,16 @@ class ProjectSummary {
     developer: json['developer'] as String?,
     area: json['area'] as String?,
   );
+
+  /// The inverse of [fromJson] -- used to cache the list locally
+  /// (`submit_floor_plan_screen.dart`'s `_writeProjectCache`), not to talk to
+  /// the server, which only ever hands these back as a response.
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'developer': developer,
+    'area': area,
+  };
 }
 
 /// One floor plan within a project, without its openings and rooms.
@@ -459,6 +469,41 @@ class PromptRecorded {
   final bool duplicate;
 
   const PromptRecorded({required this.promptId, required this.duplicate});
+}
+
+/// The server's answer to a part-timer's own floor-plan submission. SPEC.md
+/// Phase 8.
+class UnitTypeSubmissionAccepted {
+  final String unitTypeId;
+
+  /// True on a retry the server already applied -- the device's payload was
+  /// never re-read, exactly like a repeated `push_order`.
+  final bool duplicate;
+
+  const UnitTypeSubmissionAccepted({
+    required this.unitTypeId,
+    required this.duplicate,
+  });
+}
+
+/// A proposal, never a write. SPEC.md Phase 8, "Future: assisted
+/// digitisation" -- the provider is not chosen yet, so today this always
+/// comes back with `configured: false`; the shape exists so the review UI
+/// can be built and tested against it now.
+class RecognitionResult {
+  final bool configured;
+  final String provider;
+  final String note;
+  final List<Map<String, dynamic>> openings;
+  final List<Map<String, dynamic>> rooms;
+
+  const RecognitionResult({
+    required this.configured,
+    required this.provider,
+    required this.note,
+    required this.openings,
+    required this.rooms,
+  });
 }
 
 class ApiClient {
@@ -840,6 +885,56 @@ class ApiClient {
     (json) => PromptRecorded(
       promptId: json['prompt_id'] as String,
       duplicate: json['duplicate'] as bool,
+    ),
+  );
+
+  /// Pushes a part-timer's own floor-plan submission. SPEC.md Phase 8.
+  ///
+  /// Idempotent on the device's own id, the same as an order push: a retry
+  /// after a dropped connection must not create the submission twice.
+  Future<SyncResult<UnitTypeSubmissionAccepted>> pushLibrarySubmission(
+    String token,
+    Map<String, dynamic> submission,
+  ) => _send(
+    () => _http.post(
+      _url('/api/unit-type-submissions'),
+      headers: _headers(token),
+      body: jsonEncode(submission),
+    ),
+    (json) => UnitTypeSubmissionAccepted(
+      unitTypeId: json['unit_type_id'] as String,
+      duplicate: json['duplicate'] as bool,
+    ),
+  );
+
+  /// Proposes openings and rooms from a floor-plan image. SPEC.md Phase 8,
+  /// "Future: assisted digitisation".
+  ///
+  /// Stateless -- no floor plan id is taken or required, so this can run on
+  /// a photo before it has been submitted anywhere. Never a write: a
+  /// proposal is only ever copied into the form by a person, the same as
+  /// the dashboard's own "try recognition" button.
+  Future<SyncResult<RecognitionResult>> recognize({
+    required String token,
+    required String contentType,
+    required String imageBase64,
+  }) => _send(
+    () => _http.post(
+      _url('/api/recognize'),
+      headers: _headers(token),
+      body: jsonEncode({
+        'content_type': contentType,
+        'image_base64': imageBase64,
+      }),
+    ),
+    (json) => RecognitionResult(
+      configured: json['configured'] as bool,
+      provider: json['provider'] as String,
+      note: json['note'] as String? ?? '',
+      openings: ((json['openings'] as List?) ?? const [])
+          .cast<Map<String, dynamic>>(),
+      rooms: ((json['rooms'] as List?) ?? const [])
+          .cast<Map<String, dynamic>>(),
     ),
   );
 

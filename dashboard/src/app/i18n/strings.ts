@@ -463,6 +463,12 @@ export interface LibraryStrings {
   readonly realDistanceLabel: string;
   readonly confirmCalibration: string;
   readonly cancelCalibration: string;
+  readonly tryRecognition: string;
+  readonly recognizing: string;
+  readonly recognitionNotConfigured: string;
+  readonly recognitionProposedOpenings: (n: number) => string;
+  readonly recognitionProposedRooms: (n: number) => string;
+  readonly recognitionFailed: string;
 }
 
 /** Everything the dashboard can say, in one language. */

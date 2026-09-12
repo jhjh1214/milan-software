@@ -21,6 +21,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.models.db import Base
 from app.services.library import (
+    FloorPlanImageIn,
     FloorPlanIn,
     NoSuchFloorPlan,
     NoSuchProject,
@@ -35,9 +36,11 @@ from app.services.library import (
     create_project,
     create_unit_type,
     list_unit_types,
+    recognize_floor_plan_image,
     reject_unit_type,
     search_projects,
     submit_for_review,
+    submit_from_device,
     unit_type_detail,
     upload_floor_plan,
 )
@@ -584,4 +587,208 @@ class TestCalibration:
         with db() as session, pytest.raises(NoSuchFloorPlan):
             calibrate_floor_plan(
                 session, "not-a-real-id", pixel_distance=100, real_distance_tmm=1000
+            )
+
+
+class TestSubmitFromDevice:
+    """The part-timer's offline path -- pushed through the outbox exactly
+    like an order, so idempotency on the device's own id matters here the
+    same way it does for `push_order`.
+    """
+
+    def _project(self, session) -> str:
+        project = create_project(session, name="ABC Development")
+        session.commit()
+        return project.id
+
+    def test_lands_at_pending_review(self, db) -> None:
+        with db() as session:
+            project_id = self._project(session)
+            unit_type, duplicate = submit_from_device(
+                session,
+                id="11111111-1111-1111-1111-111111111111",
+                project_id=project_id,
+                name="Type C",
+                created_by_user_id="pt-1",
+                openings=OPENINGS,
+            )
+            session.commit()
+
+            assert duplicate is False
+            assert unit_type.status == "pending_review"
+            detail = unit_type_detail(session, unit_type.id)
+            assert len(detail.versions[0].openings) == len(OPENINGS)
+
+    def test_a_retry_on_the_same_id_is_a_duplicate_not_a_second_row(
+        self, db
+    ) -> None:
+        with db() as session:
+            project_id = self._project(session)
+            device_id = "22222222-2222-2222-2222-222222222222"
+            first, first_dup = submit_from_device(
+                session,
+                id=device_id,
+                project_id=project_id,
+                name="Type C",
+                created_by_user_id="pt-1",
+                openings=OPENINGS,
+            )
+            session.commit()
+
+            second, second_dup = submit_from_device(
+                session,
+                id=device_id,
+                project_id=project_id,
+                name="Type C -- retry with a different name",
+                created_by_user_id="pt-1",
+                openings=[],
+            )
+            session.commit()
+
+            assert first_dup is False
+            assert second_dup is True
+            assert second.id == first.id
+            # The retry's (different) payload never touched the row the
+            # server already had -- exactly what `push_order`'s own
+            # idempotency promises.
+            assert second.name == "Type C"
+
+    def test_an_unknown_project_is_an_error(self, db) -> None:
+        with db() as session, pytest.raises(NoSuchProject):
+            submit_from_device(
+                session,
+                id="33333333-3333-3333-3333-333333333333",
+                project_id="not-a-real-project",
+                name="Type C",
+                created_by_user_id="pt-1",
+            )
+
+    def test_the_floor_plan_and_calibration_can_travel_with_it(self, db) -> None:
+        with db() as session:
+            project_id = self._project(session)
+            unit_type, _ = submit_from_device(
+                session,
+                id="44444444-4444-4444-4444-444444444444",
+                project_id=project_id,
+                name="Type C",
+                created_by_user_id="pt-1",
+                floor_plan_image=FloorPlanImageIn(
+                    filename="whatsapp-plan.jpg",
+                    content_type="image/jpeg",
+                    image_data=b"\xff\xd8\xff fake jpeg bytes",
+                    pixel_distance=500,
+                    real_distance_tmm=30000,
+                ),
+            )
+            session.commit()
+
+            detail = unit_type_detail(session, unit_type.id)
+            plan = detail.versions[0].floor_plan
+            assert plan.file_ref == "whatsapp-plan.jpg"
+            assert plan.image_data == b"\xff\xd8\xff fake jpeg bytes"
+            # Computed by the same `Fraction` arithmetic `calibrate_floor_plan`
+            # uses -- one shared helper, so the two routes can never disagree.
+            assert plan.scale_tmm_per_px == "60"
+
+    def test_an_uncalibrated_photo_can_still_be_submitted(self, db) -> None:
+        # A part-timer who has not yet tapped two points submits anyway --
+        # calibration can be finished later from the review screen.
+        with db() as session:
+            project_id = self._project(session)
+            unit_type, _ = submit_from_device(
+                session,
+                id="55555555-5555-5555-5555-555555555555",
+                project_id=project_id,
+                name="Type C",
+                created_by_user_id="pt-1",
+                floor_plan_image=FloorPlanImageIn(
+                    filename="whatsapp-plan.jpg",
+                    content_type="image/jpeg",
+                    image_data=b"data",
+                ),
+            )
+            session.commit()
+
+            detail = unit_type_detail(session, unit_type.id)
+            assert detail.versions[0].floor_plan.scale_tmm_per_px is None
+
+    def test_one_calibration_field_without_the_other_is_refused(self, db) -> None:
+        with db() as session:
+            project_id = self._project(session)
+            with pytest.raises(ValueError):
+                submit_from_device(
+                    session,
+                    id="66666666-6666-6666-6666-666666666666",
+                    project_id=project_id,
+                    name="Type C",
+                    created_by_user_id="pt-1",
+                    floor_plan_image=FloorPlanImageIn(
+                        filename="plan.jpg",
+                        content_type="image/jpeg",
+                        image_data=b"data",
+                        pixel_distance=500,
+                    ),
+                )
+
+    def test_a_non_image_content_type_is_refused(self, db) -> None:
+        with db() as session:
+            project_id = self._project(session)
+            with pytest.raises(ValueError):
+                submit_from_device(
+                    session,
+                    id="77777777-7777-7777-7777-777777777777",
+                    project_id=project_id,
+                    name="Type C",
+                    created_by_user_id="pt-1",
+                    floor_plan_image=FloorPlanImageIn(
+                        filename="not-a-plan.html",
+                        content_type="text/html",
+                        image_data=b"<script>alert(1)</script>",
+                    ),
+                )
+
+    def test_too_large_is_refused(self, db) -> None:
+        with db() as session:
+            project_id = self._project(session)
+            with pytest.raises(ValueError):
+                submit_from_device(
+                    session,
+                    id="88888888-8888-8888-8888-888888888888",
+                    project_id=project_id,
+                    name="Type C",
+                    created_by_user_id="pt-1",
+                    floor_plan_image=FloorPlanImageIn(
+                        filename="huge.jpg",
+                        content_type="image/jpeg",
+                        image_data=b"x" * (10 * 1024 * 1024 + 1),
+                    ),
+                )
+
+
+class TestRecognizeFloorPlanImage:
+    """The placeholder provider. SPEC.md Phase 8, "Future: assisted
+    digitisation" -- proves the contract a real provider will one day fill,
+    without pretending to recognise anything today.
+    """
+
+    def test_the_placeholder_proposes_nothing_and_says_so(self) -> None:
+        result = recognize_floor_plan_image(
+            image_data=b"\xff\xd8\xff fake jpeg", content_type="image/jpeg"
+        )
+        assert result.configured is False
+        assert result.provider == "none"
+        assert result.openings == []
+        assert result.rooms == []
+        assert result.note != ""
+
+    def test_a_non_image_content_type_is_refused(self) -> None:
+        with pytest.raises(ValueError):
+            recognize_floor_plan_image(
+                image_data=b"<script>alert(1)</script>", content_type="text/html"
+            )
+
+    def test_too_large_is_refused(self) -> None:
+        with pytest.raises(ValueError):
+            recognize_floor_plan_image(
+                image_data=b"x" * (10 * 1024 * 1024 + 1), content_type="image/jpeg"
             )

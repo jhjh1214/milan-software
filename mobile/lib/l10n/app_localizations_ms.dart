@@ -1317,4 +1317,153 @@ class LMs extends L {
   String pickerOpeningSize(String width, String height) {
     return '$width × $height ft';
   }
+
+  @override
+  String get libTitle => 'Hantar pelan lantai';
+
+  @override
+  String get libIntro =>
+      'Seorang admin akan menyemak ini sebelum ia boleh digunakan dalam sebut harga.';
+
+  @override
+  String get libProjectLabel => 'Projek';
+
+  @override
+  String get libProjectHint => 'Pilih projek';
+
+  @override
+  String get libNoProjectsCached =>
+      'Senarai projek belum dimuatkan. Sambung sekali untuk memuatkannya.';
+
+  @override
+  String get libRefreshProjects => 'Muat semula senarai';
+
+  @override
+  String get libProjectsFailed => 'Tidak dapat memuatkan senarai projek.';
+
+  @override
+  String get libUnitTypeNameLabel => 'Nama jenis unit';
+
+  @override
+  String get libUnitTypeNameHint => 'cth. Jenis B';
+
+  @override
+  String get libFloorCountLabel => 'Bilangan tingkat (pilihan)';
+
+  @override
+  String get libPhotoSectionTitle => 'Foto pelan lantai';
+
+  @override
+  String get libPickFromGallery => 'Pilih daripada foto';
+
+  @override
+  String get libTakePhoto => 'Ambil foto';
+
+  @override
+  String get libRemovePhoto => 'Buang foto';
+
+  @override
+  String get libCalibrate => 'Tetapkan skala';
+
+  @override
+  String get libRecalibrate => 'Tetapkan semula skala';
+
+  @override
+  String get libCalibrated => 'Skala telah ditetapkan';
+
+  @override
+  String get libClickTwoPoints => 'Ketik dua titik yang jaraknya diketahui.';
+
+  @override
+  String get libOnePointChosen => 'Satu titik dipilih -- ketik titik kedua.';
+
+  @override
+  String get libRealDistanceLabel => 'Jarak sebenar antara kedua-dua titik';
+
+  @override
+  String get libConfirmCalibration => 'Simpan skala';
+
+  @override
+  String get libCancelCalibration => 'Batal';
+
+  @override
+  String get libTryRecognition => 'Cuba pengecaman AI';
+
+  @override
+  String get libRecognizing => 'Sedang mengecam...';
+
+  @override
+  String get libRecognitionNotConfigured =>
+      'Pengecaman AI belum ditetapkan -- masukkan bukaan dan bilik secara manual.';
+
+  @override
+  String libRecognitionProposedOpenings(int n) {
+    return '$n bukaan dicadangkan';
+  }
+
+  @override
+  String get libApplyProposal => 'Tambah bukaan yang dicadangkan';
+
+  @override
+  String get libRecognitionFailed =>
+      'Tidak dapat menghubungi perkhidmatan pengecaman.';
+
+  @override
+  String get libOpeningsSectionTitle => 'Tingkap dan pintu';
+
+  @override
+  String get libAddOpening => 'Tambah tingkap atau pintu';
+
+  @override
+  String get libOpeningLabelField => 'Nama';
+
+  @override
+  String get libOpeningLabelHint => 'cth. W1';
+
+  @override
+  String get libRoomField => 'Bilik';
+
+  @override
+  String get libWidthField => 'Lebar';
+
+  @override
+  String get libHeightField => 'Tinggi';
+
+  @override
+  String get libRemoveOpening => 'Buang';
+
+  @override
+  String get libRoomsSectionTitle => 'Bilik';
+
+  @override
+  String get libAddRoom => 'Tambah bilik';
+
+  @override
+  String get libRoomNameField => 'Nama bilik';
+
+  @override
+  String get libRoomLengthField => 'Panjang';
+
+  @override
+  String get libRemoveRoom => 'Buang';
+
+  @override
+  String get libInvalidDimension => 'Masukkan saiz yang sah';
+
+  @override
+  String get libSubmit => 'Hantar untuk semakan';
+
+  @override
+  String get libSubmitting => 'Menghantar...';
+
+  @override
+  String get libSubmitted =>
+      'Dihantar. Admin akan menyemaknya sebelum ia boleh digunakan dalam sebut harga.';
+
+  @override
+  String get libSubmitAnother => 'Hantar satu lagi';
+
+  @override
+  String get libNeedProjectAndName =>
+      'Pilih projek dan namakan jenis unit dahulu.';
 }

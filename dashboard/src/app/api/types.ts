@@ -547,6 +547,33 @@ export interface FloorPlanOut {
   readonly uploaded_at: string;
 }
 
+/**
+ * A proposal, never a write. SPEC.md Phase 8, "Future: assisted
+ * digitisation" -- nothing this shape can become an `Opening` or a `Room`
+ * except by a person copying it into the review form.
+ */
+export interface ProposedOpeningOut {
+  readonly label: string;
+  readonly room: string;
+  readonly nominal_w_tmm: number;
+  readonly nominal_h_tmm: number;
+  readonly confidence: number;
+}
+
+export interface ProposedRoomOut {
+  readonly name: string;
+  readonly nominal_area_mm2: number;
+  readonly confidence: number;
+}
+
+export interface ExtractionOut {
+  readonly configured: boolean;
+  readonly provider: string;
+  readonly note: string;
+  readonly openings: readonly ProposedOpeningOut[];
+  readonly rooms: readonly ProposedRoomOut[];
+}
+
 export interface UnitTypeVersionOut {
   readonly id: string;
   readonly version: number;

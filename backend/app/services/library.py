@@ -41,6 +41,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from ..models.db import FloorPlan, Opening, Project, Room, UnitType, UnitTypeVersion
+from .recognition import ExtractionResult, get_recognition_provider
 
 #: A unit type's own lifecycle stage. `superseded` is reserved -- nothing in
 #: this module sets it yet; see SPEC.md §13, this phase's open question about
@@ -98,6 +99,27 @@ class FloorPlanIn:
     file_ref: str
     #: "12/1" style rational string, or None until an admin calibrates it.
     scale_tmm_per_px: str | None = None
+
+
+@dataclass(frozen=True)
+class FloorPlanImageIn:
+    """A floor-plan image arriving with its own submission, rather than
+    through the admin's separate multipart upload route. The part-timer's
+    offline path (`submit_from_device`) is the one caller today: the whole
+    submission -- name, openings, rooms, photo, calibration -- is one queued
+    outbox row, so the image travels as bytes inside that same JSON payload
+    instead of a second request a flaky fair connection might never get to.
+    """
+
+    filename: str
+    content_type: str
+    image_data: bytes
+    #: Both present or both absent. A part-timer who has not yet tapped two
+    #: points on the photo submits with neither -- calibration can always be
+    #: finished later via `calibrate_floor_plan`, the same route the admin
+    #: uses.
+    pixel_distance: int | None = None
+    real_distance_tmm: int | None = None
 
 
 def create_project(
@@ -443,14 +465,143 @@ def calibrate_floor_plan(
     plan = session.get(FloorPlan, floor_plan_id)
     if plan is None:
         raise NoSuchFloorPlan(floor_plan_id)
+
+    plan.scale_tmm_per_px = _scale_from_calibration(pixel_distance, real_distance_tmm)
+    session.flush()
+    return plan
+
+
+def _scale_from_calibration(pixel_distance: int, real_distance_tmm: int) -> str:
+    """Shared by `calibrate_floor_plan` (the admin's two-step dashboard flow)
+    and `submit_from_device` (a part-timer's one-shot offline submission) --
+    one place computes this exact rational so the two can never disagree on
+    how a tapped distance becomes a scale.
+    """
     if pixel_distance <= 0:
         raise ValueError("pixel_distance must be positive")
     if real_distance_tmm <= 0:
         raise ValueError("real_distance_tmm must be positive")
+    return str(Fraction(real_distance_tmm, pixel_distance))
 
-    plan.scale_tmm_per_px = str(Fraction(real_distance_tmm, pixel_distance))
+
+def submit_from_device(
+    session: Session,
+    *,
+    id: str,
+    project_id: str,
+    name: str,
+    created_by_user_id: str | None,
+    floor_count: int | None = None,
+    openings: list[OpeningIn] = (),  # type: ignore[assignment]
+    rooms: list[RoomIn] = (),  # type: ignore[assignment]
+    floor_plan_image: FloorPlanImageIn | None = None,
+) -> tuple[UnitType, bool]:
+    """The part-timer's offline submission, pushed through the outbox exactly
+    like an order or a payment -- **idempotent on the device's own id**, for
+    the same reason `push_order` is: a retry after a dropped fair-tent
+    connection must not create the submission twice, or worse, twice with
+    different content depending on which attempt landed.
+
+    Always lands at `pending_review`: this is the one-shot part-timer path,
+    the same destination as `create_unit_type(..., submit=True)`, just keyed
+    on a client-generated id instead of a server one so the device can know
+    its id before a connection exists to ask the server for one.
+
+    `create_unit_type` remains the admin/dashboard entry point and keeps
+    generating its own id online, where there is no offline collision to
+    guard against (see `Project`'s own docstring for why project ids stay
+    server-generated) -- this is the offline sibling for a device that must
+    queue the whole thing, image included, as one frozen payload.
+
+    Returns `(unit_type, duplicate)`, mirroring `push_order`'s own shape:
+    `duplicate=True` on a retry the server already applied, so the route can
+    report exactly what an order push already does.
+    """
+    existing = session.get(UnitType, id)
+    if existing is not None:
+        return existing, True
+
+    if session.get(Project, project_id) is None:
+        raise NoSuchProject(project_id)
+
+    if floor_plan_image is not None:
+        if floor_plan_image.content_type not in ALLOWED_FLOOR_PLAN_CONTENT_TYPES:
+            raise ValueError(
+                f'unsupported floor plan content type "{floor_plan_image.content_type}"'
+            )
+        if len(floor_plan_image.image_data) > MAX_FLOOR_PLAN_BYTES:
+            raise ValueError(f"floor plan exceeds {MAX_FLOOR_PLAN_BYTES} bytes")
+        has_pixel = floor_plan_image.pixel_distance is not None
+        has_real = floor_plan_image.real_distance_tmm is not None
+        if has_pixel != has_real:
+            raise ValueError(
+                "pixel_distance and real_distance_tmm must both be given, "
+                "or both omitted"
+            )
+
+    unit_type = UnitType(
+        id=id,
+        project_id=project_id,
+        name=name,
+        floor_count=floor_count,
+        status="pending_review",
+        created_by_user_id=created_by_user_id,
+    )
+    session.add(unit_type)
+
+    version = UnitTypeVersion(
+        id=str(uuid.uuid4()),
+        unit_type_id=unit_type.id,
+        version=1,
+        created_by_user_id=created_by_user_id,
+    )
+    session.add(version)
+    _attach_version_contents(
+        session, version, openings, rooms, None, created_by_user_id
+    )
+
+    if floor_plan_image is not None:
+        scale = (
+            _scale_from_calibration(
+                floor_plan_image.pixel_distance, floor_plan_image.real_distance_tmm
+            )
+            if floor_plan_image.pixel_distance is not None
+            else None
+        )
+        session.add(
+            FloorPlan(
+                id=str(uuid.uuid4()),
+                unit_type_version_id=version.id,
+                file_ref=floor_plan_image.filename,
+                content_type=floor_plan_image.content_type,
+                image_data=floor_plan_image.image_data,
+                scale_tmm_per_px=scale,
+                uploaded_by_user_id=created_by_user_id,
+            )
+        )
+
     session.flush()
-    return plan
+    return unit_type, False
+
+
+def recognize_floor_plan_image(
+    *, image_data: bytes, content_type: str
+) -> ExtractionResult:
+    """The stateless recognition call, reused by `POST /api/recognize` for
+    both a not-yet-submitted photo (mobile, before the outbox has queued it)
+    and an already-uploaded one (dashboard, re-sending the blob it already
+    fetched). Never touches the database -- SPEC.md is explicit that AI
+    output must never become production truth on its own, so this has
+    nothing to read or write, only bytes in and a proposal out.
+    """
+    if content_type not in ALLOWED_FLOOR_PLAN_CONTENT_TYPES:
+        raise ValueError(f'unsupported floor plan content type "{content_type}"')
+    if len(image_data) > MAX_FLOOR_PLAN_BYTES:
+        raise ValueError(f"floor plan exceeds {MAX_FLOOR_PLAN_BYTES} bytes")
+
+    return get_recognition_provider().extract(
+        image_data=image_data, content_type=content_type
+    )
 
 
 def _latest_version(session: Session, unit_type_id: str) -> UnitTypeVersion | None:

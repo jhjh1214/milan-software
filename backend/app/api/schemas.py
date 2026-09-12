@@ -1102,3 +1102,86 @@ class CalibrateFloorPlanIn(BaseModel):
 
     pixel_distance: int = Field(gt=0)
     real_distance_tmm: int = Field(gt=0)
+
+
+class RecognizeIn(BaseModel):
+    """A floor-plan image, sent for a proposal only. SPEC.md Phase 8, "Future:
+    assisted digitisation". Stateless -- there is no floor plan id, because
+    this may be called before one exists (a part-timer's photo, not yet
+    queued) as well as after (the dashboard re-sending a blob it already
+    fetched).
+    """
+
+    content_type: str = Field(min_length=1, max_length=100)
+    image_base64: str = Field(min_length=1)
+
+
+class ProposedOpeningOut(BaseModel):
+    label: str
+    room: str
+    nominal_w_tmm: int
+    nominal_h_tmm: int
+    confidence: float
+
+
+class ProposedRoomOut(BaseModel):
+    name: str
+    nominal_area_mm2: int
+    confidence: float
+
+
+class ExtractionOut(BaseModel):
+    """A proposal, never a write. Nothing in this response can become an
+    `Opening` or a `Room` except by a person copying it into the submission
+    form -- the same two-step gate that already keeps a part-timer's own
+    upload out of the library until an admin approves it.
+    """
+
+    configured: bool
+    provider: str
+    note: str = ""
+    openings: list[ProposedOpeningOut] = []
+    rooms: list[ProposedRoomOut] = []
+
+
+class FloorPlanSubmissionIn(BaseModel):
+    """The image half of an offline unit-type submission. Travels as base64
+    inside the same JSON payload as the rest of the submission, unlike the
+    admin's own multipart upload route -- the whole thing is one outbox row,
+    frozen at enqueue time, so a flaky fair connection has one request to
+    get through rather than two.
+    """
+
+    filename: str = Field(min_length=1, max_length=300)
+    content_type: str = Field(min_length=1, max_length=100)
+    image_base64: str = Field(min_length=1)
+    #: Both present or both absent -- enforced in the service layer, not
+    #: here, so the one message names both fields together.
+    pixel_distance: int | None = Field(default=None, gt=0)
+    real_distance_tmm: int | None = Field(default=None, gt=0)
+
+
+class UnitTypeSubmissionIn(BaseModel):
+    """A part-timer's one-shot offline submission. SPEC.md Phase 8.
+
+    Carries its own `id`, unlike `UnitTypeCreateIn` -- the admin/dashboard
+    route generates one server-side because it is always called with a
+    connection in hand; this is the offline sibling, pushed through the
+    outbox like an order or a payment, and the device must know its id
+    before a connection exists to ask the server for one.
+    """
+
+    id: str = Field(min_length=36, max_length=36)
+    project_id: str = Field(min_length=36, max_length=36)
+    name: str = Field(min_length=1, max_length=120)
+    floor_count: int | None = Field(default=None, ge=1)
+    openings: list[OpeningIn] = []
+    rooms: list[RoomIn] = []
+    floor_plan: FloorPlanSubmissionIn | None = None
+
+
+class UnitTypeSubmissionResult(BaseModel):
+    unit_type_id: str
+    #: True when the device's id was already known -- a retry the server had
+    #: already applied, not a second submission. Mirrors `OrderResult`.
+    duplicate: bool

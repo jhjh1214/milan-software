@@ -121,7 +121,34 @@
                 @if (plan.scale_tmm_per_px !== null) {
                   <span class="calibrated-note">{{ t().library.calibrated }}</span>
                 }
+                <button
+                  type="button"
+                  class="btn"
+                  [disabled]="recognizing() === plan.id"
+                  (click)="tryRecognition(plan)"
+                >
+                  @if (recognizing() === plan.id) {
+                    <span class="spinner" aria-hidden="true"></span>
+                    {{ t().library.recognizing }}
+                  } @else {
+                    {{ t().library.tryRecognition }}
+                  }
+                </button>
               </div>
+
+              @if (recognizeFailed() === plan.id) {
+                <p class="failure" role="alert">{{ t().library.recognitionFailed }}</p>
+              }
+              @if (recognitionFor(plan.id); as result) {
+                <div class="recognition-result">
+                  @if (!result.configured) {
+                    <p class="hint">{{ t().library.recognitionNotConfigured }}</p>
+                  } @else {
+                    <p>{{ t().library.recognitionProposedOpenings(result.openings.length) }}</p>
+                    <p>{{ t().library.recognitionProposedRooms(result.rooms.length) }}</p>
+                  }
+                </div>
+              }
             }
           } @else {
             <label class="btn upload-label">

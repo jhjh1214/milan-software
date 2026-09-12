@@ -357,5 +357,11 @@ export const ZH: Strings = {
     realDistanceLabel: '两点之间的实际距离（毫米）',
     confirmCalibration: '保存比例尺',
     cancelCalibration: '取消',
+    tryRecognition: '尝试 AI 识别',
+    recognizing: '正在识别……',
+    recognitionNotConfigured: 'AI 识别功能尚未启用，请依照发展商的图则手动输入门窗与房间资料。',
+    recognitionProposedOpenings: (n) => `识别出 ${n} 个门窗`,
+    recognitionProposedRooms: (n) => `识别出 ${n} 个房间`,
+    recognitionFailed: '无法连接识别服务。',
   },
 };

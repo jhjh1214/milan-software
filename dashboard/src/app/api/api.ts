@@ -18,7 +18,7 @@
 
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, from, switchMap } from 'rxjs';
 
 import type {
   AddPersonIn,
@@ -29,6 +29,7 @@ import type {
   Channel,
   DeactivateOut,
   DepositPromptsOut,
+  ExtractionOut,
   FairReport,
   FloorPlanOut,
   ListId,
@@ -49,6 +50,21 @@ import type {
 
 /** Where the server is. Set once, at build time. */
 export const API_BASE = '/api';
+
+/** A blob's bytes as bare base64 -- `FileReader`'s data URL, minus the
+ * `data:<type>;base64,` prefix `/api/recognize` does not want repeated back
+ * to it (it already has the content type as its own field). */
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result.slice(result.indexOf(',') + 1));
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
 
 /** What `POST /api/auth/language` hands back: the account, freshly read. */
 export interface MyAccountOut {
@@ -377,6 +393,27 @@ export class Api {
       `${API_BASE}/floor-plans/${floorPlanId}/calibrate`,
       { pixel_distance: pixelDistance, real_distance_tmm: realDistanceTmm },
       { headers: this.authorised() },
+    );
+  }
+
+  /**
+   * Proposes openings and rooms from a floor-plan image. SPEC.md Phase 8,
+   * "Future: assisted digitisation" -- stateless, so this re-sends the blob
+   * already fetched via `floorPlanImage` rather than passing a floor plan
+   * id; the same route also serves the handset, which calls it before a
+   * floor plan id exists at all. Never a write: a proposal only ever
+   * prefills the review form, which still goes through the ordinary
+   * draft/pending_review/approved gate.
+   */
+  recognizeFloorPlan(blob: Blob, contentType: string): Observable<ExtractionOut> {
+    return from(blobToBase64(blob)).pipe(
+      switchMap((imageBase64) =>
+        this.http.post<ExtractionOut>(
+          `${API_BASE}/recognize`,
+          { content_type: contentType, image_base64: imageBase64 },
+          { headers: this.authorised() },
+        ),
+      ),
     );
   }
 
