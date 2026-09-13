@@ -52,6 +52,7 @@ Map<String, dynamic> quotePayload({
         'height_tmm': line.heightTmm,
         'raw_width': line.rawWidth,
         'raw_height': line.rawHeight,
+        'direct_area_sqft': line.directAreaSqft,
         'quantity': line.quantity,
         'device_total_sen': lineTotalsSen[line.id],
       },

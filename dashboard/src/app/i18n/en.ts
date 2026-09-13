@@ -222,6 +222,7 @@ export const EN: Strings = {
     whatWasOrdered: 'What was ordered',
     sizeEstimate: (size) => `${size} (estimate)`,
     sizeMeasured: (estimate, measured) => `${estimate} → ${measured} measured`,
+    sizeAreaSqft: (sqft) => `${sqft} sqft`,
     basis: (quantity, unit, rate, band, version, discount) =>
       `${quantity} ${unit} at ${rate}${band}` +
       ` · list v${version}${discount}`,

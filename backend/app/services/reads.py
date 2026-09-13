@@ -258,6 +258,7 @@ def order_detail(session: Session, order_id: str) -> OrderDetailOut | None:
                 est_height_tmm=line.est_height_tmm,
                 final_width_tmm=line.final_width_tmm,
                 final_height_tmm=line.final_height_tmm,
+                direct_area_sqft=line.direct_area_sqft,
                 is_site_measured=line.is_site_measured,
                 quantity=line.quantity,
                 applied_rule_id=line.applied_rule_id,

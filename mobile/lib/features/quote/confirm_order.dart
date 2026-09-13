@@ -109,6 +109,7 @@ Future<ConversionRefusal?> confirmOrderForDeposit(
           parentLineId: line.line.parentLineId,
           width: line.line.width,
           height: line.line.height,
+          directAreaSqft: line.line.directAreaSqft,
           priced: line.priced,
           sourceProjectId: line.line.sourceProjectId,
           sourceUnitTypeId: line.line.sourceUnitTypeId,

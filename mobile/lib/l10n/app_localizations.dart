@@ -2276,6 +2276,18 @@ abstract class L {
   /// **'选窗户'**
   String get pickerPickOpening;
 
+  /// No description provided for @pickerPickOpeningOrRoom.
+  ///
+  /// In zh, this message translates to:
+  /// **'选窗户或房间'**
+  String get pickerPickOpeningOrRoom;
+
+  /// No description provided for @pickerPickRoom.
+  ///
+  /// In zh, this message translates to:
+  /// **'选房间'**
+  String get pickerPickRoom;
+
   /// No description provided for @pickerNoOpenings.
   ///
   /// In zh, this message translates to:
@@ -2299,6 +2311,24 @@ abstract class L {
   /// In zh, this message translates to:
   /// **'{width} × {height} ft'**
   String pickerOpeningSize(String width, String height);
+
+  /// No description provided for @pickerOpeningsHeading.
+  ///
+  /// In zh, this message translates to:
+  /// **'窗户'**
+  String get pickerOpeningsHeading;
+
+  /// No description provided for @pickerRoomsHeading.
+  ///
+  /// In zh, this message translates to:
+  /// **'房间'**
+  String get pickerRoomsHeading;
+
+  /// No description provided for @pickerRoomAreaSqft.
+  ///
+  /// In zh, this message translates to:
+  /// **'{sqft} 平方尺'**
+  String pickerRoomAreaSqft(Object sqft);
 
   /// Part-timer's own floor-plan submission screen. SPEC.md Phase 8.
   ///

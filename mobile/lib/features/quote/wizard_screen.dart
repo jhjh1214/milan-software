@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart' hide Family;
 import '../../core/dimension_warnings.dart';
 import '../../core/length.dart';
 import '../../core/length_parser.dart';
+import '../../core/rational.dart';
 import '../../l10n/app_localizations.dart';
 import '../../pricing/models.dart';
 import '../../ui/theme.dart';
@@ -81,6 +82,15 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
   /// invariant exists to forbid.
   Length? _libraryWidth;
   Length? _libraryHeight;
+
+  /// Set when this line starts from a saved *room* rather than a saved
+  /// opening. SPEC.md's property library: a room has only a stored total
+  /// area, never a width and a length (a real room is not always a
+  /// rectangle), so it seeds a `per_sqft` flooring line directly rather
+  /// than prefilling the ordinary sizes step. Mutually exclusive with
+  /// [_libraryWidth] -- exactly one of the two is non-null for a
+  /// library-sourced line.
+  Rational? _libraryDirectAreaSqft;
   String? _sourceProjectId;
   String? _sourceUnitTypeId;
   int? _sourceVersion;
@@ -88,15 +98,35 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
   Future<void> _startFromLibrary() async {
     final picked = await showUnitTypePicker(context, ref);
     if (picked == null || !mounted) return;
-    setState(() {
-      _room = picked.room;
-      _libraryWidth = Length.tenths(picked.nominalWTmm);
-      _libraryHeight = Length.tenths(picked.nominalHTmm);
-      _sourceProjectId = picked.sourceProjectId;
-      _sourceUnitTypeId = picked.sourceUnitTypeId;
-      _sourceVersion = picked.sourceVersion;
-      _step = _Step.family;
-    });
+    switch (picked) {
+      case PickedOpening():
+        setState(() {
+          _room = picked.room;
+          _libraryWidth = Length.tenths(picked.nominalWTmm);
+          _libraryHeight = Length.tenths(picked.nominalHTmm);
+          _libraryDirectAreaSqft = null;
+          _sourceProjectId = picked.sourceProjectId;
+          _sourceUnitTypeId = picked.sourceUnitTypeId;
+          _sourceVersion = picked.sourceVersion;
+          _step = _Step.family;
+        });
+      case PickedRoom():
+        // A room only ever prices a `per_sqft` flooring line, so the family
+        // choice is not really a choice here -- jumping straight to the
+        // product step is one fewer screen for the one case where the next
+        // answer is already known.
+        setState(() {
+          _room = picked.room;
+          _libraryWidth = null;
+          _libraryHeight = null;
+          _libraryDirectAreaSqft = picked.areaSqft;
+          _sourceProjectId = picked.sourceProjectId;
+          _sourceUnitTypeId = picked.sourceUnitTypeId;
+          _sourceVersion = picked.sourceVersion;
+          _family = Family.flooring;
+          _step = _Step.product;
+        });
+    }
   }
 
   /// One decimal place, in [unit] -- for prefilling the sizes step only.
@@ -111,7 +141,20 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
     }
     // Back never loses input — it only moves the step.
     setState(() {
-      _step = _Step.values[_step.index - 1];
+      // A room-sourced line skips family (its product can only be
+      // flooring) and sizes (its area is already known), so back has to
+      // skip the same two steps rather than walking the index by one.
+      if (_libraryDirectAreaSqft != null) {
+        _step = switch (_step) {
+          _Step.product => _Step.room,
+          _Step.upgrade => _Step.product,
+          _Step.room ||
+          _Step.family ||
+          _Step.sizes => _Step.values[_step.index - 1],
+        };
+      } else {
+        _step = _Step.values[_step.index - 1];
+      }
     });
   }
 
@@ -153,6 +196,7 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
                 // dimensions on a line nobody picked it for.
                 _libraryWidth = null;
                 _libraryHeight = null;
+                _libraryDirectAreaSqft = null;
                 _sourceProjectId = null;
                 _sourceUnitTypeId = null;
                 _sourceVersion = null;
@@ -170,29 +214,38 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
             _Step.product => _ProductStep(
               card: card,
               family: _family!,
-              onPick: (rule) => setState(() {
-                _product = rule;
-                // `rule` is only a representative of its variant — the first
-                // row, which carries a material key. Passing that key on would
-                // silently pick one material (the cheaper one, as it happens)
-                // and defeat the deferral the client asked for. When the
-                // variant offers a choice, the line carries no material at all.
-                _deferMaterial = card.materialsFor(rule.variant).length > 1;
-                _widthUnit = _unitFromWire(card.config.defaultUnitWidth);
-                _heightUnit = _unitFromWire(card.config.defaultUnitHeight);
-                // The known size from the plan, shown already filled in --
-                // "choose products and a reference quotation exists in
-                // seconds." `_add` below reads the exact tenths-of-a-
-                // millimetre value directly whenever these strings are
-                // still untouched, never by re-parsing this display text.
-                if (_libraryWidth != null) {
-                  _rawWidth = _formatForUnit(_libraryWidth!, _widthUnit);
-                  _rawHeight = _libraryHeight == null
-                      ? ''
-                      : _formatForUnit(_libraryHeight!, _heightUnit);
+              onPick: (rule) {
+                // A room has only an area, never a width and a height (a
+                // real room is not always a rectangle) -- there is no sizes
+                // step to prefill or edit, so the line is added directly.
+                if (_libraryDirectAreaSqft != null) {
+                  _addRoomSourcedLine(card, rule);
+                  return;
                 }
-                _step = _Step.sizes;
-              }),
+                setState(() {
+                  _product = rule;
+                  // `rule` is only a representative of its variant — the first
+                  // row, which carries a material key. Passing that key on would
+                  // silently pick one material (the cheaper one, as it happens)
+                  // and defeat the deferral the client asked for. When the
+                  // variant offers a choice, the line carries no material at all.
+                  _deferMaterial = card.materialsFor(rule.variant).length > 1;
+                  _widthUnit = _unitFromWire(card.config.defaultUnitWidth);
+                  _heightUnit = _unitFromWire(card.config.defaultUnitHeight);
+                  // The known size from the plan, shown already filled in --
+                  // "choose products and a reference quotation exists in
+                  // seconds." `_add` below reads the exact tenths-of-a-
+                  // millimetre value directly whenever these strings are
+                  // still untouched, never by re-parsing this display text.
+                  if (_libraryWidth != null) {
+                    _rawWidth = _formatForUnit(_libraryWidth!, _widthUnit);
+                    _rawHeight = _libraryHeight == null
+                        ? ''
+                        : _formatForUnit(_libraryHeight!, _heightUnit);
+                  }
+                  _step = _Step.sizes;
+                });
+              },
             ),
             _Step.sizes => _sizesStep(card),
             _Step.upgrade => _UpgradeStep(
@@ -510,6 +563,59 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
     });
   }
 
+  /// Adds a line straight from a saved room's area. SPEC.md's property
+  /// library.
+  ///
+  /// The room-flow twin of [_add]: there is no sizes step, because a room
+  /// has no width and no height to prefill or edit, only the area an admin
+  /// already typed and could check. Mirrors [_add]'s own tail exactly --
+  /// mandatory upgrades added, then either the upgrade step or straight
+  /// back out, depending on whether this product offers any.
+  Future<void> _addRoomSourcedLine(RateCard card, PricingRule rule) async {
+    final deferMaterial = card.materialsFor(rule.variant).length > 1;
+    setState(() {
+      _product = rule;
+      _deferMaterial = deferMaterial;
+    });
+
+    final id = await ref
+        .read(quoteProvider.notifier)
+        .addLine(
+          room: _room!,
+          variant: rule.variant,
+          materialKey: deferMaterial ? null : rule.materialKey,
+          layer: rule.layer,
+          width: null,
+          height: null,
+          rawWidth: '',
+          rawHeight: '',
+          directAreaSqft: _libraryDirectAreaSqft,
+          sourceProjectId: _sourceProjectId,
+          sourceUnitTypeId: _sourceUnitTypeId,
+          sourceVersion: _sourceVersion,
+        );
+    if (!mounted) return;
+
+    _parentLineId = id;
+    if (id == null) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    final upgrades = card.upgradesFor(rule);
+    if (upgrades.isEmpty) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    for (final required in upgrades.where((r) => r.mandatory)) {
+      await _addUpgrade(card, required);
+      if (!mounted) return;
+    }
+
+    setState(() => _step = _Step.upgrade);
+  }
+
   Future<void> _add(RateCard card) async {
     // SPEC.md Phase 8. Whole line, not per-field: a plan is what this window
     // started from only if *neither* field was touched after being filled
@@ -659,8 +765,12 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
   /// square footage as the floor going over it. Instantiated, not referenced —
   /// editing the parent later must not silently reprice a line already agreed.
   Future<void> _addUpgrade(RateCard card, PricingRule upgrade) async {
-    final width = parseLength(_rawWidth, _widthUnit)!;
-    final height = parseLength(_rawHeight, _heightUnit)!;
+    // A room-sourced upgrade (dismantling old flooring, self levelling)
+    // bills on the same square footage as the line it attaches to -- there
+    // is no width or height to copy, only the parent's own area.
+    final area = _libraryDirectAreaSqft;
+    final width = area == null ? parseLength(_rawWidth, _widthUnit)! : null;
+    final height = area == null ? parseLength(_rawHeight, _heightUnit)! : null;
     final id = await ref
         .read(quoteProvider.notifier)
         .addLine(
@@ -670,10 +780,11 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
               ? null
               : upgrade.materialKey,
           layer: upgrade.layer,
-          width: width.length,
-          height: height.length,
-          rawWidth: width.raw,
-          rawHeight: height.raw,
+          width: width?.length,
+          height: height?.length,
+          rawWidth: width?.raw ?? '',
+          rawHeight: height?.raw ?? '',
+          directAreaSqft: area,
           parentLineId: _parentLineId,
         );
     if (!mounted || id == null) return;

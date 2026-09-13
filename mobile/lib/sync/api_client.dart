@@ -226,6 +226,37 @@ class OpeningRef {
   );
 }
 
+/// A room from the developer's schedule, as digitised. SPEC.md's property
+/// library: "auto-calculate a full SPC flooring quote".
+///
+/// [nominalAreaMm2] is the one figure this actually stores -- a real room is
+/// not always a rectangle, so there is no width and no length kept, only the
+/// area an admin typed and could check.
+class RoomRef {
+  final String id;
+  final String name;
+  final int nominalAreaMm2;
+
+  /// A running foot of skirting board, if the schedule recorded one. Not yet
+  /// offered by the picker -- a room's flooring is the one thing it seeds
+  /// today; skirting stays a manual add through the normal product step.
+  final int? skirtingRunTmm;
+
+  const RoomRef({
+    required this.id,
+    required this.name,
+    required this.nominalAreaMm2,
+    this.skirtingRunTmm,
+  });
+
+  factory RoomRef.fromJson(Map<String, dynamic> json) => RoomRef(
+    id: json['id'] as String,
+    name: json['name'] as String,
+    nominalAreaMm2: json['nominal_area_mm2'] as int,
+    skirtingRunTmm: json['skirting_run_tmm'] as int?,
+  );
+}
+
 /// The one version of a unit type that is actually live in the library.
 ///
 /// [ApiClient.unitTypeDetail] hands back every version ever submitted, oldest
@@ -234,11 +265,13 @@ class ApprovedUnitType {
   final String versionId;
   final int version;
   final List<OpeningRef> openings;
+  final List<RoomRef> rooms;
 
   const ApprovedUnitType({
     required this.versionId,
     required this.version,
     required this.openings,
+    this.rooms = const [],
   });
 
   /// The latest version with `approved_at` set, or null when none does --
@@ -259,6 +292,10 @@ class ApprovedUnitType {
       openings: (latest['openings'] as List)
           .cast<Map<String, dynamic>>()
           .map(OpeningRef.fromJson)
+          .toList(),
+      rooms: (latest['rooms'] as List? ?? const [])
+          .cast<Map<String, dynamic>>()
+          .map(RoomRef.fromJson)
           .toList(),
     );
   }

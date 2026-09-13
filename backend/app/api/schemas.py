@@ -21,11 +21,17 @@ class QuoteLineIn(BaseModel):
     material_key: str | None = None
     layer: str
     parent_line_id: str | None = None
-    #: Tenths of a millimetre. Never millimetres.
-    width_tmm: int = Field(ge=0)
+    #: Tenths of a millimetre. Never millimetres. Null only for a
+    #: `direct_area_sqft` line -- a saved room's area does not reduce to
+    #: one rectangle, so there is nothing honest to put here.
+    width_tmm: int | None = Field(default=None, ge=0)
     height_tmm: int | None = Field(default=None, ge=0)
     raw_width: str
     raw_height: str
+    #: Exact rational as a string, e.g. "700/3". SPEC.md's property library:
+    #: a room-sourced flooring line prices from this instead of
+    #: `width_tmm x height_tmm`. Meaningful only alongside `width_tmm=None`.
+    direct_area_sqft: str | None = None
     quantity: int = Field(default=1, ge=1)
     #: What the device charged. Compared against the server's own figure, never
     #: trusted in place of it (§9.4).
@@ -180,10 +186,15 @@ class OrderLineIn(BaseModel):
     layer: str = Field(max_length=16)
     parent_line_id: str | None = None
 
-    est_width_tmm: int = Field(ge=0)
+    #: Null only for a room-sourced flooring line -- see `direct_area_sqft`.
+    est_width_tmm: int | None = Field(default=None, ge=0)
     est_height_tmm: int | None = Field(default=None, ge=0)
     final_width_tmm: int | None = Field(default=None, ge=0)
     final_height_tmm: int | None = Field(default=None, ge=0)
+    #: Exact rational as a string, e.g. "700/3". Copied from the quote line
+    #: this order line was confirmed from. Never fed into final pricing,
+    #: which always needs a real tape measurement.
+    direct_area_sqft: str | None = None
     is_site_measured: bool = False
     quantity: int = Field(default=1, ge=1)
 
@@ -546,10 +557,13 @@ class OrderLineOut(BaseModel):
     variant: str
     material_key: str | None
     layer: str
-    est_width_tmm: int
+    #: Null only for a room-sourced flooring line -- see `direct_area_sqft`.
+    est_width_tmm: int | None
     est_height_tmm: int | None
     final_width_tmm: int | None
     final_height_tmm: int | None
+    #: Exact rational as a string, e.g. "700/3". SPEC.md's property library.
+    direct_area_sqft: str | None
     is_site_measured: bool
     quantity: int
     applied_rule_id: str

@@ -329,7 +329,7 @@ void main() {
 
     test('the estimate dimensions are what was entered at the fair', () {
       final line = confirm().order!.lines.single;
-      expect(line.estWidth.tmm, 36576);
+      expect(line.estWidth!.tmm, 36576);
       expect(line.estHeight!.tmm, 27432);
     });
 

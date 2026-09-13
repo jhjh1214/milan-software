@@ -230,6 +230,7 @@ export const MS: Strings = {
     whatWasOrdered: 'Apa yang dipesan',
     sizeEstimate: (size) => `${size} (anggaran)`,
     sizeMeasured: (estimate, measured) => `${estimate} → ${measured} diukur`,
+    sizeAreaSqft: (sqft) => `${sqft} kaki persegi`,
     basis: (quantity, unit, rate, band, version, discount) =>
       `${quantity} ${unit} pada ${rate}${band}` +
       ` · senarai v${version}${discount}`,

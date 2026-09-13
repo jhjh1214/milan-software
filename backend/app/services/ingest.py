@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
+from fractions import Fraction
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -156,6 +157,7 @@ def push_quote(
             parent_line_id=line.parent_line_id,
             width_tmm=line.width_tmm,
             height_tmm=line.height_tmm,
+            direct_area_sqft=line.direct_area_sqft,
             raw_width=line.raw_width,
             raw_height=line.raw_height,
             quantity=line.quantity,
@@ -171,9 +173,14 @@ def push_quote(
                     material_key=line.material_key,
                     layer=Layer(line.layer),
                     fulfilment=Fulfilment.SUPPLY_INSTALL,
-                    width=Length(line.width_tmm),
+                    width=None if line.width_tmm is None else Length(line.width_tmm),
                     height=(
                         None if line.height_tmm is None else Length(line.height_tmm)
+                    ),
+                    direct_area_sqft=(
+                        None
+                        if line.direct_area_sqft is None
+                        else Fraction(line.direct_area_sqft)
                     ),
                     quantity=line.quantity,
                 ),
@@ -422,6 +429,7 @@ def push_order(
                 est_height_tmm=line.est_height_tmm,
                 final_width_tmm=line.final_width_tmm,
                 final_height_tmm=line.final_height_tmm,
+                direct_area_sqft=line.direct_area_sqft,
                 is_site_measured=line.is_site_measured,
                 quantity=line.quantity,
                 category_lock_id=line.category_lock_id,

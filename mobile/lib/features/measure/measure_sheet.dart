@@ -19,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/dimension_warnings.dart';
 import '../../core/length.dart';
 import '../../core/length_parser.dart';
+import '../../core/rational.dart';
 import '../../data/database.dart';
 import '../../data/measurement_repository.dart';
 import '../../l10n/app_localizations.dart';
@@ -38,6 +39,14 @@ String displayLength(int tmm) {
   final feet = length.displayFeet;
   final inches = length.displayInches;
   return inches == 0 ? "$feet'" : "$feet' $inches\"";
+}
+
+/// An exact-rational area as one decimal place. Display only, the same rule
+/// [displayLength] follows — never parsed back into anything that prices or
+/// stores a quantity.
+String _displayArea(String exact) {
+  final value = Rational.tryParse(exact);
+  return value == null ? exact : value.toDouble().toStringAsFixed(1);
 }
 
 class MeasureSheet extends ConsumerStatefulWidget {
@@ -125,14 +134,19 @@ class _MeasureSheetState extends ConsumerState<MeasureSheet> {
                 // `9' × 12'` for a 12ft-wide window — on the one screen whose
                 // whole job is to catch a wrong dimension.
                 l.measureQuotedAs(
-                  // §13 A25: a per_roll line quoted with no wall size at all
-                  // has nothing here worth calling a dimension.
-                  _rule?.basis == PriceBasis.perRoll &&
-                          line.estHeightTmm == null
+                  // A room-sourced flooring line (SPEC.md's property
+                  // library): a saved room's area does not reduce to one
+                  // rectangle, so there is no width to show, only the area.
+                  line.estWidthTmm == null
+                      ? '${_displayArea(line.directAreaSqft!)} ${l.unitSqft}'
+                      // §13 A25: a per_roll line quoted with no wall size at
+                      // all has nothing here worth calling a dimension.
+                      : _rule?.basis == PriceBasis.perRoll &&
+                            line.estHeightTmm == null
                       ? l.wallpaperUnmeasured
                       : line.estHeightTmm == null
-                      ? displayLength(line.estWidthTmm)
-                      : '${displayLength(line.estWidthTmm)} × '
+                      ? displayLength(line.estWidthTmm!)
+                      : '${displayLength(line.estWidthTmm!)} × '
                             '${displayLength(line.estHeightTmm!)}',
                 ),
                 style: AppText.caption,

@@ -237,11 +237,20 @@ class QuoteLine(Base):
     layer: Mapped[str] = mapped_column(String(16))
     parent_line_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
 
-    width_tmm: Mapped[int] = mapped_column(Integer)
+    #: Null only for a room-sourced flooring line -- see `direct_area_sqft`.
+    #: A saved room's area does not reduce to one rectangle, so there is
+    #: nothing honest to put here.
+    width_tmm: Mapped[int | None] = mapped_column(Integer, nullable=True)
     height_tmm: Mapped[int | None] = mapped_column(Integer, nullable=True)
     raw_width: Mapped[str] = mapped_column(String(32))
     raw_height: Mapped[str] = mapped_column(String(32))
     quantity: Mapped[int] = mapped_column(Integer, default=1)
+
+    #: Exact rational as a string, e.g. "700/3". SPEC.md's property
+    #: library: a saved room's `nominal_area_mm2` is the one figure it
+    #: actually stores, never a width and a length. Set only alongside
+    #: `width_tmm=None`.
+    direct_area_sqft: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
     #: The device's figure, and the server's. §9.4: on a mismatch, accept the
     #: order and raise it for review. Never lose a sale over a rounding
@@ -511,10 +520,18 @@ class OrderLine(Base):
 
     #: Estimated at the fair, and kept for good. The final ones sit beside them
     #: rather than on top, so the variance report has both to compare.
-    est_width_tmm: Mapped[int] = mapped_column(Integer)
+    #: Null only for a room-sourced flooring line -- see `direct_area_sqft`.
+    est_width_tmm: Mapped[int | None] = mapped_column(Integer, nullable=True)
     est_height_tmm: Mapped[int | None] = mapped_column(Integer, nullable=True)
     final_width_tmm: Mapped[int | None] = mapped_column(Integer, nullable=True)
     final_height_tmm: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    #: Exact rational as a string, e.g. "700/3". Copied from the quote line
+    #: it was confirmed from -- kept for the same reason `est_width_tmm` is:
+    #: a year later the estimate has to be explainable without reconstructing
+    #: it. Never fed into final pricing, which always needs a real tape
+    #: measurement (`final_width_tmm`/`final_height_tmm`).
+    direct_area_sqft: Mapped[str | None] = mapped_column(String(40), nullable=True)
     is_site_measured: Mapped[bool] = mapped_column(Boolean, default=False)
     measured_by_user_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     measured_at: Mapped[datetime | None] = mapped_column(

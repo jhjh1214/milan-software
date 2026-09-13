@@ -124,7 +124,7 @@ void main() {
           room: 'Living room',
           variant: variant,
           layer: layer,
-          estWidthTmm: estWidthTmm,
+          estWidthTmm: Value(estWidthTmm),
           estHeightTmm: Value(estHeightTmm),
           appliedRuleId: appliedRuleId,
           appliedRateCardVersion: version,

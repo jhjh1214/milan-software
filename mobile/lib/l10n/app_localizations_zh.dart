@@ -1256,6 +1256,12 @@ class LZh extends L {
   String get pickerPickOpening => '选窗户';
 
   @override
+  String get pickerPickOpeningOrRoom => '选窗户或房间';
+
+  @override
+  String get pickerPickRoom => '选房间';
+
+  @override
   String get pickerNoOpenings => '这个户型还没有存窗户资料。';
 
   @override
@@ -1267,6 +1273,17 @@ class LZh extends L {
   @override
   String pickerOpeningSize(String width, String height) {
     return '$width × $height ft';
+  }
+
+  @override
+  String get pickerOpeningsHeading => '窗户';
+
+  @override
+  String get pickerRoomsHeading => '房间';
+
+  @override
+  String pickerRoomAreaSqft(Object sqft) {
+    return '$sqft 平方尺';
   }
 
   @override

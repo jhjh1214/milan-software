@@ -1304,6 +1304,12 @@ class LMs extends L {
   String get pickerPickOpening => 'Pilih tingkap';
 
   @override
+  String get pickerPickOpeningOrRoom => 'Pilih tingkap atau bilik';
+
+  @override
+  String get pickerPickRoom => 'Pilih bilik';
+
+  @override
   String get pickerNoOpenings => 'Tiada tingkap disimpan untuk jenis unit ini.';
 
   @override
@@ -1316,6 +1322,17 @@ class LMs extends L {
   @override
   String pickerOpeningSize(String width, String height) {
     return '$width × $height ft';
+  }
+
+  @override
+  String get pickerOpeningsHeading => 'Tingkap';
+
+  @override
+  String get pickerRoomsHeading => 'Bilik';
+
+  @override
+  String pickerRoomAreaSqft(Object sqft) {
+    return '$sqft kaki persegi';
   }
 
   @override

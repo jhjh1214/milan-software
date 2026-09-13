@@ -74,7 +74,7 @@ void main() {
             room: room,
             variant: 'night_curtain',
             layer: 'night',
-            widthTmm: 36576,
+            widthTmm: const Value(36576),
             heightTmm: const Value(27432),
             rawWidth: "12'",
             rawHeight: "9'",

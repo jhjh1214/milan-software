@@ -20,38 +20,66 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/length.dart';
+import '../../core/rational.dart';
 import '../../l10n/app_localizations.dart';
 import '../../sync/api_client.dart';
 import '../../sync/sync_state.dart';
 import '../../ui/theme.dart';
 
-/// What was picked, ready to seed a new quote line.
-class PickedOpening {
-  final String room;
-  final int nominalWTmm;
-  final int nominalHTmm;
+/// What was picked from the library, ready to seed a new quote line.
+///
+/// Two shapes, because a window and a room seed a line differently: an
+/// opening gives a width and a height for any product; a room gives only an
+/// area (SPEC.md's property library -- a real room is not always a
+/// rectangle, so there is no width and length to keep), which only a
+/// `per_sqft` flooring line can price from.
+sealed class LibraryPick {
   final String sourceProjectId;
   final String sourceUnitTypeId;
   final int sourceVersion;
 
-  const PickedOpening({
-    required this.room,
-    required this.nominalWTmm,
-    required this.nominalHTmm,
+  const LibraryPick({
     required this.sourceProjectId,
     required this.sourceUnitTypeId,
     required this.sourceVersion,
   });
 }
 
+class PickedOpening extends LibraryPick {
+  final String room;
+  final int nominalWTmm;
+  final int nominalHTmm;
+
+  const PickedOpening({
+    required this.room,
+    required this.nominalWTmm,
+    required this.nominalHTmm,
+    required super.sourceProjectId,
+    required super.sourceUnitTypeId,
+    required super.sourceVersion,
+  });
+}
+
+class PickedRoom extends LibraryPick {
+  final String room;
+  final Rational areaSqft;
+
+  const PickedRoom({
+    required this.room,
+    required this.areaSqft,
+    required super.sourceProjectId,
+    required super.sourceUnitTypeId,
+    required super.sourceVersion,
+  });
+}
+
 /// Pushes the picker and returns what was picked, or null if the salesperson
 /// backed out at any step.
-Future<PickedOpening?> showUnitTypePicker(
-  BuildContext context,
-  WidgetRef ref,
-) => Navigator.of(context).push<PickedOpening>(
-  MaterialPageRoute(builder: (_) => const UnitTypePickerScreen()),
-);
+Future<LibraryPick?> showUnitTypePicker(BuildContext context, WidgetRef ref) =>
+    Navigator.of(context).push<LibraryPick>(
+      MaterialPageRoute(builder: (_) => const UnitTypePickerScreen()),
+    );
 
 enum _PickerStep { project, unitType, opening }
 
@@ -77,6 +105,7 @@ class _UnitTypePickerScreenState extends ConsumerState<UnitTypePickerScreen> {
   List<ProjectSummary> _projects = const [];
   List<UnitTypeSummary> _unitTypes = const [];
   List<OpeningRef> _openings = const [];
+  List<RoomRef> _rooms = const [];
 
   ProjectSummary? _project;
   UnitTypeSummary? _unitType;
@@ -196,6 +225,7 @@ class _UnitTypePickerScreenState extends ConsumerState<UnitTypePickerScreen> {
       _failed = !result.ok;
       _approved = approved;
       _openings = approved?.openings ?? const [];
+      _rooms = approved?.rooms ?? const [];
     });
   }
 
@@ -208,10 +238,12 @@ class _UnitTypePickerScreenState extends ConsumerState<UnitTypePickerScreen> {
           _step = _PickerStep.project;
           _unitType = null;
           _openings = const [];
+          _rooms = const [];
         case _PickerStep.opening:
           _step = _PickerStep.unitType;
           _approved = null;
           _openings = const [];
+          _rooms = const [];
       }
     });
   }
@@ -224,6 +256,20 @@ class _UnitTypePickerScreenState extends ConsumerState<UnitTypePickerScreen> {
         room: opening.room,
         nominalWTmm: opening.nominalWTmm,
         nominalHTmm: opening.nominalHTmm,
+        sourceProjectId: unitType.projectId,
+        sourceUnitTypeId: unitType.id,
+        sourceVersion: approved.version,
+      ),
+    );
+  }
+
+  void _pickRoom(RoomRef room) {
+    final unitType = _unitType!;
+    final approved = _approved!;
+    Navigator.of(context).pop(
+      PickedRoom(
+        room: room.name,
+        areaSqft: areaSqftFromMm2(room.nominalAreaMm2),
         sourceProjectId: unitType.projectId,
         sourceUnitTypeId: unitType.id,
         sourceVersion: approved.version,
@@ -249,7 +295,18 @@ class _UnitTypePickerScreenState extends ConsumerState<UnitTypePickerScreen> {
           title: Text(switch (_step) {
             _PickerStep.project => l.pickerFindProject,
             _PickerStep.unitType => l.pickerPickUnitType,
-            _PickerStep.opening => l.pickerPickOpening,
+            // Only a unit type with both kinds needs the broader title -- an
+            // openings-only unit type (still the common case) keeps reading
+            // exactly as it always has, and a rooms-only one asks for a
+            // room specifically rather than a window that is not there.
+            _PickerStep.opening => switch ((
+              _openings.isNotEmpty,
+              _rooms.isNotEmpty,
+            )) {
+              (true, true) => l.pickerPickOpeningOrRoom,
+              (false, true) => l.pickerPickRoom,
+              _ => l.pickerPickOpening,
+            },
           }),
         ),
         body: switch (_step) {
@@ -314,9 +371,15 @@ class _UnitTypePickerScreenState extends ConsumerState<UnitTypePickerScreen> {
   }
 
   Widget _openingStep(L l) {
+    // A room only ever seeds a `per_sqft` flooring line -- most unit types
+    // have none, and the plain single-list openings screen is unchanged for
+    // them. A heading only earns its place once there is a second list to
+    // tell apart from the first.
     return _body(
       empty: l.pickerNoOpenings,
       children: [
+        if (_rooms.isNotEmpty && _openings.isNotEmpty)
+          _SectionHeading(l.pickerOpeningsHeading),
         for (final opening in _openings)
           _PickerRow(
             title: '${opening.label} · ${opening.room}',
@@ -326,6 +389,15 @@ class _UnitTypePickerScreenState extends ConsumerState<UnitTypePickerScreen> {
             ),
             onTap: () => _pickOpening(opening),
           ),
+        if (_rooms.isNotEmpty) ...[
+          if (_openings.isNotEmpty) _SectionHeading(l.pickerRoomsHeading),
+          for (final room in _rooms)
+            _PickerRow(
+              title: room.name,
+              subtitle: l.pickerRoomAreaSqft(_area(room.nominalAreaMm2)),
+              onTap: () => _pickRoom(room),
+            ),
+        ],
       ],
     );
   }
@@ -335,6 +407,11 @@ class _UnitTypePickerScreenState extends ConsumerState<UnitTypePickerScreen> {
   /// CLAUDE.md's arithmetic invariant does not carve out an exception for a
   /// picker's own preview text.
   String _feet(int tmm) => (tmm / 3048).toStringAsFixed(1);
+
+  /// Same rule as [_feet]: display only. `_pickRoom` converts the exact
+  /// `nominal_area_mm2` directly and never re-parses this string.
+  String _area(int areaMm2) =>
+      areaSqftFromMm2(areaMm2).toDouble().toStringAsFixed(1);
 
   Widget _body({required String empty, required List<Widget> children}) {
     if (_loading) {
@@ -366,6 +443,20 @@ class _UnitTypePickerScreenState extends ConsumerState<UnitTypePickerScreen> {
     return ListView(
       padding: const EdgeInsets.all(Space.lg),
       children: children,
+    );
+  }
+}
+
+class _SectionHeading extends StatelessWidget {
+  final String label;
+
+  const _SectionHeading(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Space.sm),
+      child: Text(label, style: AppText.caption),
     );
   }
 }

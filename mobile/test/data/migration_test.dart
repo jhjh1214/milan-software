@@ -110,7 +110,7 @@ void main() {
             room: 'Living room',
             variant: 'night_curtain_sfold',
             layer: 'night',
-            estWidthTmm: 36576,
+            estWidthTmm: const Value(36576),
             appliedRuleId: 'rule-1',
             appliedRateCardVersion: 1,
             standardRateSen: 8000,
@@ -193,6 +193,24 @@ void main() {
     await db.customStatement('DROP TABLE library_submissions');
   }
 
+  /// Undoes exactly what v15 added: a room-sourced flooring line's area.
+  ///
+  /// v15 also widens `width_tmm`/`est_width_tmm` to nullable, but that half
+  /// needs no undoing here -- `alterTable` recreates the table from the
+  /// column list on the CURRENT `AppDatabase` class regardless of what the
+  /// starting table enforced, so it copies existing (always non-null) row
+  /// data forward correctly either way. What genuinely has to be absent
+  /// before the upgrade runs is the new column, the same as every other
+  /// `addColumn`-shaped step above.
+  Future<void> undoV15(AppDatabase db) async {
+    await db.customStatement(
+      'ALTER TABLE quote_lines DROP COLUMN direct_area_sqft',
+    );
+    await db.customStatement(
+      'ALTER TABLE order_lines DROP COLUMN direct_area_sqft',
+    );
+  }
+
   /// Winds a current file back to [version], undoing each step in turn.
   ///
   /// It has to compose. Winding back to 9 by undoing only v10 leaves v11's
@@ -200,6 +218,7 @@ void main() {
   /// that already has them -- which throws, and is exactly the failure this
   /// suite exists to catch, arriving as a false one.
   Future<void> windBackTo(AppDatabase db, int version) async {
+    if (version < 15) await undoV15(db);
     if (version < 14) await undoV14(db);
     if (version < 13) await undoV13(db);
     if (version < 12) await undoV12(db);
@@ -210,7 +229,7 @@ void main() {
 
   test('a fresh database opens at the current version', () async {
     final db = await open();
-    expect(await userVersion(db), 14);
+    expect(await userVersion(db), 15);
     expect(await tablesIn(db), contains('price_overrides'));
     expect(await tablesIn(db), contains('library_submissions'));
     await db.close();
@@ -237,7 +256,7 @@ void main() {
     final after = await open();
     expect(
       await userVersion(after),
-      14,
+      15,
       reason: 'every step from 9 should have run, and recorded itself',
     );
     expect(
@@ -331,7 +350,7 @@ void main() {
     await first.close();
 
     final second = await open();
-    expect(await userVersion(second), 14);
+    expect(await userVersion(second), 15);
     expect(await tablesIn(second), contains('price_overrides'));
     await second.close();
   });
@@ -364,7 +383,7 @@ void main() {
       final after = await open();
       expect(
         await userVersion(after),
-        14,
+        15,
         reason: 'the upgrade should have run and recorded itself',
       );
 
@@ -434,7 +453,7 @@ void main() {
       await first.close();
 
       final second = await open();
-      expect(await userVersion(second), 14);
+      expect(await userVersion(second), 15);
       await second.close();
     });
   });
@@ -447,7 +466,7 @@ void main() {
       await before.close();
 
       final after = await open();
-      expect(await userVersion(after), 14);
+      expect(await userVersion(after), 15);
 
       final order = await (after.select(
         after.orders,
@@ -516,7 +535,7 @@ void main() {
       await first.close();
 
       final second = await open();
-      expect(await userVersion(second), 14);
+      expect(await userVersion(second), 15);
       await second.close();
     });
   });
@@ -529,7 +548,7 @@ void main() {
       await before.close();
 
       final after = await open();
-      expect(await userVersion(after), 14);
+      expect(await userVersion(after), 15);
 
       final line = await (after.select(
         after.orderLines,
@@ -573,7 +592,7 @@ void main() {
               room: 'Living',
               variant: 'night_curtain_sfold',
               layer: 'night',
-              widthTmm: 54864,
+              widthTmm: const Value(54864),
               rawWidth: '18',
               rawHeight: '',
               createdAt: DateTime(2026, 9, 9, 9),
@@ -622,7 +641,7 @@ void main() {
       await first.close();
 
       final second = await open();
-      expect(await userVersion(second), 14);
+      expect(await userVersion(second), 15);
       await second.close();
     });
   });
@@ -635,7 +654,7 @@ void main() {
       await before.close();
 
       final after = await open();
-      expect(await userVersion(after), 14);
+      expect(await userVersion(after), 15);
 
       final line = await (after.select(
         after.orderLines,
@@ -686,8 +705,111 @@ void main() {
       await first.close();
 
       final second = await open();
-      expect(await userVersion(second), 14);
+      expect(await userVersion(second), 15);
       await second.close();
     });
   });
+
+  group(
+    'v14 → v15 — a per_sqft line can price from a pre-known area (property library)',
+    () {
+      test('an existing measured line keeps its width, untouched', () async {
+        // The whole point of `alterTable` over a plain `addColumn`: it
+        // recreates the table, and a bug there could silently drop or
+        // corrupt every row already on the handset rather than merely
+        // fail to add a column.
+        final before = await open();
+        await seedOrderLine(before);
+        await windBackTo(before, 14);
+        await before.close();
+
+        final after = await open();
+        expect(await userVersion(after), 15);
+
+        final line = await (after.select(
+          after.orderLines,
+        )..where((l) => l.id.equals('ol-1'))).getSingle();
+        expect(
+          line.estWidthTmm,
+          36576,
+          reason:
+              'a real width on a line already on the handset must survive '
+              'the table recreate',
+        );
+        expect(
+          line.lineTotalSen,
+          96000,
+          reason: 'the money on a line in the field is untouched',
+        );
+        expect(line.directAreaSqft, null);
+
+        await after.close();
+      });
+
+      test(
+        'a room-sourced line can now be written with no width at all',
+        () async {
+          // The point of widening to nullable in the first place. A migration
+          // that recreated the table but left `width_tmm` NOT NULL would pass
+          // every check above and still throw the moment a real room-sourced
+          // line tried to insert.
+          final before = await open();
+          await seedOrderLine(before);
+          await windBackTo(before, 14);
+          await before.close();
+
+          final after = await open();
+
+          await after
+              .into(after.quoteLines)
+              .insert(
+                QuoteLinesCompanion.insert(
+                  id: 'ql-room',
+                  quoteId: 'q-1',
+                  sortOrder: 0,
+                  room: 'Living',
+                  variant: 'spc_4mm_1mm',
+                  layer: 'single',
+                  widthTmm: const Value(null),
+                  rawWidth: '',
+                  rawHeight: '',
+                  directAreaSqft: const Value('700/3'),
+                  createdAt: DateTime(2026, 9, 13, 9),
+                ),
+              );
+
+          final quoteLine = await (after.select(
+            after.quoteLines,
+          )..where((l) => l.id.equals('ql-room'))).getSingle();
+          expect(quoteLine.widthTmm, null);
+          expect(quoteLine.directAreaSqft, '700/3');
+
+          await (after.update(
+            after.orderLines,
+          )..where((l) => l.id.equals('ol-1'))).write(
+            const OrderLinesCompanion(
+              estWidthTmm: Value(null),
+              directAreaSqft: Value('250'),
+            ),
+          );
+          final orderLine = await (after.select(
+            after.orderLines,
+          )..where((l) => l.id.equals('ol-1'))).getSingle();
+          expect(orderLine.estWidthTmm, null);
+          expect(orderLine.directAreaSqft, '250');
+
+          await after.close();
+        },
+      );
+
+      test('running the upgrade twice does not throw', () async {
+        final first = await open();
+        await first.close();
+
+        final second = await open();
+        expect(await userVersion(second), 15);
+        await second.close();
+      });
+    },
+  );
 }

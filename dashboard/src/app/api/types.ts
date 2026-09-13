@@ -64,11 +64,16 @@ export interface OrderLineOut {
   readonly material_key: string | null;
   readonly layer: string;
 
-  /** Tenths of a millimetre. */
-  readonly est_width_tmm: number;
+  /** Tenths of a millimetre. Null only for a room-sourced flooring line --
+   * see `direct_area_sqft`. */
+  readonly est_width_tmm: number | null;
   readonly est_height_tmm: number | null;
   readonly final_width_tmm: number | null;
   readonly final_height_tmm: number | null;
+  /** Exact rational as a string, e.g. `"700/3"`. SPEC.md's property
+   * library: a saved room's area does not reduce to one rectangle, so a
+   * room-sourced line carries this instead of a width and a height. */
+  readonly direct_area_sqft: string | null;
 
   readonly is_site_measured: boolean;
   readonly quantity: number;

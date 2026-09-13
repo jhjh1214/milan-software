@@ -222,4 +222,18 @@ void main() {
       }
     });
   });
+
+  group('a saved room\'s area, converted exactly', () {
+    test('9.290304 square metres is exactly 100 sqft', () {
+      // 1 sqft is 9,290,304 tenths-mm² exactly, and 1mm² is 100 tenths-mm² --
+      // so a room of that many mm² is exactly 100 sqft, not 99.9999997.
+      expect(areaSqftFromMm2(9290304), Rational.fromInt(100));
+    });
+
+    test('a non-whole area stays exact, never a float', () {
+      // Picked so the division does not land on a whole number: this is the
+      // same 700/3 the shared pricing fixtures hold both engines to.
+      expect(areaSqftFromMm2(21677376), Rational(700, 3));
+    });
+  });
 }

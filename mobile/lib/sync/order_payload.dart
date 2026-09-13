@@ -67,6 +67,7 @@ Map<String, dynamic> orderPayload({
         'parent_line_id': l.parentLineId,
         'est_width_tmm': l.estWidthTmm,
         'est_height_tmm': l.estHeightTmm,
+        'direct_area_sqft': l.directAreaSqft,
         'final_width_tmm': l.finalWidthTmm,
         'final_height_tmm': l.finalHeightTmm,
         'is_site_measured': l.isSiteMeasured,

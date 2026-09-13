@@ -245,6 +245,31 @@ class TestProvenance:
         with pytest.raises(ValueError):
             a_line(measurement_source="site_measurement")
 
+    def test_a_room_sourced_line_carries_no_width_but_carries_its_area(
+        self, db
+    ) -> None:
+        # A saved room's area does not reduce to one rectangle, so
+        # est_width_tmm/est_height_tmm are genuinely absent -- the line
+        # prices from direct_area_sqft instead, copied straight through
+        # from the quote line it was confirmed from.
+        payload = an_order(
+            lines=[
+                a_line(
+                    variant="spc_4mm_1mm",
+                    est_width_tmm=None,
+                    est_height_tmm=None,
+                    direct_area_sqft="700/3",
+                    measurement_source="project_library",
+                )
+            ]
+        )
+        with db() as session:
+            push_order(session, payload)
+            session.commit()
+            line = session.scalars(select(OrderLine)).one()
+            assert line.est_width_tmm is None
+            assert line.direct_area_sqft == "700/3"
+
 
 class TestTheStatusIsRevalidated:
     def test_a_device_may_push_a_confirmed_order(self, db) -> None:

@@ -211,6 +211,7 @@ export const ZH: Strings = {
     whatWasOrdered: '订单内容',
     sizeEstimate: (size) => `${size}（估）`,
     sizeMeasured: (estimate, measured) => `${estimate} → 实测 ${measured}`,
+    sizeAreaSqft: (sqft) => `${sqft} 平方尺`,
     basis: (quantity, unit, rate, band, version, discount) =>
       `${quantity} ${unit}，每单位 ${rate}${band} · 价格表第 ${version} 版${discount}`,
     materialToChoose: '还没选料 — 按最贵的那款报价',

@@ -39,6 +39,7 @@ const line = (over: Partial<OrderLineOut> = {}): OrderLineOut => ({
   est_height_tmm: 27432, // exactly 9ft
   final_width_tmm: null,
   final_height_tmm: null,
+  direct_area_sqft: null,
   is_site_measured: false,
   quantity: 1,
   applied_rule_id: 'night-curtain-lo',
@@ -183,6 +184,37 @@ describe('OrderDetail', () => {
       });
       expect(component['size'](measured)).toBe(
         '12.0 × 9.0ft → 11.5 × 9.0ft measured',
+      );
+    });
+
+    it('shows a room-sourced line by its area, not a phantom width', async () => {
+      // SPEC.md's property library: a saved room's area does not reduce to
+      // one rectangle, so there is no width and no height to show, only
+      // the area itself.
+      await load();
+      const roomSourced = line({
+        est_width_tmm: null,
+        est_height_tmm: null,
+        direct_area_sqft: '700/3',
+      });
+      expect(component['size'](roomSourced)).toBe('233.3 sqft (estimate)');
+    });
+
+    it('a room-sourced line shows a real measurement once the site is visited', async () => {
+      // Site measurement remains production truth even for a line that
+      // started from a saved plan -- the tape's own width and height show
+      // exactly as any other measured line's do.
+      await load();
+      const measured = line({
+        est_width_tmm: null,
+        est_height_tmm: null,
+        direct_area_sqft: '250',
+        is_site_measured: true,
+        final_width_tmm: 36576,
+        final_height_tmm: 27432,
+      });
+      expect(component['size'](measured)).toBe(
+        '250.0 sqft → 12.0 × 9.0ft measured',
       );
     });
   });

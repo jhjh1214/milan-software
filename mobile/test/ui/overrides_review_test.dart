@@ -8,6 +8,7 @@
 /// summarised into something shorter than what was typed.
 library;
 
+import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -60,7 +61,7 @@ void main() {
             room: 'Living room',
             variant: 'night_curtain_sfold',
             layer: 'night',
-            estWidthTmm: 36576,
+            estWidthTmm: const Value(36576),
             appliedRuleId: 'rule-1',
             appliedRateCardVersion: 1,
             standardRateSen: 4600,

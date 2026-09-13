@@ -281,4 +281,164 @@ void main() {
     expect(line.sourceUnitTypeId, null);
     expect(line.sourceProjectId, null);
   });
+
+  testWidgets(
+    'picking a saved room seeds a flooring line from its area, no sizes step',
+    (tester) async {
+      // SPEC.md's property library: "auto-calculate a full SPC flooring
+      // quote". A room has only a stored total area -- 9,290,304 mm² is
+      // exactly 100 sqft, picked so the assertion below is exact rather
+      // than a rounded decimal.
+      server.unitTypeDetails['ut1'] = {
+        'unit_type': {'id': 'ut1'},
+        'versions': [
+          {
+            'id': 'v1',
+            'version': 3,
+            'approved_at': '2026-08-01T09:00:00Z',
+            'openings': [
+              {
+                'id': 'o1',
+                'label': 'W1',
+                'room': 'Living',
+                'nominal_w_tmm': 18000,
+                'nominal_h_tmm': 24000,
+              },
+            ],
+            'rooms': [
+              {
+                'id': 'r1',
+                'name': 'Living',
+                'nominal_area_mm2': 9290304,
+                'skirting_run_tmm': null,
+              },
+            ],
+          },
+        ],
+      };
+
+      await pumpApp(tester);
+
+      await tester.tap(find.text('加窗口'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('从已存的户型开始'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('ABC Development'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Type B'));
+      await tester.pumpAndSettle();
+
+      // Both a window and a room exist for this unit type, so the broader
+      // title is the one shown, and both sections are on screen.
+      expect(find.text('选窗户或房间'), findsOneWidget);
+      expect(find.textContaining('W1'), findsOneWidget);
+      expect(
+        find.textContaining('100.0'),
+        findsOneWidget,
+        reason: 'the room lists its area, not a width and a height',
+      );
+
+      await tester.tap(find.text('Living').last);
+      await tester.pumpAndSettle();
+
+      // Landed on the product step directly -- a room can only ever price
+      // a flooring line, so there is no family step to show, and no sizes
+      // step either: the area is already known.
+      expect(
+        find.text('什么产品？'),
+        findsOneWidget,
+        reason: 'family skipped -- a room is always flooring',
+      );
+      await tester.tap(find.text('SPC 地板 4mm+1mm'));
+      await tester.pumpAndSettle();
+
+      // spc_4mm_1mm offers two optional add-ons (dismantle, self levelling),
+      // so the upgrade step shows rather than popping straight back out.
+      expect(find.text('要加什么吗？'), findsOneWidget);
+      await tester.tap(find.text('不用，就这样'));
+      await tester.pumpAndSettle();
+
+      final quote = await db.latestQuote();
+      final line = (await db.linesFor(quote!.id)).single;
+      expect(line.room, 'Living');
+      expect(line.widthTmm, null);
+      expect(line.heightTmm, null);
+      expect(
+        line.directAreaSqft,
+        '100',
+        reason: 'exact, from the stored area -- never a float',
+      );
+      expect(line.sourceProjectId, 'p1');
+      expect(line.sourceUnitTypeId, 'ut1');
+      expect(line.sourceVersion, 3);
+    },
+  );
+
+  testWidgets(
+    'a room-sourced add-on bills on the room\'s own area, not a phantom width',
+    (tester) async {
+      // The upgrade-flow twin of the test above: dismantling old flooring
+      // is billed "on the same square footage" as the flooring it attaches
+      // to (CLAUDE.md), and a room-sourced parent has no width to copy --
+      // only its area.
+      server.unitTypeDetails['ut1'] = {
+        'unit_type': {'id': 'ut1'},
+        'versions': [
+          {
+            'id': 'v1',
+            'version': 3,
+            'approved_at': '2026-08-01T09:00:00Z',
+            'openings': [],
+            'rooms': [
+              {
+                'id': 'r1',
+                'name': 'Living',
+                'nominal_area_mm2': 9290304,
+                'skirting_run_tmm': null,
+              },
+            ],
+          },
+        ],
+      };
+
+      await pumpApp(tester);
+
+      await tester.tap(find.text('加窗口'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('从已存的户型开始'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('ABC Development'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Type B'));
+      await tester.pumpAndSettle();
+
+      // No openings this time, so the room-specific title shows rather than
+      // asking for a window that is not there.
+      expect(find.text('选房间'), findsOneWidget);
+      await tester.tap(find.text('Living').last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('SPC 地板 4mm+1mm'));
+      await tester.pumpAndSettle();
+      expect(find.text('要加什么吗？'), findsOneWidget);
+
+      await tester.tap(find.text('拆除旧 SPC'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('完成'));
+      await tester.pumpAndSettle();
+
+      final quote = await db.latestQuote();
+      final lines = await db.linesFor(quote!.id);
+      expect(lines, hasLength(2), reason: 'the flooring line, and the add-on');
+
+      final addOn = lines.firstWhere((l) => l.variant == 'dismantle_old_spc');
+      expect(addOn.widthTmm, null);
+      expect(
+        addOn.directAreaSqft,
+        '100',
+        reason: 'the parent room\'s own area, not a crash and not a guess',
+      );
+      expect(addOn.parentLineId, lines.first.id);
+    },
+  );
 }

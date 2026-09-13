@@ -104,14 +104,24 @@ class QuoteLines extends Table {
   /// reprice a line the customer already agreed.
   TextColumn get parentLineId => text().nullable()();
 
-  /// Tenths of a millimetre. Never millimetres.
-  IntColumn get widthTmm => integer()();
+  /// Tenths of a millimetre. Never millimetres. Null only for a
+  /// [directAreaSqft] line -- a saved room's area does not reduce to one
+  /// rectangle, so there is nothing honest to put here.
+  IntColumn get widthTmm => integer().nullable()();
   IntColumn get heightTmm => integer().nullable()();
 
   /// Exactly what the user typed, so §5.5 can show entered beside billed
-  /// without inventing precision that was never entered.
+  /// without inventing precision that was never entered. An empty string
+  /// already means "nothing was typed" -- the per_roll default-pack case
+  /// uses the same convention.
   TextColumn get rawWidth => text()();
   TextColumn get rawHeight => text()();
+
+  /// Exact rational as a string, e.g. `"700/3"`. SPEC.md's property
+  /// library: a saved room's `nominal_area_mm2` is the one figure it
+  /// actually stores, never a width and a length. Set only alongside
+  /// `widthTmm = null`.
+  TextColumn get directAreaSqft => text().nullable()();
 
   IntColumn get quantity => integer().withDefault(const Constant(1))();
 
@@ -322,9 +332,18 @@ class OrderLines extends Table {
   TextColumn get layer => text()();
   TextColumn get parentLineId => text().nullable()();
 
-  /// What was entered at the fair. Tenths of a millimetre, never millimetres.
-  IntColumn get estWidthTmm => integer()();
+  /// What was entered at the fair. Tenths of a millimetre, never
+  /// millimetres. Null only for a room-sourced flooring line -- see
+  /// [directAreaSqft].
+  IntColumn get estWidthTmm => integer().nullable()();
   IntColumn get estHeightTmm => integer().nullable()();
+
+  /// Exact rational as a string, e.g. `"700/3"`. Copied from the quote
+  /// line this order line was confirmed from -- kept for the same reason
+  /// [estWidthTmm] is: a year later the estimate has to be explainable
+  /// without reconstructing it. Never fed into final pricing, which always
+  /// needs a real tape measurement ([finalWidthTmm]/[finalHeightTmm]).
+  TextColumn get directAreaSqft => text().nullable()();
 
   /// What the tape said. Null until somebody has been out with one, and stored
   /// **beside** the estimate rather than over it.
@@ -701,7 +720,7 @@ class AppDatabase extends _$AppDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -808,6 +827,23 @@ class AppDatabase extends _$AppDatabase {
       // destined for a server.
       if (from < 14) {
         await m.createTable(librarySubmissions);
+      }
+      // v15: a per_sqft line can price from a pre-known area (SPEC.md's
+      // property library, "auto-calculate a full SPC flooring quote"). A
+      // saved room's area does not reduce to one rectangle, so `widthTmm`/
+      // `estWidthTmm` widen to nullable for exactly that case -- the first
+      // migration here to relax a constraint rather than only add, so it
+      // goes through `alterTable`/`TableMigration` (a full recreate under
+      // the hood) rather than `addColumn`, which cannot change nullability.
+      if (from < 15) {
+        await m.alterTable(
+          // ignore: experimental_member_use
+          TableMigration(quoteLines, newColumns: [quoteLines.directAreaSqft]),
+        );
+        await m.alterTable(
+          // ignore: experimental_member_use
+          TableMigration(orderLines, newColumns: [orderLines.directAreaSqft]),
+        );
       }
     },
     beforeOpen: (details) async {

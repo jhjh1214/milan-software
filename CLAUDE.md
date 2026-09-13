@@ -124,16 +124,48 @@ positive-area refusals — each proven to fail before its guard and pass
 after by reverting the guard and re-running. 911 Dart tests, 791 backend
 tests.
 
-**Not yet wired to anything.** This is the engine capability alone,
-deliberately landed as its own verified slice before the larger,
-harder-to-reverse part: the mobile picker still only ever offers openings
-(a saved room is parsed off the API response and then dropped,
-`ApprovedUnitType` in `mobile/lib/sync/api_client.dart`), and letting a
-salesperson actually pick a room needs a Drift `schemaVersion` bump
-(`est_width_tmm`/`est_height_tmm` are `NOT NULL` today) mirrored by an
-Alembic migration on the server, changes through the quote-to-order
-pipeline, and the wizard's own room-picking step. Scoped but not started;
-see the next session's brief.
+**Now wired all the way through, same session.** What started as "add a
+picker screen" turned out to need real schema work on both sides, done in
+full rather than left half-connected.
+
+`QuoteLines.widthTmm` and `OrderLines.estWidthTmm` are nullable (Drift
+schema v15) — the first migration in this project to widen a constraint
+rather than only add a column, so it runs through `alterTable`/
+`TableMigration` (a real table recreate on SQLite) instead of `addColumn`,
+which cannot change nullability. `direct_area_sqft` (exact rational as
+text, `QuoteLines` and `OrderLines`) carries the area alongside. Mirrored
+on the server: an Alembic migration (`0010`, `batch_alter_table` so the
+same file runs correctly on SQLite in tests and Postgres in production)
+widens `quote_lines.width_tmm`/`order_lines.est_width_tmm` and adds the
+matching column; `QuoteLineIn`/`OrderLineIn`/`OrderLineOut` all carry it
+now. `ApprovedUnitType` (mobile) parses a unit type's `rooms` alongside its
+`openings`, previously dropped on the floor.
+
+**The wizard's picker now offers a room, not only a window.** Picking one
+seeds a `per_sqft` flooring line straight from its stored area: no family
+step (a room can only ever be flooring, so there is nothing to choose) and
+no sizes step (the area is already known, so there is nothing to prefill
+or edit) — one fewer screen for the one case where the next two answers
+were already decided. `_back()` skips the same two steps in reverse. A
+room-sourced add-on (dismantling old flooring, self levelling) bills on
+the parent line's own area rather than a width it does not have — the same
+"same square footage" rule CLAUDE.md already documents for a measured
+line's add-on. The measurement screen's "quoted as" preview shows the area
+in `sqft` for a room-sourced line rather than crashing on a null width, and
+the dashboard's order-detail screen does the same (`sizeAreaSqft`).
+Skirting (`rooms.skirting_run_tmm`) is parsed and carried but not yet
+offered by the picker — named rather than silently dropped, a smaller
+follow-up than the flooring line itself.
+
+Two widget tests drive the real wizard end to end against a fake server:
+picking a room with no sizes step in between, and a room-sourced add-on
+correctly billing on the parent's area instead of crashing on a missing
+width. 918 Dart tests, 794 backend tests, 300 dashboard tests — all three
+suites green, `flutter analyze`/`dart format`/ruff clean. Not independently
+exercised against a live Postgres this session (no local Docker daemon
+running); the migration is a standard, portable `batch_alter_table` and is
+already proven against SQLite by `test_migrations.py`, but the real
+Postgres run (CI's own `deploy` job) is worth watching on the next push.
 
 **The dashboard has a real design system now** (client, Sep 2026): light and
 dark mode, a token-driven palette (`dashboard/design-system/MASTER.md`

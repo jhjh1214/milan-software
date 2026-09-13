@@ -106,7 +106,7 @@ void main() {
             room: 'Living room',
             variant: 'night_curtain_sfold',
             layer: 'night',
-            estWidthTmm: 36576,
+            estWidthTmm: const Value(36576),
             estHeightTmm: const Value(27432),
             appliedRuleId: 'rule-1',
             appliedRateCardVersion: 1,

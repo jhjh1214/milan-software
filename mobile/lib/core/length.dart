@@ -134,3 +134,10 @@ class Length implements Comparable<Length> {
 /// 11.9928.
 Rational areaSqft(Length width, Length height) =>
     Rational(width.tmm * height.tmm, Length.tenthsSqPerSqft);
+
+/// A saved room's stored area, in square feet, exact. SPEC.md's property
+/// library: `rooms.nominal_area_mm2` is plain square millimetres, so this
+/// scales by 100 (1mm = 10 tenths, so 1mm² = 100 tenths²) before dividing by
+/// the same tenths-per-sqft constant [areaSqft] uses.
+Rational areaSqftFromMm2(int areaMm2) =>
+    Rational(areaMm2 * 100, Length.tenthsSqPerSqft);

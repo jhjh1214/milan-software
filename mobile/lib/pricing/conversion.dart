@@ -51,9 +51,15 @@ class OrderLineDraft {
   final String layer;
   final String? parentLineId;
 
-  /// What was entered at the fair, in tenths of a millimetre.
-  final Length estWidth;
+  /// What was entered at the fair, in tenths of a millimetre. Null only for
+  /// a room-sourced flooring line -- see [directAreaSqft].
+  final Length? estWidth;
   final Length? estHeight;
+
+  /// A pre-known area, in square feet, exact. SPEC.md's property library: a
+  /// saved room's area does not reduce to one rectangle, so a room-sourced
+  /// flooring line carries this instead of a width and a height.
+  final Rational? directAreaSqft;
   final int quantity;
 
   /// The lock that priced it, or null when nothing did. §6.1: a line whose
@@ -98,6 +104,7 @@ class OrderLineDraft {
     required this.layer,
     required this.estWidth,
     required this.estHeight,
+    this.directAreaSqft,
     required this.quantity,
     required this.appliedRuleId,
     required this.appliedRateCardVersion,
@@ -235,8 +242,11 @@ class ConvertibleLine {
   final String room;
   final String layer;
   final String? parentLineId;
-  final Length width;
+  final Length? width;
   final Length? height;
+
+  /// A pre-known area, in square feet, exact. SPEC.md's property library.
+  final Rational? directAreaSqft;
 
   /// What the engine made of it, or null if it could not price it.
   final PricedLine? priced;
@@ -258,6 +268,7 @@ class ConvertibleLine {
     required this.width,
     required this.height,
     required this.basis,
+    this.directAreaSqft,
     this.priced,
     this.parentLineId,
     this.sourceProjectId,
@@ -337,6 +348,7 @@ ConversionResult confirmQuoteAsOrder({
             parentLineId: line.parentLineId,
             estWidth: line.width,
             estHeight: line.height,
+            directAreaSqft: line.directAreaSqft,
             quantity: line.priced!.quantity,
             categoryLockId: line.basis.lockId,
             measurementSource: line.sourceUnitTypeId == null

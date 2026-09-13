@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/length.dart';
 import '../../core/money.dart';
+import '../../core/rational.dart';
 import '../../data/database.dart';
 import '../../data/quote_repository.dart';
 import '../../data/rate_card_store.dart';
@@ -148,12 +149,24 @@ class QuoteLine {
   final String variant;
   final String? materialKey;
   final Layer layer;
-  final Length width;
+
+  /// Null only for a [directAreaSqft] line -- a saved room has no real width
+  /// or height to give (SPEC.md's property library: an L-shaped room's area
+  /// does not reduce to one rectangle), so there is nothing honest to put
+  /// here.
+  final Length? width;
   final Length? height;
+
+  /// A pre-known area, in square feet, exact. A room-sourced flooring line
+  /// prices from this instead of [width] x [height]. Meaningful only for a
+  /// `per_sqft` product.
+  final Rational? directAreaSqft;
   final int quantity;
 
   /// Exactly what the user typed, kept so the line can show entered and billed
-  /// side by side without inventing precision. §5.5.
+  /// side by side without inventing precision. §5.5. An empty string already
+  /// means "nothing was typed" -- the per_roll default-pack case uses the
+  /// same convention.
   final String rawWidth;
   final String rawHeight;
 
@@ -183,6 +196,7 @@ class QuoteLine {
     required this.quantity,
     required this.rawWidth,
     required this.rawHeight,
+    this.directAreaSqft,
     this.parentLineId,
     this.photoPath,
     this.sourceProjectId,
@@ -202,8 +216,11 @@ class QuoteLine {
     variant: row.variant,
     materialKey: row.materialKey,
     layer: Layer.fromWire(row.layer),
-    width: Length.tenths(row.widthTmm),
+    width: row.widthTmm == null ? null : Length.tenths(row.widthTmm!),
     height: row.heightTmm == null ? null : Length.tenths(row.heightTmm!),
+    directAreaSqft: row.directAreaSqft == null
+        ? null
+        : Rational.tryParse(row.directAreaSqft!),
     quantity: row.quantity,
     rawWidth: row.rawWidth,
     rawHeight: row.rawHeight,
@@ -286,15 +303,19 @@ class QuoteNotifier extends AsyncNotifier<QuoteState> {
   }
 
   /// Adds a line and returns its id, so an upgrade can attach to it.
+  ///
+  /// [width] is null only for a room-sourced flooring line, which prices
+  /// from [directAreaSqft] instead (SPEC.md's property library).
   Future<String?> addLine({
     required String room,
     required String variant,
     required String? materialKey,
     required Layer layer,
-    required Length width,
+    required Length? width,
     required Length? height,
     required String rawWidth,
     required String rawHeight,
+    Rational? directAreaSqft,
     int quantity = 1,
     String? parentLineId,
     String? sourceProjectId,
@@ -309,10 +330,11 @@ class QuoteNotifier extends AsyncNotifier<QuoteState> {
       variant: variant,
       materialKey: materialKey,
       layer: layer.wire,
-      widthTmm: width.tmm,
+      widthTmm: width?.tmm,
       heightTmm: height?.tmm,
       rawWidth: rawWidth,
       rawHeight: rawHeight,
+      directAreaSqft: directAreaSqft?.toString(),
       quantity: quantity,
       parentLineId: parentLineId,
       sourceProjectId: sourceProjectId,
@@ -464,6 +486,7 @@ final pricedQuoteProvider = Provider<AsyncValue<PricedQuote>>((ref) {
               layer: line.layer,
               width: line.width,
               height: line.height,
+              directAreaSqft: line.directAreaSqft,
               quantity: line.quantity,
               parentFamily: line.parentLineId == null
                   ? null

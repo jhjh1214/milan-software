@@ -121,6 +121,22 @@ function draftOf(buyer: BuyerOut | null): Draft {
   return draft;
 }
 
+/**
+ * An exact rational as the wire holds it (`"700/3"`, `"250"`) shown to one
+ * decimal place. Display only, the same rule `Length.mm` follows on the
+ * handset — never parsed back into anything that prices or stores a
+ * quantity, which stays the exact string throughout the rest of this app.
+ */
+function exactRationalToFixed(exact: string | null): string {
+  if (exact === null) return '';
+  const slash = exact.indexOf('/');
+  const value =
+    slash === -1
+      ? Number(exact)
+      : Number(exact.slice(0, slash)) / Number(exact.slice(slash + 1));
+  return Number.isFinite(value) ? value.toFixed(1) : exact;
+}
+
 @Component({
   selector: 'app-order-detail',
   imports: [CommonModule, RouterLink],
@@ -285,9 +301,19 @@ export class OrderDetail {
     const feet = (tmm: number | null): string | null =>
       tmm === null ? null : (tmm / 3048).toFixed(1);
 
-    const width = feet(line.est_width_tmm);
-    const height = feet(line.est_height_tmm);
-    const estimate = height === null ? `${width}ft` : `${width} × ${height}ft`;
+    // A room-sourced flooring line (SPEC.md's property library): a saved
+    // room's area does not reduce to one rectangle, so there is no width
+    // and no height to show at the estimate, only the area itself. Once
+    // it has been through a real site visit, the tape's own width and
+    // height show exactly as any other measured line's do.
+    const estimate =
+      line.est_width_tmm === null
+        ? this.t().order.sizeAreaSqft(exactRationalToFixed(line.direct_area_sqft))
+        : (() => {
+            const width = feet(line.est_width_tmm);
+            const height = feet(line.est_height_tmm);
+            return height === null ? `${width}ft` : `${width} × ${height}ft`;
+          })();
 
     if (!line.is_site_measured) return this.t().order.sizeEstimate(estimate);
 

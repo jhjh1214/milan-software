@@ -2109,6 +2109,9 @@ the same shape rather than growing a special case onto this one.
       in place — including a correction to its floor-plan image
 - [x] A quote can start from a saved plan: project → unit type → opening,
       gated on `status=approved` the same way the review screen gates writes
+- [x] A quote can also start from a saved *room*, pricing a flooring line
+      directly from its stored area — added Sep 2026, closing the client's
+      own "auto-calculate a full SPC flooring quote" ask
 - [x] An admin can upload a floor-plan image and calibrate its scale from the
       dashboard, in zh/en/ms
 - [x] A part-timer can submit a floor-plan image and calibration from the
@@ -2161,19 +2164,29 @@ Confirmed as already in scope here — no new phase needed:
    area is already known, and the engine prices it like any other `per_sqft`
    line.
 
-   **Corrected, Sep 2026**: this was true of the data model, not yet of the
-   engine or the wizard. `rooms.nominal_area_mm2` stores only the resulting
-   area — a real room is not always a rectangle, so there was never a width
-   and a length to keep — and every `per_sqft` line, on both engines, priced
-   exclusively from `width x height` until now. The engine side is built:
-   `LineRequest.width` is nullable and a new `directAreaSqft`/
-   `direct_area_sqft` field prices a `per_sqft` line from a pre-known exact
-   area, refusing (never guessing) at final pricing, since a plan-derived
-   area is an estimate and site measurement remains production truth. Not
-   yet built: the wizard's picker only ever offers openings today, and
-   wiring a room through it needs a Drift schema bump
-   (`est_width_tmm`/`est_height_tmm` are `NOT NULL`) mirrored on the server,
-   plus the quote-to-order pipeline and the picker's own room-picking step.
+   **Corrected, then built, Sep 2026**: this was true of the data model
+   only. `rooms.nominal_area_mm2` stores only the resulting area — a real
+   room is not always a rectangle, so there was never a width and a length
+   to keep — and every `per_sqft` line, on both engines, priced exclusively
+   from `width x height` until this session. It is now real, end to end:
+   `LineRequest.width` is nullable on both engines and a new
+   `directAreaSqft`/`direct_area_sqft` field prices a `per_sqft` line from a
+   pre-known exact area, refusing (never guessing) at final pricing, since a
+   plan-derived area is an estimate and site measurement remains production
+   truth. `QuoteLines.widthTmm`/`OrderLines.estWidthTmm` widened to nullable
+   (Drift schema v15, an `alterTable`/`TableMigration` recreate — the first
+   migration here to relax a constraint rather than only add), mirrored by
+   an Alembic migration on the server. The wizard's picker now lists a unit
+   type's saved rooms alongside its openings; picking one jumps straight to
+   the product step (a room can only ever price flooring, so there is no
+   family choice to make) and skips the sizes step entirely (the area is
+   already known, so there is nothing to prefill or edit) — the one
+   deliberate simplification: unlike an opening's dimensions, a room's area
+   cannot be corrected inline, since editing a single number has no natural
+   "back to typed, provenance cleared" counterpart the way a width or a
+   height does. A room-sourced add-on (dismantling old flooring, self
+   levelling) bills on the parent line's own area, the same "same square
+   footage" rule as a measured line's add-on.
 
 **But the auto-calculation comes from the stored room areas, not from reading
 the image.** The plan is a backdrop for tapping and a reference for the

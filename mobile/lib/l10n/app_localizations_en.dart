@@ -1305,6 +1305,12 @@ class LEn extends L {
   String get pickerPickOpening => 'Choose a window';
 
   @override
+  String get pickerPickOpeningOrRoom => 'Choose a window or a room';
+
+  @override
+  String get pickerPickRoom => 'Choose a room';
+
+  @override
   String get pickerNoOpenings => 'No windows saved for this unit type.';
 
   @override
@@ -1316,6 +1322,17 @@ class LEn extends L {
   @override
   String pickerOpeningSize(String width, String height) {
     return '$width × $height ft';
+  }
+
+  @override
+  String get pickerOpeningsHeading => 'Windows';
+
+  @override
+  String get pickerRoomsHeading => 'Rooms';
+
+  @override
+  String pickerRoomAreaSqft(Object sqft) {
+    return '$sqft sqft';
   }
 
   @override

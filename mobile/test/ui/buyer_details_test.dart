@@ -87,7 +87,7 @@ void main() {
             room: 'Living room',
             variant: 'night_curtain',
             layer: 'night',
-            estWidthTmm: 36576,
+            estWidthTmm: const Value(36576),
             appliedRuleId: 'night-curtain-lo',
             appliedRateCardVersion: 1,
             standardRateSen: 4600,

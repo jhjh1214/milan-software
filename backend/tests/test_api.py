@@ -457,7 +457,7 @@ class TestPush:
 
     def test_a_malformed_push_is_rejected_at_the_door(self, client: TestClient) -> None:
         payload = a_quote()
-        del payload["lines"][0]["width_tmm"]
+        del payload["lines"][0]["room"]
         r = client.post("/api/quotes", json=payload, headers=auth(sign_in(client)))
         assert r.status_code == 422
 
@@ -466,6 +466,38 @@ class TestPush:
         payload["lines"][0]["width_tmm"] = -1
         r = client.post("/api/quotes", json=payload, headers=auth(sign_in(client)))
         assert r.status_code == 422
+
+    def test_missing_width_is_not_malformed_it_is_a_room_sourced_line(
+        self, client: TestClient
+    ) -> None:
+        """`width_tmm` widened to nullable for exactly one case: a
+        room-sourced flooring line prices from `direct_area_sqft` instead.
+        Missing at the schema level is no longer malformed on its own."""
+        payload = a_quote()
+        del payload["lines"][0]["width_tmm"]
+        payload["lines"][0]["direct_area_sqft"] = "250"
+        payload["lines"][0]["variant"] = "spc_4mm_1mm"
+        payload["lines"][0]["height_tmm"] = None
+        payload["lines"][0]["device_total_sen"] = None
+        payload["device_total_sen"] = None
+        r = client.post("/api/quotes", json=payload, headers=auth(sign_in(client)))
+        assert r.status_code == 200, r.text
+
+    def test_neither_width_nor_a_direct_area_is_not_silently_priced(
+        self, client: TestClient
+    ) -> None:
+        """A line the server genuinely cannot price -- neither dimensions
+        nor a pre-known area -- still lands (the money is not in question
+        here), but is not silently charged nothing. Same rule as any other
+        unpriceable line (hard rule: never guess a price)."""
+        payload = a_quote()
+        del payload["lines"][0]["width_tmm"]
+        payload["lines"][0]["height_tmm"] = None
+        payload["lines"][0]["device_total_sen"] = None
+        payload["device_total_sen"] = None
+        r = client.post("/api/quotes", json=payload, headers=auth(sign_in(client)))
+        assert r.status_code == 200, r.text
+        assert r.json()["server_total_sen"] == 0
 
 
 class TestBuyerDetailsOverTheWire:

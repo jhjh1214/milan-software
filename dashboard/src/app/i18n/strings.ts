@@ -291,6 +291,9 @@ export interface OrderStrings {
   readonly whatWasOrdered: string;
   readonly sizeEstimate: (size: string) => string;
   readonly sizeMeasured: (estimate: string, measured: string) => string;
+  /** A room-sourced flooring line's area, e.g. "233.3 sqft" -- no width or
+   * height, since a saved room's area does not reduce to one rectangle. */
+  readonly sizeAreaSqft: (sqft: string) => string;
   /** "12 ft at RM 46.00 · up to 10ft · list v1 · held 20% off". */
   readonly basis: (
     quantity: string,
