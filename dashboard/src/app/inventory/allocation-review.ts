@@ -106,8 +106,11 @@ export class AllocationReview {
     return material.names[this.text.language()] ?? material.code;
   }
 
-  private loadLots(materialId: string): void {
-    if (this.lotsByMaterial()[materialId]) return;
+  /** `force` bypasses the cache -- used after an approval decrements a
+   * lot, so another proposal still waiting on a pick for the same
+   * material doesn't keep showing the now-stale quantity. */
+  private loadLots(materialId: string, force = false): void {
+    if (!force && this.lotsByMaterial()[materialId]) return;
     this.api.stockLots(materialId).subscribe({
       next: (out) =>
         this.lotsByMaterial.update((m) => ({ ...m, [materialId]: out.lots })),
@@ -136,8 +139,21 @@ export class AllocationReview {
     this.api.approveAllocation(item.id, this.pickedLot()[item.id] ?? null).subscribe({
       next: () => {
         this.acting.set(null);
-        this.items.set(this.items().filter((i) => i.id !== item.id));
+        const remaining = this.items().filter((i) => i.id !== item.id);
+        this.items.set(remaining);
         this.note.set('approved');
+        // This approval just decremented a lot's qty_on_hand. Another
+        // proposal still waiting on a pick for the same material was
+        // showing that lot's figure from before the decrement -- refresh
+        // it rather than let the next approval be chosen against a number
+        // that is already wrong.
+        if (
+          remaining.some(
+            (i) => i.material_id === item.material_id && i.lot_id === null,
+          )
+        ) {
+          this.loadLots(item.material_id, true);
+        }
       },
       error: (err: unknown) => {
         this.acting.set(null);

@@ -71,3 +71,58 @@ screen is read-only review, not creation, and there is no dashboard
 cancel-order component to have a bug in); backend idempotency for
 deactivate/reactivate under a genuine concurrent double-request (mitigating,
 not fixing, finding #3 above).
+
+# Bug hunt — 2026-09-13, Inventory (Phase 9)
+
+Scope: `backend/app/services/inventory.py`, the inventory/allocation routes in
+`backend/app/main.py`, the `push_measurement` auto-proposal hook
+(`backend/app/services/ingest.py`), and the dashboard screens
+`dashboard/src/app/inventory/materials.ts`,
+`dashboard/src/app/inventory/allocation-review.ts`, and the manual-allocation
+control just added to `dashboard/src/app/orders/order-detail.ts` — shipped
+Sep 2026 and never covered by the two earlier sweeps above (mobile, then
+dashboard), both of which predate Phase 9. Read-only sweep against the
+invariants CLAUDE.md's "Current state" names for this feature (ledger
+discipline, exact-rational arithmetic, FIFO single-lot proposal, approval as
+the only thing that decrements `qty_on_hand`).
+
+**Both findings fixed** (each proven by a test that failed before the fix and
+passed after, mutation-confirmed by reverting the fix and watching the test
+go red again).
+
+| # | Symptom | Location | Root cause | Confidence | Severity |
+|---|---|---|---|---|---|
+| 1 **FIXED** | `POST /api/allocations` (a manual allocation) accepted any `order_id` regardless of which order the given `order_line_id` actually belongs to — confirmed by direct reproduction: a line that really belongs to order A, submitted with a made-up `order_id`, returned `201` and stored the wrong id on the `Allocation` row. | `backend/app/main.py` — `create_manual_allocation_route`, formerly only checking `session.get(OrderLine, payload.order_line_id) is None` | `ManualAllocationIn` carries `order_line_id` and `order_id` as two independently client-supplied fields that should always agree (an order line belongs to exactly one order), and nothing cross-checked them. The internal call site (`push_measurement` → `propose_allocation_for_line`) is safe — it derives both from the same trusted `order` object — so this was only reachable through the public manual-allocation route. | High — reproduced directly against a running `TestClient`, not inferred from reading. | Medium. Admin-only (not a privilege-escalation path) but corrupts the one field a report or a `release_allocation` would trust to say which order used the stock. **Fixed**: the route now refuses (404) unless the fetched order line's own `order_id` matches the payload's. Pinned by `test_manual_allocation_against_the_wrong_order_is_404` in `backend/tests/test_inventory_api.py` (also asserts the stock is untouched). |
+| 2 **FIXED** | Two `proposed` allocations against the same material, both needing a manual lot pick (the "no single lot covers it" case), showed the *same* stale `qty_on_hand` figure after the first was approved. Approving the first decrements the real lot; the second's dropdown kept the pre-decrement number, since the lot list is cached per material and nothing invalidated it after the mutation that made it wrong. Present in both `allocation-review.ts` (shipped with Phase 9) and the manual-allocation control just added to `order-detail.ts` this session (same root cause, copied along with the pattern). | `dashboard/src/app/inventory/allocation-review.ts` — `loadLots`'s cache check (`if (this.lotsByMaterial()[materialId]) return`) has no invalidation path; `approve()`'s success handler never calls it again. `dashboard/src/app/orders/order-detail.ts` — `setAllocateMaterial`, same pattern, never refreshed after `submitAllocate` succeeds. | A classic seam-between-mutations gap: the component's own write (an approval, or a manual allocation) changes server state that the component's own read-side cache doesn't know to forget. Neither screen has any other reader of the same lot list to notice the drift, so nothing caught it until this was reproduced directly. | High — reproduced in a spec test against each component (two allocations sharing a material; approve one, watch the other's dropdown). | Low/Medium — not a data-integrity bug (`_record_movement`'s negative-quantity check still refuses an over-approval), but a real chance to mislead an admin into believing more stock is free than actually is, right on the screen whose whole job is that number. **Fixed**: both `loadLots`/`loadLotsFor` take a `force` flag that bypasses the cache, called after a successful approval (`allocation-review.ts`, only when another still-queued item needs the same material) and after a successful manual allocation (`order-detail.ts`, unconditionally for that material). Pinned by one new test per component, both mutation-confirmed. |
+
+## What was checked and found correct
+
+- `_record_movement` (`inventory.py`) — the sole writer of `qty_on_hand`,
+  always alongside a `StockMovement` in the same call, always refusing a
+  negative result. Every other function in the module goes through it; no
+  other write site found.
+- `available_for_material`/`reorder_alerts` — `committed` sums only
+  `proposed` allocations, so an `approved` one (already reflected in
+  `on_hand` via its own movement) is never subtracted twice.
+- `create_manual_allocation`'s already-approved intermediate `proposed` row
+  is never externally visible — created and approved inside one function
+  before the route's own transaction commits.
+- `propose_allocation_for_line`'s "already proposed/decided" guard
+  (`order_line_id` + `material_id`) deliberately also blocks re-proposing
+  after a *rejection* — documented in the function's own docstring as
+  intentional ("left for a person to reconcile by hand"), not a gap.
+- `receive_stock`'s box conversion (`coverage_per_unit`, `_ceil_fraction`)
+  and the exact-rational plumbing throughout — no float ever appears; a
+  representative case traced by hand agrees with the code.
+- `release_allocation` — refuses anything not `approved`, puts quantity
+  back on the *same* lot the approval took it from, as its own append-only
+  movement.
+
+Not examined this pass: a genuine concurrent double-`push_measurement` race
+on `propose_allocation_for_line`'s check-then-insert (theoretically possible,
+not reproduced — would need two overlapping requests against the same line,
+which the mobile app's own single-enqueue design makes unlikely in practice);
+`reorder_alerts`' per-material query pattern (two queries per material with a
+reorder level set — not proven to matter at today's likely material count,
+unlike the order board's proven 500-row case, so not chased further); the
+dashboard's `materials.ts` beyond what the fixes above touch.

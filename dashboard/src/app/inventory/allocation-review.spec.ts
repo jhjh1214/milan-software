@@ -143,6 +143,46 @@ describe('AllocationReview', () => {
     expect(req.request.body).toEqual({ lot_id: 'lot1' });
   });
 
+  it('approving one proposal refreshes the lot list for another proposal on the same material', () => {
+    // Both need a lot picked, and both draw from the same material -- an
+    // approval decrements a lot's qty_on_hand, so the second card's picker
+    // must not keep showing the figure from before that happened.
+    const a1 = allocation({ id: 'a1', lot_id: null, decision_note: 'no single lot covers it' });
+    const a2 = allocation({
+      id: 'a2',
+      order_line_id: 'ol2',
+      lot_id: null,
+      decision_note: 'no single lot covers it',
+    });
+    fixture.detectChanges();
+    http.expectOne((r) => r.url === '/api/allocations').flush({ allocations: [a1, a2] });
+    for (const req of http.match('/api/stock/lots?material_id=m1')) {
+      req.flush({ lots: [lot({ qty_on_hand: '20' })] });
+    }
+    http.expectOne((r) => r.url === '/api/materials').flush({ materials: [material()] });
+    fixture.detectChanges();
+
+    const selects = fixture.nativeElement.querySelectorAll('select');
+    (selects[0] as HTMLSelectElement).value = 'lot1';
+    selects[0].dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    button('Approve').click();
+    http
+      .expectOne('/api/allocations/a1/approve')
+      .flush(allocation({ id: 'a1', status: 'approved' }));
+    fixture.detectChanges();
+
+    // a2 is still waiting on a pick for material m1 -- refreshed, not reused.
+    http
+      .expectOne('/api/stock/lots?material_id=m1')
+      .flush({ lots: [lot({ qty_on_hand: '14' })] });
+    fixture.detectChanges();
+
+    expect(text()).toContain('14');
+    expect(text()).not.toContain('20');
+  });
+
   it('rejecting requires a reason', () => {
     load([allocation()]);
     button('Reject').click();

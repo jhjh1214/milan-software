@@ -838,6 +838,47 @@ describe('OrderDetail', () => {
       expect(qty.value).toBe('6');
     });
 
+    it('refreshes the lot list after allocating, rather than reusing the pre-decrement figure', async () => {
+      // A successful allocation just decremented lot-1's qty_on_hand.
+      // Reopening the control for the same material must not keep
+      // showing the number from before that happened.
+      await openAndFill();
+      click('Allocate');
+      http.expectOne((r) => r.url === '/api/allocations').flush({
+        id: 'alloc-1',
+        order_line_id: 'l1',
+        order_id: 'o1',
+        material_id: 'mat-1',
+        lot_id: 'lot-1',
+        qty: '6',
+        status: 'approved',
+        proposed_at: '2026-09-13T00:00:00Z',
+        decided_by_user_id: 'u-admin',
+        decided_at: '2026-09-13T00:00:00Z',
+        decision_note: null,
+        allocated_at: '2026-09-13T00:00:00Z',
+        released_at: null,
+      });
+      fixture.detectChanges();
+
+      // Opening it again on the same line: the previously-picked material
+      // is fetched fresh, not read back out of the stale cache.
+      click('Allocate stock');
+      select('material-l1', 'mat-1');
+      http
+        .expectOne((r) => r.url === '/api/stock/lots')
+        .flush({ lots: [lot({ qty_on_hand: '14' })] });
+      fixture.detectChanges();
+
+      const options = [
+        ...(fixture.nativeElement.querySelector(
+          '#lot-l1',
+        ) as HTMLSelectElement).options,
+      ].map((o) => o.textContent);
+      expect(options.join(' ')).toContain('14');
+      expect(options.join(' ')).not.toContain('20');
+    });
+
     it('names the material in the reader’s own language', async () => {
       i18n.pick('zh');
       await load();

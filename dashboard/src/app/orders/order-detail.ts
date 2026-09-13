@@ -498,13 +498,19 @@ export class OrderDetail {
   protected setAllocateMaterial(materialId: string): void {
     this.allocateMaterialId.set(materialId);
     this.allocateLotId.set('');
-    if (materialId && !this.lotsByMaterial()[materialId]) {
-      this.api.stockLots(materialId).subscribe({
-        next: (out) =>
-          this.lotsByMaterial.update((m) => ({ ...m, [materialId]: out.lots })),
-        error: (err: unknown) => this.allocationFailure.set(failureOf(err)),
-      });
-    }
+    if (materialId) this.loadLotsFor(materialId, false);
+  }
+
+  /** `force` bypasses the cache -- used after an allocation decrements a
+   * lot, so opening the control again for the same material doesn't keep
+   * showing the now-stale quantity. */
+  private loadLotsFor(materialId: string, force: boolean): void {
+    if (!force && this.lotsByMaterial()[materialId]) return;
+    this.api.stockLots(materialId).subscribe({
+      next: (out) =>
+        this.lotsByMaterial.update((m) => ({ ...m, [materialId]: out.lots })),
+      error: (err: unknown) => this.allocationFailure.set(failureOf(err)),
+    });
   }
 
   protected setAllocateLot(lotId: string): void {
@@ -537,11 +543,13 @@ export class OrderDetail {
     this.allocationFailure.set(null);
     this.allocationNote.set(null);
 
+    const materialId = this.allocateMaterialId();
+
     this.api
       .createManualAllocation({
         order_line_id: line.id,
         order_id: order.id,
-        material_id: this.allocateMaterialId(),
+        material_id: materialId,
         lot_id: this.allocateLotId(),
         qty: this.allocateQty().trim(),
       })
@@ -550,6 +558,10 @@ export class OrderDetail {
           this.savingAllocation.set(false);
           this.allocatingLineId.set(null);
           this.allocationNote.set(line.id);
+          // This just decremented the lot's qty_on_hand. Opening the
+          // control again for the same material -- this line or another
+          // -- must not keep showing the figure from before it moved.
+          this.loadLotsFor(materialId, true);
         },
         error: (err: unknown) => {
           this.savingAllocation.set(false);

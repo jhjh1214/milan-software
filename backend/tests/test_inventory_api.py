@@ -364,6 +364,39 @@ class TestAllocationsApi:
         )
         assert r.status_code == 404, r.text
 
+    def test_manual_allocation_against_the_wrong_order_is_404(
+        self, client: TestClient
+    ) -> None:
+        # LINE_ID really belongs to ORDER_ID (see the fixture above). Nothing
+        # checked that a caller's `order_id` actually named the line's own
+        # order, so a mismatched id was stored on the allocation as if it
+        # were true -- corrupting the one field a release or a report would
+        # trust to say which order the stock went to.
+        token = sign_in(client, "admin")
+        material = make_material(client, token)
+        lot = self._lot(client, token, material["id"])
+
+        r = client.post(
+            "/api/allocations",
+            json={
+                "order_line_id": LINE_ID,
+                "order_id": str(uuid.uuid4()),
+                "material_id": material["id"],
+                "lot_id": lot["id"],
+                "qty": "6",
+            },
+            headers=auth(token),
+        )
+        assert r.status_code == 404, r.text
+
+        # And nothing was allocated: the stock is untouched.
+        lots = client.get(
+            "/api/stock/lots",
+            params={"material_id": material["id"]},
+            headers=auth(token),
+        ).json()["lots"]
+        assert lots[0]["qty_on_hand"] == "20"
+
     def test_approve_then_release_round_trips_the_stock(
         self, client: TestClient
     ) -> None:

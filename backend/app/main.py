@@ -1665,7 +1665,14 @@ def create_manual_allocation_route(
     no exact auto-proposal conversion (§13 F3), or a manual split across a
     second lot.
     """
-    if session.get(OrderLine, payload.order_line_id) is None:
+    order_line = session.get(OrderLine, payload.order_line_id)
+    # `order_id` is carried on the payload rather than derived, matching
+    # every other write in this API -- but nothing enforced it actually
+    # named the line's own order, so a mismatched or made-up id was
+    # silently accepted and stored on the allocation, corrupting the one
+    # thing a report or a release would trust to say which order used the
+    # stock.
+    if order_line is None or order_line.order_id != payload.order_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "no such order line")
     try:
         allocation = create_manual_allocation(
