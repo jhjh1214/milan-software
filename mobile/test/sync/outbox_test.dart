@@ -586,16 +586,19 @@ void main() {
       expect(server.acceptedSubmissions, contains('ut-device-1'));
     });
 
-    test('retrying the same id is a duplicate, not a second submission', () async {
-      // The device's id is what the server keys idempotency on -- a retry
-      // after a dropped fair-tent connection must not create it twice.
-      server.acceptedSubmissions.add('ut-device-1');
-      await outboxer.enqueueLibrarySubmission('ut-device-1', payload);
-      final report = await outboxer.drain(credentials);
+    test(
+      'retrying the same id is a duplicate, not a second submission',
+      () async {
+        // The device's id is what the server keys idempotency on -- a retry
+        // after a dropped fair-tent connection must not create it twice.
+        server.acceptedSubmissions.add('ut-device-1');
+        await outboxer.enqueueLibrarySubmission('ut-device-1', payload);
+        final report = await outboxer.drain(credentials);
 
-      expect(report.sent, ['ut-device-1']);
-      expect(report.disagreed, isEmpty, reason: 'a duplicate is a success');
-    });
+        expect(report.sent, ['ut-device-1']);
+        expect(report.disagreed, isEmpty, reason: 'a duplicate is a success');
+      },
+    );
 
     test('the image and calibration travel inside the one payload', () async {
       final withPhoto = {

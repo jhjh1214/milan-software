@@ -173,7 +173,9 @@ void main() {
       await scrollToAndTap(tester, find.byKey(const Key('lib-submit')));
 
       expect(
-        find.text('Sent. An admin will review it before it can be used in a quote.'),
+        find.text(
+          'Sent. An admin will review it before it can be used in a quote.',
+        ),
         findsOneWidget,
       );
 

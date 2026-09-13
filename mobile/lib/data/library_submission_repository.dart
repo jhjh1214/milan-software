@@ -98,10 +98,9 @@ class LibrarySubmissionRepository {
     return id;
   }
 
-  Future<LibrarySubmissionRow?> find(String id) =>
-      (_db.select(
-        _db.librarySubmissions,
-      )..where((s) => s.id.equals(id))).getSingleOrNull();
+  Future<LibrarySubmissionRow?> find(String id) => (_db.select(
+    _db.librarySubmissions,
+  )..where((s) => s.id.equals(id))).getSingleOrNull();
 
   /// Everything not yet handed to the outbox -- unfinished business waiting
   /// for the part-timer to come back to it.
@@ -142,12 +141,13 @@ class LibrarySubmissionRepository {
     String id, {
     required int pixelDistance,
     required int realDistanceTmm,
-  }) => (_db.update(_db.librarySubmissions)..where((s) => s.id.equals(id))).write(
-    LibrarySubmissionsCompanion(
-      pixelDistance: Value(pixelDistance),
-      realDistanceTmm: Value(realDistanceTmm),
-    ),
-  );
+  }) =>
+      (_db.update(_db.librarySubmissions)..where((s) => s.id.equals(id))).write(
+        LibrarySubmissionsCompanion(
+          pixelDistance: Value(pixelDistance),
+          realDistanceTmm: Value(realDistanceTmm),
+        ),
+      );
 
   Future<void> setUnitTypeName(String id, String name) =>
       (_db.update(_db.librarySubmissions)..where((s) => s.id.equals(id))).write(

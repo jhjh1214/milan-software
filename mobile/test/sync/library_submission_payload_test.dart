@@ -58,7 +58,12 @@ void main() {
     expect(payload['name'], 'Type C');
     expect(payload['floor_count'], 2);
     expect(payload['openings'], [
-      {'label': 'W1', 'room': 'Living', 'nominal_w_tmm': 18000, 'nominal_h_tmm': 24000},
+      {
+        'label': 'W1',
+        'room': 'Living',
+        'nominal_w_tmm': 18000,
+        'nominal_h_tmm': 24000,
+      },
     ]);
     expect(payload['rooms'], [
       {'name': 'Living', 'nominal_area_mm2': 18000000},
@@ -66,80 +71,89 @@ void main() {
     expect(payload.containsKey('floor_plan'), isFalse);
   });
 
-  test('a photo is read from disk and sent as base64, with its calibration', () async {
-    final file = File('${tempDir.path}${Platform.pathSeparator}plan.jpg');
-    final bytes = utf8.encode('fake jpeg bytes');
-    file.writeAsBytesSync(bytes);
+  test(
+    'a photo is read from disk and sent as base64, with its calibration',
+    () async {
+      final file = File('${tempDir.path}${Platform.pathSeparator}plan.jpg');
+      final bytes = utf8.encode('fake jpeg bytes');
+      file.writeAsBytesSync(bytes);
 
-    final id = await repo.startDraft(
-      projectId: 'p-1',
-      projectName: 'ABC Development',
-      unitTypeName: 'Type C',
-    );
-    await repo.setPhoto(id, path: file.path, contentType: 'image/jpeg');
-    await repo.setCalibration(id, pixelDistance: 500, realDistanceTmm: 30000);
-    final row = (await repo.find(id))!;
+      final id = await repo.startDraft(
+        projectId: 'p-1',
+        projectName: 'ABC Development',
+        unitTypeName: 'Type C',
+      );
+      await repo.setPhoto(id, path: file.path, contentType: 'image/jpeg');
+      await repo.setCalibration(id, pixelDistance: 500, realDistanceTmm: 30000);
+      final row = (await repo.find(id))!;
 
-    final payload = await libraryySubmissionPayload(
-      submission: row,
-      openings: const [],
-      rooms: const [],
-    );
+      final payload = await libraryySubmissionPayload(
+        submission: row,
+        openings: const [],
+        rooms: const [],
+      );
 
-    final floorPlan = payload['floor_plan'] as Map<String, dynamic>;
-    expect(floorPlan['filename'], 'plan.jpg');
-    expect(floorPlan['content_type'], 'image/jpeg');
-    expect(base64Decode(floorPlan['image_base64'] as String), bytes);
-    expect(floorPlan['pixel_distance'], 500);
-    expect(floorPlan['real_distance_tmm'], 30000);
-  });
+      final floorPlan = payload['floor_plan'] as Map<String, dynamic>;
+      expect(floorPlan['filename'], 'plan.jpg');
+      expect(floorPlan['content_type'], 'image/jpeg');
+      expect(base64Decode(floorPlan['image_base64'] as String), bytes);
+      expect(floorPlan['pixel_distance'], 500);
+      expect(floorPlan['real_distance_tmm'], 30000);
+    },
+  );
 
-  test('an uncalibrated photo is still sent, with no calibration fields', () async {
-    final file = File('${tempDir.path}${Platform.pathSeparator}plan.jpg');
-    file.writeAsBytesSync(utf8.encode('data'));
+  test(
+    'an uncalibrated photo is still sent, with no calibration fields',
+    () async {
+      final file = File('${tempDir.path}${Platform.pathSeparator}plan.jpg');
+      file.writeAsBytesSync(utf8.encode('data'));
 
-    final id = await repo.startDraft(
-      projectId: 'p-1',
-      projectName: 'ABC Development',
-      unitTypeName: 'Type C',
-    );
-    await repo.setPhoto(id, path: file.path, contentType: 'image/jpeg');
-    final row = (await repo.find(id))!;
+      final id = await repo.startDraft(
+        projectId: 'p-1',
+        projectName: 'ABC Development',
+        unitTypeName: 'Type C',
+      );
+      await repo.setPhoto(id, path: file.path, contentType: 'image/jpeg');
+      final row = (await repo.find(id))!;
 
-    final payload = await libraryySubmissionPayload(
-      submission: row,
-      openings: const [],
-      rooms: const [],
-    );
+      final payload = await libraryySubmissionPayload(
+        submission: row,
+        openings: const [],
+        rooms: const [],
+      );
 
-    final floorPlan = payload['floor_plan'] as Map<String, dynamic>;
-    expect(floorPlan.containsKey('pixel_distance'), isFalse);
-    expect(floorPlan.containsKey('real_distance_tmm'), isFalse);
-  });
+      final floorPlan = payload['floor_plan'] as Map<String, dynamic>;
+      expect(floorPlan.containsKey('pixel_distance'), isFalse);
+      expect(floorPlan.containsKey('real_distance_tmm'), isFalse);
+    },
+  );
 
-  test('a photo path that no longer exists is left out rather than crashing', () async {
-    // The file can vanish between being attached and being pushed -- Android
-    // clears its cache directory under pressure, the same failure
-    // `LinePhoto` already degrades from. Losing the photo must not lose the
-    // rest of the submission.
-    final id = await repo.startDraft(
-      projectId: 'p-1',
-      projectName: 'ABC Development',
-      unitTypeName: 'Type C',
-    );
-    await repo.setPhoto(
-      id,
-      path: '${tempDir.path}${Platform.pathSeparator}gone.jpg',
-      contentType: 'image/jpeg',
-    );
-    final row = (await repo.find(id))!;
+  test(
+    'a photo path that no longer exists is left out rather than crashing',
+    () async {
+      // The file can vanish between being attached and being pushed -- Android
+      // clears its cache directory under pressure, the same failure
+      // `LinePhoto` already degrades from. Losing the photo must not lose the
+      // rest of the submission.
+      final id = await repo.startDraft(
+        projectId: 'p-1',
+        projectName: 'ABC Development',
+        unitTypeName: 'Type C',
+      );
+      await repo.setPhoto(
+        id,
+        path: '${tempDir.path}${Platform.pathSeparator}gone.jpg',
+        contentType: 'image/jpeg',
+      );
+      final row = (await repo.find(id))!;
 
-    final payload = await libraryySubmissionPayload(
-      submission: row,
-      openings: const [],
-      rooms: const [],
-    );
+      final payload = await libraryySubmissionPayload(
+        submission: row,
+        openings: const [],
+        rooms: const [],
+      );
 
-    expect(payload.containsKey('floor_plan'), isFalse);
-  });
+      expect(payload.containsKey('floor_plan'), isFalse);
+    },
+  );
 }

@@ -627,70 +627,67 @@ void main() {
     });
   });
 
-  group(
-    'v13 → v14 — a part-timer\'s own floor-plan submission (Phase 8)',
-    () {
-      test('the order line already on the handset survives it', () async {
-        final before = await open();
-        await seedOrderLine(before);
-        await windBackTo(before, 13);
-        await before.close();
+  group('v13 → v14 — a part-timer\'s own floor-plan submission (Phase 8)', () {
+    test('the order line already on the handset survives it', () async {
+      final before = await open();
+      await seedOrderLine(before);
+      await windBackTo(before, 13);
+      await before.close();
 
-        final after = await open();
-        expect(await userVersion(after), 14);
+      final after = await open();
+      expect(await userVersion(after), 14);
 
-        final line = await (after.select(
-          after.orderLines,
-        )..where((l) => l.id.equals('ol-1'))).getSingle();
-        expect(
-          line.lineTotalSen,
-          96000,
-          reason: 'a new table must not touch money on a line already there',
-        );
+      final line = await (after.select(
+        after.orderLines,
+      )..where((l) => l.id.equals('ol-1'))).getSingle();
+      expect(
+        line.lineTotalSen,
+        96000,
+        reason: 'a new table must not touch money on a line already there',
+      );
 
-        await after.close();
-      });
+      await after.close();
+    });
 
-      test('the new table is usable', () async {
-        // `createTable` is `IF NOT EXISTS`, so a loose `from < 14` guard
-        // would not throw the way a loose `addColumn` guard does -- but the
-        // table still has to have the right columns, or the first real
-        // submission fails at a fair.
-        final before = await open();
-        await windBackTo(before, 13);
-        await before.close();
+    test('the new table is usable', () async {
+      // `createTable` is `IF NOT EXISTS`, so a loose `from < 14` guard
+      // would not throw the way a loose `addColumn` guard does -- but the
+      // table still has to have the right columns, or the first real
+      // submission fails at a fair.
+      final before = await open();
+      await windBackTo(before, 13);
+      await before.close();
 
-        final after = await open();
-        await after
-            .into(after.librarySubmissions)
-            .insert(
-              LibrarySubmissionsCompanion.insert(
-                id: 'ut-device-1',
-                projectId: 'p-1',
-                projectName: 'ABC Development',
-                unitTypeName: 'Type C',
-                createdAt: DateTime(2026, 9, 12, 10),
-              ),
-            );
+      final after = await open();
+      await after
+          .into(after.librarySubmissions)
+          .insert(
+            LibrarySubmissionsCompanion.insert(
+              id: 'ut-device-1',
+              projectId: 'p-1',
+              projectName: 'ABC Development',
+              unitTypeName: 'Type C',
+              createdAt: DateTime(2026, 9, 12, 10),
+            ),
+          );
 
-        final row = await (after.select(
-          after.librarySubmissions,
-        )..where((s) => s.id.equals('ut-device-1'))).getSingle();
-        expect(row.projectId, 'p-1');
-        expect(row.openingsJson, '[]');
-        expect(row.queuedAt, null);
+      final row = await (after.select(
+        after.librarySubmissions,
+      )..where((s) => s.id.equals('ut-device-1'))).getSingle();
+      expect(row.projectId, 'p-1');
+      expect(row.openingsJson, '[]');
+      expect(row.queuedAt, null);
 
-        await after.close();
-      });
+      await after.close();
+    });
 
-      test('running the upgrade twice does not throw', () async {
-        final first = await open();
-        await first.close();
+    test('running the upgrade twice does not throw', () async {
+      final first = await open();
+      await first.close();
 
-        final second = await open();
-        expect(await userVersion(second), 14);
-        await second.close();
-      });
-    },
-  );
+      final second = await open();
+      expect(await userVersion(second), 14);
+      await second.close();
+    });
+  });
 }

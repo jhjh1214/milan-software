@@ -62,24 +62,31 @@ void main() {
     expect(rooms.single.nominalAreaMm2, 18_000_000);
   });
 
-  test('a photo replaces any calibration already tapped on the old one', () async {
-    final id = await repo.startDraft(
-      projectId: 'p-1',
-      projectName: 'ABC Development',
-      unitTypeName: 'Type C',
-    );
-    await repo.setPhoto(id, path: '/tmp/plan.jpg', contentType: 'image/jpeg');
-    await repo.setCalibration(id, pixelDistance: 500, realDistanceTmm: 30000);
+  test(
+    'a photo replaces any calibration already tapped on the old one',
+    () async {
+      final id = await repo.startDraft(
+        projectId: 'p-1',
+        projectName: 'ABC Development',
+        unitTypeName: 'Type C',
+      );
+      await repo.setPhoto(id, path: '/tmp/plan.jpg', contentType: 'image/jpeg');
+      await repo.setCalibration(id, pixelDistance: 500, realDistanceTmm: 30000);
 
-    // A new photo makes the old scale meaningless -- a tap on the previous
-    // image means nothing on a different one.
-    await repo.setPhoto(id, path: '/tmp/plan2.jpg', contentType: 'image/jpeg');
+      // A new photo makes the old scale meaningless -- a tap on the previous
+      // image means nothing on a different one.
+      await repo.setPhoto(
+        id,
+        path: '/tmp/plan2.jpg',
+        contentType: 'image/jpeg',
+      );
 
-    final row = (await repo.find(id))!;
-    expect(row.photoPath, '/tmp/plan2.jpg');
-    expect(row.pixelDistance, isNull);
-    expect(row.realDistanceTmm, isNull);
-  });
+      final row = (await repo.find(id))!;
+      expect(row.photoPath, '/tmp/plan2.jpg');
+      expect(row.pixelDistance, isNull);
+      expect(row.realDistanceTmm, isNull);
+    },
+  );
 
   test('markQueued stamps the row and drafts() no longer lists it', () async {
     final keep = await repo.startDraft(

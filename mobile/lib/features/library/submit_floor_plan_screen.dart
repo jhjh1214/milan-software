@@ -59,7 +59,10 @@ Future<List<ProjectSummary>> _readProjectCache(AppDatabase db) async {
   )..where((s) => s.key.equals(_kLibraryProjectsCacheKey))).getSingleOrNull();
   if (row == null) return const [];
   final list = jsonDecode(row.value) as List;
-  return list.cast<Map<String, dynamic>>().map(ProjectSummary.fromJson).toList();
+  return list
+      .cast<Map<String, dynamic>>()
+      .map(ProjectSummary.fromJson)
+      .toList();
 }
 
 Future<void> _writeProjectCache(
@@ -232,9 +235,7 @@ class _SubmitFloorPlanScreenState extends ConsumerState<SubmitFloorPlanScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('$e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     }
   }
 
@@ -389,10 +390,7 @@ class _SubmitFloorPlanScreenState extends ConsumerState<SubmitFloorPlanScreen> {
     final rooms = [
       for (final r in _rooms)
         if (_roomValid(r))
-          SubmittedRoom(
-            name: r.name.trim(),
-            nominalAreaMm2: _roomAreaMm2(r)!,
-          ),
+          SubmittedRoom(name: r.name.trim(), nominalAreaMm2: _roomAreaMm2(r)!),
     ];
 
     await repo.setOpenings(id, openings);
@@ -474,7 +472,10 @@ class _SubmitFloorPlanScreenState extends ConsumerState<SubmitFloorPlanScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: Space.xl),
-                FilledButton(onPressed: _reset, child: Text(l.libSubmitAnother)),
+                FilledButton(
+                  onPressed: _reset,
+                  child: Text(l.libSubmitAnother),
+                ),
               ],
             ),
           ),
@@ -634,9 +635,7 @@ class _SubmitFloorPlanScreenState extends ConsumerState<SubmitFloorPlanScreen> {
                   ),
                 ),
                 if (_pixelDistance != null)
-                  Center(
-                    child: Text(l.libCalibrated, style: AppText.caption),
-                  ),
+                  Center(child: Text(l.libCalibrated, style: AppText.caption)),
                 OutlinedButton(
                   onPressed: _recognizing ? null : _tryRecognition,
                   child: _recognizing
@@ -662,7 +661,9 @@ class _SubmitFloorPlanScreenState extends ConsumerState<SubmitFloorPlanScreen> {
                 Text(l.libRecognitionNotConfigured, style: AppText.caption)
               else ...[
                 Text(
-                  l.libRecognitionProposedOpenings(_recognition!.openings.length),
+                  l.libRecognitionProposedOpenings(
+                    _recognition!.openings.length,
+                  ),
                   style: AppText.caption,
                 ),
                 if (_recognition!.openings.isNotEmpty)
@@ -729,7 +730,9 @@ class _SubmitFloorPlanScreenState extends ConsumerState<SubmitFloorPlanScreen> {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  decoration: InputDecoration(labelText: l.libRealDistanceLabel),
+                  decoration: InputDecoration(
+                    labelText: l.libRealDistanceLabel,
+                  ),
                 ),
               ),
               const SizedBox(width: Space.sm),
@@ -770,7 +773,8 @@ class _SubmitFloorPlanScreenState extends ConsumerState<SubmitFloorPlanScreen> {
       children: [
         Text(l.libOpeningsSectionTitle, style: AppText.label),
         const SizedBox(height: Space.sm),
-        for (var i = 0; i < _openings.length; i++) _openingRow(l, _openings[i], i),
+        for (var i = 0; i < _openings.length; i++)
+          _openingRow(l, _openings[i], i),
         OutlinedButton.icon(
           onPressed: () => setState(() => _openings.add(_OpeningDraft())),
           icon: const Icon(Icons.add),

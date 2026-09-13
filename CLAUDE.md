@@ -994,6 +994,16 @@ prices, the second marked `superseded`, nothing refunded automatically).
 
 **Schema snapshots start at v10.** `dart run drift_dev schema dump` writes
 them, and CI fails a `schemaVersion` bump that arrives without one.
+**Repeated for v14 (Sep 2026):** the bump shipped with Phase 8's floor-plan
+submission table, `flutter test` and `dart analyze` were both run and green,
+and the missing snapshot still wasn't caught locally — CI's own check for
+it never got a chance to run because an unrelated `dart format` gap failed
+the job before that step. Two mobile gates now belong on the same checklist
+as the backend's `ruff check` + `ruff format --check` pair: **after any
+`schemaVersion` bump, `dart run drift_dev schema dump lib/data/database.dart
+drift_schemas/` before committing** — analyze and test do not exercise this
+at all, only CI's own grep does, and a job earlier in the pipeline failing
+for an unrelated reason does not mean this one would have passed.
 
 **Migrations are tested, but only the last step.** v9 -> v10 runs against a
 database with data in it. `Migrator.createTable` is `IF NOT EXISTS`, so a loose
