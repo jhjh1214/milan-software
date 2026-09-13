@@ -1,15 +1,17 @@
 <header class="board-head">
-  <h1>{{ t().board.title }}</h1>
-
-  <!-- Says what is being shown out of what matches. A board that cannot say
-       "50 of 512" leaves somebody guessing whether their filter did anything. -->
-  <p class="count" role="status">
-    @if (loading()) {
-      {{ t().common.loading }}
-    } @else {
-      {{ t().board.showing(orders().length, total()) }}
-    }
-  </p>
+  <div>
+    <h1>{{ t().board.title }}</h1>
+    <!-- Says what is being shown out of what matches. A board that cannot
+         say "50 of 512" leaves somebody guessing whether their filter did
+         anything. -->
+    <p class="count" role="status">
+      @if (loading()) {
+        {{ t().common.loading }}
+      } @else {
+        {{ t().board.showing(orders().length, total()) }}
+      }
+    </p>
+  </div>
 </header>
 
 <nav class="filters" [attr.aria-label]="t().board.stage">
@@ -121,7 +123,7 @@
             <span class="reference" [class.pending]="order.order_no === null">
               {{ order.order_no ?? t().board.pendingSync }}
             </span>
-            <span class="stage">{{ t().status[order.status] }}</span>
+            <span class="badge badge-neutral">{{ t().status[order.status] }}</span>
           </div>
 
           <p class="customer">

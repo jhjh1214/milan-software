@@ -1,19 +1,32 @@
 :host {
   display: block;
-  padding: var(--space-5);
+  padding: var(--space-6) var(--space-5) var(--space-7);
   max-width: 900px;
   margin: 0 auto;
 }
 
+.back {
+  margin: 0 0 var(--space-4);
+}
+
 .back a {
-  color: var(--color-accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-fg-muted);
   text-decoration: none;
   font-size: 14px;
+  font-weight: 600;
+  transition: color var(--duration-fast) var(--ease);
+}
+
+.back a:hover {
+  color: var(--color-primary);
 }
 
 .head {
-  padding: var(--space-4);
-  border: 1px solid var(--color-border);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border-subtle);
   border-left: 4px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
@@ -36,9 +49,18 @@
   background: var(--color-danger-bg);
 }
 
+.head-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
 h1 {
   margin: 0;
-  font-size: 22px;
+  font-size: 24px;
+  letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
 }
 
@@ -50,43 +72,41 @@ h1.pending {
 }
 
 h2 {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   color: var(--color-fg-muted);
-  margin: 0 0 var(--space-2);
+  margin: 0 0 var(--space-3);
 }
 
 .who {
-  margin: var(--space-1) 0 0;
+  margin: var(--space-1) 0 var(--space-3);
   font-size: 16px;
-}
-
-.stage {
-  margin: 2px 0 var(--space-3);
-  font-size: 13px;
   color: var(--color-fg-muted);
-  text-transform: capitalize;
 }
 
 .money {
   display: flex;
   gap: var(--space-6);
   margin: 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .money dt {
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--color-fg-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
 }
 
 .money dd {
   margin: 2px 0 0;
-  font-size: 20px;
-  font-weight: 600;
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 700;
   /* Tabular, so two amounts under each other line up on the decimal. */
   font-variant-numeric: tabular-nums;
 }
@@ -98,13 +118,22 @@ h2 {
 }
 
 .hold {
-  margin: var(--space-2) 0 0;
-  font-size: 13px;
+  display: inline-flex;
+  margin: var(--space-3) 0 0;
+  padding: 4px var(--space-2);
+  border-radius: 999px;
+  background: var(--color-warning-bg);
+  font-size: 12px;
+  font-weight: 600;
   color: var(--color-warning);
 }
 
 section {
   margin-bottom: var(--space-5);
+}
+
+section.card {
+  padding: var(--space-5);
 }
 
 .lines,
@@ -280,17 +309,6 @@ section {
   gap: var(--space-3);
 }
 
-.buyer-head button {
-  min-height: 36px;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  color: var(--color-fg);
-  font: inherit;
-  cursor: pointer;
-}
-
 .buyer .saved {
   margin: 0 0 var(--space-3);
   color: var(--color-success);
@@ -358,37 +376,6 @@ section {
   margin: var(--space-4) 0 var(--space-3);
 }
 
-.buyer-edit .actions button,
-.allocate-form .actions button {
-  min-height: 40px;
-  padding: 0 var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  color: var(--color-fg);
-  font: inherit;
-  cursor: pointer;
-}
-
-.buyer-edit .actions .primary,
-.allocate-form .actions .primary {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-}
-
-.buyer-edit .actions .primary:hover:not([disabled]),
-.allocate-form .actions .primary:hover:not([disabled]) {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
-}
-
-.buyer-edit .actions button[disabled],
-.allocate-form .actions button[disabled] {
-  opacity: 0.5;
-  cursor: default;
-}
-
 /* SPEC.md §11 Phase 9's named gap: a manual allocation against this line. */
 .lines .saved {
   margin: 4px 0 0;
@@ -399,6 +386,9 @@ section {
 
 .allocate-form {
   margin-top: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-sm);
 }
 
 .allocate-form .failure {
@@ -410,12 +400,5 @@ section {
 .allocate-toggle {
   margin-top: var(--space-2);
   min-height: 32px;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  color: var(--color-fg);
-  font: inherit;
   font-size: 13px;
-  cursor: pointer;
 }

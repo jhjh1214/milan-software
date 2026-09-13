@@ -1,20 +1,24 @@
 :host {
   display: block;
-  padding: var(--space-5);
+  padding: var(--space-6) var(--space-5) var(--space-7);
   max-width: 1200px;
   margin: 0 auto;
 }
 
 h1 {
-  margin: 0 0 var(--space-4);
-  font-size: 24px;
+  margin: 0 0 var(--space-5);
+  font-size: 26px;
+  letter-spacing: -0.01em;
 }
 
 .tabs {
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: 2px;
+  padding: 3px;
   margin-bottom: var(--space-5);
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-sm);
 }
 
 .periods {
@@ -25,39 +29,49 @@ h1 {
 }
 
 .filter-label {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   color: var(--color-fg-muted);
 }
 
-button {
-  min-height: 40px;
-  padding: 0 14px;
-  border: 1px solid var(--color-border);
+.periods [role='group'] {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--color-surface-muted);
   border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  color: var(--color-fg);
+}
+
+.tabs button,
+.periods button {
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--color-fg-muted);
   font: inherit;
-  font-size: 14px;
-  cursor: pointer;
-  transition: border-color var(--duration-fast) var(--ease);
-}
-
-.periods button + button {
-  margin-left: var(--space-2);
-}
-
-button:hover {
-  border-color: var(--color-fg-faint);
-}
-
-button.on {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-on-primary);
+  font-size: 13px;
   font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease),
+    color var(--duration-fast) var(--ease),
+    box-shadow var(--duration-fast) var(--ease);
+}
+
+.tabs button:hover,
+.periods button:hover {
+  color: var(--color-fg);
+}
+
+.tabs button.on,
+.periods button.on {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 /* The sentence that makes a biased column readable. Not small print: somebody

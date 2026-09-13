@@ -1,9 +1,11 @@
-<header class="head">
-  <h1>{{ t().inventory.materialsTitle }}</h1>
+<header class="page-header">
+  <h1 class="page-title">{{ t().inventory.materialsTitle }}</h1>
   @if (!adding()) {
-    <button type="button" class="primary" (click)="openAdd()">
-      {{ t().inventory.addMaterial }}
-    </button>
+    <div class="page-actions">
+      <button type="button" class="btn btn-primary" (click)="openAdd()">
+        {{ t().inventory.addMaterial }}
+      </button>
+    </div>
   }
 </header>
 
@@ -13,12 +15,12 @@
 @if (failure(); as failed) {
   <p class="failure" role="alert">
     {{ message(failed) }}
-    <button type="button" (click)="retry()">{{ t().common.reload }}</button>
+    <button type="button" class="btn" (click)="retry()">{{ t().common.reload }}</button>
   </p>
 }
 
 @if (adding()) {
-  <form class="add" (submit)="submitAdd($event)">
+  <form class="add card" (submit)="submitAdd($event)">
     <div>
       <label for="family">{{ t().inventory.familyLabel }}</label>
       <input
@@ -87,19 +89,19 @@
       />
     </div>
     <div class="actions">
-      <button type="submit" class="primary" [disabled]="!canAdd()">
+      <button type="submit" class="btn btn-primary" [disabled]="!canAdd()">
         @if (saving()) {
           <span class="spinner" aria-hidden="true"></span>
         }
         {{ saving() ? t().common.saving : t().common.save }}
       </button>
-      <button type="button" (click)="cancelAdd()">{{ t().common.cancel }}</button>
+      <button type="button" class="btn" (click)="cancelAdd()">{{ t().common.cancel }}</button>
     </div>
   </form>
 }
 
 @if (loading()) {
-  <table aria-hidden="true">
+  <table class="card" aria-hidden="true">
     <tbody>
       @for (i of [0, 1, 2]; track i) {
         <tr class="empty-row">
@@ -109,11 +111,11 @@
     </tbody>
   </table>
 } @else if (materials().length === 0) {
-  <div class="empty-state">
+  <div class="empty-state card">
     <p>{{ t().inventory.noMaterials }}</p>
   </div>
 } @else {
-  <table>
+  <table class="card">
     <thead>
       <tr>
         <th scope="col">{{ t().inventory.codeLabel }}</th>
@@ -135,14 +137,19 @@
           <td class="num">{{ alertByMaterial()[material.id]?.available ?? '—' }}</td>
           <td>
             @if (alertByMaterial()[material.id]) {
-              <span class="alert-badge">{{ t().inventory.reorderAlert }}</span>
+              <span class="badge badge-warning">{{ t().inventory.reorderAlert }}</span>
             }
           </td>
           <td class="actions">
-            <button type="button" (click)="toggleExpand(material)">
+            <button type="button" class="btn" (click)="toggleExpand(material)">
               {{ expanded() === material.id ? t().common.cancel : t().inventory.receiveStock }}
             </button>
-            <button type="button" [disabled]="saving()" (click)="deactivate(material)">
+            <button
+              type="button"
+              class="btn btn-danger"
+              [disabled]="saving()"
+              (click)="deactivate(material)"
+            >
               {{ t().inventory.deactivate }}
             </button>
           </td>
@@ -217,7 +224,7 @@
                       (input)="location.set($any($event.target).value)"
                     />
                   </div>
-                  <button type="submit" class="primary" [disabled]="!canReceive()">
+                  <button type="submit" class="btn btn-primary" [disabled]="!canReceive()">
                     @if (saving()) {
                       <span class="spinner" aria-hidden="true"></span>
                     }

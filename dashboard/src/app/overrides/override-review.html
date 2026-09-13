@@ -1,19 +1,23 @@
-<header class="head">
-  <h1>{{ t().overrides.title }}</h1>
+<header class="page-header">
+  <h1 class="page-title">{{ t().overrides.title }}</h1>
 
   <nav class="week" [attr.aria-label]="t().overrides.week">
-    <button type="button" (click)="step(-1)">{{ t().overrides.earlier }}</button>
+    <button type="button" class="btn" (click)="step(-1)">
+      {{ t().overrides.earlier }}
+    </button>
     <span class="range">
       {{ date(start().toISOString()) }} – {{ date(lastDay()) }}
     </span>
-    <button type="button" (click)="step(1)">{{ t().overrides.later }}</button>
+    <button type="button" class="btn" (click)="step(1)">
+      {{ t().overrides.later }}
+    </button>
   </nav>
 </header>
 
 @if (failure(); as failed) {
   <p class="failure" role="alert">
     {{ message(failed) }}
-    <button type="button" (click)="retry()">{{ t().common.tryAgain }}</button>
+    <button type="button" class="btn" (click)="retry()">{{ t().common.tryAgain }}</button>
   </p>
 } @else if (loading()) {
   <div class="skeleton-rows" aria-hidden="true" role="status">
@@ -26,7 +30,7 @@
 } @else if (rows().length === 0) {
   <!-- Said in words. An empty list reads as "failed to load", and this screen
        has to be trustworthy about a week in which nobody changed anything. -->
-  <div class="empty-state">
+  <div class="empty-state emphasised">
     <svg viewBox="0 0 24 24" width="40" height="40" fill="none" aria-hidden="true">
       <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" />
       <path
@@ -47,7 +51,7 @@
     {{ t().overrides.netForWeek(rows().length, money(net())) }}
   </p>
 
-  <table>
+  <table class="card">
     <caption class="visually-hidden">
       {{ t().overrides.caption(date(start().toISOString()), date(lastDay())) }}
     </caption>

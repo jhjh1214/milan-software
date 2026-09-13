@@ -1,9 +1,11 @@
-<header class="head">
-  <h1>{{ t().people.title }}</h1>
+<header class="page-header">
+  <h1 class="page-title">{{ t().people.title }}</h1>
   @if (!adding()) {
-    <button type="button" class="primary" (click)="openAdd()">
-      {{ t().people.addSomebody }}
-    </button>
+    <div class="page-actions">
+      <button type="button" class="primary" (click)="openAdd()">
+        {{ t().people.addSomebody }}
+      </button>
+    </div>
   }
 </header>
 
@@ -79,7 +81,7 @@
 }
 
 @if (loading()) {
-  <table aria-hidden="true">
+  <table class="card" aria-hidden="true">
     <tbody>
       @for (i of [0, 1, 2, 3]; track i) {
         <tr class="empty-row">
@@ -89,7 +91,7 @@
     </tbody>
   </table>
 } @else if (people().length === 0) {
-  <div class="empty-state">
+  <div class="empty-state card">
     <svg viewBox="0 0 24 24" width="40" height="40" fill="none" aria-hidden="true">
       <circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.6" />
       <path
@@ -102,7 +104,7 @@
     <p>{{ t().people.noOneYet }}</p>
   </div>
 } @else {
-  <table>
+  <table class="card">
     <thead>
       <tr>
         <th scope="col">{{ t().people.name }}</th>
@@ -137,6 +139,7 @@
             } @else if (person.is_active) {
               <button
                 type="button"
+                class="btn"
                 [disabled]="saving()"
                 (click)="startDeactivating(person)"
               >
@@ -145,6 +148,7 @@
             } @else {
               <button
                 type="button"
+                class="btn"
                 [disabled]="saving()"
                 (click)="reactivate(person)"
               >

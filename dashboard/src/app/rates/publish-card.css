@@ -2,14 +2,15 @@
 
 :host {
   display: block;
-  padding: var(--space-5);
+  padding: var(--space-6) var(--space-5) var(--space-7);
   max-width: 900px;
   margin: 0 auto;
 }
 
 h1 {
-  margin: 0 0 var(--space-4);
-  font-size: 24px;
+  margin: 0 0 var(--space-5);
+  font-size: 26px;
+  letter-spacing: -0.01em;
 }
 
 h2 {
@@ -27,11 +28,12 @@ h2.warn {
 
 .which {
   border: none;
-  padding: 0;
-  margin: 0 0 var(--space-4);
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  padding: 3px;
+  margin: 0 0 var(--space-5);
+  display: inline-flex;
+  gap: 2px;
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-sm);
 }
 
 .which legend {
@@ -42,26 +44,35 @@ h2.warn {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--color-fg-muted);
-  margin-bottom: 6px;
+  margin-bottom: var(--space-2);
 }
 
 .which button {
   min-height: 36px;
-  padding: 0 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  color: var(--color-fg);
+  padding: 0 var(--space-4);
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--color-fg-muted);
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 600;
   text-transform: capitalize;
   cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease),
+    color var(--duration-fast) var(--ease),
+    box-shadow var(--duration-fast) var(--ease);
+}
+
+.which button:hover {
+  color: var(--color-fg);
 }
 
 .which button.on {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-on-primary);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 label {

@@ -3,7 +3,7 @@
 
 :host {
   display: block;
-  padding: var(--space-5);
+  padding: var(--space-6) var(--space-5) var(--space-7);
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -13,16 +13,17 @@
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-4);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-5);
 }
 
 h1 {
-  font-size: 24px;
+  font-size: 26px;
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
 .count {
-  margin: 0;
+  margin: var(--space-1) 0 0;
   color: var(--color-fg-muted);
   font-size: 14px;
 }
@@ -31,7 +32,13 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-5);
+  align-items: flex-end;
   margin-bottom: var(--space-5);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .filter-group {
@@ -41,42 +48,54 @@ h1 {
 }
 
 .filter-label {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--color-fg-muted);
 }
 
+/* A segmented control, not a row of separate buttons: one shared outer
+   edge, buttons flush against each other, the active one lifted onto its
+   own surface. This is the shape a "pick one" filter reads as everywhere
+   from a phone's Settings app to Stripe's own dashboard. */
 .filter-group [role='group'] {
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: 2px;
+  padding: 3px;
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-sm);
 }
 
 .filters button {
-  /* 44px so it is a real target on a laptop trackpad, not only a mouse. */
+  /* 36px inside the segmented control's own padding still clears a real
+     pointer target once the group's 3px inset is added back. */
   min-height: 36px;
   padding: 0 var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  color: var(--color-fg);
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--color-fg-muted);
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 600;
   text-transform: capitalize;
   cursor: pointer;
-  transition: border-color var(--duration-fast) var(--ease);
+  transition:
+    background var(--duration-fast) var(--ease),
+    color var(--duration-fast) var(--ease),
+    box-shadow var(--duration-fast) var(--ease);
 }
 
 .filters button:hover {
-  border-color: var(--color-fg-faint);
+  color: var(--color-fg);
 }
 
 .filters button.on {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-on-primary);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .filter-group select {
@@ -95,25 +114,39 @@ h1 {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: var(--space-4);
 }
 
 .card {
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-subtle);
   border-left: 4px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
-  transition: box-shadow var(--duration-fast) var(--ease);
+  box-shadow: var(--shadow-sm);
+  transition:
+    box-shadow var(--duration-base) var(--ease),
+    transform var(--duration-base) var(--ease);
 }
 
 .card:has(a:hover) {
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: box-shadow var(--duration-fast) var(--ease);
+  }
+
+  .card:has(a:hover) {
+    transform: none;
+  }
 }
 
 .card a {
   display: block;
-  padding: var(--space-3) 14px;
+  padding: var(--space-4);
   color: inherit;
   text-decoration: none;
 }
@@ -144,11 +177,12 @@ h1 {
   display: flex;
   justify-content: space-between;
   gap: var(--space-2);
-  align-items: baseline;
+  align-items: center;
+  margin-bottom: var(--space-2);
 }
 
 .reference {
-  font-weight: 600;
+  font-weight: 700;
   font-size: 14px;
   /* Tabular figures so a column of order numbers lines up. */
   font-variant-numeric: tabular-nums;
@@ -160,39 +194,36 @@ h1 {
   color: var(--color-fg-muted);
 }
 
-.stage {
-  font-size: 12px;
-  color: var(--color-fg-muted);
-  text-transform: capitalize;
-  white-space: nowrap;
-}
-
 .customer {
-  margin: 6px 0 var(--space-2);
+  margin: 0 0 var(--space-3);
   font-size: 15px;
+  font-weight: 600;
 }
 
 .total {
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
+  color: var(--color-fg);
 }
 
 .deposit,
 .hold,
 .flag {
-  margin: 2px 0 0;
+  margin: 3px 0 0;
   font-size: 13px;
   color: var(--color-fg-muted);
 }
 
 .hold {
   color: var(--color-warning);
+  font-weight: 600;
 }
 
 .flag {
   color: var(--color-primary);
+  font-weight: 600;
 }
 
 .failure button {
@@ -200,8 +231,9 @@ h1 {
 }
 
 .skeleton-card {
-  padding: var(--space-3) 14px;
+  padding: var(--space-4);
   border-left-color: var(--color-border);
+  box-shadow: none;
 }
 
 .skeleton-card .skeleton {

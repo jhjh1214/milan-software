@@ -1,5 +1,5 @@
-<header class="head">
-  <h1>{{ t().inventory.allocationsTitle }}</h1>
+<header class="page-header">
+  <h1 class="page-title">{{ t().inventory.allocationsTitle }}</h1>
 </header>
 
 @if (note(); as what) {
@@ -10,7 +10,7 @@
 @if (failure(); as failed) {
   <p class="failure" role="alert">
     {{ message(failed) }}
-    <button type="button" (click)="retry()">{{ t().common.reload }}</button>
+    <button type="button" class="btn" (click)="retry()">{{ t().common.reload }}</button>
   </p>
 }
 
@@ -66,13 +66,13 @@
           <div class="actions">
             <button
               type="button"
-              class="danger"
+              class="btn btn-danger"
               [disabled]="!canSendBack()"
               (click)="confirmReject(item)"
             >
               {{ t().inventory.sendBack }}
             </button>
-            <button type="button" (click)="cancelRejecting()">
+            <button type="button" class="btn" (click)="cancelRejecting()">
               {{ t().inventory.cancel }}
             </button>
           </div>
@@ -81,7 +81,7 @@
         <div class="actions">
           <button
             type="button"
-            class="primary"
+            class="btn btn-primary"
             [disabled]="!canApprove(item)"
             (click)="approve(item)"
           >
@@ -89,6 +89,7 @@
           </button>
           <button
             type="button"
+            class="btn"
             [disabled]="acting() !== null"
             (click)="startRejecting(item)"
           >

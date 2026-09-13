@@ -1,17 +1,24 @@
 :host {
   display: block;
-  padding: var(--space-5);
+  padding: var(--space-6) var(--space-5) var(--space-7);
   max-width: 900px;
   margin: 0 auto;
 }
 
-.head {
-  margin-bottom: var(--space-4);
-}
-
 h1 {
   margin: 0;
-  font-size: 24px;
+  font-size: 26px;
+  letter-spacing: -0.01em;
+}
+
+/* Not `.card`: this component counts `.card` elements as a proxy for "how
+   many items are in the queue" in its own tests, and the empty state is
+   deliberately not one of them. */
+.empty-state {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .queue {
