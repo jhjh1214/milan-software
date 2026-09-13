@@ -34,6 +34,14 @@ describe('SignIn', () => {
   let text: Text;
 
   beforeEach(() => {
+    // `Session` now persists a successful sign-in to `sessionStorage` so it
+    // survives a refresh -- a real browser global, not reset between tests
+    // by the runner. Without this, "submitting the form signs in" leaves a
+    // token behind that a later test's own fresh `Session` silently
+    // rehydrates, signing it in before its first assertion.
+    sessionStorage.clear();
+    localStorage.clear();
+
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),

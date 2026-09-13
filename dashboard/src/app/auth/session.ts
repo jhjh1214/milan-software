@@ -1,16 +1,31 @@
 /**
  * Who is signed in on this browser. SPEC.md §12, §3 roles.
  *
- * ## The token is held in memory only
+ * ## The token survives a refresh, in `sessionStorage`
  *
- * Not `localStorage`. This is a shared office machine and a token that outlives
- * the browser being closed is one the next person to sit down inherits. On the
- * handset the opposite is true — a session that ends mid-fair costs a deposit,
- * which is why SPEC.md §12 makes those never expire — but nothing here is
- * holding a customer's money while somebody walks away from the desk.
+ * This was in-memory only, deliberately, under an assumption CLAUDE.md's
+ * own "Current state" has since retired: *"a token in `localStorage` on a
+ * shared office machine is one the next person inherits"* -- true when
+ * that was written, false since every office PC turned out to belong to
+ * one person, the same fact that already moved the language pick from a
+ * per-tab choice to an account one. Losing the whole session to an
+ * accidental F5 was never the point of that guard; it was collateral from
+ * a machine-sharing assumption that no longer holds.
  *
- * The cost is signing in again after a refresh. That is a few seconds once a
- * morning, paid by the person who benefits from it.
+ * `sessionStorage`, not `localStorage`: it survives exactly a refresh and a
+ * duplicated tab, and is gone the moment the tab or browser closes -- long
+ * enough to save the person at this desk a second sign-in, short enough
+ * that it does not become a standing secret sitting in the browser
+ * forever the way a `localStorage` token would. Nothing about §12's "never
+ * expire" changes: the token itself is exactly as long-lived as before,
+ * revocation is still the only control, and this only changes where the
+ * browser is allowed to remember one it already has.
+ *
+ * On the handset the opposite has always been true — a session that ends
+ * mid-fair costs a deposit, which is why SPEC.md §12 makes those never
+ * expire — but nothing here is holding a customer's money while somebody
+ * walks away from the desk, so a page refresh losing work is the only
+ * thing this ever guarded against.
  *
  * ## Roles are the server's business
  *
@@ -24,6 +39,15 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { API_BASE, Api } from '../api/api';
+
+/** Where the token and identity live across a refresh. Session-only: gone
+ * the moment this tab or the browser closes, never a standing secret. */
+const STORAGE_KEY = 'milan.session';
+
+interface StoredSession {
+  readonly token: string;
+  readonly user: Identity;
+}
 
 export interface Identity {
   readonly id: string;
@@ -53,6 +77,50 @@ export class Session {
   readonly signedIn = computed(() => this.user() !== null);
   readonly isAdmin = computed(() => this.user()?.role === 'admin');
 
+  /** Staff or admin -- hard rule 8 keeps a part-timer off a rate entirely,
+   * so the live per-product price screen is offered to neither of them
+   * alone but to both roles above it. */
+  readonly isStaffOrAdmin = computed(() => {
+    const role = this.user()?.role;
+    return role === 'admin' || role === 'staff';
+  });
+
+  constructor() {
+    this.restore();
+  }
+
+  /** Picks a session back up after a refresh. A missing or unreadable entry
+   * is the same as none -- signing in again, never a thrown error. */
+  private restore(): void {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (raw === null) return;
+      const stored = JSON.parse(raw) as StoredSession;
+      this.api.token.set(stored.token);
+      this.user.set(stored.user);
+    } catch {
+      // Private browsing, blocked storage, or a corrupted entry -- read as
+      // "sign in again", not a reason to fail loudly on every page load.
+    }
+  }
+
+  /** Called after every change to the token or the identity, so the two
+   * never drift apart in storage the way they never do in memory. */
+  private persist(): void {
+    try {
+      const token = this.api.token();
+      const user = this.user();
+      if (token === null || user === null) {
+        sessionStorage.removeItem(STORAGE_KEY);
+      } else {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ token, user }));
+      }
+    } catch {
+      // Persistence is a convenience on top of the in-memory signals, which
+      // stay correct either way -- never worth failing sign-in over.
+    }
+  }
+
   async signIn(phone: string, pin: string): Promise<SignInFailure | null> {
     try {
       const session = await firstValueFrom(
@@ -70,6 +138,7 @@ export class Session {
 
       this.api.token.set(session.token);
       this.user.set(session.user);
+      this.persist();
       return null;
     } catch (err: unknown) {
       return classify(err);
@@ -80,6 +149,7 @@ export class Session {
   signOut(): void {
     this.api.token.set(null);
     this.user.set(null);
+    this.persist();
   }
 
   /**
@@ -96,6 +166,7 @@ export class Session {
     const current = this.user();
     if (current === null) return;
     this.user.set({ ...current, language });
+    this.persist();
     this.api.setMyLanguage(language).subscribe({ error: () => undefined });
   }
 }

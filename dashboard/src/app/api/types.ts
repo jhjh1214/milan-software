@@ -291,6 +291,45 @@ export interface PublishOut {
 
 export type ListId = 'fair' | 'standard';
 
+/**
+ * One product on the active card, as the live per-product price screen
+ * shows it -- not the full rate-card row, just enough to decide whether
+ * this product's price should move. SPEC.md §4.1: `mvp_rate_sen` is a flat
+ * sen amount off, never a percentage, and null when this product has no
+ * MVP tier at all.
+ */
+export interface ProductOut {
+  readonly id: string;
+  readonly family: string;
+  readonly variant: string;
+  readonly material_key: string | null;
+  readonly labels: Readonly<Record<string, string>>;
+  readonly basis: string;
+  readonly rate_sen: number;
+  readonly mvp_rate_sen: number | null;
+  /** A4.22: a placeholder row with no real price yet. RM0 must never be
+   * offered as though it were a real rate. */
+  readonly provisional: boolean;
+}
+
+export interface ProductsOut {
+  readonly list_id: string;
+  readonly version: number;
+  readonly products: readonly ProductOut[];
+}
+
+/** What editing one product's live price hands back. A new `RateCardVersion`
+ * under the hood -- never a row updated in place. */
+export interface ProductPriceEditOut {
+  readonly rule_id: string;
+  readonly list_id: string;
+  readonly version: number;
+  readonly rate_sen: number;
+  readonly mvp_rate_sen: number | null;
+  readonly edited_by: string;
+  readonly at: string;
+}
+
 /** What somebody may do. SPEC.md 3, least privileged first. */
 export type Role = 'parttime' | 'staff' | 'admin';
 

@@ -65,6 +65,16 @@ export const routes: Routes = [
     title: 'Publish a price list',
   },
   {
+    // Staff or admin, server-enforced (hard rule 8 keeps a part-timer off
+    // it entirely). Live per-product editing -- no whole-card upload, no
+    // preview step, so even a table at a fair can move one price to
+    // answer a competitor.
+    path: 'rates/products',
+    canActivate: [signedIn],
+    loadComponent: () => import('./rates/products').then((m) => m.Products),
+    title: 'Product prices',
+  },
+  {
     // Admin only, server-enforced. The variance report names people and ranks
     // them, and §3 keeps rates, costs and margins away from part-timers.
     path: 'reports',

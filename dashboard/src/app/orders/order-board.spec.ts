@@ -24,6 +24,7 @@ import { RouterTestingHarness } from '@angular/router/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { OrderSummary } from '../api/types';
+import { Session } from '../auth/session';
 import { Text } from '../i18n/text';
 import { OrderBoard } from './order-board';
 
@@ -165,6 +166,73 @@ describe('OrderBoard', () => {
       );
       expect(pressed.length).toBe(1);
       expect(pressed[0].textContent!.trim()).toBe('Ready to install');
+    });
+  });
+
+  describe('the salesperson filter', () => {
+    // SPEC.md §11 Phase 5's own wishlist names this alongside channel.
+    // Admin only, matching `GET /api/people`'s own gate -- offering the
+    // filter to somebody who cannot fetch the names to fill it would just
+    // be a control that never works.
+
+    it('is not offered when nobody is signed in as admin', async () => {
+      await open('/orders', []);
+      expect(
+        harness.routeNativeElement!.querySelector('#salesperson-filter'),
+      ).toBeNull();
+    });
+
+    it('fetches people and offers them once an admin is signed in', async () => {
+      TestBed.inject(Session).user.set({
+        id: 'u1',
+        name: 'Boss',
+        role: 'admin',
+        language: 'en',
+      });
+      await harness.navigateByUrl('/orders');
+      http.expectOne((r) => r.url === '/api/orders').flush({ orders: [], total: 0 });
+      http
+        .expectOne('/api/people')
+        .flush({
+          people: [
+            { id: 'sp1', name: 'Ah Boy', phone: null, email: null, role: 'staff', language: 'en', is_active: true, deactivated_at: null },
+          ],
+        });
+      harness.detectChanges();
+
+      expect(text()).toContain('Ah Boy');
+    });
+
+    it('a picked salesperson goes into the URL as its own filter', async () => {
+      TestBed.inject(Session).user.set({
+        id: 'u1',
+        name: 'Boss',
+        role: 'admin',
+        language: 'en',
+      });
+      await harness.navigateByUrl('/orders');
+      http.expectOne((r) => r.url === '/api/orders').flush({ orders: [], total: 0 });
+      http
+        .expectOne('/api/people')
+        .flush({
+          people: [
+            { id: 'sp1', name: 'Ah Boy', phone: null, email: null, role: 'staff', language: 'en', is_active: true, deactivated_at: null },
+          ],
+        });
+      harness.detectChanges();
+
+      const select = harness.routeNativeElement!.querySelector(
+        '#salesperson-filter',
+      ) as HTMLSelectElement;
+      select.value = 'sp1';
+      select.dispatchEvent(new Event('change'));
+      harness.detectChanges();
+      await harness.fixture.whenStable();
+
+      expect(router.url).toBe('/orders?salesperson=sp1');
+      const req = http.expectOne((r) => r.url === '/api/orders');
+      expect(req.request.params.get('confirmed_by_user_id')).toBe('sp1');
+      req.flush({ orders: [], total: 0 });
     });
   });
 

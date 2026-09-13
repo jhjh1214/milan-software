@@ -8,8 +8,12 @@
  * 429 has to say "wait a moment" — telling a supervisor mid-shift they are
  * locked out sends them to find somebody else's PIN.
  *
- * And the **token's lifetime**, because holding it anywhere durable on a shared
- * office machine hands the next person to sit down a live session.
+ * And the **token's lifetime**: it now survives a refresh in `sessionStorage`
+ * (every office PC belongs to one person, per CLAUDE.md's own "Current
+ * state" -- the shared-machine assumption that used to keep this in-memory
+ * only is retired), but must still never reach `localStorage` or a cookie,
+ * which would make it a standing secret rather than one gone the moment
+ * the tab closes.
  */
 
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
@@ -29,6 +33,12 @@ describe('Session', () => {
   let http: HttpTestingController;
 
   beforeEach(() => {
+    // sessionStorage is a real browser global, not reset between tests by
+    // the runner -- without this, a token persisted by one test's Session
+    // would be picked back up by the next test's fresh one.
+    sessionStorage.clear();
+    localStorage.clear();
+
     TestBed.configureTestingModule({
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });
@@ -125,9 +135,8 @@ describe('Session', () => {
     expect(session.isAdmin()).toBe(false);
   });
 
-  it('the token is nowhere durable', async () => {
-    // A shared office machine. A token in localStorage outlives the browser
-    // being closed, and the next person to sit down inherits a live session.
+  it('the token never reaches localStorage or a cookie', async () => {
+    // Those outlive the browser being closed; `sessionStorage` does not.
     const promise = attempt();
     http.expectOne('/api/auth/login').flush({
       token: 'a-token',
@@ -136,8 +145,42 @@ describe('Session', () => {
     await promise;
 
     expect(JSON.stringify(localStorage)).not.toContain('a-token');
-    expect(JSON.stringify(sessionStorage)).not.toContain('a-token');
     expect(document.cookie).not.toContain('a-token');
+  });
+
+  it('survives a refresh, in sessionStorage', async () => {
+    const promise = attempt();
+    http.expectOne('/api/auth/login').flush({
+      token: 'a-token',
+      user: { id: 'u1', name: 'Boss', role: 'admin', language: 'en' },
+    });
+    await promise;
+
+    // A refresh tears down every Angular service and rebuilds them fresh --
+    // simulated here by asking a brand new Session to read what the first
+    // one left behind, the same as the real page load would.
+    const revived = TestBed.runInInjectionContext(() => new Session());
+    expect(revived.signedIn()).toBe(true);
+    expect(revived.user()?.name).toBe('Boss');
+  });
+
+  it('signing out clears the persisted copy too', async () => {
+    const promise = attempt();
+    http.expectOne('/api/auth/login').flush({
+      token: 'a-token',
+      user: { id: 'u1', name: 'Boss', role: 'admin', language: 'en' },
+    });
+    await promise;
+
+    session.signOut();
+
+    const revived = TestBed.runInInjectionContext(() => new Session());
+    expect(revived.signedIn()).toBe(false);
+  });
+
+  it('a corrupted entry is read as no session, not a thrown error', () => {
+    sessionStorage.setItem('milan.session', '{not json');
+    expect(() => TestBed.runInInjectionContext(() => new Session())).not.toThrow();
   });
 
   it('a staff sign-in is not an admin', async () => {

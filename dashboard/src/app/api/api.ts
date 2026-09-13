@@ -44,6 +44,8 @@ import type {
   OverridesOut,
   PeopleOut,
   PersonOut,
+  ProductPriceEditOut,
+  ProductsOut,
   ProjectsOut,
   PublishOut,
   ReorderAlertsOut,
@@ -85,6 +87,9 @@ export interface MyAccountOut {
 export interface OrderFilters {
   readonly status?: OrderStatus;
   readonly channel?: Channel;
+  /** Who confirmed it. SPEC.md §11 Phase 5's own wishlist names this the
+   * salesperson filter, alongside channel. */
+  readonly confirmedByUserId?: string;
   /** Inclusive. */
   readonly confirmedFrom?: string;
   /** Exclusive, so one order lands in exactly one period. */
@@ -110,6 +115,9 @@ export class Api {
     let params = new HttpParams();
     if (filters.status) params = params.set('status', filters.status);
     if (filters.channel) params = params.set('channel', filters.channel);
+    if (filters.confirmedByUserId) {
+      params = params.set('confirmed_by_user_id', filters.confirmedByUserId);
+    }
     if (filters.confirmedFrom) {
       params = params.set('confirmed_from', filters.confirmedFrom);
     }
@@ -249,6 +257,36 @@ export class Api {
     return this.http.post<PublishOut>(
       `${API_BASE}/rate-cards`,
       { list_id: listId, payload },
+      { headers: this.authorised() },
+    );
+  }
+
+  /**
+   * The active card's products, for the live per-product price screen.
+   * Staff or admin -- part-timers never see a rate at all (hard rule 8).
+   */
+  products(listId: ListId): Observable<ProductsOut> {
+    return this.http.get<ProductsOut>(
+      `${API_BASE}/rate-cards/${listId}/products`,
+      { headers: this.authorised() },
+    );
+  }
+
+  /**
+   * Changes one product's price directly, live immediately -- no whole-card
+   * upload, no preview step. Still publishes a new `RateCardVersion` under
+   * the hood, so a quote already priced at the old rate stays explainable.
+   * Staff or admin, mandatory reason -- the same discipline §6.5 already
+   * asks of an order-line override, applied here to a catalog price.
+   */
+  editProductPrice(
+    listId: ListId,
+    ruleId: string,
+    edit: { rate_sen: number; mvp_rate_sen: number | null; reason: string },
+  ): Observable<ProductPriceEditOut> {
+    return this.http.post<ProductPriceEditOut>(
+      `${API_BASE}/rate-cards/${listId}/products/${ruleId}/price`,
+      edit,
       { headers: this.authorised() },
     );
   }

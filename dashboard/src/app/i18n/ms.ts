@@ -47,6 +47,7 @@ export const MS: Strings = {
   nav: {
     orders: 'Pesanan',
     measurement: 'Ukuran',
+    products: 'Harga produk',
     priceChanges: 'Harga yang diubah',
     priceList: 'Senarai harga',
     reports: 'Laporan',
@@ -76,6 +77,7 @@ export const MS: Strings = {
     showing: (shown, total) => `Menunjukkan ${shown} daripada ${total}`,
     stage: 'Peringkat',
     whereFrom: 'Dari mana',
+    whoConfirmed: 'Jurujual',
     all: 'Semua',
     nothingMatches: 'Tiada pesanan yang sepadan dengan tapisan ini.',
     pendingSync: 'Menunggu penyegerakan',
@@ -214,6 +216,36 @@ export const MS: Strings = {
     notACard: 'Pelayan tidak menerima senarai harga itu.',
     versionMustGoUp:
       'Pelayan menolaknya — pastikan nombor versi lebih tinggi daripada sekarang.',
+    wentWrong: 'Ada sesuatu yang tidak kena.',
+  },
+
+  products: {
+    title: 'Harga produk',
+    whichList: 'Senarai mana',
+    fair: 'pesta jualan',
+    standard: 'biasa',
+    noProducts: 'Belum ada produk dalam senarai ini.',
+    product: 'Produk',
+    rate: 'Harga',
+    mvpRate: 'Harga MVP',
+    provisional: 'Belum ada harga',
+    edit: 'Ubah harga',
+    rateLabel: 'Harga (RM)',
+    hasMvpRateLabel: 'Produk ini ada harga MVP',
+    mvpRateLabel: 'Harga MVP (RM)',
+    reasonLabel: 'Sebab',
+    reasonHint: 'Direkodkan atas nama anda dan dibaca semula semasa semakan.',
+    saveChange: 'Simpan',
+    saving: 'Sedang menyimpan…',
+    cancel: 'Batal',
+    savedAs: (version) =>
+      `Disimpan sebagai versi ${version}. Aktif pada setiap telefon selepas ` +
+      `penyegerakan seterusnya.`,
+    noSuchProduct: 'Produk itu tidak lagi berada dalam senarai ini.',
+    noReason: 'Nyatakan sebab -- beberapa patah perkataan sudah memadai.',
+    notPositive: 'Harga mesti lebih daripada sifar.',
+    noChange: 'Itu memang harga sekarang.',
+    notAllowed: 'Hanya staf atau admin boleh mengubah harga.',
     wentWrong: 'Ada sesuatu yang tidak kena.',
   },
 

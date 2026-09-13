@@ -1,0 +1,146 @@
+<header class="head">
+  <h1>{{ t().products.title }}</h1>
+</header>
+
+<fieldset class="which">
+  <legend>{{ t().products.whichList }}</legend>
+  @for (id of lists; track id) {
+    <button
+      type="button"
+      [class.on]="listId() === id"
+      [attr.aria-pressed]="listId() === id"
+      (click)="chooseList(id)"
+    >
+      {{ t().products[id] }}
+    </button>
+  }
+</fieldset>
+
+@if (saved(); as version) {
+  <p class="note" role="status">{{ t().products.savedAs(version) }}</p>
+}
+@if (failure(); as failed) {
+  <p class="failure" role="alert">
+    {{ message(failed) }}
+    <button type="button" (click)="retry()">{{ t().common.reload }}</button>
+  </p>
+}
+
+@if (loading()) {
+  <table aria-hidden="true">
+    <tbody>
+      @for (i of [0, 1, 2, 3]; track i) {
+        <tr class="empty-row">
+          <td colspan="5"><span class="skeleton" style="width: 60%"></span></td>
+        </tr>
+      }
+    </tbody>
+  </table>
+} @else if (products().length === 0) {
+  <div class="empty-state">
+    <p>{{ t().products.noProducts }}</p>
+  </div>
+} @else {
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{{ t().products.product }}</th>
+        <th scope="col">{{ t().products.rate }}</th>
+        <th scope="col">{{ t().products.mvpRate }}</th>
+        <th scope="col"></th>
+        <th scope="col">
+          <span class="visually-hidden">actions</span>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (product of products(); track product.id) {
+        <tr>
+          <td>
+            {{ labelFor(product) }}
+            <span class="basis">{{ product.basis }}</span>
+          </td>
+          <td class="num">{{ money(product.rate_sen) }}</td>
+          <td class="num">
+            {{ product.mvp_rate_sen === null ? '—' : money(product.mvp_rate_sen) }}
+          </td>
+          <td>
+            @if (product.provisional) {
+              <span class="alert-badge">{{ t().products.provisional }}</span>
+            }
+          </td>
+          <td class="actions">
+            <button type="button" (click)="editingId() === product.id ? closeEdit() : openEdit(product)">
+              {{ editingId() === product.id ? t().products.cancel : t().products.edit }}
+            </button>
+          </td>
+        </tr>
+        @if (editingId() === product.id) {
+          <tr class="expanded">
+            <td colspan="5">
+              <form class="edit" (submit)="submitEdit($event)">
+                @if (editFailure(); as failed) {
+                  <p class="failure" role="alert">{{ editMessage(failed) }}</p>
+                }
+                <div>
+                  <label [attr.for]="'rate-' + product.id">{{ t().products.rateLabel }}</label>
+                  <input
+                    [id]="'rate-' + product.id"
+                    inputmode="decimal"
+                    [value]="rate()"
+                    (input)="rate.set($any($event.target).value)"
+                  />
+                </div>
+                <div class="mvp-toggle">
+                  <label [attr.for]="'has-mvp-' + product.id">
+                    <input
+                      type="checkbox"
+                      [id]="'has-mvp-' + product.id"
+                      [checked]="hasMvp()"
+                      (change)="hasMvp.set($any($event.target).checked)"
+                    />
+                    {{ t().products.hasMvpRateLabel }}
+                  </label>
+                </div>
+                @if (hasMvp()) {
+                  <div>
+                    <label [attr.for]="'mvp-rate-' + product.id">
+                      {{ t().products.mvpRateLabel }}
+                    </label>
+                    <input
+                      [id]="'mvp-rate-' + product.id"
+                      inputmode="decimal"
+                      [value]="mvpRate()"
+                      (input)="mvpRate.set($any($event.target).value)"
+                    />
+                  </div>
+                }
+                <div>
+                  <label [attr.for]="'reason-' + product.id">{{ t().products.reasonLabel }}</label>
+                  <input
+                    [id]="'reason-' + product.id"
+                    [value]="reason()"
+                    (input)="reason.set($any($event.target).value)"
+                  />
+                  <p class="hint">{{ t().products.reasonHint }}</p>
+                </div>
+                @if (blockReason(); as blocked) {
+                  <p class="hint block-reason">{{ blocked }}</p>
+                }
+                <div class="actions">
+                  <button type="submit" class="primary" [disabled]="!canSave()">
+                    @if (saving()) {
+                      <span class="spinner" aria-hidden="true"></span>
+                    }
+                    {{ saving() ? t().products.saving : t().products.saveChange }}
+                  </button>
+                  <button type="button" (click)="closeEdit()">{{ t().products.cancel }}</button>
+                </div>
+              </form>
+            </td>
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+}

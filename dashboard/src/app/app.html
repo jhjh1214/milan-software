@@ -6,6 +6,15 @@
         {{ t().nav.measurement }}
       </a>
 
+      <!-- Staff or admin, server-enforced -- a part-timer never sees a rate
+           at all (hard rule 8), but staff need this as much as an admin
+           does: it is how a price moves on the spot, at a fair table. -->
+      @if (session.isStaffOrAdmin()) {
+        <a routerLink="/rates/products" routerLinkActive="on">
+          {{ t().nav.products }}
+        </a>
+      }
+
       <!-- Admin only, and the server enforces it. Hidden rather than shown and
            refused: offering somebody a screen that answers 403 wastes their
            time and teaches them the app is unreliable. -->

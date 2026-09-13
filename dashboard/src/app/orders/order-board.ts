@@ -23,10 +23,17 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 
 import { Api } from '../api/api';
+import { Session } from '../auth/session';
 import { commonMessage, failureOf, type Failure } from '../i18n/failure';
 import { Text } from '../i18n/text';
 import { formatDate, formatSen, urgencyOf, type Urgency } from '../api/money';
-import { PIPELINE, type Channel, type OrderStatus, type OrderSummary } from '../api/types';
+import {
+  PIPELINE,
+  type Channel,
+  type OrderStatus,
+  type OrderSummary,
+  type PersonOut,
+} from '../api/types';
 
 const CHANNELS: readonly Channel[] = [
   'fair',
@@ -47,8 +54,18 @@ export class OrderBoard {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
+  /** Public to the template: the salesperson filter is admin-only, matching
+   * `GET /api/people`'s own gate -- offering it to somebody who cannot
+   * fetch the names to fill it would just be a filter that never works. */
+  protected readonly session = inject(Session);
+
   protected readonly statuses = PIPELINE;
   protected readonly channels = CHANNELS;
+
+  /** Fetched once, only for an admin -- SPEC.md §11 Phase 5's own wishlist
+   * names a salesperson filter alongside channel, and every name it needs
+   * already lives behind the admin-only people list. */
+  protected readonly people = signal<readonly PersonOut[]>([]);
 
   /** How many placeholder cards to draw while nothing has arrived yet. */
   protected readonly skeletonRows = [0, 1, 2, 3, 4, 5];
@@ -87,18 +104,35 @@ export class OrderBoard {
   protected readonly channel = computed(
     () => (this.params()?.get('channel') as Channel | null) ?? null,
   );
+  protected readonly salesperson = computed(
+    () => this.params()?.get('salesperson') ?? null,
+  );
 
   constructor() {
+    if (this.session.isAdmin()) {
+      this.api.people().subscribe({
+        next: (out) => this.people.set(out.people),
+        // The board itself is the main content; a failed people fetch just
+        // means the filter stays empty rather than blocking the board.
+        error: () => undefined,
+      });
+    }
+
     effect(() => {
       // Re-reads whenever the URL changes, which is the only way a filter
       // changes. A separate "apply" path would be a second source of truth.
       const status = this.status();
       const channel = this.channel();
-      this.load(status, channel);
+      const salesperson = this.salesperson();
+      this.load(status, channel, salesperson);
     });
   }
 
-  private load(status: OrderStatus | null, channel: Channel | null): void {
+  private load(
+    status: OrderStatus | null,
+    channel: Channel | null,
+    salesperson: string | null,
+  ): void {
     this.loading.set(true);
     this.failure.set(null);
 
@@ -106,6 +140,7 @@ export class OrderBoard {
       .orders({
         ...(status ? { status } : {}),
         ...(channel ? { channel } : {}),
+        ...(salesperson ? { confirmedByUserId: salesperson } : {}),
       })
       .subscribe({
         next: (page) => {
@@ -123,7 +158,10 @@ export class OrderBoard {
   }
 
   /** Sets or clears one filter, by putting it in the URL. */
-  protected filterBy(key: 'status' | 'channel', value: string | null): void {
+  protected filterBy(
+    key: 'status' | 'channel' | 'salesperson',
+    value: string | null,
+  ): void {
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { [key]: value },
@@ -132,7 +170,7 @@ export class OrderBoard {
   }
 
   protected retry(): void {
-    this.load(this.status(), this.channel());
+    this.load(this.status(), this.channel(), this.salesperson());
   }
 
   protected readonly money = formatSen;

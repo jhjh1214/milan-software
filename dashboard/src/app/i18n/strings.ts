@@ -89,6 +89,7 @@ export interface StatusStrings {
 export interface NavStrings {
   readonly orders: string;
   readonly measurement: string;
+  readonly products: string;
   readonly priceChanges: string;
   readonly priceList: string;
   readonly reports: string;
@@ -120,6 +121,9 @@ export interface BoardStrings {
   readonly showing: (shown: number, total: number) => string;
   readonly stage: string;
   readonly whereFrom: string;
+  /** Admin only -- the salesperson filter, SPEC.md §11 Phase 5's own
+   * wishlist alongside channel. */
+  readonly whoConfirmed: string;
   readonly all: string;
   readonly nothingMatches: string;
   /** An order pushed from a handset that has not synced. Never invented. */
@@ -275,6 +279,42 @@ export interface PublishStrings {
   readonly notAdmin: string;
   readonly notACard: string;
   readonly versionMustGoUp: string;
+  readonly wentWrong: string;
+}
+
+/**
+ * Live per-product price editing. No whole-card upload, no preview step --
+ * one product's price, changed on the spot, live on the very next pull.
+ * Staff or admin (hard rule 8 keeps a part-timer off it entirely); the
+ * whole control is that every change names somebody and says why, the same
+ * discipline §6.5 already asks of an order-line override.
+ */
+export interface ProductsStrings {
+  readonly title: string;
+  readonly whichList: string;
+  readonly fair: string;
+  readonly standard: string;
+  readonly noProducts: string;
+  readonly product: string;
+  readonly rate: string;
+  /** SPEC.md §4.1: a flat sen amount off, never a percentage. */
+  readonly mvpRate: string;
+  readonly provisional: string;
+  readonly edit: string;
+  readonly rateLabel: string;
+  readonly hasMvpRateLabel: string;
+  readonly mvpRateLabel: string;
+  readonly reasonLabel: string;
+  readonly reasonHint: string;
+  readonly saveChange: string;
+  readonly saving: string;
+  readonly cancel: string;
+  readonly savedAs: (version: number) => string;
+  readonly noSuchProduct: string;
+  readonly noReason: string;
+  readonly notPositive: string;
+  readonly noChange: string;
+  readonly notAllowed: string;
   readonly wentWrong: string;
 }
 
@@ -553,6 +593,7 @@ export interface Strings {
   readonly role: RoleStrings;
   readonly people: PeopleStrings;
   readonly publish: PublishStrings;
+  readonly products: ProductsStrings;
   readonly order: OrderStrings;
   readonly buyer: BuyerStrings;
   readonly reports: ReportsStrings;

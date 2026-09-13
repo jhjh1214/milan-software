@@ -61,6 +61,24 @@
       }
     </div>
   </div>
+
+  @if (session.isAdmin()) {
+    <div class="filter-group">
+      <label class="filter-label" for="salesperson-filter">
+        {{ t().board.whoConfirmed }}
+      </label>
+      <select
+        id="salesperson-filter"
+        [value]="salesperson() ?? ''"
+        (change)="filterBy('salesperson', $any($event.target).value || null)"
+      >
+        <option value="">{{ t().board.all }}</option>
+        @for (person of people(); track person.id) {
+          <option [value]="person.id">{{ person.name }}</option>
+        }
+      </select>
+    </div>
+  }
 </nav>
 
 @if (failure(); as failed) {
