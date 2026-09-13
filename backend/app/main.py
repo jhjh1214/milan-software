@@ -29,6 +29,7 @@ from fastapi import (
     File,
     Header,
     HTTPException,
+    Path,
     Query,
     Response,
     UploadFile,
@@ -80,6 +81,10 @@ from .api.schemas import (
     PeopleOut,
     PersonOut,
     PreviewIn,
+    ProductOut,
+    ProductPriceEditIn,
+    ProductPriceEditOut,
+    ProductsOut,
     ProjectIn,
     ProjectOut,
     ProjectsOut,
@@ -153,9 +158,12 @@ from .services.auth import (
 )
 from .services.card_diff import diff_cards
 from .services.ingest import (
+    NoSuchProduct,
+    RateEditRefused,
     UnknownRateCardVersion,
     active_card,
     advance_order_status,
+    edit_product_price,
     locks_for_customer,
     publish_card,
     push_buyer_details,
@@ -299,8 +307,9 @@ CurrentDep = Annotated[tuple[User, DeviceSession], Depends(current)]
 
 
 def require_admin(who: CurrentDep) -> User:
-    """Admin only. §3: staff see rates and cannot edit them; part-timers never
-    see a rate at all."""
+    """Admin only. §3: part-timers never see a rate at all. Staff can see
+    rates and, since the live per-product price edit below, can change one
+    directly -- but only an admin may publish a whole new card."""
     user, _ = who
     if user.role != "admin":
         raise HTTPException(
@@ -311,6 +320,24 @@ def require_admin(who: CurrentDep) -> User:
 
 
 AdminDep = Annotated[User, Depends(require_admin)]
+
+
+def require_staff_or_admin(who: CurrentDep) -> User:
+    """Staff or admin. Loosened from admin-only: a live single-product price
+    edit is meant to be usable by whoever is standing at a fair table
+    reacting to a competitor, not only an admin who has to be reached by
+    phone first. Part-timers are still excluded -- hard rule 8, they never
+    see a rate at all."""
+    user, _ = who
+    if user.role not in ("staff", "admin"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="staff or admin only",
+        )
+    return user
+
+
+StaffOrAdminDep = Annotated[User, Depends(require_staff_or_admin)]
 
 
 @app.get("/api/health")
@@ -485,6 +512,85 @@ def publish(payload: PublishIn, session: SessionDep, admin: AdminDep) -> Publish
     )
 
 
+@app.get("/api/rate-cards/{list_id}/products", response_model=ProductsOut)
+def list_products_route(
+    list_id: Annotated[str, Path(pattern="^(fair|standard)$")],
+    session: SessionDep,
+    who: StaffOrAdminDep,
+) -> ProductsOut:
+    """The active card's products, for the live per-product price screen.
+    Staff or admin -- part-timers never see a rate at all (hard rule 8).
+    """
+    _ = who
+    card = active_card(session, list_id)
+    if card is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no active rate card")
+    return ProductsOut(
+        list_id=list_id,
+        version=card.version,
+        products=[
+            ProductOut(
+                id=r["id"],
+                family=r["family"],
+                variant=r["variant"],
+                material_key=r.get("material_key"),
+                labels=r.get("labels", {}),
+                basis=r["basis"],
+                rate_sen=r["rate_sen"],
+                mvp_rate_sen=r.get("mvp_rate_sen"),
+                provisional=bool(r.get("provisional", False)),
+            )
+            for r in card.payload.get("rules", [])
+        ],
+    )
+
+
+@app.post(
+    "/api/rate-cards/{list_id}/products/{rule_id}/price",
+    response_model=ProductPriceEditOut,
+)
+def edit_product_price_route(
+    list_id: Annotated[str, Path(pattern="^(fair|standard)$")],
+    rule_id: str,
+    payload: ProductPriceEditIn,
+    session: SessionDep,
+    who: StaffOrAdminDep,
+) -> ProductPriceEditOut:
+    """Changes one product's price directly, live immediately. Staff or
+    admin, mandatory reason -- SPEC.md §6.5's own discipline for an
+    order-line override, applied here to a catalog price: the gate is a
+    speed bump, the audit row read back later is the actual control.
+
+    No whole-card upload, no preview step. Still publishes a new
+    `RateCardVersion` under the hood rather than editing a row in place, so
+    a quote already priced at the old rate stays explainable.
+    """
+    try:
+        edit = edit_product_price(
+            session,
+            list_id=list_id,
+            rule_id=rule_id,
+            rate_sen=payload.rate_sen,
+            mvp_rate_sen=payload.mvp_rate_sen,
+            reason=payload.reason,
+            by_user_id=who.id,
+        )
+    except NoSuchProduct as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such product") from exc
+    except RateEditRefused as exc:
+        raise HTTPException(HTTP_422_UNPROCESSABLE, exc.reason.value) from exc
+
+    return ProductPriceEditOut(
+        rule_id=edit.rule_id,
+        list_id=edit.list_id,
+        version=edit.resulting_version,
+        rate_sen=edit.after_rate_sen,
+        mvp_rate_sen=edit.after_mvp_rate_sen,
+        edited_by=edit.by_user_id,
+        at=edit.at,
+    )
+
+
 @app.post("/api/payments", response_model=PaymentResult)
 def push_payment_route(
     payload: PaymentIn, session: SessionDep, who: CurrentDep
@@ -653,6 +759,7 @@ def orders_route(
     who: CurrentDep,
     status_filter: str | None = Query(default=None, alias="status"),
     channel: str | None = None,
+    confirmed_by_user_id: str | None = None,
     confirmed_from: datetime | None = None,
     confirmed_to: datetime | None = None,
     limit: int = Query(default=MAX_PAGE, ge=1, le=MAX_PAGE),
@@ -662,6 +769,10 @@ def orders_route(
 
     Filters combine and are all optional. `confirmed_from` is inclusive and
     `confirmed_to` exclusive, so one order lands in exactly one period.
+    `confirmed_by_user_id` is the salesperson filter -- SPEC.md's own
+    wishlist names it alongside channel, and it is a plain equality on a
+    column `Order` already carries, unlike "fair" or "project", which need
+    a real design decision before they are a filter rather than a guess.
 
     Sorted by how soon a hold runs out, nulls last: a hold that expires unused
     is a customer who paid RM300 and got nothing, so those are the cards that
@@ -675,6 +786,7 @@ def orders_route(
         session,
         status=status_filter,
         channel=channel,
+        confirmed_by_user_id=confirmed_by_user_id,
         confirmed_from=confirmed_from,
         confirmed_to=confirmed_to,
         limit=limit,

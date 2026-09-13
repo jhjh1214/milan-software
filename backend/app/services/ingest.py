@@ -15,6 +15,7 @@ PURE of HTTP. The router calls this; the tests call it directly.
 
 from __future__ import annotations
 
+import copy
 import uuid
 from datetime import UTC, datetime
 from fractions import Fraction
@@ -55,6 +56,7 @@ from ..models.db import (
     PricingDiscrepancy,
     Quote,
     QuoteLine,
+    RateCardEdit,
     RateCardVersion,
     User,
 )
@@ -85,6 +87,7 @@ from ..pricing.order_status import (
     advance_order,
 )
 from ..pricing.price_override import override_line_price
+from ..pricing.rate_edit import RateEditRefusal, decide_rate_edit
 from .inventory import propose_allocation_for_line
 from .order_numbers import issue_order_no
 from .receipts import issue_receipt_no
@@ -1065,3 +1068,96 @@ def publish_card(
     session.add(row)
     session.flush()
     return row
+
+
+class NoSuchProduct(Exception):
+    pass
+
+
+class RateEditRefused(Exception):
+    def __init__(self, reason: RateEditRefusal) -> None:
+        self.reason = reason
+        super().__init__(reason.value)
+
+
+def edit_product_price(
+    session: Session,
+    *,
+    list_id: str,
+    rule_id: str,
+    rate_sen: int,
+    mvp_rate_sen: int | None,
+    reason: str,
+    by_user_id: str,
+    at: datetime | None = None,
+) -> RateCardEdit:
+    """Changes one product's price directly, live immediately -- no
+    whole-card upload, no preview ceremony. A staff or admin member reacting
+    to a competitor at a fair should not have to reach an admin who can
+    reach a computer.
+
+    Still never edits a row in place: publishes a new `RateCardVersion` with
+    just this one rule changed, so a quote already priced at the old rate,
+    or a rate lock pinned to the old version, both stay explainable exactly
+    as they would after a whole-card publish.
+    """
+    live = active_card(session, list_id)
+    rule = None
+    if live is not None:
+        rule = next(
+            (r for r in live.payload.get("rules", []) if r.get("id") == rule_id),
+            None,
+        )
+
+    decision = decide_rate_edit(
+        rule_id=rule_id,
+        list_id=list_id,
+        before_rate_sen=None if rule is None else rule["rate_sen"],
+        after_rate_sen=rate_sen,
+        before_mvp_rate_sen=None if rule is None else rule.get("mvp_rate_sen"),
+        after_mvp_rate_sen=mvp_rate_sen,
+        reason=reason,
+        by_user_id=by_user_id,
+    )
+    if decision.refused_because is RateEditRefusal.NO_SUCH_PRODUCT:
+        raise NoSuchProduct(rule_id)
+    if not decision.is_applied or decision.record is None:
+        assert decision.refused_because is not None
+        raise RateEditRefused(decision.refused_because)
+    assert live is not None and rule is not None
+
+    payload = copy.deepcopy(live.payload)
+    new_rule = next(r for r in payload["rules"] if r["id"] == rule_id)
+    new_rule["rate_sen"] = rate_sen
+    new_rule["mvp_rate_sen"] = mvp_rate_sen
+    # A22: supplying a real rate on a placeholder clears the flag in the
+    # same edit -- a flag and a number that could drift apart is exactly
+    # the "accepted but still refused" bug that rule exists to prevent.
+    if new_rule.get("provisional") and rate_sen > 0:
+        new_rule["provisional"] = False
+
+    existing_versions = session.scalars(select(RateCardVersion.version)).all()
+    # A global next version, not just "one more than this list's active
+    # version": `rate_cards.version` is the sole primary key across both
+    # lineages, so a number already used by the other list would collide.
+    next_version = (max(existing_versions) if existing_versions else 0) + 1
+    payload["version"] = next_version
+
+    publish_card(session, list_id=list_id, payload=payload, published_by=by_user_id)
+
+    edit = RateCardEdit(
+        id=str(uuid.uuid4()),
+        rule_id=rule_id,
+        list_id=list_id,
+        before_rate_sen=decision.record.before_rate_sen,
+        after_rate_sen=decision.record.after_rate_sen,
+        before_mvp_rate_sen=decision.record.before_mvp_rate_sen,
+        after_mvp_rate_sen=decision.record.after_mvp_rate_sen,
+        resulting_version=next_version,
+        reason=decision.record.reason,
+        by_user_id=by_user_id,
+        at=at or datetime.now(UTC),
+    )
+    session.add(edit)
+    session.flush()
+    return edit

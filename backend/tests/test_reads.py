@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.api.schemas import CategoryLockIn, OrderIn, OrderLineIn, PriceOverrideIn
-from app.models.db import Base
+from app.models.db import Base, User
 from app.services.ingest import push_category_lock, push_order
 from app.services.reads import (
     list_orders,
@@ -185,6 +185,50 @@ class TestFilters:
                 session, confirmed_from=monday, confirmed_to=next_monday
             )
             assert total == 2
+
+    def test_salesperson_filters_on_who_confirmed_it(self, db) -> None:
+        # SPEC.md §11 Phase 5's own wishlist names this alongside channel --
+        # a plain equality on a column `Order` already carries.
+        with db() as session:
+            ah = User(id=str(uuid.uuid4()), name="Ah Boy", role="staff")
+            beng = User(id=str(uuid.uuid4()), name="Beng", role="staff")
+            session.add_all([ah, beng])
+            session.flush()
+
+            push_order(
+                session,
+                OrderIn(
+                    id=str(uuid.uuid4()),
+                    quote_id=str(uuid.uuid4()),
+                    channel="fair",
+                    pinned_rate_card_version=1,
+                    estimate_total_sen=55200,
+                    deposit_paid_sen=30000,
+                    confirmed_at=CONFIRMED,
+                    lines=[a_line()],
+                ),
+                confirmed_by=ah,
+            )
+            push_order(
+                session,
+                OrderIn(
+                    id=str(uuid.uuid4()),
+                    quote_id=str(uuid.uuid4()),
+                    channel="fair",
+                    pinned_rate_card_version=1,
+                    estimate_total_sen=55200,
+                    deposit_paid_sen=30000,
+                    confirmed_at=CONFIRMED,
+                    lines=[a_line()],
+                ),
+                confirmed_by=beng,
+            )
+            session.commit()
+
+            _, ah_total = list_orders(session, confirmed_by_user_id=ah.id)
+            _, beng_total = list_orders(session, confirmed_by_user_id=beng.id)
+            _, everything = list_orders(session)
+            assert (ah_total, beng_total, everything) == (1, 1, 2)
 
     def test_a_filter_matching_nothing_is_empty_not_everything(self, db) -> None:
         with db() as session:

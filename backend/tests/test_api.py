@@ -23,7 +23,7 @@ from sqlalchemy.pool import StaticPool
 from app import db as db_module
 from app.core.security import hash_pin
 from app.main import app, get_session
-from app.models.db import Base, Quote, User
+from app.models.db import Base, Quote, RateCardVersion, User
 from app.services.ingest import publish_card
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -398,6 +398,151 @@ class TestPublishing:
             headers=auth(sign_in(client, "admin")),
         )
         assert r.json()["published_by"] is not None
+
+
+class TestLiveProductPriceEdit:
+    """A staff or admin member changing one product's price directly, live
+    immediately -- no whole-card upload, no preview ceremony."""
+
+    def _edit(
+        self,
+        client: TestClient,
+        token: str,
+        *,
+        rule_id: str = "night-curtain-lo",
+        **over,
+    ):
+        # night-curtain-lo's real mvp_rate_sen is 4000 -- sent unchanged by
+        # default, the same way a real edit form would always submit both
+        # fields it displays, whether or not each one moved.
+        body = {
+            "rate_sen": 4000,
+            "mvp_rate_sen": 4000,
+            "reason": "matched a competitor at the fair",
+        }
+        body.update(over)
+        return client.post(
+            f"/api/rate-cards/fair/products/{rule_id}/price",
+            json=body,
+            headers=auth(token),
+        )
+
+    def test_staff_can_edit_a_price(self, client: TestClient) -> None:
+        r = self._edit(client, sign_in(client, "staff"))
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["rate_sen"] == 4000
+        # shared/rate-card-standard.json is already published at version
+        # 101 in this fixture's own setup, and `rate_cards.version` is one
+        # global sequence across both lists -- so the first edit to fair
+        # (still at 1) has to jump past it, not merely to 2.
+        assert body["version"] == 102
+
+    def test_admin_can_edit_a_price(self, client: TestClient) -> None:
+        r = self._edit(client, sign_in(client, "admin"))
+        assert r.status_code == 200, r.text
+
+    def test_a_parttimer_cannot_edit_a_price(self, client: TestClient) -> None:
+        # Hard rule 8: a part-timer never sees a rate at all, let alone
+        # changes one.
+        r = self._edit(client, sign_in(client, "parttime"))
+        assert r.status_code == 403
+
+    def test_it_is_live_on_the_very_next_pull(self, client: TestClient) -> None:
+        handset = sign_in(client, "parttime")
+        self._edit(client, sign_in(client, "staff"))
+
+        bundle = client.get(
+            "/api/bundle", params={"list_id": "fair"}, headers=auth(handset)
+        )
+        assert bundle.json()["rate_card_version"] == 102
+        rule = next(
+            r
+            for r in bundle.json()["payload"]["rules"]
+            if r["id"] == "night-curtain-lo"
+        )
+        assert rule["rate_sen"] == 4000
+
+    def test_the_old_version_stays_explainable(self, client: TestClient) -> None:
+        # A quote already priced at version 1 must not have its own rate
+        # change under it. The active card is now version 2; version 1 is
+        # superseded but still stored -- checked via a direct session read
+        # since there is no route that serves a non-active version (nothing
+        # needs one).
+        self._edit(client, sign_in(client, "staff"))
+        with client.sessions() as session:
+            v1 = session.get(RateCardVersion, 1)
+            assert v1 is not None
+            v1_rule = next(
+                r for r in v1.payload["rules"] if r["id"] == "night-curtain-lo"
+            )
+            assert v1_rule["rate_sen"] == 4600, "the superseded row is untouched"
+
+    def test_a_provisional_row_clears_its_flag_when_given_a_real_rate(
+        self, client: TestClient
+    ) -> None:
+        # A22: supplying a real price on a placeholder clears the flag in
+        # the same edit -- a flag and a number that could drift apart is
+        # exactly the bug that rule exists to prevent.
+        r = self._edit(
+            client,
+            sign_in(client, "admin"),
+            rule_id="stair-step-narrow",
+            rate_sen=12000,
+            mvp_rate_sen=None,
+        )
+        assert r.status_code == 200, r.text
+        products = client.get(
+            "/api/rate-cards/fair/products", headers=auth(sign_in(client, "staff"))
+        ).json()["products"]
+        row = next(p for p in products if p["id"] == "stair-step-narrow")
+        assert row["provisional"] is False
+        assert row["rate_sen"] == 12000
+
+    def test_no_such_product_is_404(self, client: TestClient) -> None:
+        r = self._edit(client, sign_in(client, "staff"), rule_id="not-a-real-product")
+        assert r.status_code == 404
+
+    def test_a_missing_reason_is_422(self, client: TestClient) -> None:
+        r = self._edit(client, sign_in(client, "staff"), reason="")
+        assert r.status_code == 422
+
+    def test_a_short_reason_is_422(self, client: TestClient) -> None:
+        r = self._edit(client, sign_in(client, "staff"), reason="hi")
+        assert r.status_code == 422
+
+    def test_a_zero_rate_is_422(self, client: TestClient) -> None:
+        r = self._edit(client, sign_in(client, "staff"), rate_sen=0)
+        assert r.status_code == 422
+
+    def test_a_negative_rate_is_422(self, client: TestClient) -> None:
+        r = self._edit(client, sign_in(client, "staff"), rate_sen=-100)
+        assert r.status_code == 422
+
+    def test_no_change_is_422(self, client: TestClient) -> None:
+        r = self._edit(client, sign_in(client, "staff"), rate_sen=4600)
+        assert r.status_code == 422
+
+    def test_the_products_list_needs_staff_or_admin_too(
+        self, client: TestClient
+    ) -> None:
+        r = client.get(
+            "/api/rate-cards/fair/products",
+            headers=auth(sign_in(client, "parttime")),
+        )
+        assert r.status_code == 403
+
+    def test_the_products_list_reflects_the_active_card(
+        self, client: TestClient
+    ) -> None:
+        r = client.get(
+            "/api/rate-cards/fair/products", headers=auth(sign_in(client, "staff"))
+        )
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["version"] == 1
+        row = next(p for p in body["products"] if p["id"] == "night-curtain-lo")
+        assert row["rate_sen"] == 4600
 
 
 class TestPush:

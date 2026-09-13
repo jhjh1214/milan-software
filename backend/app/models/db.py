@@ -78,6 +78,49 @@ class RateCardVersion(Base):
     )
 
 
+class RateCardEdit(Base):
+    """One product's price, changed directly and live -- never through the
+    whole-card upload/preview/publish flow.
+
+    **APPEND ONLY, and never deletable from the app.** The same control
+    `PriceOverride` already is for an order line: a staff or admin PIN is a
+    speed bump, and what actually stops abuse is that every move is
+    recorded against a name, with a reason, and read back later. `reason`
+    and `by_user_id` are both NOT NULL for exactly that reason.
+
+    Still publishes a new `RateCardVersion` rather than editing a row in
+    place -- a quote priced at the old rate, or a rate lock pinned to the
+    old version, must stay explainable after this edit as much as after a
+    whole-card publish. This table is the audit trail *for* that new
+    version, not a replacement for versioning.
+    """
+
+    __tablename__ = "rate_card_edits"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    rule_id: Mapped[str] = mapped_column(String(64))
+    #: `fair` or `standard`. Which lineage this edit published a new version of.
+    list_id: Mapped[str] = mapped_column(String(32))
+
+    before_rate_sen: Mapped[int] = mapped_column(BigInteger)
+    after_rate_sen: Mapped[int] = mapped_column(BigInteger)
+    before_mvp_rate_sen: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    after_mvp_rate_sen: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+
+    #: The version this edit produced. Traceable back to `rate_cards.version`
+    #: without a foreign key -- superseded rows are kept, never deleted, so
+    #: the reference stays valid for good.
+    resulting_version: Mapped[int] = mapped_column(Integer)
+
+    reason: Mapped[str] = mapped_column(Text)
+    by_user_id: Mapped[str] = mapped_column(String(36))
+    at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (Index("ix_rate_card_edits_at", "at"),)
+
+
 class User(Base):
     """A person. §7.
 

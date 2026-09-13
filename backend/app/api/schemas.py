@@ -158,6 +158,57 @@ class PublishOut(BaseModel):
     published_by: str | None = None
 
 
+class ProductPriceEditIn(BaseModel):
+    """Staff or admin changing one product's live price directly -- no
+    whole-card upload, no preview ceremony. `reason` is mandatory for the
+    same reason an order-line override's is (SPEC.md §6.5): the log is the
+    control, and a row that cannot say why is not an audit trail.
+
+    `mvp_rate_sen` has no default: a product with no MVP substitute sends
+    `null` explicitly, and one that has an MVP rate sends its current or
+    new value. Defaulting a merely-omitted field to `null` would silently
+    clear a real MVP rate the caller never meant to touch -- the same
+    absent-vs-empty trap SPEC.md §13 C14 already names for buyer details.
+    """
+
+    rate_sen: int = Field(gt=0)
+    mvp_rate_sen: int | None = Field(gt=0)
+    reason: str = Field(min_length=1, max_length=500)
+
+
+class ProductPriceEditOut(BaseModel):
+    rule_id: str
+    list_id: str
+    version: int
+    rate_sen: int
+    mvp_rate_sen: int | None
+    edited_by: str
+    at: datetime
+
+
+class ProductOut(BaseModel):
+    """One row of the active card, as the dashboard's product list shows
+    it -- not the full rate-card row shape, just what an admin or staff
+    member needs to see to decide whether this product's price should move.
+    """
+
+    id: str
+    family: str
+    variant: str
+    material_key: str | None
+    labels: dict[str, str]
+    basis: str
+    rate_sen: int
+    mvp_rate_sen: int | None
+    provisional: bool
+
+
+class ProductsOut(BaseModel):
+    list_id: str
+    version: int
+    products: list[ProductOut] = []
+
+
 class BundleOut(BaseModel):
     """The reference-data pull. §9.1: replace wholesale, never diff."""
 

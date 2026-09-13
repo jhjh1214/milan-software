@@ -137,6 +137,7 @@ def list_orders(
     *,
     status: str | None = None,
     channel: str | None = None,
+    confirmed_by_user_id: str | None = None,
     confirmed_from: datetime | None = None,
     confirmed_to: datetime | None = None,
     limit: int = MAX_PAGE,
@@ -149,6 +150,15 @@ def list_orders(
     rather than in two or in neither -- the same half-open window the weekly
     override review uses.
 
+    ``confirmed_by_user_id`` is the salesperson filter named in SPEC.md §11
+    Phase 5's own wishlist alongside channel -- a direct equality on a
+    column this table already carries, unlike "which fair" or "which
+    project", neither of which this table has a column for at all (a fair
+    is only known by the promo code a *pinned rate card version* carries,
+    and a project is only known through an order *line's* provenance, never
+    the order itself -- both real design questions, not a filter to add
+    here by guessing one).
+
     Sorted by ``held_until`` ascending with nulls last, then by confirmation
     date. §11 Phase 5: the board is sorted by how soon a hold runs out, because
     a hold that expires unused is a customer who paid RM300 and got nothing.
@@ -158,6 +168,8 @@ def list_orders(
         filters.append(Order.status == status)
     if channel is not None:
         filters.append(Order.channel == channel)
+    if confirmed_by_user_id is not None:
+        filters.append(Order.confirmed_by_user_id == confirmed_by_user_id)
     if confirmed_from is not None:
         filters.append(Order.confirmed_at >= confirmed_from)
     if confirmed_to is not None:
