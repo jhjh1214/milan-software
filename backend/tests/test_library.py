@@ -619,9 +619,7 @@ class TestSubmitFromDevice:
             detail = unit_type_detail(session, unit_type.id)
             assert len(detail.versions[0].openings) == len(OPENINGS)
 
-    def test_a_retry_on_the_same_id_is_a_duplicate_not_a_second_row(
-        self, db
-    ) -> None:
+    def test_a_retry_on_the_same_id_is_a_duplicate_not_a_second_row(self, db) -> None:
         with db() as session:
             project_id = self._project(session)
             device_id = "22222222-2222-2222-2222-222222222222"

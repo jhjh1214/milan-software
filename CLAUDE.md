@@ -976,6 +976,16 @@ before anybody learned a lambda argument was called `l`.
 reformats files nobody touched and disagrees with CI. Easiest: a throwaway venv
 with that pin. **`ruff` was never run locally before, and it is what broke CI.**
 
+**Repeated, Sep 2026: `ruff check` and `ruff format --check` are two separate
+commands, and CI's `lint` job runs both.** Two pushes in a row (the Phase 8
+AI-recognition commit, then Phase 9) passed `ruff check .` locally and still
+failed CI, on `Format`, because only `check` had been run — `format --check`
+disagreed with 5 files that `check` alone saw nothing wrong with (ruff's
+formatter has opinions about line-wrapping that its linter does not enforce).
+**Before every backend push: `ruff check .` AND `ruff format --check .`, both
+at the pinned version, in the same venv.** `ruff format .` fixes it in place
+when it disagrees.
+
 **Two new blocking questions**, both about money, both built the conservative
 way rather than guessed: §13 **B9** (what identifies a returning customer —
 phone is in force, a real customer record is the open part) and **B10** (two

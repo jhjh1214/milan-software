@@ -456,9 +456,7 @@ def propose_allocation_for_line(
         return None
 
     candidates = session.scalars(
-        select(Material).where(
-            Material.is_active.is_(True), Material.uom == "box"
-        )
+        select(Material).where(Material.is_active.is_(True), Material.uom == "box")
     )
     match = next(
         (

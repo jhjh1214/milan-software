@@ -523,9 +523,7 @@ class TestRecognizeApi:
         assert body["openings"] == []
         assert body["rooms"] == []
 
-    def test_a_non_image_content_type_is_422_not_500(
-        self, client: TestClient
-    ) -> None:
+    def test_a_non_image_content_type_is_422_not_500(self, client: TestClient) -> None:
         token = sign_in(client, "parttime")
         r = client.post(
             "/api/recognize",
@@ -591,16 +589,12 @@ class TestUnitTypeSubmissionsApi:
         assert body["unit_type_id"] == device_id
         assert body["duplicate"] is False
 
-        detail = client.get(
-            f"/api/unit-types/{device_id}", headers=auth(token)
-        ).json()
+        detail = client.get(f"/api/unit-types/{device_id}", headers=auth(token)).json()
         assert detail["unit_type"]["status"] == "pending_review"
         plan = detail["versions"][0]["floor_plan"]
         assert plan["scale_tmm_per_px"] == "60"
 
-    def test_retrying_the_same_id_reports_a_duplicate(
-        self, client: TestClient
-    ) -> None:
+    def test_retrying_the_same_id_reports_a_duplicate(self, client: TestClient) -> None:
         token = sign_in(client, "parttime")
         project_id = make_project(client, token)
         device_id = str(uuid.uuid4())

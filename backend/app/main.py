@@ -1763,7 +1763,7 @@ def release_allocation_route(
 
 @app.get("/api/inventory/alerts", response_model=ReorderAlertsOut)
 def reorder_alerts_route(session: SessionDep, admin: AdminDep) -> ReorderAlertsOut:
-    """"Available", not raw on-hand -- on hand minus what is already
+    """ "Available", not raw on-hand -- on hand minus what is already
     proposed against a confirmed order. Not a forecast (SPEC.md §11
     Phase 9): every number in it is a row this system already has.
     """

@@ -431,9 +431,7 @@ class TestAutoProposal:
             assert allocation.lot_id is None
             assert allocation.decision_note is not None
 
-    def test_a_fabric_line_with_no_exact_conversion_proposes_nothing(
-        self, db
-    ) -> None:
+    def test_a_fabric_line_with_no_exact_conversion_proposes_nothing(self, db) -> None:
         # SPEC.md §13 F3 -- a curtain's billed per_ft_width quantity is not
         # its fabric yardage. Guessing one would be exactly the confident
         # wrong number this phase warns against.
@@ -522,7 +520,9 @@ class TestApprovalAndRejection:
     def test_approving_decrements_the_lot_and_writes_a_movement(self, db) -> None:
         with db() as session:
             material, allocation = self._proposal(session)
-            approve_allocation(session, allocation_id=allocation.id, by_user_id="admin-1")
+            approve_allocation(
+                session, allocation_id=allocation.id, by_user_id="admin-1"
+            )
             session.commit()
 
             assert allocation.status == "approved"
@@ -541,7 +541,10 @@ class TestApprovalAndRejection:
             _, allocation = self._proposal(session)
             with pytest.raises(ValueError):
                 reject_allocation(
-                    session, allocation_id=allocation.id, by_user_id="admin-1", reason=""
+                    session,
+                    allocation_id=allocation.id,
+                    by_user_id="admin-1",
+                    reason="",
                 )
 
     def test_rejecting_touches_no_stock(self, db) -> None:
@@ -561,7 +564,9 @@ class TestApprovalAndRejection:
     def test_approving_twice_is_refused(self, db) -> None:
         with db() as session:
             _, allocation = self._proposal(session)
-            approve_allocation(session, allocation_id=allocation.id, by_user_id="admin-1")
+            approve_allocation(
+                session, allocation_id=allocation.id, by_user_id="admin-1"
+            )
             session.commit()
             with pytest.raises(WrongStatus):
                 approve_allocation(
