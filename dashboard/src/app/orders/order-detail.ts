@@ -45,8 +45,10 @@ import { formatDate, formatSen, urgencyOf, type Urgency } from '../api/money';
 import type {
   BuyerDetailsIn,
   BuyerOut,
+  MaterialOut,
   OrderDetailOut,
   OrderLineOut,
+  StockLotOut,
 } from '../api/types';
 
 /** The writable buyer columns. Wire names, matching the server's payload. */
@@ -136,7 +138,8 @@ export class OrderDetail {
   protected readonly failure = signal<Failure | null>(null);
 
   /** The words, as a signal: switching language re-renders the order. */
-  protected readonly t = inject(Text).strings;
+  private readonly text = inject(Text);
+  protected readonly t = this.text.strings;
 
   /** Chosen at render time, so a failure on screen follows the language. */
   protected message(failure: Failure): string {
@@ -434,6 +437,125 @@ export class OrderDetail {
         this.buyerFailure.set('error');
       },
     });
+  }
+
+  /**
+   * Manual allocation, from the order line it belongs to. SPEC.md §11 Phase
+   * 9's own named gap: `POST /api/allocations` already exists and is tested
+   * -- for a material with no exact auto-proposal conversion (§13 F3), or a
+   * manual split across a second lot -- and this is its natural home,
+   * where an admin is already looking at the line and its material.
+   *
+   * Materials are fetched lazily, on the first line where the form is
+   * opened: most orders (curtains, blinds) are never inventory-tracked, and
+   * a screen opened on every order should not fetch a list it will almost
+   * never use.
+   */
+  protected readonly allocatingLineId = signal<string | null>(null);
+  protected readonly materials = signal<readonly MaterialOut[]>([]);
+  protected readonly materialsLoaded = signal(false);
+  protected readonly lotsByMaterial = signal<
+    Readonly<Record<string, readonly StockLotOut[]>>
+  >({});
+  protected readonly allocateMaterialId = signal('');
+  protected readonly allocateLotId = signal('');
+  protected readonly allocateQty = signal('');
+  protected readonly savingAllocation = signal(false);
+  protected readonly allocationFailure = signal<Failure | null>(null);
+  protected readonly allocationNote = signal<string | null>(null);
+
+  protected allocationMessage(failure: Failure): string {
+    return commonMessage(this.t(), failure);
+  }
+
+  protected materialName(material: MaterialOut): string {
+    return material.names[this.text.language()] ?? material.code;
+  }
+
+  protected openAllocate(line: OrderLineOut): void {
+    this.allocatingLineId.set(line.id);
+    this.allocateMaterialId.set('');
+    this.allocateLotId.set('');
+    this.allocateQty.set('');
+    this.allocationFailure.set(null);
+    this.allocationNote.set(null);
+    if (!this.materialsLoaded()) {
+      this.api.materials(true).subscribe({
+        next: (out) => {
+          this.materials.set(out.materials);
+          this.materialsLoaded.set(true);
+        },
+        error: (err: unknown) => this.allocationFailure.set(failureOf(err)),
+      });
+    }
+  }
+
+  protected cancelAllocate(): void {
+    this.allocatingLineId.set(null);
+    this.allocationFailure.set(null);
+  }
+
+  protected setAllocateMaterial(materialId: string): void {
+    this.allocateMaterialId.set(materialId);
+    this.allocateLotId.set('');
+    if (materialId && !this.lotsByMaterial()[materialId]) {
+      this.api.stockLots(materialId).subscribe({
+        next: (out) =>
+          this.lotsByMaterial.update((m) => ({ ...m, [materialId]: out.lots })),
+        error: (err: unknown) => this.allocationFailure.set(failureOf(err)),
+      });
+    }
+  }
+
+  protected setAllocateLot(lotId: string): void {
+    this.allocateLotId.set(lotId);
+  }
+
+  protected setAllocateQty(value: string): void {
+    this.allocateQty.set(value);
+  }
+
+  protected lotsForSelectedMaterial(): readonly StockLotOut[] {
+    return this.lotsByMaterial()[this.allocateMaterialId()] ?? [];
+  }
+
+  protected readonly canSubmitAllocate = computed(
+    () =>
+      !this.savingAllocation() &&
+      this.allocateMaterialId().length > 0 &&
+      this.allocateLotId().length > 0 &&
+      this.allocateQty().trim().length > 0,
+  );
+
+  protected submitAllocate(line: OrderLineOut, event: Event): void {
+    event.preventDefault();
+    if (!this.canSubmitAllocate()) return;
+    const order = this.detail()?.order;
+    if (order === undefined) return;
+
+    this.savingAllocation.set(true);
+    this.allocationFailure.set(null);
+    this.allocationNote.set(null);
+
+    this.api
+      .createManualAllocation({
+        order_line_id: line.id,
+        order_id: order.id,
+        material_id: this.allocateMaterialId(),
+        lot_id: this.allocateLotId(),
+        qty: this.allocateQty().trim(),
+      })
+      .subscribe({
+        next: () => {
+          this.savingAllocation.set(false);
+          this.allocatingLineId.set(null);
+          this.allocationNote.set(line.id);
+        },
+        error: (err: unknown) => {
+          this.savingAllocation.set(false);
+          this.allocationFailure.set(failureOf(err));
+        },
+      });
   }
 
   /** What a line was priced on, in one line somebody can read out. */

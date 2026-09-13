@@ -2436,15 +2436,15 @@ library's own screen uses: everything `proposed`, approve or reject, a
 lot picker when auto-proposal could not choose a single one. 15 new
 dashboard tests.
 
-**Not yet built: a dashboard control for a manual allocation.** The
-service and route (`POST /api/allocations`) exist and are tested — an
-admin can allocate a fabric line, or split across a second lot, today
-through the API — but the natural place for that control is the order
-detail screen, where an admin is already looking at an order's lines and
-its material, not the materials screen or the review queue. Left
-unbuilt rather than guessed at, the same as every other named gap in this
-document: the review queue was the one screen §13 F2's own answer made
-urgent, and it is what shipped first.
+**The dashboard control for a manual allocation is built** (Sep 2026),
+on the order detail screen — where an admin is already looking at an
+order's lines and its material, not the materials screen or the review
+queue. The service and route (`POST /api/allocations`) needed no change;
+this was purely the dashboard's own gap. Materials load only once the
+control is opened on some line, since most orders are never
+inventory-tracked; choosing one loads its lots, and a lot must be picked
+explicitly — a manual allocation has no auto-proposal behind it to trust,
+unlike approval's own lot picker. 7 new dashboard tests.
 
 # 12. NON-FUNCTIONAL TARGETS
 

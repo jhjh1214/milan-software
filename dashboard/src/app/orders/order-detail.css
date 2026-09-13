@@ -309,11 +309,13 @@ section {
   color: var(--color-fg-muted);
 }
 
-.buyer-edit .field {
+.buyer-edit .field,
+.allocate-form .field {
   margin-bottom: 10px;
 }
 
-.buyer-edit label {
+.buyer-edit label,
+.allocate-form label {
   display: block;
   margin-bottom: 4px;
   font-size: 13px;
@@ -322,7 +324,9 @@ section {
 
 .buyer-edit input[type='text'],
 .buyer-edit input:not([type]),
-.buyer-edit select {
+.buyer-edit select,
+.allocate-form input,
+.allocate-form select {
   width: 100%;
   max-width: 420px;
   min-height: 40px;
@@ -347,13 +351,15 @@ section {
   min-height: 0;
 }
 
-.buyer-edit .actions {
+.buyer-edit .actions,
+.allocate-form .actions {
   display: flex;
   gap: var(--space-2);
   margin: var(--space-4) 0 var(--space-3);
 }
 
-.buyer-edit .actions button {
+.buyer-edit .actions button,
+.allocate-form .actions button {
   min-height: 40px;
   padding: 0 var(--space-4);
   border: 1px solid var(--color-border);
@@ -364,18 +370,52 @@ section {
   cursor: pointer;
 }
 
-.buyer-edit .actions .primary {
+.buyer-edit .actions .primary,
+.allocate-form .actions .primary {
   border-color: var(--color-primary);
   background: var(--color-primary);
   color: var(--color-on-primary);
 }
 
-.buyer-edit .actions .primary:hover:not([disabled]) {
+.buyer-edit .actions .primary:hover:not([disabled]),
+.allocate-form .actions .primary:hover:not([disabled]) {
   background: var(--color-primary-hover);
   border-color: var(--color-primary-hover);
 }
 
-.buyer-edit .actions button[disabled] {
+.buyer-edit .actions button[disabled],
+.allocate-form .actions button[disabled] {
   opacity: 0.5;
   cursor: default;
+}
+
+/* SPEC.md §11 Phase 9's named gap: a manual allocation against this line. */
+.lines .saved {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.allocate-form {
+  margin-top: var(--space-2);
+}
+
+.allocate-form .failure {
+  margin: 0 0 var(--space-3);
+  padding: 10px var(--space-3);
+  font-size: 13px;
+}
+
+.allocate-toggle {
+  margin-top: var(--space-2);
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-fg);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
 }

@@ -419,5 +419,10 @@ export const ZH: Strings = {
     approvedNote: '已核准——库存已分配。',
     rejectedNote: '已退回。',
     duplicateCode: '这个物料编号已经存在。',
+    allocateStock: '分配库存',
+    materialLabel: '物料',
+    chooseMaterial: '选择物料',
+    allocateAction: '分配',
+    allocated: '已分配。',
   },
 };

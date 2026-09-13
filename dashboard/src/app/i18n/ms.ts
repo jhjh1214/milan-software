@@ -466,5 +466,10 @@ export const MS: Strings = {
     approvedNote: 'Diluluskan -- stok telah diperuntukkan.',
     rejectedNote: 'Dihantar balik.',
     duplicateCode: 'Kod bahan itu sudah digunakan.',
+    allocateStock: 'Peruntukkan stok',
+    materialLabel: 'Bahan',
+    chooseMaterial: 'Pilih satu bahan',
+    allocateAction: 'Peruntukkan',
+    allocated: 'Diperuntukkan.',
   },
 };

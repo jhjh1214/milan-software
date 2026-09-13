@@ -59,9 +59,21 @@ already has. Admin-only throughout (§13 F2's own answer). The dashboard
 gained two screens: `/inventory` (materials, their lots, receiving stock,
 a reorder-alert badge) and `/inventory/allocations` (the review queue,
 approve or reject, a lot picker when auto-proposal could not choose one).
-54 new backend tests, 15 new dashboard tests. **Not yet built:** a
-dashboard control for a manual allocation — the API exists and is tested,
-but its natural home is the order detail screen, not shipped this round.
+54 new backend tests, 15 new dashboard tests.
+
+**The order detail screen now has the manual-allocation control** (Sep
+2026), closing the one gap Phase 9 shipped with. `POST /api/allocations`
+already existed and was tested; this is its natural home, where an admin
+is already looking at the line and its material. Materials are fetched
+only once the control is opened on some line — most orders are curtains
+or blinds, never inventory-tracked, and a screen opened on every order
+should not fetch a list it will almost never use. Choosing a material
+loads its lots; a lot must be picked explicitly (no auto-pick here, unlike
+approval) because a manual allocation has no proposal behind it to trust.
+No backend change was needed — purely the dashboard control the API was
+already waiting for. 7 new dashboard tests, driven through the DOM the
+same way the buyer-correction form's own tests are, so what is checked is
+the form somebody actually clicks through. 296 dashboard tests.
 
 **The dashboard has a real design system now** (client, Sep 2026): light and
 dark mode, a token-driven palette (`dashboard/design-system/MASTER.md`

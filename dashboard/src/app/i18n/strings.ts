@@ -527,6 +527,14 @@ export interface InventoryStrings {
   readonly approvedNote: string;
   readonly rejectedNote: string;
   readonly duplicateCode: string;
+  /** The order-detail screen's own control -- SPEC.md §11 Phase 9's named
+   * gap. A material with no exact auto-proposal conversion (§13 F3), or a
+   * manual split across a second lot, is allocated directly from here. */
+  readonly allocateStock: string;
+  readonly materialLabel: string;
+  readonly chooseMaterial: string;
+  readonly allocateAction: string;
+  readonly allocated: string;
 }
 
 /** Everything the dashboard can say, in one language. */

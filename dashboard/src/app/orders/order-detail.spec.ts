@@ -18,7 +18,13 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { BuyerOut, OrderDetailOut, OrderLineOut } from '../api/types';
+import type {
+  BuyerOut,
+  MaterialOut,
+  OrderDetailOut,
+  OrderLineOut,
+  StockLotOut,
+} from '../api/types';
 import { Text } from '../i18n/text';
 import { OrderDetail } from './order-detail';
 
@@ -648,6 +654,205 @@ describe('OrderDetail', () => {
           }
         });
       });
+    });
+  });
+
+  describe('allocating stock against a line', () => {
+    // SPEC.md §11 Phase 9's named gap: `POST /api/allocations` already
+    // existed and was tested, but the order detail screen had no control
+    // that called it. Driven through the DOM, like the buyer form above,
+    // so what is checked is the form somebody actually clicks through.
+
+    const material = (over: Partial<MaterialOut> = {}): MaterialOut => ({
+      id: 'mat-1',
+      family: 'spc',
+      variant_compat: ['spc_4mm_1mm'],
+      code: 'SPC-4MM',
+      names: { zh: '四毫米SPC', en: '4mm SPC', ms: 'SPC 4mm' },
+      uom: 'box',
+      coverage_per_unit: '18',
+      reorder_level: null,
+      is_active: true,
+      created_at: '2026-09-01T00:00:00Z',
+      updated_at: '2026-09-01T00:00:00Z',
+      ...over,
+    });
+
+    const lot = (over: Partial<StockLotOut> = {}): StockLotOut => ({
+      id: 'lot-1',
+      material_id: 'mat-1',
+      lot_ref: 'DYE-1',
+      qty_on_hand: '20',
+      location: null,
+      received_at: '2026-09-01T00:00:00Z',
+      cost_sen: null,
+      ...over,
+    });
+
+    const click = (label: string): void => {
+      const button = [
+        ...fixture.nativeElement.querySelectorAll('button'),
+      ].find(
+        (b: HTMLButtonElement) => (b.textContent ?? '').trim() === label,
+      ) as HTMLButtonElement | undefined;
+      if (button === undefined) throw new Error(`no "${label}" button`);
+      button.click();
+      fixture.detectChanges();
+    };
+
+    const select = (id: string, value: string): void => {
+      const el = fixture.nativeElement.querySelector(
+        `#${id}`,
+      ) as HTMLSelectElement | null;
+      if (el === null) throw new Error(`no ${id} select`);
+      el.value = value;
+      el.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+    };
+
+    const type = (id: string, value: string): void => {
+      const el = fixture.nativeElement.querySelector(
+        `#${id}`,
+      ) as HTMLInputElement | null;
+      if (el === null) throw new Error(`no ${id} box`);
+      el.value = value;
+      el.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+    };
+
+    const openAndFill = async (): Promise<void> => {
+      await load();
+      click('Allocate stock');
+      http.expectOne((r) => r.url === '/api/materials').flush({
+        materials: [material()],
+      });
+      fixture.detectChanges();
+      select('material-l1', 'mat-1');
+      http
+        .expectOne((r) => r.url === '/api/stock/lots')
+        .flush({ lots: [lot()] });
+      fixture.detectChanges();
+      select('lot-l1', 'lot-1');
+      type('qty-l1', '6');
+    };
+
+    it('is offered on the line, closed by default', async () => {
+      await load();
+      expect(
+        fixture.nativeElement.querySelector('form.allocate-form'),
+      ).toBeNull();
+      expect(text()).toContain('Allocate stock');
+    });
+
+    it('fetches materials only once the control is opened', async () => {
+      // Most orders are curtains or blinds, never inventory-tracked -- a
+      // screen opened on every order should not fetch a list it will
+      // almost never use.
+      await load();
+      http.expectNone((r) => r.url === '/api/materials');
+      click('Allocate stock');
+      http.expectOne((r) => r.url === '/api/materials').flush({ materials: [] });
+    });
+
+    it('cannot submit until a material, a lot and a quantity are all given', async () => {
+      await load();
+      click('Allocate stock');
+      http.expectOne((r) => r.url === '/api/materials').flush({
+        materials: [material()],
+      });
+      fixture.detectChanges();
+
+      const submit = (): HTMLButtonElement =>
+        [...fixture.nativeElement.querySelectorAll('button')].find(
+          (b: HTMLButtonElement) => b.textContent?.trim() === 'Allocate',
+        ) as HTMLButtonElement;
+
+      expect(submit().disabled).toBe(true);
+      select('material-l1', 'mat-1');
+      http
+        .expectOne((r) => r.url === '/api/stock/lots')
+        .flush({ lots: [lot()] });
+      fixture.detectChanges();
+      expect(submit().disabled).toBe(true);
+      select('lot-l1', 'lot-1');
+      expect(submit().disabled).toBe(true);
+      type('qty-l1', '6');
+      expect(submit().disabled).toBe(false);
+    });
+
+    it('sends the line, the order, the material, the lot and the quantity', async () => {
+      await openAndFill();
+      click('Allocate');
+
+      const req = http.expectOne((r) => r.url === '/api/allocations');
+      expect(req.request.body).toEqual({
+        order_line_id: 'l1',
+        order_id: 'o1',
+        material_id: 'mat-1',
+        lot_id: 'lot-1',
+        qty: '6',
+      });
+    });
+
+    it('confirms once it lands, and closes the form', async () => {
+      await openAndFill();
+      click('Allocate');
+      http.expectOne((r) => r.url === '/api/allocations').flush({
+        id: 'alloc-1',
+        order_line_id: 'l1',
+        order_id: 'o1',
+        material_id: 'mat-1',
+        lot_id: 'lot-1',
+        qty: '6',
+        status: 'approved',
+        proposed_at: '2026-09-13T00:00:00Z',
+        decided_by_user_id: 'u-admin',
+        decided_at: '2026-09-13T00:00:00Z',
+        decision_note: null,
+        allocated_at: '2026-09-13T00:00:00Z',
+        released_at: null,
+      });
+      fixture.detectChanges();
+
+      expect(text()).toContain('Allocated.');
+      expect(
+        fixture.nativeElement.querySelector('form.allocate-form'),
+      ).toBeNull();
+    });
+
+    it('a refusal is shown and the form stays open with what was typed', async () => {
+      await openAndFill();
+      click('Allocate');
+      http
+        .expectOne((r) => r.url === '/api/allocations')
+        .flush(
+          { detail: 'no such stock lot' },
+          { status: 404, statusText: 'Not Found' },
+        );
+      fixture.detectChanges();
+
+      expect(text()).toContain('The server answered 404.');
+      const qty = fixture.nativeElement.querySelector(
+        '#qty-l1',
+      ) as HTMLInputElement;
+      expect(qty.value).toBe('6');
+    });
+
+    it('names the material in the reader’s own language', async () => {
+      i18n.pick('zh');
+      await load();
+      click('分配库存');
+      http.expectOne((r) => r.url === '/api/materials').flush({
+        materials: [material()],
+      });
+      fixture.detectChanges();
+
+      const options = [
+        ...(fixture.nativeElement.querySelector(
+          '#material-l1',
+        ) as HTMLSelectElement).options,
+      ].map((o) => o.textContent?.trim());
+      expect(options).toContain('四毫米SPC');
     });
   });
 

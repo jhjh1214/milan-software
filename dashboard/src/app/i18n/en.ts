@@ -454,5 +454,10 @@ export const EN: Strings = {
     approvedNote: 'Approved -- stock has been allocated.',
     rejectedNote: 'Sent back.',
     duplicateCode: 'That material code is already in use.',
+    allocateStock: 'Allocate stock',
+    materialLabel: 'Material',
+    chooseMaterial: 'Choose a material',
+    allocateAction: 'Allocate',
+    allocated: 'Allocated.',
   },
 };

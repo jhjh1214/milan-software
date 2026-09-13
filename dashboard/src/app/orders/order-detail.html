@@ -65,6 +65,98 @@
           @if (line.is_overridden) {
             <p class="flag overridden">{{ t().order.priceChangedByHand }}</p>
           }
+
+          <!-- SPEC.md §11 Phase 9's named gap: a manual allocation, for a
+               material with no exact auto-proposal conversion (§13 F3), or a
+               manual split across a second lot. The API already exists and
+               is tested; this is its natural home. -->
+          @if (allocationNote() === line.id) {
+            <p class="saved" role="status">{{ t().inventory.allocated }}</p>
+          }
+          @if (allocatingLineId() === line.id) {
+            <form
+              class="allocate-form"
+              (submit)="submitAllocate(line, $event)"
+            >
+              @if (allocationFailure(); as failed) {
+                <p class="failure" role="alert">
+                  {{ allocationMessage(failed) }}
+                </p>
+              }
+              <div class="field">
+                <label [attr.for]="'material-' + line.id">
+                  {{ t().inventory.materialLabel }}
+                </label>
+                <select
+                  [id]="'material-' + line.id"
+                  [value]="allocateMaterialId()"
+                  (change)="setAllocateMaterial($any($event.target).value)"
+                >
+                  <option value="" disabled selected>
+                    {{ t().inventory.chooseMaterial }}
+                  </option>
+                  @for (m of materials(); track m.id) {
+                    <option [value]="m.id">{{ materialName(m) }}</option>
+                  }
+                </select>
+              </div>
+              @if (allocateMaterialId()) {
+                <div class="field">
+                  <label [attr.for]="'lot-' + line.id">
+                    {{ t().inventory.pickALot }}
+                  </label>
+                  <select
+                    [id]="'lot-' + line.id"
+                    [value]="allocateLotId()"
+                    (change)="setAllocateLot($any($event.target).value)"
+                  >
+                    <option value="" disabled selected>
+                      {{ t().inventory.pickALot }}
+                    </option>
+                    @for (lot of lotsForSelectedMaterial(); track lot.id) {
+                      <option [value]="lot.id">
+                        {{ lot.lot_ref }} ({{ lot.qty_on_hand }})
+                      </option>
+                    }
+                  </select>
+                </div>
+              }
+              <div class="field">
+                <label [attr.for]="'qty-' + line.id">
+                  {{ t().inventory.qtyLabel }}
+                </label>
+                <input
+                  [id]="'qty-' + line.id"
+                  [value]="allocateQty()"
+                  (input)="setAllocateQty($any($event.target).value)"
+                />
+              </div>
+              <div class="actions">
+                <button
+                  type="submit"
+                  class="primary"
+                  [disabled]="!canSubmitAllocate()"
+                >
+                  {{
+                    savingAllocation()
+                      ? t().common.saving
+                      : t().inventory.allocateAction
+                  }}
+                </button>
+                <button type="button" (click)="cancelAllocate()">
+                  {{ t().common.cancel }}
+                </button>
+              </div>
+            </form>
+          } @else {
+            <button
+              type="button"
+              class="allocate-toggle"
+              (click)="openAllocate(line)"
+            >
+              {{ t().inventory.allocateStock }}
+            </button>
+          }
         </li>
       }
     </ul>
