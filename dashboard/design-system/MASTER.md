@@ -122,3 +122,75 @@ the two loading primitives above. The nine screens' actual information
 architecture — what each one shows and in what order — was already right;
 this pass gave it one consistent skin, both themes, and the missing states,
 not a redesign of what the office actually needs to see.
+
+## Second pass: the shell, and closing the drift between screens (Sep 2026)
+
+The first pass gave every screen the same tokens; it did not stop each
+screen's own `.css` file from re-declaring its own button, its own table, its
+own header row — nine independent implementations of the same three things,
+each one a chance to drift a pixel or a shade from the others. This pass
+does not add new tokens; it makes the existing ones the only path, and
+replaces the one piece of chrome that could not be fixed by tokens alone.
+
+**The top bar became a sidebar.** Ten nav destinations in one horizontal
+row either wraps onto a second line or truncates until nothing is
+readable — neither reads as a finished product, and the list was only
+going to grow. `app.html`/`app.css` are a fixed 248px rail instead: a brand
+mark, everyone's own links first, then two admin-only groups with real
+section headings (Pricing, Operations, Insights) so the screens an admin
+sees read as organised rather than merely numerous. Below 720px — a
+width this desk-first app does not target, but should not break at either
+— it collapses to a single row and drops the section headings, the same
+graceful-narrowing the screens themselves already did.
+
+**A shared icon component, `shared/nav-icon.ts`.** Ten nav links need ten
+small marks, and writing the same `viewBox`/stroke attributes out ten times
+is exactly the kind of copy that drifts the eleventh time somebody changes
+the stroke width. The path data is still literal template content behind an
+`@switch` — never `[innerHTML]`, which would put Angular's sanitizer between
+the icon and the page for no reason.
+
+**Three new shared shapes in `styles.css`**, so a screen reaches for one of
+these instead of inventing its own fourth attempt at the same idea:
+
+- `.page` / `.page-header` / `.page-title` / `.page-subtitle` / `.page-actions`
+  — the "title, one line about it, the primary action" row every screen's
+  header was separately approximating.
+- `.stat-grid` / `.stat-card` — a row of headline numbers, for the reports
+  and inventory screens that were reaching for it with a plain `<p>`.
+- A segmented-control shape (a muted pill container, flush buttons, the
+  active one lifted onto its own surface with `--shadow-sm`) replaces the
+  bordered-button-row every list/channel/period filter across the app was
+  separately drawing. Order board, product prices, publish, reports and the
+  measurement queue all use the identical markup and rule now.
+
+**Every screen's buttons now come from `.btn`/`.btn-primary`/`.btn-danger`**,
+removing several near-identical local re-implementations (materials,
+allocation review, order detail, products all had their own). Two screens
+keep their own local `.primary`/`.danger` class names on purpose —
+`people.html` and its confirm-dialog test both address `.confirm .danger`
+directly, and renaming it was not worth the churn for a screen whose own
+button styling already matched the shared one anyway.
+
+**Content lives inside `.card` now**, not a bare `<table>` or `<div>`
+floating on the page background — materials, people, products, reports and
+the order detail's own sections all picked this up. One trap found doing
+it: `unit-type-review.spec.ts` counts `.card` elements as a proxy for "how
+many items are left in the queue," so its own empty state is deliberately
+styled without that class name (a local `.empty-state.emphasised` rule
+instead) — the same visual result, a class name that cannot be
+double-counted as a card that supposedly still has content.
+
+**The sign-in screen gained a brand half.** A plain centred white card read
+as a placeholder rather than a product; a two-panel layout (a navy gradient
+brand panel, the form on its own surface) is the shape most office software
+actually signs in through, and the panel disappears below 860px rather than
+being squeezed. Every field, label and string is unchanged — only the
+chrome around them moved.
+
+No business logic changed anywhere in this pass, and no screen's
+information changed — same fields, same order, same data, same 317
+dashboard tests, all re-verified against the new markup rather than
+rewritten. That a purely visual pass needed no test changed (bar the one
+`.card`-counting collision above) is itself evidence nothing behavioural
+moved along with it.

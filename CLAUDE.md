@@ -12,6 +12,28 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 
 ## Current state
 
+**The dashboard's shell and shared visual language got a second pass**
+(Sep 2026), closing the drift the first design-system pass could not: nine
+screens each still had their own local button, table and header
+implementation, so tokens changed everywhere but nine slightly different
+buttons still existed underneath them. Full detail, and the one real
+finding (a test that counts `.card` elements as a proxy for queue length,
+which decided how the library review screen's empty state had to be
+styled), is in `dashboard/design-system/MASTER.md`'s own second section.
+
+The top bar — ten links trying to fit one row — is now a fixed sidebar
+grouped into sections (everyone's own links, then admin-only Pricing,
+Operations, Insights), with a small shared icon component
+(`shared/nav-icon.ts`) rather than inline SVG repeated at every link. Three
+new shared shapes in `styles.css` (`.page-header`, `.stat-card`, a
+segmented-control pattern for every list/channel/period filter) replace
+what each screen was separately approximating, and every screen's buttons
+now come from `.btn`/`.btn-primary`/`.btn-danger` rather than a local
+near-copy. The sign-in screen gained a two-panel brand layout in place of a
+bare centred card. No business logic changed, no screen's information
+changed, and all 317 dashboard tests were re-verified against the new
+markup rather than rewritten.
+
 **Stage 1 — the core Milan system — is complete through Phase 8.** Flutter
 app, FastAPI backend, Postgres, and sync between them. Phase 7 has exactly
 one remaining piece — the SQL Account export — and that blocker is isolated
