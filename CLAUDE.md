@@ -173,6 +173,107 @@ flooring product step rather than folded into it or buried as an upgrade
 under whichever floor gets chosen. Two more widget tests cover accepting
 and declining. 920 Dart tests.
 
+**Every product's price can now be moved live, on the spot, with no upload
+and no preview step** (client, Sep 2026): *"even at a fair can adjust price
+of certain item to fight competitors."* The whole-card upload/preview/
+publish screen (`/rates`, admin-only) stays exactly as it was, for what it
+is actually good at — bringing in a whole new printed season's list, where
+seeing every row move before committing matters. This is the other case:
+one product, one price, changed in the time it takes to type a reason.
+
+**Staff or admin, never a part-timer** (hard rule 8), and it is still never
+an edit in place: `POST /api/rate-cards/{list}/products/{rule}/price`
+publishes a new `RateCardVersion` with just that one rule changed, through
+the same `publish_card` the whole-card route already calls — a quote priced
+at the old rate, or a rate lock pinned to it, stays exactly as explainable
+as it always was. `rate_cards.version` is a **global** sequence shared by
+both the fair and standard lineages (fair started at 1, standard at 101 in
+production), so the next version has to be computed as one past the
+highest version either list has ever used, never "one past this list's
+own" — the first live edit to a long-untouched list jumps straight past
+whatever the other list is already at.
+
+Every edit is `RateCardEdit`, a new append-only audit table alongside
+`price_overrides` and `stock_movements` — before/after on both the rate and
+the MVP tier, a mandatory reason, who, and when. `decide_rate_edit`
+(`app/pricing/rate_edit.py`) is the pure decision function, mirroring
+`price_override.py`'s own shape but taking no role to check: unlike that
+file's caller, a device merely claiming a role, this is only ever reached
+through a route already gated to staff or admin, so re-checking here would
+just be the same rule twice. A22 keeps working unmodified through this
+path: supplying a real rate on a `provisional` placeholder clears the flag
+in the same edit, because the rule lives in `edit_product_price`
+(`app/services/ingest.py`), which both routes now share.
+
+**A schema trap caught before it shipped.** `ProductPriceEditIn.
+mvp_rate_sen` first had `default=None`, so a caller that meant to touch
+only the plain rate but omitted the MVP field would silently *clear* a
+real MVP rate it never intended to touch — the same absent-vs-null trap
+§13 C14 already names for buyer details. Caught by a failing test
+(`test_no_change_is_422`, which unexpectedly returned 200) before ever
+reaching the dashboard; the field is now required in the request body,
+`null` sent explicitly for a product with no MVP tier, exactly as a real
+edit form always submits both fields it shows.
+
+The dashboard gained `/rates/products` (nav link for staff and admin, next
+to the admin-only publish link): every product on the chosen list, its
+rate and MVP rate, a provisional badge, and an inline edit form per row —
+rate, an MVP-rate checkbox and box, a mandatory reason. Client-side
+validation re-derives the same three refusals the server's pure function
+would give (non-positive, unchanged, reason too short) so a fair-table
+edit gets an instant answer rather than a round trip that comes back
+refused; the server's decision still wins if the two ever disagree. 27 new
+backend tests for this feature (13 in `test_rate_edit.py`, 14 in the new
+`TestLiveProductPriceEdit` class in `test_api.py`), 11 new dashboard tests
+(`products.spec.ts`).
+
+**Two of the smaller named gaps above are closed, same session.**
+
+The order board's salesperson filter is built: `confirmed_by_user_id` on
+`GET /api/orders`, a plain equality on a column `Order` already carried,
+admin-only in the dashboard (matching `GET /api/people`'s own gate — a
+filter whose names came from a route that would 403 for anyone else is not
+a filter, it is a broken control). The other two named in that same
+sentence stay open, and for reasons worth recording rather than guessing
+past: "fair" means *which* fair, which lives only as the promo code on
+whichever `RateCardVersion` an order's deposit pinned — a real join and a
+real performance question, the same class of "statement count must not
+grow with the board" question §11 Phase 5 already had to answer once for
+`held_until`, not a filter to bolt on by inference. "Project" has no
+column on `Order` at all — provenance lives on an order *line* (Phase 8),
+and picking one of several lines' `source_project_id` to represent the
+whole order is a design call, not a bug fix. 1 new backend test, 3 new
+dashboard tests.
+
+The dashboard session now survives a page refresh, in `sessionStorage`
+rather than the in-memory-only signal it was. The reasoning that kept it
+in-memory is the same one this file already retired above for the
+language picker: *"a token in `localStorage` on a shared office machine is
+one the next person inherits"* was true when written and false since every
+office PC turned out to belong to one person. `sessionStorage`, not
+`localStorage`: gone the moment the tab or browser closes, so it never
+becomes a standing secret the way a `localStorage` token would, but it
+survives exactly the refresh that used to cost a second sign-in. Nothing
+about §12's "sessions never expire" changes — the token is exactly as
+long-lived as before; this only changes where the browser may remember one
+it already holds.
+
+**A new trap, found writing this feature's own tests.** Persisting the
+session to a real `sessionStorage` means any spec that drives an actual
+sign-in (submitting the real form, not just `session.user.set(...)`)
+leaves a token behind that a *later* test's own fresh `Session` silently
+rehydrates — `sign-in.spec.ts`'s "the account language wins" test read as
+signed-out and wasn't, because an earlier test in the same file had really
+signed in and nothing cleared `sessionStorage` after. Fixed there, and
+`session.spec.ts` clears it too: any future spec that exercises a real
+sign-in needs `sessionStorage.clear()` (and `localStorage.clear()` for
+parity) in its own `beforeEach` — this is not caught by the framework,
+only by a test failing in a way that looks like an unrelated bug. 3 new
+tests on `session.spec.ts` pin the new behaviour (survives a simulated
+refresh, `signOut` clears the persisted copy too, a corrupted entry reads
+as no session rather than throwing). 822 backend tests, 317 dashboard
+tests, all three suites green.
+
 **The dashboard has a real design system now** (client, Sep 2026): light and
 dark mode, a token-driven palette (`dashboard/design-system/MASTER.md`
 records why, mirroring the handset's own doc), skeleton loading and empty
@@ -495,12 +596,13 @@ Five of six fixed:
   an admin reset someone else's PIN at all is a real product question, not
   a one-line gap.
 
-One left open: `order-board.ts`'s doc comment quotes SPEC.md's original
-"filter by channel/project/salesperson/fair" wishlist, but only channel and
-status are implemented. Genuinely ambiguous whether that is an oversight or
-a deliberate subset (no §13 entry says either way), and building the missing
-filters is a real feature addition, not a bug fix — left as a question
-rather than guessed at.
+One left open at the time: `order-board.ts`'s doc comment quotes SPEC.md's
+original "filter by channel/project/salesperson/fair" wishlist, but only
+channel and status were implemented. **Salesperson is now built** (see
+above, Sep 2026) — a plain equality on a column `Order` already carries.
+"Fair" and "project" stay open for reasons that are not the same kind of
+gap: neither has a column to filter on directly, and each needs its own
+design call rather than a guess.
 
 - **The handset form.** Without it an order over RM10,000 was *stuck* —
   `advanceOrder` refused to move it and nothing could supply what the refusal
@@ -1064,9 +1166,11 @@ forever. It has happened twice — the publish screen's card text and the people
 form — and both times it was caught by a test rather than by reading. Make every
 piece of component state a signal.
 
-One thing the dashboard still lacks: a session that survives a page refresh —
-deliberate for now, because a token in `localStorage` on a shared office
-machine is one the next person inherits, and §13 has no question about it yet.
+One thing the dashboard used to lack: a session that survives a page
+refresh — deliberate at the time, because a token in `localStorage` on a
+shared office machine is one the next person inherits. **Built, Sep 2026 —
+see above** — once every office PC turned out to belong to one person, the
+same fact that already answered this for the language picker.
 *(Malay and Chinese were the other one. C9 is answered and they are built —
 see above.)*
 
