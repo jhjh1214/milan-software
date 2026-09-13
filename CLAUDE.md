@@ -75,6 +75,20 @@ already waiting for. 7 new dashboard tests, driven through the DOM the
 same way the buyer-correction form's own tests are, so what is checked is
 the form somebody actually clicks through. 296 dashboard tests.
 
+**A bug hunt on Inventory (Sep 2026)** — never swept before, since Phase 9
+shipped after both earlier sweeps — found two real gaps, both fixed and
+each pinned by a test proven to fail before the fix and pass after. A
+manual allocation's `order_id` was never checked against the order the
+given `order_line_id` actually belongs to, so a mismatched or made-up id
+was silently stored on the `Allocation` row; the route now refuses (404)
+on mismatch. And both `allocation-review.ts` and the manual-allocation
+control above cached a material's stock lots and never refreshed them
+after an approval or an allocation decremented one, so a second pending
+item on the same material kept showing the pre-decrement quantity; both
+now force a refresh after the mutation that invalidates the cache.
+Full detail in `FINDINGS.md`'s third dated section. 787 backend tests,
+298 dashboard tests.
+
 **The dashboard has a real design system now** (client, Sep 2026): light and
 dark mode, a token-driven palette (`dashboard/design-system/MASTER.md`
 records why, mirroring the handset's own doc), skeleton loading and empty
