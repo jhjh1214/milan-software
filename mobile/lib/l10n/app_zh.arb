@@ -334,6 +334,10 @@
   "channelFair": "展销会",
   "channelShowroom": "店里",
 
+  "skirtingOfferTitle": "这个房间有存踢脚线资料",
+  "skirtingOfferBody": "这个房间存有 {feet} 尺的踢脚线。要加进这张报价单吗？",
+  "skirtingOfferAdd": "加踢脚线",
+  "skirtingOfferNotNow": "先不要",
   "depositNeededTitle": "这单有{category}",
   "@depositNeededTitle": { "placeholders": { "category": { "type": "String" } } },
   "depositNeededBody": "{category}要另外 {amount}，才可以锁住促销价 12 个月。",

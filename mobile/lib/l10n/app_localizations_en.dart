@@ -850,6 +850,20 @@ class LEn extends L {
   String get channelShowroom => 'Showroom';
 
   @override
+  String get skirtingOfferTitle => 'This room has skirting recorded';
+
+  @override
+  String skirtingOfferBody(Object feet) {
+    return '${feet}ft of skirting was saved for this room. Add it to the quote?';
+  }
+
+  @override
+  String get skirtingOfferAdd => 'Add skirting';
+
+  @override
+  String get skirtingOfferNotNow => 'Not now';
+
+  @override
   String depositNeededTitle(String category) {
     return 'This order has $category';
   }

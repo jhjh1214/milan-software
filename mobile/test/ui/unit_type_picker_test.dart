@@ -441,4 +441,127 @@ void main() {
       expect(addOn.parentLineId, lines.first.id);
     },
   );
+
+  testWidgets('accepting the skirting offer adds it as its own line', (
+    tester,
+  ) async {
+    // Skirting is priced per_ft_width, not per_sqft, so it is offered
+    // separately from the flooring line rather than folded into it --
+    // 137160 tmm is exactly 45.0ft, picked so the sheet's own text is
+    // exact rather than a rounded decimal.
+    server.unitTypeDetails['ut1'] = {
+      'unit_type': {'id': 'ut1'},
+      'versions': [
+        {
+          'id': 'v1',
+          'version': 3,
+          'approved_at': '2026-08-01T09:00:00Z',
+          'openings': [],
+          'rooms': [
+            {
+              'id': 'r1',
+              'name': 'Living',
+              'nominal_area_mm2': 9290304,
+              'skirting_run_tmm': 137160,
+            },
+          ],
+        },
+      ],
+    };
+
+    await pumpApp(tester);
+
+    await tester.tap(find.text('加窗口'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('从已存的户型开始'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ABC Development'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Type B'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Living').last);
+    await tester.pumpAndSettle();
+
+    // The offer appears before the product step -- asked while the room
+    // that recorded it is still what is on screen.
+    expect(find.text('这个房间有存踢脚线资料'), findsOneWidget);
+    expect(find.textContaining('45.0'), findsOneWidget);
+    await tester.tap(find.text('加踢脚线'));
+    await tester.pumpAndSettle();
+
+    // Landed on the product step, same as ever -- accepting the offer
+    // does not change what happens next.
+    expect(find.text('什么产品？'), findsOneWidget);
+    await tester.tap(find.text('SPC 地板 4mm+1mm'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('不用，就这样'));
+    await tester.pumpAndSettle();
+
+    final quote = await db.latestQuote();
+    final lines = await db.linesFor(quote!.id);
+    expect(
+      lines,
+      hasLength(2),
+      reason:
+          'the skirting line, added before the flooring product was '
+          'even chosen, and the flooring line itself',
+    );
+
+    final skirting = lines.firstWhere((l) => l.variant == 'skirting');
+    expect(skirting.widthTmm, 137160, reason: 'the exact recorded length');
+    expect(skirting.directAreaSqft, null);
+    expect(skirting.parentLineId, null, reason: 'its own line, not an add-on');
+    expect(skirting.sourceUnitTypeId, 'ut1');
+  });
+
+  testWidgets('declining the skirting offer adds nothing for it', (
+    tester,
+  ) async {
+    server.unitTypeDetails['ut1'] = {
+      'unit_type': {'id': 'ut1'},
+      'versions': [
+        {
+          'id': 'v1',
+          'version': 3,
+          'approved_at': '2026-08-01T09:00:00Z',
+          'openings': [],
+          'rooms': [
+            {
+              'id': 'r1',
+              'name': 'Living',
+              'nominal_area_mm2': 9290304,
+              'skirting_run_tmm': 137160,
+            },
+          ],
+        },
+      ],
+    };
+
+    await pumpApp(tester);
+
+    await tester.tap(find.text('加窗口'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('从已存的户型开始'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ABC Development'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Type B'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Living').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('先不要'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('什么产品？'), findsOneWidget);
+    await tester.tap(find.text('SPC 地板 4mm+1mm'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('不用，就这样'));
+    await tester.pumpAndSettle();
+
+    final quote = await db.latestQuote();
+    final lines = await db.linesFor(quote!.id);
+    expect(lines, hasLength(1), reason: 'the flooring line only');
+    expect(lines.single.variant, isNot('skirting'));
+  });
 }

@@ -820,6 +820,20 @@ class LZh extends L {
   String get channelShowroom => '店里';
 
   @override
+  String get skirtingOfferTitle => '这个房间有存踢脚线资料';
+
+  @override
+  String skirtingOfferBody(Object feet) {
+    return '这个房间存有 $feet 尺的踢脚线。要加进这张报价单吗？';
+  }
+
+  @override
+  String get skirtingOfferAdd => '加踢脚线';
+
+  @override
+  String get skirtingOfferNotNow => '先不要';
+
+  @override
   String depositNeededTitle(String category) {
     return '这单有$category';
   }

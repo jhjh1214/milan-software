@@ -153,19 +153,25 @@ the parent line's own area rather than a width it does not have — the same
 line's add-on. The measurement screen's "quoted as" preview shows the area
 in `sqft` for a room-sourced line rather than crashing on a null width, and
 the dashboard's order-detail screen does the same (`sizeAreaSqft`).
-Skirting (`rooms.skirting_run_tmm`) is parsed and carried but not yet
-offered by the picker — named rather than silently dropped, a smaller
-follow-up than the flooring line itself.
 
 Two widget tests drive the real wizard end to end against a fake server:
 picking a room with no sizes step in between, and a room-sourced add-on
 correctly billing on the parent's area instead of crashing on a missing
 width. 918 Dart tests, 794 backend tests, 300 dashboard tests — all three
-suites green, `flutter analyze`/`dart format`/ruff clean. Not independently
-exercised against a live Postgres this session (no local Docker daemon
-running); the migration is a standard, portable `batch_alter_table` and is
-already proven against SQLite by `test_migrations.py`, but the real
-Postgres run (CI's own `deploy` job) is worth watching on the next push.
+suites green, `flutter analyze`/`dart format`/ruff clean. CI's own
+Postgres job (`deploy`) confirmed the Alembic migration on the real
+database, not only against `test_migrations.py`'s SQLite.
+
+**Skirting is now offered too** (Sep 2026), the piece named as a smaller
+follow-up above. `rooms.skirting_run_tmm` is a real length — skirting is
+its own `per_ft_width` product (RM4/ft), not part of the flooring line's
+`per_sqft` area — so it needed no engine change, only wiring: picking a
+room with one recorded shows a bottom sheet (`_SkirtingSheet`, matching
+`deposit_prompt_sheet.dart`'s own shape for a yes/no decision that is not
+really a wizard step) offering to add it as its own line, asked before the
+flooring product step rather than folded into it or buried as an upgrade
+under whichever floor gets chosen. Two more widget tests cover accepting
+and declining. 920 Dart tests.
 
 **The dashboard has a real design system now** (client, Sep 2026): light and
 dark mode, a token-driven palette (`dashboard/design-system/MASTER.md`

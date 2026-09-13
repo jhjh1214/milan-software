@@ -1508,6 +1508,30 @@ abstract class L {
   /// **'店里'**
   String get channelShowroom;
 
+  /// No description provided for @skirtingOfferTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'这个房间有存踢脚线资料'**
+  String get skirtingOfferTitle;
+
+  /// No description provided for @skirtingOfferBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'这个房间存有 {feet} 尺的踢脚线。要加进这张报价单吗？'**
+  String skirtingOfferBody(Object feet);
+
+  /// No description provided for @skirtingOfferAdd.
+  ///
+  /// In zh, this message translates to:
+  /// **'加踢脚线'**
+  String get skirtingOfferAdd;
+
+  /// No description provided for @skirtingOfferNotNow.
+  ///
+  /// In zh, this message translates to:
+  /// **'先不要'**
+  String get skirtingOfferNotNow;
+
   /// No description provided for @depositNeededTitle.
   ///
   /// In zh, this message translates to:

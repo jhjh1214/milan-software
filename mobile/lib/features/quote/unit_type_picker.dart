@@ -65,9 +65,15 @@ class PickedRoom extends LibraryPick {
   final String room;
   final Rational areaSqft;
 
+  /// A running length of skirting, if the schedule recorded one. Offered as
+  /// its own optional line -- skirting is priced `per_ft_width` (RM4/ft),
+  /// not `per_sqft`, so this is a real length, not an area.
+  final int? skirtingRunTmm;
+
   const PickedRoom({
     required this.room,
     required this.areaSqft,
+    this.skirtingRunTmm,
     required super.sourceProjectId,
     required super.sourceUnitTypeId,
     required super.sourceVersion,
@@ -270,6 +276,7 @@ class _UnitTypePickerScreenState extends ConsumerState<UnitTypePickerScreen> {
       PickedRoom(
         room: room.name,
         areaSqft: areaSqftFromMm2(room.nominalAreaMm2),
+        skirtingRunTmm: room.skirtingRunTmm,
         sourceProjectId: unitType.projectId,
         sourceUnitTypeId: unitType.id,
         sourceVersion: approved.version,

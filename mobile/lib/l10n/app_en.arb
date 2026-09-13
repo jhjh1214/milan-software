@@ -258,6 +258,10 @@
   "channelFair": "Fair",
   "channelShowroom": "Showroom",
 
+  "skirtingOfferTitle": "This room has skirting recorded",
+  "skirtingOfferBody": "{feet}ft of skirting was saved for this room. Add it to the quote?",
+  "skirtingOfferAdd": "Add skirting",
+  "skirtingOfferNotNow": "Not now",
   "depositNeededTitle": "This order has {category}",
   "depositNeededBody": "{category} needs its own {amount} to hold the promo price for 12 months.",
   "depositCollect": "Take {amount}",

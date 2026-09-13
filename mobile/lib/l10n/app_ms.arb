@@ -258,6 +258,10 @@
   "channelFair": "Pesta jualan",
   "channelShowroom": "Bilik pameran",
 
+  "skirtingOfferTitle": "Bilik ini ada rekod skirting",
+  "skirtingOfferBody": "{feet} kaki skirting disimpan untuk bilik ini. Tambah ke dalam sebutan harga?",
+  "skirtingOfferAdd": "Tambah skirting",
+  "skirtingOfferNotNow": "Jangan sekarang",
   "depositNeededTitle": "Pesanan ini ada {category}",
   "depositNeededBody": "{category} perlu {amount} sendiri untuk mengunci harga promosi selama 12 bulan.",
   "depositCollect": "Ambil {amount}",

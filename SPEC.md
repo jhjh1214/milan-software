@@ -2186,7 +2186,12 @@ Confirmed as already in scope here — no new phase needed:
    "back to typed, provenance cleared" counterpart the way a width or a
    height does. A room-sourced add-on (dismantling old flooring, self
    levelling) bills on the parent line's own area, the same "same square
-   footage" rule as a measured line's add-on.
+   footage" rule as a measured line's add-on. **Skirting too**: a room's
+   `skirting_run_tmm` is a real length, not an area — skirting is its own
+   `per_ft_width` product (RM4/ft, §13 A9 is separately about whether it is
+   ever billed any other way, and stays open) — so picking a room with one
+   recorded offers it as its own line before the flooring product is even
+   chosen, needing no engine change at all.
 
 **But the auto-calculation comes from the stored room areas, not from reading
 the image.** The plan is a backdrop for tapping and a reference for the

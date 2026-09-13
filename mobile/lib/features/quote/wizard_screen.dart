@@ -95,7 +95,7 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
   String? _sourceUnitTypeId;
   int? _sourceVersion;
 
-  Future<void> _startFromLibrary() async {
+  Future<void> _startFromLibrary(RateCard card) async {
     final picked = await showUnitTypePicker(context, ref);
     if (picked == null || !mounted) return;
     switch (picked) {
@@ -111,6 +111,36 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
           _step = _Step.family;
         });
       case PickedRoom():
+        // Skirting is its own product (`per_ft_width`, not `per_sqft`), so
+        // it is offered rather than folded into the flooring line -- asked
+        // now, while the room that recorded it is still the thing on
+        // screen, not buried as an upgrade under whichever floor gets
+        // chosen next.
+        if (picked.skirtingRunTmm case final runTmm?) {
+          final addSkirting = await _confirmSkirting(runTmm);
+          if (!mounted) return;
+          if (addSkirting) {
+            final rule = card.ruleFor('skirting');
+            if (rule != null) {
+              await ref
+                  .read(quoteProvider.notifier)
+                  .addLine(
+                    room: picked.room,
+                    variant: rule.variant,
+                    materialKey: rule.materialKey,
+                    layer: rule.layer,
+                    width: Length.tenths(runTmm),
+                    height: null,
+                    rawWidth: '',
+                    rawHeight: '',
+                    sourceProjectId: picked.sourceProjectId,
+                    sourceUnitTypeId: picked.sourceUnitTypeId,
+                    sourceVersion: picked.sourceVersion,
+                  );
+            }
+          }
+          if (!mounted) return;
+        }
         // A room only ever prices a `per_sqft` flooring line, so the family
         // choice is not really a choice here -- jumping straight to the
         // product step is one fewer screen for the one case where the next
@@ -127,6 +157,20 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
           _step = _Step.product;
         });
     }
+  }
+
+  /// One decimal, in feet -- display only, the same rule every other
+  /// preview string in this file follows.
+  String _feet(int tmm) => (tmm / 3048).toStringAsFixed(1);
+
+  Future<bool> _confirmSkirting(int runTmm) async {
+    final added = await showModalBottomSheet<bool>(
+      context: context,
+      isDismissible: true,
+      backgroundColor: AppColors.surface,
+      builder: (_) => _SkirtingSheet(feet: _feet(runTmm)),
+    );
+    return added ?? false;
   }
 
   /// One decimal place, in [unit] -- for prefilling the sizes step only.
@@ -202,7 +246,7 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
                 _sourceVersion = null;
                 _step = _Step.family;
               }),
-              onStartFromLibrary: _startFromLibrary,
+              onStartFromLibrary: () => _startFromLibrary(card),
             ),
             _Step.family => _FamilyStep(
               card: card,
@@ -789,6 +833,52 @@ class _WizardScreenState extends ConsumerState<WizardScreen> {
         );
     if (!mounted || id == null) return;
     setState(() => _addedUpgrades[upgrade.variant] = id);
+  }
+}
+
+/// Offered right after picking a room that has skirting recorded. Its own
+/// bottom sheet, matching `deposit_prompt_sheet.dart`'s own shape for a
+/// yes/no decision that is not really a wizard step of its own.
+class _SkirtingSheet extends StatelessWidget {
+  final String feet;
+
+  const _SkirtingSheet({required this.feet});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = L.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(Space.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l.skirtingOfferTitle, style: AppText.title),
+            const SizedBox(height: Space.sm),
+            Text(l.skirtingOfferBody(feet), style: AppText.body),
+            const SizedBox(height: Space.xl),
+            SizedBox(
+              width: double.infinity,
+              height: Touch.primary,
+              child: FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text(l.skirtingOfferAdd),
+              ),
+            ),
+            const SizedBox(height: Space.md),
+            SizedBox(
+              width: double.infinity,
+              height: Touch.primary,
+              child: OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(l.skirtingOfferNotNow),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

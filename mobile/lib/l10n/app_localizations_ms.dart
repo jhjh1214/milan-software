@@ -847,6 +847,20 @@ class LMs extends L {
   String get channelShowroom => 'Bilik pameran';
 
   @override
+  String get skirtingOfferTitle => 'Bilik ini ada rekod skirting';
+
+  @override
+  String skirtingOfferBody(Object feet) {
+    return '$feet kaki skirting disimpan untuk bilik ini. Tambah ke dalam sebutan harga?';
+  }
+
+  @override
+  String get skirtingOfferAdd => 'Tambah skirting';
+
+  @override
+  String get skirtingOfferNotNow => 'Jangan sekarang';
+
+  @override
   String depositNeededTitle(String category) {
     return 'Pesanan ini ada $category';
   }
