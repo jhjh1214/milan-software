@@ -235,10 +235,21 @@ button {
   border-color: var(--color-border);
 }
 
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn:active:not(:disabled) {
+    transform: none;
+  }
+}
+
 .btn-primary {
   border-color: var(--color-primary);
   background: var(--color-primary);
   color: var(--color-on-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -261,6 +272,44 @@ button {
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
+}
+
+/* One page container, one header shape, everywhere. Nine screens each
+   inventing their own "title + count + primary action" row is exactly how
+   a dashboard ends up with nine slightly different first impressions. */
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-5) var(--space-7);
+}
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.page-title {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: -0.01em;
+}
+
+.page-subtitle {
+  margin: var(--space-1) 0 0;
+  color: var(--color-fg-muted);
+  font-size: 14px;
+  max-width: 60ch;
+}
+
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
 }
 
 label {
@@ -309,6 +358,21 @@ th {
 td {
   padding: var(--space-3) var(--space-3);
   border-bottom: 1px solid var(--color-border-subtle);
+}
+
+/* A table living inside `.card` reads as one surface rather than a grid
+   floating on the page -- the last row's border would otherwise double up
+   against the card's own edge. */
+.card table tr:last-child td {
+  border-bottom: none;
+}
+
+tbody tr {
+  transition: background var(--duration-fast) var(--ease);
+}
+
+tbody tr:hover {
+  background: var(--color-surface-muted);
 }
 
 /* Numbers in a column, so money and dimensions do not shift as digits
@@ -374,6 +438,66 @@ td {
    page's own layout. */
 .table-scroll {
   overflow-x: auto;
+}
+
+/* A row of headline numbers -- the shape every report's "totals so far"
+   line was reaching for with a plain `<p>`. */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.stat-card {
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.stat-label {
+  margin: 0 0 var(--space-1);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-fg-muted);
+}
+
+.stat-value {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.stat-value.danger {
+  color: var(--color-danger);
+}
+
+.stat-value.warning {
+  color: var(--color-warning);
+}
+
+.stat-hint {
+  margin: var(--space-1) 0 0;
+  font-size: 12px;
+  color: var(--color-fg-muted);
+}
+
+/* A smaller heading inside a page, for a card or a grouped block that is
+   not important enough to be the page's own <h1>. */
+.section-title {
+  margin: 0 0 var(--space-3);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-fg-muted);
 }
 
 /* A spinning ring, for inside a busy button or beside "loading" text. Never

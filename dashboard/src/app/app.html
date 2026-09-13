@@ -1,54 +1,108 @@
 @if (session.signedIn()) {
-  <header class="chrome">
-    <nav aria-label="Main">
-      <a routerLink="/orders" routerLinkActive="on">{{ t().nav.orders }}</a>
-      <a routerLink="/measurement" routerLinkActive="on">
-        {{ t().nav.measurement }}
-      </a>
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">M</span>
+      <span class="brand-name">Milan</span>
+    </div>
 
-      <!-- Staff or admin, server-enforced -- a part-timer never sees a rate
-           at all (hard rule 8), but staff need this as much as an admin
-           does: it is how a price moves on the spot, at a fair table. -->
-      @if (session.isStaffOrAdmin()) {
-        <a routerLink="/rates/products" routerLinkActive="on">
-          {{ t().nav.products }}
+    <nav aria-label="Main" class="nav">
+      <div class="nav-group">
+        <a routerLink="/orders" routerLinkActive="on" class="nav-link">
+          <app-nav-icon name="orders" />
+          <span>{{ t().nav.orders }}</span>
         </a>
+        <a routerLink="/measurement" routerLinkActive="on" class="nav-link">
+          <app-nav-icon name="measurement" />
+          <span>{{ t().nav.measurement }}</span>
+        </a>
+      </div>
+
+      <!-- Staff or admin, server-enforced. A part-timer never sees a rate at
+           all (hard rule 8), so this whole group is invisible to them. -->
+      @if (session.isStaffOrAdmin()) {
+        <div class="nav-group">
+          <p class="nav-heading">{{ t().nav.sectionPricing }}</p>
+          <a routerLink="/rates/products" routerLinkActive="on" class="nav-link">
+            <app-nav-icon name="tag" />
+            <span>{{ t().nav.products }}</span>
+          </a>
+
+          <!-- Admin only, and the server enforces it. Hidden rather than shown
+               and refused: offering somebody a screen that answers 403 wastes
+               their time and teaches them the app is unreliable. -->
+          @if (session.isAdmin()) {
+            <a routerLink="/overrides" routerLinkActive="on" class="nav-link">
+              <app-nav-icon name="history" />
+              <span>{{ t().nav.priceChanges }}</span>
+            </a>
+            <a routerLink="/rates" routerLinkActive="on" class="nav-link">
+              <app-nav-icon name="document" />
+              <span>{{ t().nav.priceList }}</span>
+            </a>
+          }
+        </div>
       }
 
-      <!-- Admin only, and the server enforces it. Hidden rather than shown and
-           refused: offering somebody a screen that answers 403 wastes their
-           time and teaches them the app is unreliable. -->
       @if (session.isAdmin()) {
-        <a routerLink="/overrides" routerLinkActive="on">
-          {{ t().nav.priceChanges }}
-        </a>
-        <a routerLink="/rates" routerLinkActive="on">{{ t().nav.priceList }}</a>
-        <a routerLink="/reports" routerLinkActive="on">{{ t().nav.reports }}</a>
-        <a routerLink="/people" routerLinkActive="on">{{ t().nav.people }}</a>
-        <a routerLink="/library/review" routerLinkActive="on">
-          {{ t().nav.library }}
-        </a>
-        <a routerLink="/inventory" routerLinkActive="on">
-          {{ t().nav.inventory }}
-        </a>
-        <a routerLink="/inventory/allocations" routerLinkActive="on">
-          {{ t().nav.stockToApprove }}
-        </a>
+        <div class="nav-group">
+          <p class="nav-heading">{{ t().nav.sectionOperations }}</p>
+          <a routerLink="/inventory" routerLinkActive="on" class="nav-link">
+            <app-nav-icon name="box" />
+            <span>{{ t().nav.inventory }}</span>
+          </a>
+          <a routerLink="/inventory/allocations" routerLinkActive="on" class="nav-link">
+            <app-nav-icon name="check-box" />
+            <span>{{ t().nav.stockToApprove }}</span>
+          </a>
+          <a routerLink="/library/review" routerLinkActive="on" class="nav-link">
+            <app-nav-icon name="folder" />
+            <span>{{ t().nav.library }}</span>
+          </a>
+        </div>
+
+        <div class="nav-group">
+          <p class="nav-heading">{{ t().nav.sectionInsights }}</p>
+          <a routerLink="/reports" routerLinkActive="on" class="nav-link">
+            <app-nav-icon name="chart" />
+            <span>{{ t().nav.reports }}</span>
+          </a>
+          <a routerLink="/people" routerLinkActive="on" class="nav-link">
+            <app-nav-icon name="users" />
+            <span>{{ t().nav.people }}</span>
+          </a>
+        </div>
       }
     </nav>
 
-    <div class="who">
-      <!-- Here as well as on the sign-in screen: somebody whose account says
-           English can still be handed the machine by a colleague reading
-           Chinese, and neither of them should have to sign out to read it. -->
-      <app-language-picker />
-      <app-theme-toggle />
-      <span>{{ session.user()?.name }}</span>
-      <button type="button" class="sign-out" (click)="signOut()">
-        {{ t().nav.signOut }}
-      </button>
+    <div class="sidebar-footer">
+      <div class="controls">
+        <!-- Here rather than on the sign-in screen: somebody whose account
+             says English can still be handed the machine by a colleague
+             reading Chinese, and neither should have to sign out to read it. -->
+        <app-language-picker />
+        <app-theme-toggle />
+      </div>
+
+      <div class="who">
+        <span class="avatar" aria-hidden="true">{{ initial() }}</span>
+        <div class="who-info">
+          <span class="who-name">{{ session.user()?.name }}</span>
+          <span class="who-role">{{ roleLabel() }}</span>
+        </div>
+        <button
+          type="button"
+          class="sign-out"
+          [attr.title]="t().nav.signOut"
+          (click)="signOut()"
+        >
+          <app-nav-icon name="sign-out" />
+          <span class="visually-hidden">{{ t().nav.signOut }}</span>
+        </button>
+      </div>
     </div>
-  </header>
+  </aside>
 }
 
-<router-outlet />
+<main class="main-content">
+  <router-outlet />
+</main>

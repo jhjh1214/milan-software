@@ -57,6 +57,9 @@ export const EN: Strings = {
     language: 'Language',
     switchToLight: 'Switch to light mode',
     switchToDark: 'Switch to dark mode',
+    sectionPricing: 'Pricing',
+    sectionOperations: 'Operations',
+    sectionInsights: 'Insights',
   },
 
   signIn: {

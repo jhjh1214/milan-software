@@ -59,6 +59,9 @@ export const MS: Strings = {
     language: 'Bahasa',
     switchToLight: 'Tukar ke mod cerah',
     switchToDark: 'Tukar ke mod gelap',
+    sectionPricing: 'Harga',
+    sectionOperations: 'Operasi',
+    sectionInsights: 'Cerapan',
   },
 
   signIn: {

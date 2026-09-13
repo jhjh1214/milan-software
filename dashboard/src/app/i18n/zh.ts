@@ -59,6 +59,9 @@ export const ZH: Strings = {
     language: '语言',
     switchToLight: '切换为浅色模式',
     switchToDark: '切换为深色模式',
+    sectionPricing: '价格',
+    sectionOperations: '营运',
+    sectionInsights: '数据洞察',
   },
 
   signIn: {

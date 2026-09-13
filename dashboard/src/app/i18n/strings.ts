@@ -104,6 +104,11 @@ export interface NavStrings {
   readonly switchToLight: string;
   /** The theme toggle's label when it would switch to dark. */
   readonly switchToDark: string;
+  /** Sidebar group headings -- purely organisational, so a ten-item flat
+   * list reads as a menu rather than a wall of links. */
+  readonly sectionPricing: string;
+  readonly sectionOperations: string;
+  readonly sectionInsights: string;
 }
 
 /** Where an order came from. §6.3. */
