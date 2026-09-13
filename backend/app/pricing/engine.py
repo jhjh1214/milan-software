@@ -74,11 +74,20 @@ class ProductRuleViolation(Exception):
 @dataclass(frozen=True)
 class LineRequest:
     variant: str
-    width: Length
+    #: None only for a `direct_area_sqft` line -- a saved room has no real
+    #: width or height to give (SPEC.md's property library: an L-shaped
+    #: room's area does not reduce to one rectangle), so there is nothing
+    #: honest to put here.
+    width: Length | None = None
     material_key: str | None = None
     layer: Layer = Layer.SINGLE
     fulfilment: Fulfilment = Fulfilment.SUPPLY_INSTALL
     height: Length | None = None
+    #: A pre-known area, in square feet, exact. A room-sourced flooring line
+    #: prices from this instead of `width x height`, since a saved room's
+    #: `nominal_area_mm2` is the one figure it actually stores. Meaningful
+    #: only for `PriceBasis.PER_SQFT`; every other basis ignores it.
+    direct_area_sqft: Fraction | None = None
     #: Identical windows priced together. Multiplies **after** the line rounds.
     quantity: int = 1
 
@@ -366,19 +375,59 @@ def _raw_quantity(
 ) -> Fraction:
     basis = rule.basis
     if basis is PriceBasis.PER_FT_WIDTH:
-        return request.width.feet_exact
-
-    if basis is PriceBasis.PER_SQFT:
-        if request.height is None:
+        if request.width is None:
             raise NoApplicableRate(
                 variant=request.variant,
                 material_key=request.material_key,
                 band_value=None,
-                detail="per_sqft needs a height",
+                detail="per_ft_width needs a width",
+            )
+        return request.width.feet_exact
+
+    if basis is PriceBasis.PER_SQFT:
+        # A room-sourced line prices from its stored area directly -- there
+        # is no width/height pair to multiply (SPEC.md's property library: a
+        # saved room's area does not reduce to one rectangle). Never at
+        # final pricing: a plan-derived area is an estimate, and site
+        # measurement remains production truth -- final pricing always
+        # needs a real tape measurement.
+        if request.direct_area_sqft is not None:
+            if stage is PricingStage.FINAL:
+                raise NoApplicableRate(
+                    variant=request.variant,
+                    material_key=request.material_key,
+                    band_value=None,
+                    detail=(
+                        "a pre-known area cannot price final measurement -- "
+                        "the site must be measured for real"
+                    ),
+                )
+            if request.direct_area_sqft <= 0:
+                raise NoApplicableRate(
+                    variant=request.variant,
+                    material_key=request.material_key,
+                    band_value=None,
+                    detail="direct_area_sqft must be positive",
+                )
+            return request.direct_area_sqft
+
+        if request.width is None or request.height is None:
+            raise NoApplicableRate(
+                variant=request.variant,
+                material_key=request.material_key,
+                band_value=None,
+                detail="per_sqft needs a width and a height",
             )
         return area_sqft(request.width, request.height)
 
     if basis is PriceBasis.PER_M_LENGTH:
+        if request.width is None:
+            raise NoApplicableRate(
+                variant=request.variant,
+                material_key=request.material_key,
+                band_value=None,
+                detail="per_m_length needs a width",
+            )
         return Fraction(request.width.tmm, 10_000)
 
     if basis in (PriceBasis.PER_PIECE, PriceBasis.PER_SET):
@@ -412,6 +461,13 @@ def _raw_quantity(
             material_key=request.material_key,
             band_value=None,
             detail="per_roll needs a height at final pricing",
+        )
+    if request.width is None:
+        raise NoApplicableRate(
+            variant=request.variant,
+            material_key=request.material_key,
+            band_value=None,
+            detail="per_roll needs a width once measured",
         )
     return area_sqft(request.width, request.height) / rule.coverage_sqft
 

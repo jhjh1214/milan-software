@@ -2586,6 +2586,58 @@
         "total_sen": 40000,
         "deposit_category": "curtain"
       }
+    },
+    {
+      "id": "direct-area-flooring-below-minimum",
+      "source": "Property Library room-sourced flooring, Sep 2026",
+      "why": "A saved room has only a stored total area, never a width and a height (an L-shaped room's area does not reduce to one rectangle), so a room-sourced flooring line prices directly from that area rather than width x height. Below the printed 200 sqft minimum, so the floor still applies exactly as it does to a measured line.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "spc_4mm_1mm",
+        "material_key": null,
+        "layer": "single",
+        "fulfilment": "supply_install",
+        "width_tmm": null,
+        "height_tmm": null,
+        "direct_area_sqft": "150",
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "spc-4mm",
+        "billed_qty": "200",
+        "billed_unit": "sqft",
+        "min_qty_applied": true,
+        "rate_sen": 480,
+        "total_sen": 96000,
+        "deposit_category": "flooring"
+      }
+    },
+    {
+      "id": "direct-area-flooring-fractional-area-rounds-up",
+      "source": "Property Library room-sourced flooring, Sep 2026",
+      "why": "The stored area is an exact rational, not a float, and estimate-stage rounding still ceils it to a whole sqft same as a measured line's width x height would -- 700/3 is exactly 233 and a third, never 233.33333.",
+      "stage": "estimate",
+      "tier": "standard",
+      "line": {
+        "variant": "spc_4mm_1mm",
+        "material_key": null,
+        "layer": "single",
+        "fulfilment": "supply_install",
+        "width_tmm": null,
+        "height_tmm": null,
+        "direct_area_sqft": "700/3",
+        "quantity": 1
+      },
+      "expect": {
+        "rule_id": "spc-4mm",
+        "billed_qty": "234",
+        "billed_unit": "sqft",
+        "min_qty_applied": false,
+        "rate_sen": 480,
+        "total_sen": 112320,
+        "deposit_category": "flooring"
+      }
     }
   ],
   "quote_total_cases": [

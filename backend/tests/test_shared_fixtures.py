@@ -93,8 +93,13 @@ def test_line_case(case: dict) -> None:
             material_key=line["material_key"],
             layer=Layer(line["layer"]),
             fulfilment=Fulfilment(line["fulfilment"]),
-            width=Length(line["width_tmm"]),
+            width=None if line["width_tmm"] is None else Length(line["width_tmm"]),
             height=None if line["height_tmm"] is None else Length(line["height_tmm"]),
+            direct_area_sqft=(
+                None
+                if line.get("direct_area_sqft") is None
+                else Fraction(line["direct_area_sqft"])
+            ),
             quantity=line["quantity"],
             # Optional: only an add-on has one, and without it the deposit
             # category cannot be decided at all.
@@ -431,6 +436,30 @@ def test_per_roll_with_no_height_raises_at_final_pricing() -> None:
             request=LineRequest(variant="korea_wallpaper", width=Length(0)),
             card=CARD,
             stage=PricingStage.FINAL,
+        )
+
+
+def test_a_direct_area_cannot_price_final_measurement() -> None:
+    """A room-sourced area is a plan-derived estimate, and site measurement
+    remains production truth (SPEC.md's property library, "the line that
+    must never blur"). Refused rather than silently accepted, the same as
+    every other basis missing its real final dimension."""
+    with pytest.raises(NoApplicableRate):
+        price_line(
+            request=LineRequest(variant="spc_4mm_1mm", direct_area_sqft=Fraction(250)),
+            card=CARD,
+            stage=PricingStage.FINAL,
+        )
+
+
+def test_a_direct_area_still_needs_a_positive_number() -> None:
+    """A caller bug (an empty or non-positive stored area) must surface as a
+    refusal, not a free line or a negative price."""
+    with pytest.raises(NoApplicableRate):
+        price_line(
+            request=LineRequest(variant="spc_4mm_1mm", direct_area_sqft=Fraction(0)),
+            card=CARD,
+            stage=PricingStage.ESTIMATE,
         )
 
 

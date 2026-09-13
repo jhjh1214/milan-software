@@ -151,8 +151,19 @@ class LineRequest {
   final String? materialKey;
   final Layer layer;
   final Fulfilment fulfilment;
-  final Length width;
+
+  /// Null only for a [directAreaSqft] line — a saved room has no real width
+  /// or height to give (§ Property Library: an L-shaped room's area does not
+  /// reduce to one rectangle), so there is nothing honest to put here.
+  final Length? width;
   final Length? height;
+
+  /// A pre-known area, in square feet, exact. SPEC.md's property library: a
+  /// saved room's `nominal_area_mm2` is the one figure it actually stores,
+  /// never a width and a length, so a room-sourced flooring line prices from
+  /// this instead of [width] x [height]. Meaningful only for
+  /// [PriceBasis.perSqft] — every other basis ignores it.
+  final Rational? directAreaSqft;
 
   /// Identical windows priced together. Multiplies **after** the line rounds.
   final int quantity;
@@ -171,11 +182,12 @@ class LineRequest {
 
   const LineRequest({
     required this.variant,
-    required this.width,
+    this.width,
     this.materialKey,
     this.layer = Layer.single,
     this.fulfilment = Fulfilment.supplyInstall,
     this.height,
+    this.directAreaSqft,
     this.quantity = 1,
     this.parentFamily,
   });
@@ -511,22 +523,70 @@ Rational _rawQuantity(
 ) {
   switch (rule.basis) {
     case PriceBasis.perFtWidth:
-      return request.width.feetExact;
-
-    case PriceBasis.perSqft:
-      final height = request.height;
-      if (height == null) {
+      final width = request.width;
+      if (width == null) {
         throw NoApplicableRate(
           variant: request.variant,
           materialKey: request.materialKey,
           bandValue: null,
-          detail: 'per_sqft needs a height',
+          detail: 'per_ft_width needs a width',
         );
       }
-      return areaSqft(request.width, height);
+      return width.feetExact;
+
+    case PriceBasis.perSqft:
+      // A room-sourced line prices from its stored area directly — there is
+      // no width/height pair to multiply (§ Property Library: a saved
+      // room's area does not reduce to one rectangle). Never at final
+      // pricing: a plan-derived area is an estimate, and site measurement
+      // remains production truth (§ Phase 8's own line that must never
+      // blur) — final pricing always needs a real tape measurement.
+      final direct = request.directAreaSqft;
+      if (direct != null) {
+        if (stage == PricingStage.finalPricing) {
+          throw NoApplicableRate(
+            variant: request.variant,
+            materialKey: request.materialKey,
+            bandValue: null,
+            detail:
+                'a pre-known area cannot price final measurement — the site '
+                'must be measured for real',
+          );
+        }
+        if (direct.isNegative || direct.isZero) {
+          throw NoApplicableRate(
+            variant: request.variant,
+            materialKey: request.materialKey,
+            bandValue: null,
+            detail: 'directAreaSqft must be positive',
+          );
+        }
+        return direct;
+      }
+
+      final width = request.width;
+      final height = request.height;
+      if (width == null || height == null) {
+        throw NoApplicableRate(
+          variant: request.variant,
+          materialKey: request.materialKey,
+          bandValue: null,
+          detail: 'per_sqft needs a width and a height',
+        );
+      }
+      return areaSqft(width, height);
 
     case PriceBasis.perMLength:
-      return Rational(request.width.tmm, 10000);
+      final width = request.width;
+      if (width == null) {
+        throw NoApplicableRate(
+          variant: request.variant,
+          materialKey: request.materialKey,
+          bandValue: null,
+          detail: 'per_m_length needs a width',
+        );
+      }
+      return Rational(width.tmm, 10000);
 
     case PriceBasis.perPiece:
     case PriceBasis.perSet:
@@ -570,7 +630,16 @@ Rational _rawQuantity(
       // Pattern-repeat wastage is NOT applied: §13 A7 asks whether it is
       // already absorbed in the roll price, and a guessed percentage would
       // silently overcharge on every wall.
-      return areaSqft(request.width, height) / coverage;
+      final width = request.width;
+      if (width == null) {
+        throw NoApplicableRate(
+          variant: request.variant,
+          materialKey: request.materialKey,
+          bandValue: null,
+          detail: 'per_roll needs a width once measured',
+        );
+      }
+      return areaSqft(width, height) / coverage;
   }
 }
 

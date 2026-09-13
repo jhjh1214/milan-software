@@ -89,6 +89,52 @@ now force a refresh after the mutation that invalidates the cache.
 Full detail in `FINDINGS.md`'s third dated section. 787 backend tests,
 298 dashboard tests.
 
+**The pricing engine can now price a pre-known area directly, on both
+sides** (Sep 2026) — the real gap behind the client's "auto-calculate a
+full SPC flooring quote" ask (§ Property Library). Tracing the actual
+code before touching it found the gap was deeper than a missing picker
+screen: every `per_sqft` line, at quote time and at final measurement,
+has always priced from `width x height`, but a saved room's
+`nominal_area_mm2` deliberately stores only the *result* — a real room
+isn't always a rectangle, so there was never a width/length pair to keep.
+A saved room's area could not be dropped into the existing sizing step
+because there was nothing honest to drop in.
+
+`LineRequest.width` is now nullable on both engines (Dart and Python),
+and a new `directAreaSqft`/`direct_area_sqft` field lets a `per_sqft` line
+price from a pre-known exact-rational area instead of multiplying two
+dimensions — meaningful only for that one basis, ignored by every other.
+Every other place that read `request.width` unconditionally (`per_ft_width`,
+`per_m_length`, the measured `per_roll` branch) now null-checks it and
+refuses cleanly rather than crashing, which `flutter analyze` forced site
+by site rather than leaving any to find by testing. **Refused, not
+guessed, at final pricing**: a plan-derived area is an estimate, and site
+measurement remains production truth (Phase 8's own "line that must never
+blur"), so `directAreaSqft` at `PricingStage.finalPricing`/`FINAL` raises
+`NoApplicableRate` on both sides rather than letting a stale room figure
+stand in for a real tape measurement. A non-positive area is refused the
+same way.
+
+Two new cases in `shared/pricing-fixtures.json` (`direct-area-flooring-
+below-minimum`, proving the printed 200 sqft floor still applies; `direct-
+area-flooring-fractional-area-rounds-up`, proving `700/3` ceils to exactly
+234 sqft, never a float) hold both engines to the same numbers, plus four
+hand-written tests (two per side) pinning the final-pricing and
+positive-area refusals — each proven to fail before its guard and pass
+after by reverting the guard and re-running. 911 Dart tests, 791 backend
+tests.
+
+**Not yet wired to anything.** This is the engine capability alone,
+deliberately landed as its own verified slice before the larger,
+harder-to-reverse part: the mobile picker still only ever offers openings
+(a saved room is parsed off the API response and then dropped,
+`ApprovedUnitType` in `mobile/lib/sync/api_client.dart`), and letting a
+salesperson actually pick a room needs a Drift `schemaVersion` bump
+(`est_width_tmm`/`est_height_tmm` are `NOT NULL` today) mirrored by an
+Alembic migration on the server, changes through the quote-to-order
+pipeline, and the wizard's own room-picking step. Scoped but not started;
+see the next session's brief.
+
 **The dashboard has a real design system now** (client, Sep 2026): light and
 dark mode, a token-driven palette (`dashboard/design-system/MASTER.md`
 records why, mirroring the handset's own doc), skeleton loading and empty

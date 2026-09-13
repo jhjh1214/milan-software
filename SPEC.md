@@ -2161,6 +2161,20 @@ Confirmed as already in scope here — no new phase needed:
    area is already known, and the engine prices it like any other `per_sqft`
    line.
 
+   **Corrected, Sep 2026**: this was true of the data model, not yet of the
+   engine or the wizard. `rooms.nominal_area_mm2` stores only the resulting
+   area — a real room is not always a rectangle, so there was never a width
+   and a length to keep — and every `per_sqft` line, on both engines, priced
+   exclusively from `width x height` until now. The engine side is built:
+   `LineRequest.width` is nullable and a new `directAreaSqft`/
+   `direct_area_sqft` field prices a `per_sqft` line from a pre-known exact
+   area, refusing (never guessing) at final pricing, since a plan-derived
+   area is an estimate and site measurement remains production truth. Not
+   yet built: the wizard's picker only ever offers openings today, and
+   wiring a room through it needs a Drift schema bump
+   (`est_width_tmm`/`est_height_tmm` are `NOT NULL`) mirrored on the server,
+   plus the quote-to-order pipeline and the picker's own room-picking step.
+
 **But the auto-calculation comes from the stored room areas, not from reading
 the image.** The plan is a backdrop for tapping and a reference for the
 salesperson; the numbers come from the developer's schedule, typed once by an

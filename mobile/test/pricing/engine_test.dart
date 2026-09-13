@@ -425,6 +425,40 @@ void main() {
       );
     });
 
+    test('a direct area cannot price final measurement', () {
+      // A room-sourced area is a plan-derived estimate, and site measurement
+      // remains production truth (SPEC.md's property library, "the line
+      // that must never blur"). Refused, same as every other basis missing
+      // its real final dimension.
+      expect(
+        () => priceLine(
+          request: LineRequest(
+            variant: 'spc_4mm_1mm',
+            directAreaSqft: Rational.fromInt(250),
+          ),
+          card: card,
+          stage: PricingStage.finalPricing,
+        ),
+        throwsA(isA<NoApplicableRate>()),
+      );
+    });
+
+    test('a direct area still needs a positive number', () {
+      // A caller bug (an empty or non-positive stored area) must surface as
+      // a refusal, not a free line or a negative price.
+      expect(
+        () => priceLine(
+          request: LineRequest(
+            variant: 'spc_4mm_1mm',
+            directAreaSqft: Rational.zero,
+          ),
+          card: card,
+          stage: PricingStage.estimate,
+        ),
+        throwsA(isA<NoApplicableRate>()),
+      );
+    });
+
     test('the wrong material key does not silently match another rate', () {
       // Zebra J/BL and TBL differ by RM3/sqft. Falling through to the other
       // one would be invisible and wrong.

@@ -146,10 +146,15 @@ void main() {
             materialKey: line['material_key'] as String?,
             layer: Layer.fromWire(line['layer'] as String),
             fulfilment: Fulfilment.fromWire(line['fulfilment'] as String),
-            width: Length.tenths(line['width_tmm'] as int),
+            width: line['width_tmm'] == null
+                ? null
+                : Length.tenths(line['width_tmm'] as int),
             height: line['height_tmm'] == null
                 ? null
                 : Length.tenths(line['height_tmm'] as int),
+            directAreaSqft: line['direct_area_sqft'] == null
+                ? null
+                : Rational.tryParse(line['direct_area_sqft'] as String),
             quantity: line['quantity'] as int,
             // Optional: only an add-on has one, and without it the deposit
             // category cannot be decided at all.
