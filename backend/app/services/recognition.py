@@ -13,20 +13,30 @@ keeps a part-timer's own submission out of the library until an admin
 approves it. A proposal is a faster way to fill that form in, never a
 shortcut past it.
 
-## Providers are swappable, deliberately, before any is chosen
+## Providers are swappable, and three real ones now exist
 
-Which vision/LLM provider (or a locally-hosted model) actually does the
-recognition is an open commercial decision -- SPEC.md says so explicitly and
-this module does not guess it. What is decided now is the *shape* of the
-seam: a `RecognitionProvider` is anything with an `extract` method, chosen at
+A `RecognitionProvider` is anything with an `extract` method, chosen at
 runtime by `get_recognition_provider()` from two environment variables
-(`RECOGNITION_PROVIDER`, `RECOGNITION_MODEL`), so wiring in a real provider
-later is a config change and a new class registered in `_PROVIDERS`, never a
-change to a caller. `NullRecognitionProvider` is what runs today: it
-recognises nothing, says so plainly, and costs nothing -- callers (the
-`/api/recognize` route, the dashboard's and the handset's own "try
-recognition" buttons) are built and tested against its contract now, so
-turning on a real provider later touches no UI.
+(`RECOGNITION_PROVIDER`, `RECOGNITION_MODEL`). `NullRecognitionProvider`
+stays the default (`RECOGNITION_PROVIDER` unset, or any name it does not
+recognise) -- it recognises nothing, says so plainly, and costs nothing.
+`recognition_providers.py` now also registers `anthropic`, `openai` and
+`gemini`, each calling out to a hosted vision model and each individually
+disabled until its own API key is set (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
+`GEMINI_API_KEY`) -- so going live is entirely a config change on a box that
+already has this code deployed: set `RECOGNITION_PROVIDER` and the matching
+key, nothing here changes. Each also reads its own `_BASE_URL` env var, so
+any of the three doubles as the adapter for a self-hosted model later,
+wrapped to speak that vendor's API shape, with no new code.
+
+*Which* of the three (or none) actually runs in production remains a real
+commercial decision -- cost per call, and whether a developer's floor plan is
+consistent enough to be worth trusting at all -- that this module still does
+not make for anyone; it only makes trying any of them, or switching between
+them, cost nothing but an environment variable. Callers (the `/api/recognize`
+route, the dashboard's and the handset's own "try recognition" buttons) were
+built and tested against the placeholder's contract before any of this
+existed, so none of them changed to support it.
 """
 
 from __future__ import annotations
@@ -116,9 +126,24 @@ class NullRecognitionProvider:
 #: provider is: implement `RecognitionProvider`, add it here under a new
 #: name, and point the env var at it -- no caller of `get_recognition_provider`
 #: changes.
-_PROVIDERS: dict[str, type] = {
-    "none": NullRecognitionProvider,
-}
+#:
+#: Imported from `recognition_providers`, not defined here: this module is
+#: the interface and the registry, and SPEC.md §14.7 draws the line at
+#: "only its adapter" imports a vendor SDK -- `anthropic`/`openai`/
+#: `google.genai` are that module's business, not this one's.
+def _providers() -> dict[str, type]:
+    from .recognition_providers import (
+        AnthropicRecognitionProvider,
+        GeminiRecognitionProvider,
+        OpenAIRecognitionProvider,
+    )
+
+    return {
+        "none": NullRecognitionProvider,
+        "anthropic": AnthropicRecognitionProvider,
+        "openai": OpenAIRecognitionProvider,
+        "gemini": GeminiRecognitionProvider,
+    }
 
 
 def get_recognition_provider() -> RecognitionProvider:
@@ -130,5 +155,5 @@ def get_recognition_provider() -> RecognitionProvider:
     """
     name = os.environ.get("RECOGNITION_PROVIDER", "none").strip().lower()
     model = os.environ.get("RECOGNITION_MODEL") or None
-    provider_cls = _PROVIDERS.get(name, NullRecognitionProvider)
+    provider_cls = _providers().get(name, NullRecognitionProvider)
     return provider_cls(model)

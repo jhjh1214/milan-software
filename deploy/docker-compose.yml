@@ -55,10 +55,22 @@ services:
       TZ: Asia/Kuala_Lumpur
       # SPEC.md §14.7. Defaults to "none" (disabled) when unset in .env --
       # a fresh deploy stays exactly as it is today until someone chooses a
-      # real provider. Not a real provider yet: RECOGNITION_PROVIDER only
-      # ever registers the disabled placeholder (app/services/recognition.py).
+      # provider below and gives it a key. RECOGNITION_MODEL is passed
+      # through to whichever one is chosen; each provider has its own
+      # sensible default if left unset (app/services/recognition_providers.py).
       RECOGNITION_PROVIDER: ${RECOGNITION_PROVIDER:-none}
       RECOGNITION_MODEL: ${RECOGNITION_MODEL:-}
+      # Only the chosen provider's key needs a real value in .env -- the
+      # other two stay blank and their adapters answer `configured: false`,
+      # same as the placeholder does today. `_BASE_URL` is how any of the
+      # three points at a self-hosted, API-compatible model instead of the
+      # real vendor endpoint.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_BASE_URL: ${GEMINI_BASE_URL:-}
     depends_on:
       db:
         condition: service_healthy

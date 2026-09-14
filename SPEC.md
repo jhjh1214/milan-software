@@ -2099,6 +2099,22 @@ the general pattern §14.7 now documents** — domain, capability, provider
 interface, adapter, provider — not a one-off; a second capability follows
 the same shape rather than growing a special case onto this one.
 
+**Three real adapters now exist (Sep 2026), each individually opt-in.**
+`app/services/recognition_providers.py` registers `anthropic`, `openai` and
+`gemini` alongside the placeholder, each calling a hosted vision model
+through a forced structured-output call (a tool call, a function call, or a
+JSON schema, whichever that vendor calls the same idea) rather than asking
+for JSON in prose. `NullRecognitionProvider` stays the default: nothing
+about this changes until `RECOGNITION_PROVIDER` and that provider's own API
+key are both set. Each also reads its own `_BASE_URL` env var, so any of the
+three is also the adapter for a locally hosted model later, wrapped to
+speak that vendor's API shape, with no new code — a real instance of the
+"local inference stays a future option" shape §14.7 already names. See
+"Future: assisted digitisation" below for the rest: which one (if any)
+should actually run in production, at what cost per call, and whether a
+developer's floor plan is consistent enough to trust remain real questions
+this addendum does not answer.
+
 **Acceptance**
 - [x] A plan-sourced line can never become an `OrderLine` except through the
       pipeline's own site-visit gate — enforced by omission:
@@ -2310,14 +2326,37 @@ form.
 **Sequencing.** Bringing the *seam* forward rode along with the rest of Phase
 8's Sep 2026 acceleration — building `POST /api/recognize` cost little once
 the submission screens already existed, and doing so now means neither UI
-needs to change shape when a provider is chosen. Choosing and wiring an
-**actual** recognition provider remains unscheduled and uncosted: it needs a
-real decision about which provider, what it costs per call or to host, and
-whether developer floor plans are consistent enough for it to be worth
-trusting at all — none of which this session had grounds to guess. See
-§14.7 for the general shape this is one instance of, and §13 H for the
-specific open questions (provider, cost, privacy review) that stay
-unanswered until choosing one is actually worth doing.
+needs to change shape when a provider is chosen. See §14.7 for the general
+shape this is one instance of, and §13 H for the specific open questions
+(provider, cost, privacy review) that a real production rollout still needs
+answered.
+
+**Wired to three real vendors (Sep 2026), asked for directly rather than
+guessed at.** `app/services/recognition_providers.py` adds `anthropic`,
+`openai` and `gemini` adapters, each doing the same thing: send the image
+with a forced-structured-output request (each vendor's own name for "answer
+in exactly this shape, not prose"), parse the result into `ExtractionResult`
+without trusting it, and turn any failure — no key set, a timeout, a refusal,
+a response that does not fit the schema — into the same typed "not usable
+this time" answer `NullRecognitionProvider` already gives, never an
+exception a caller has to handle specially. `NullRecognitionProvider` is
+still the default; nothing runs until an admin sets `RECOGNITION_PROVIDER`
+and that one provider's own API key. Also new: each adapter reads its own
+`_BASE_URL` env var, so pointing `ANTHROPIC_BASE_URL` (or its OpenAI/Gemini
+equivalents) at a locally hosted model wrapped to answer in that vendor's
+own request/response shape is the same config change as switching vendors —
+covering "something run locally" from the original ask without a fourth,
+separate adapter.
+
+**What is still not decided, on purpose: which one (if any) actually runs in
+production.** Wiring in three real vendors makes trying any of them, or
+comparing them, cost an environment variable instead of a rewrite — it does
+not answer whether a developer's floor plan is consistent enough to trust,
+what a real rollout costs per call, or what a chosen hosted vendor's
+data-retention policy actually says about a customer's floor plan (§14.7's
+own privacy section). Those stay open questions for whoever turns one on for
+real, not something this session had grounds to answer on the client's
+behalf.
 
 ---
 
@@ -3129,9 +3168,13 @@ unlike approval's own lot picker. 7 new dashboard tests.
   wanted — floor-plan recognition (the seam already exists), a quotation
   assistant, something else from §2.5's list? Not decided, and not this
   document's decision to make; §14.7's boundary does not favour one.
-- **H2.** Which provider, hosted or local, and at what per-call or hosting
-  cost, once a capability is chosen? `RECOGNITION_PROVIDER` currently
-  registers only the disabled placeholder.
+- **H2.** ~~Which provider, hosted or local~~ **PARTLY ANSWERED, Sep 2026:**
+  `RECOGNITION_PROVIDER` now registers three real adapters (`anthropic`,
+  `openai`, `gemini` — `app/services/recognition_providers.py`), plus a
+  `_BASE_URL` override on each for a locally hosted model wrapped to speak
+  that vendor's shape. Still open: which one (if any) is worth actually
+  turning on in production, and at what per-call or hosting cost — trying
+  any of them now costs an environment variable and a key, not a build.
 - **H3.** A real provider's data-retention and model-training-use policy,
   reviewed before it ever sees a customer's floor plan, quotation or
   message — a privacy question, not a technical one, and one this document

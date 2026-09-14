@@ -10,3 +10,9 @@ pydantic-settings==2.7.0
 # depend on it directly. The floor plan upload is the first thing in this
 # app that takes a file rather than JSON.
 python-multipart==0.0.20
+# app/services/recognition_providers.py -- SPEC.md §14.7's adapters for the
+# floor-plan recognition capability. Each is disabled until its own API key
+# is set in .env; importing the SDK costs nothing on its own.
+anthropic==1.5.0
+openai==3.13.0
+google-genai==2.23.0

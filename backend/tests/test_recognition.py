@@ -1,10 +1,11 @@
 """The AI recognition provider seam. SPEC.md Phase 8, "Future: assisted
-digitisation".
+digitisation", and §14.7 for the general shape.
 
-What matters here is the swap, not any actual recognition -- no real
-provider is chosen yet. `get_recognition_provider` must read its config from
-the environment, fall back safely on anything it does not recognise, and
-never let a typo in an env var take a route down.
+What matters here is the swap. `get_recognition_provider` must read its
+config from the environment, fall back safely on anything it does not
+recognise, and never let a typo in an env var take a route down. The three
+real adapters' own extract() behaviour (mocked, no network) is
+`test_recognition_providers.py`.
 """
 
 from __future__ import annotations
@@ -12,6 +13,11 @@ from __future__ import annotations
 from app.services.recognition import (
     NullRecognitionProvider,
     get_recognition_provider,
+)
+from app.services.recognition_providers import (
+    AnthropicRecognitionProvider,
+    GeminiRecognitionProvider,
+    OpenAIRecognitionProvider,
 )
 
 
@@ -39,6 +45,29 @@ class TestProviderSelection:
         monkeypatch.setenv("RECOGNITION_PROVIDER", "  NONE  ")
         provider = get_recognition_provider()
         assert isinstance(provider, NullRecognitionProvider)
+
+    def test_anthropic_is_selectable(self, monkeypatch) -> None:
+        monkeypatch.setenv("RECOGNITION_PROVIDER", "anthropic")
+        assert isinstance(get_recognition_provider(), AnthropicRecognitionProvider)
+
+    def test_openai_is_selectable(self, monkeypatch) -> None:
+        monkeypatch.setenv("RECOGNITION_PROVIDER", "openai")
+        assert isinstance(get_recognition_provider(), OpenAIRecognitionProvider)
+
+    def test_gemini_is_selectable(self, monkeypatch) -> None:
+        monkeypatch.setenv("RECOGNITION_PROVIDER", "gemini")
+        assert isinstance(get_recognition_provider(), GeminiRecognitionProvider)
+
+    def test_a_real_providers_own_default_model_is_used_when_unset(
+        self, monkeypatch
+    ) -> None:
+        # Distinct from the placeholder, which has no opinion of its own --
+        # a real provider still needs a model name even when nobody has set
+        # RECOGNITION_MODEL yet.
+        monkeypatch.setenv("RECOGNITION_PROVIDER", "anthropic")
+        monkeypatch.delenv("RECOGNITION_MODEL", raising=False)
+        provider = get_recognition_provider()
+        assert provider.model
 
 
 class TestNullRecognitionProvider:

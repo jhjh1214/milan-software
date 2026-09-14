@@ -12,6 +12,49 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 
 ## Current state
 
+**Floor-plan recognition has three real providers now, asked for directly**
+(Sep 2026): SPEC.md §14.7 and "Future: assisted digitisation" both
+deliberately left *which* vendor to a later decision, made explicitly this
+session rather than guessed at. `app/services/recognition_providers.py`
+registers `anthropic`, `openai` and `gemini` alongside
+`NullRecognitionProvider` (still the default): each sends the floor-plan
+image with a forced structured-output call -- a tool call, a function call,
+or a constrained JSON schema, whichever that vendor calls the same idea --
+so a malformed or missing field is a parse failure to catch, not prose to
+trust. Every one of §14.7's reliability rules is what the tests actually
+pin: no API key set, a timeout, a refusal, or a response that does not fit
+the schema all degrade to the same typed `configured`-aware result
+`NullRecognitionProvider` already returned, never an exception a caller has
+to handle specially, and one malformed item in an otherwise-good response
+does not sink the rest of the proposal.
+
+**Also the seam for "wrap a local model as one of these later,"** which is
+the specific direction asked for: each adapter reads its own `_BASE_URL` env
+var (`ANTHROPIC_BASE_URL` and its OpenAI/Gemini equivalents) and, when set,
+points that vendor's own official SDK at it instead of the real API --
+so a self-hosted model, once wrapped to answer in whichever vendor's
+request/response shape is easiest to implement, plugs in as a config change
+on a box that already has this code, exactly like switching between the
+three hosted vendors is. No fourth adapter was built for "local" specifically,
+because there is nothing a local-only adapter would do differently from
+pointing an existing one's base URL at `localhost`.
+
+Going live with any one of them is now genuinely just an env var and a key:
+`RECOGNITION_PROVIDER=anthropic` (or `openai`/`gemini`) plus that provider's
+own `_API_KEY` in `.env` -- `docker-compose.yml`'s `api` service already
+passes all three keys and all three base-URL overrides through
+unconditionally, each blank and inert until named. Which one (if any) is
+actually worth running against real developer floor plans, and at what cost
+per call, is exactly the open question SPEC.md's own §13 H2 says this
+session had no grounds to answer on the client's behalf -- wiring in three
+real options makes trying any of them free, not the same thing as picking
+one.
+
+31 new backend tests (`test_recognition_providers.py`, plus new selection
+cases in `test_recognition.py`), every provider's own extract() mocked at
+the SDK client level so none of them make a real network call; mutation-
+confirmed on the base-URL wiring. 863 backend tests.
+
 **A security review of the API itself, asked for directly rather than found
 by a sweep** (Sep 2026, same session as the deploy work below): rate
 limiting, a request-size ceiling, and a deliberate explanation of two things
