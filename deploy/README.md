@@ -82,6 +82,102 @@ docker compose cp ../shared/rate-card-fair-2026-08.json api:/tmp/card.json
 docker compose exec api python -m app.cli cards publish /tmp/card.json --list-id fair
 ```
 
+## Local development
+
+The same `db` and `api` services, minus Caddy, with `db` and `api` published
+to the host instead of reachable only on the compose network. Caddy is left
+out on purpose: it has nothing to serve locally (no real domain, no
+certificate to get), and the dashboard's own dev server (`ng serve`,
+already proxying `/api` to `http://localhost:8000` -- see
+`dashboard/proxy.conf.json`) and Flutter's `flutter run` are the normal way
+to work on either client day to day.
+
+```sh
+cd deploy
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build db api
+curl -fsS http://localhost:8000/api/health     # {"status":"ok"}
+```
+
+`docker-compose.dev.yml` is a Compose *override*, not a replacement --
+`docker-compose.yml` stays exactly what actually deploys, and nothing in the
+override file is meant to ever run on the VPS.
+
+Seed it the same way a fresh box gets its first admin, then add a couple more
+accounts and enough data to exercise the newer phases (Inventory, the
+Property Library) rather than just sign-in:
+
+```sh
+# The first admin, per "The first admin" above.
+echo 4821 | docker compose exec -T api python -m app.cli users add \
+    --name "Boss" --phone 0123456789 --role admin
+
+# A staff and a part-timer account -- hard rule 8 means what a part-timer
+# can and cannot see is worth testing as its own signed-in role, not
+# inferred from the admin account.
+echo 4821 | docker compose exec -T api python -m app.cli users add \
+    --name "Staff Sam" --phone 0123456780 --role staff
+echo 4821 | docker compose exec -T api python -m app.cli users add \
+    --name "Part-timer Amy" --phone 0123456781 --role parttime
+
+# Both rate cards -- a fresh box otherwise has neither list, and
+# "compare fair against standard" is not testable with only one of them.
+docker compose cp ../shared/rate-card-fair-2026-08.json api:/tmp/fair.json
+docker compose cp ../shared/rate-card-standard.json api:/tmp/standard.json
+MSYS_NO_PATHCONV=1 docker compose exec api python -m app.cli cards publish /tmp/fair.json --list-id fair
+MSYS_NO_PATHCONV=1 docker compose exec api python -m app.cli cards publish /tmp/standard.json --list-id standard
+```
+
+`MSYS_NO_PATHCONV=1` is a Git Bash thing, not a Milan one: without it, Git
+Bash rewrites `/tmp/fair.json` into a Windows path before `docker compose`
+ever sees it, and the container reports a file that does not exist.
+
+The CLI has nothing for materials, projects, or stock -- Phase 8 and 9 were
+both built API-first, with no CLI to match `users`/`cards`. Seed those
+through the real endpoints instead, signed in as the admin just created:
+
+```sh
+TOKEN=$(curl -fsS -X POST http://localhost:8000/api/auth/login \
+    -H "Content-Type: application/json" \
+    -d '{"phone":"0123456789","pin":"4821","device_id":"seed","device_label":"seed"}' \
+    | python3 -c "import sys,json;print(json.load(sys.stdin)['token'])")
+
+curl -fsS -X POST http://localhost:8000/api/projects \
+    -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
+    -d '{"name":"Taman Harmoni","developer":"ABC Sdn Bhd","area":"Ayer Keroh, Melaka"}'
+
+curl -fsS -X POST http://localhost:8000/api/materials \
+    -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
+    -d '{"family":"flooring","variant_compat":["spc_4mm_1mm"],"code":"SPC-OAK-4MM","names":{"zh":"四毫米SPC地板","en":"4mm SPC flooring","ms":"Lantai SPC 4mm"},"uom":"box","coverage_per_unit":"18","reorder_level":"20"}'
+# -> note the material's own "id" from the response, then:
+curl -fsS -X POST http://localhost:8000/api/stock/receive \
+    -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
+    -d '{"material_id":"<id from above>","lot_ref":"DYE-2609-01","qty":"40","cost_sen":8500,"location":"Warehouse A"}'
+```
+
+**Pointing the mobile app at this.** `ServerConfig.parse` (the "change
+server" field in the app's own settings screen) refuses anything that is
+not `https`, on purpose -- a PIN and a non-expiring token cross this
+connection, and a fair's wifi is a stranger's wifi (`mobile/lib/sync/
+server_config.dart`). That check does not apply to the compile-time
+default, so pointing a local debug build at this box is a build flag,
+never a runtime setting:
+
+```sh
+cd mobile
+# Android emulator: 10.0.2.2 is the special alias for the host machine.
+flutter run --dart-define=MILAN_API_URL=http://10.0.2.2:8000
+# A physical phone on the same Wi-Fi as this machine: use this machine's
+# own LAN IP instead of 10.0.2.2 (ipconfig / ip addr), e.g.
+flutter run --dart-define=MILAN_API_URL=http://192.168.1.23:8000
+```
+
+Tear it down the same way as anything else here, keeping the seeded data
+between sessions (the `db-data` volume is untouched by `down` alone):
+
+```sh
+docker compose -f docker-compose.yml -f docker-compose.dev.yml down
+```
+
 ## Backups
 
 `backup.sh` dumps, then **restores the dump it just took** into a scratch

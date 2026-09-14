@@ -5,9 +5,9 @@
     "behind it, so without this every screen shows 'No answer from the",
     "server' and there is nothing to test by hand.",
     "",
-    "Points at the backend running locally on 8000 — see the README's",
-    "'Running it locally'. Development only: the production build never",
-    "reads this file."
+    "Points at the backend running locally on 8000 — see this project's",
+    "own README, 'Running against a local backend'. Development only: the",
+    "production build never reads this file."
   ],
   "/api": {
     "target": "http://localhost:8000",

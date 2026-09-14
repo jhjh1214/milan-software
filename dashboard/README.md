@@ -4,7 +4,23 @@ This project was generated using [Angular CLI](https://github.com/angular/angula
 
 ## Development server
 
-To start a local development server, run:
+`ng serve` alone shows every screen as "No answer from the server" -- the
+dashboard calls `/api` on its own origin because in production Caddy serves
+both the app and the API from one host, and `ng serve` has nothing behind
+it. `proxy.conf.json` (already wired into `angular.json`) forwards `/api`
+to `http://localhost:8000`, so a real backend needs to be running there
+first:
+
+```sh
+cd ../deploy
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build db api
+```
+
+See `deploy/README.md`'s own "Local development" section for seeding an
+admin (and a staff/part-timer account, a rate card, some inventory) into a
+fresh box -- signing in needs at least the admin.
+
+Then, from `dashboard/`:
 
 ```bash
 ng serve

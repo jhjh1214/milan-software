@@ -1,0 +1,32 @@
+# Local development only. The base compose file deliberately publishes no
+# port for `db` or `api` -- "Postgres publishes no port" and "the API
+# publishes no port" are both named in deploy/README.md's own "What is
+# deliberately not here" section, because on the real VPS a published 5432
+# or 8000 is how they get found by someone who should not have them, and
+# Caddy is meant to be the only way in.
+#
+# A laptop running this for local testing is not that VPS: there is no
+# public IP to worry about, and a phone on the same Wi-Fi (or an Android
+# emulator, which reaches the host at 10.0.2.2) needs a direct route to the
+# API that does not go through Caddy, since Caddy's own TLS setup needs a
+# real domain with an A record pointing here, which a laptop does not have.
+#
+# This file is a Compose override, merged on top of the base file rather
+# than replacing it -- the base file stays exactly what is deployed to the
+# VPS, and nothing here is meant to ever run there.
+#
+#   cd deploy
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db api
+#
+# Deliberately excludes `caddy`: it has nothing to serve locally (no real
+# domain, no certificate to get) and the dashboard has its own dev server
+# for local work (`npm start` in dashboard/, proxied or pointed at
+# http://localhost:8000 directly).
+
+services:
+  db:
+    ports:
+      - "5432:5432"
+  api:
+    ports:
+      - "8000:8000"
