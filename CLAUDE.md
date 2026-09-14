@@ -12,6 +12,47 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 
 ## Current state
 
+**The handset had the same gap, worse: `ApiClient.me()` was dead code, and
+a real bug meant its own manual sign-out branch could never fire either**
+(found while sweeping for other instances of the dashboard gap above, Sep
+2026). `me()` — `GET /api/auth/me`, calling out to notice a revoked session
+and pick up a role or language changed in the office — was defined,
+correctly wired into the fake test server, and never called from anywhere
+in `lib/`. A deactivated part-timer's handset kept quoting, kept whatever
+admin UI its cached role unlocked, and kept queueing to an outbox that
+would never drain, indefinitely, until something else happened to notice.
+
+Separately, `SyncController.syncNow()`'s own revocation handling
+(`state.signedOut` → `signOutLocally()`) sat *after* the rate-card pull —
+but a revoked token 401s the pull itself first, which takes an **early
+return** a few lines above that check. The one branch built to catch this
+could not be reached by the exact case it was built for; nothing in
+`test/` referenced `signedOut` or `signOutLocally` at all, so nothing had
+ever exercised it either way.
+
+Fixed together: `syncNow()` now calls `me()` first, before the pull.
+`unauthenticated` signs out immediately, spending nothing on a price pull
+for a token already dead. A role or language that disagrees with what the
+handset is holding is written back through a new `CredentialsNotifier.
+updateIdentity()`. Anything else (offline, a one-off hiccup on that one
+call) falls through to the pull exactly as before `me()` existed — this
+must never become a second gate on quoting, hard rule 9's whole point. The
+pull's own early-return path now also checks `signedOut` before returning,
+closing the original unreachable-branch gap independently of the new check
+racing ahead of it. A related, smaller finding from the same sweep: a
+restored session's language never re-seeded `languageProvider` on launch —
+a Malay-only reader force-quitting and reopening saw the app default back
+to Chinese until they re-picked it by hand; `CredentialsNotifier.build()`
+now seeds it, the way `signIn()` already did for a fresh sign-in.
+
+`SyncController` had no unit coverage at all before this — 6 new tests in
+a new `test/sync/sync_state_test.dart` are the first, covering all of the
+above including the pre-existing early-return bug (which the "offline
+never gates a sync" case would have caught regressing). `test/sync/
+fake_server.dart` gained a `meResponse` field so a test can simulate a
+changed role without touching its existing, unrelated callers. 926 Dart
+tests.
+
 **A revoked dashboard session used to keep rendering as signed in** (found
 and fixed in a gap sweep after the shell pass above, Sep 2026) — a real
 regression risk the session-persistence work introduced rather than one it

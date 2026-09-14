@@ -64,7 +64,18 @@ final credentialsProvider =
 
 class CredentialsNotifier extends AsyncNotifier<Credentials?> {
   @override
-  Future<Credentials?> build() => ref.watch(secureStoreProvider).session.read();
+  Future<Credentials?> build() async {
+    final held = await ref.watch(secureStoreProvider).session.read();
+    // A restored session's own language, not whatever `languageProvider`'s
+    // default happens to be -- otherwise a Malay-only reader force-quits and
+    // reopens to a Chinese app until they re-pick it by hand. `signIn()`
+    // already seeds this the same way for a fresh sign-in (§8.3); nothing
+    // previously did it for one merely picked back up.
+    if (held != null) {
+      ref.read(languageProvider.notifier).state = held.user.language;
+    }
+    return held;
+  }
 
   /// Signs in. Once, before the fair — the session never expires.
   Future<SyncResult<Credentials>> signIn({
@@ -103,6 +114,18 @@ class CredentialsNotifier extends AsyncNotifier<Credentials?> {
   Future<void> signOutLocally() async {
     await ref.read(secureStoreProvider).session.clear();
     state = const AsyncData(null);
+  }
+
+  /// Picks up a role or language changed in the office, or a name
+  /// correction -- called after `GET /api/auth/me` confirms the token is
+  /// still good but disagrees with what this handset is holding. The token
+  /// itself never changes; only who it says it belongs to.
+  Future<void> updateIdentity(Identity identity) async {
+    final held = state.valueOrNull;
+    if (held == null) return;
+    final updated = Credentials(token: held.token, user: identity);
+    await ref.read(secureStoreProvider).session.write(updated);
+    state = AsyncData(updated);
   }
 }
 
@@ -198,12 +221,12 @@ class SyncController extends Notifier<SyncStatus> {
   @override
   SyncStatus build() => const SyncStatus();
 
-  /// One pass: prices down, then quotes up.
+  /// One pass: confirm the session, prices down, then quotes up.
   ///
-  /// That order on purpose. Prices are what the next customer will be quoted,
-  /// and a queue of finished quotes can wait another minute; if the connection
-  /// only lasts for one of the two, it should be the one that affects what
-  /// happens next.
+  /// Prices before quotes on purpose. Prices are what the next customer will
+  /// be quoted, and a queue of finished quotes can wait another minute; if
+  /// the connection only lasts for one of the two, it should be the one
+  /// that affects what happens next.
   ///
   /// Safe to call on launch, on reconnect, and from a button. Returns quietly
   /// when there is no session — never a prompt, because a prompt in the middle
@@ -213,6 +236,35 @@ class SyncController extends Notifier<SyncStatus> {
     if (credentials == null || state.running) return state;
 
     state = state.copyWith(running: true, clearFailure: true);
+
+    // `GET /api/auth/me` ahead of everything else: the one request that can
+    // say "this token is dead" or "the office changed your role" before
+    // anything downstream acts on stale credentials. The dashboard's own
+    // `Session.restore()` does the same check for the same reason -- the
+    // backend route's own docstring names both cases, and until now nothing
+    // on the handset ever called it, so neither ever actually happened here.
+    final me = await ref.read(apiClientProvider).me(credentials.token);
+    switch (me) {
+      case SyncOk(value: final identity):
+        if (identity.role != credentials.user.role ||
+            identity.language != credentials.user.language) {
+          await ref.read(credentialsProvider.notifier).updateIdentity(identity);
+          ref.read(languageProvider.notifier).state = identity.language;
+        }
+      case SyncFailed(failure: SyncFailure.unauthenticated):
+        state = state.copyWith(
+          running: false,
+          lastFailure: SyncFailure.unauthenticated,
+        );
+        await ref.read(credentialsProvider.notifier).signOutLocally();
+        return state;
+      case SyncFailed():
+        // Offline, or a one-off server hiccup on this one call: carry on to
+        // the pull exactly as before `me()` existed. This must never become
+        // a gate on quoting (hard rule 9) -- a fair tent with no signal is
+        // ordinary operation, not a reason to stop.
+        break;
+    }
 
     final pull = await ref.read(rateCardSyncProvider).pull(credentials);
     if (pull.changedAnything) {
@@ -229,6 +281,13 @@ class SyncController extends Notifier<SyncStatus> {
         pricesUpdated: pull.updated.keys.toList(growable: false),
         discardedLocalEdit: pull.discardedLocalEdit,
       );
+      // Was previously only checked after a successful pull -- a pull that
+      // itself 401s (the token revoked in the gap between the check above
+      // and this request) used to return here with the banner lit but the
+      // credentials never actually cleared.
+      if (state.signedOut) {
+        await ref.read(credentialsProvider.notifier).signOutLocally();
+      }
       return state;
     }
 

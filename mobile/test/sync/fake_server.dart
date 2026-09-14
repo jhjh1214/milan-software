@@ -29,6 +29,16 @@ class FakeServer {
   /// priced against a rate card version this server never published.
   bool rejectQuotes = false;
 
+  /// What `GET /api/auth/me` reports. Overridable so a test can simulate a
+  /// role or language changed in the office while this handset was closed --
+  /// defaults to the same fixed identity `/api/auth/login` issues.
+  Map<String, dynamic> meResponse = const {
+    'id': 'u1',
+    'name': 'Ah Lian',
+    'role': 'parttime',
+    'language': 'zh',
+  };
+
   /// When set, the server reports this total instead of agreeing with the
   /// device — the §9.4 disagreement path.
   int? serverTotalOverrideSen;
@@ -158,12 +168,7 @@ class FakeServer {
     }
 
     if (path == '/api/auth/me') {
-      return _json({
-        'id': 'u1',
-        'name': 'Ah Lian',
-        'role': 'parttime',
-        'language': 'zh',
-      });
+      return _json(meResponse);
     }
 
     if (path == '/api/bundle') {
