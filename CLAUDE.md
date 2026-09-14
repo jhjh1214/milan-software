@@ -26,6 +26,15 @@ since the admin review screen is where "the office is setting up a new
 development before anyone visits it" already belongs. 3 new dashboard
 tests. 333 dashboard tests.
 
+Two more routes turned up in the same sweep, named rather than built:
+`POST /api/unit-types/{id}/submit` (draft-then-submit) and `POST
+/api/unit-types/{id}/versions` (a correction to an *approved* unit type)
+are both tested and both unreachable, and both need the same missing
+piece — an admin-authoring surface for the library beyond the review
+queue. That is a real feature, not a small patch (an openings/rooms/
+floor-plan form matching the mobile submission screen's own complexity),
+so it is SPEC.md §13 **C17** rather than a guess.
+
 **Two more Phase 9 routes existed, tested, with no way to reach them** —
 found the same way the `me()` gap above was: grepping every `Api` method
 the dashboard defines against what actually calls it. Two came back

@@ -3064,6 +3064,20 @@ unlike approval's own lot picker. 7 new dashboard tests.
   defensible; this one was chosen because a provenance column that can
   silently disagree with the number beside it is worse than one that is
   simply absent.
+- **C17.** Found sweeping for unreachable routes (Sep 2026), same pass that
+  found and closed the project-creation gap above: `POST /api/unit-types/
+  {id}/submit` (the draft-then-submit path, as opposed to a part-timer's
+  one-shot `submit=true`) and `POST /api/unit-types/{id}/versions`
+  (`add_corrected_version` -- a correction to an *approved* unit type,
+  never an edit to the live one) both exist, are tested, and are
+  unreachable from either client. Both need the same missing piece: an
+  admin-authoring surface for the library beyond the review queue, which
+  today only ever lists items already at `pending_review` and removes them
+  once decided. Building one is not a small patch — it means an openings/
+  rooms/floor-plan input matching the mobile submission screen's own
+  complexity, plus a real answer to what "browse the approved library"
+  even shows and who can correct what. Left named rather than guessed at,
+  the same way C16 was.
 
 ## D. Documents
 - `[BLOCKING P2]` **D1.** Two or three existing quote and order samples.
