@@ -3,7 +3,19 @@
 # client, and it is also the shape a person can reason about at 2am.
 #
 #   cd deploy && cp .env.example .env && $EDITOR .env && docker compose up -d
+#
+# Every service below gets a memory/CPU ceiling and a log cap. Sized for a
+# small box (2 vCPU / 4GB) -- tune both if the real one differs. Without
+# these, a leak or a noisy log is how a $6 VPS goes down at 3am: OOM has no
+# ceiling to stop at, and json-file has no cap by default, so either can fill
+# the disk or take the whole box down long before anyone is watching.
 name: milan
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
 
 services:
   db:
@@ -27,6 +39,12 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
 
   api:
     build:
@@ -47,6 +65,12 @@ services:
     # Also unpublished: Caddy is the only way in, so TLS cannot be bypassed.
     expose:
       - "8000"
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
 
   caddy:
     # Built rather than pulled: the image is Caddy with the dashboard baked in.
@@ -71,6 +95,12 @@ services:
       - caddy-config:/config
     depends_on:
       - api
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
 
 volumes:
   db-data:

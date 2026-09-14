@@ -1,0 +1,28 @@
+# A registry-pinned deploy. The base file's `api`/`caddy` build from source,
+# which is what local dev and a from-scratch "First boot" want -- this
+# override swaps both to a specific image `release.yml` already built and
+# probed in CI (SPEC.md's own "the image is only worth pushing if it starts,
+# migrates and serves"), rather than rebuilding from the same source a
+# second time on a small VPS and hoping it comes out the same.
+#
+# Not meant to be run by hand: `deploy.sh` sets MILAN_API_IMAGE and
+# MILAN_WEB_IMAGE to a specific tag before calling compose with this file.
+# The fallback below is only so `docker compose config` does not fail if
+# this file is ever inspected on its own.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml pull api caddy
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# `!reset` (Compose Specification, needs Compose v2.24+) drops the base
+# file's `build:` entirely rather than leaving both keys set -- with both
+# present, `up` still builds from source whenever the named image is not
+# already on disk, which is exactly the rebuild this file exists to avoid.
+
+services:
+  api:
+    image: ${MILAN_API_IMAGE:-ghcr.io/jhjh1214/milan-software/api:main}
+    build: !reset null
+
+  caddy:
+    image: ${MILAN_WEB_IMAGE:-ghcr.io/jhjh1214/milan-software/web:main}
+    build: !reset null

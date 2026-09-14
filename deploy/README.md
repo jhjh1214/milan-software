@@ -6,9 +6,15 @@ shape for one developer supporting one client.*
 
 ## First boot
 
+Harden the box before anything is listening on it -- an internet-facing SSH
+daemon starts getting credential-stuffed within hours of the VPS existing,
+long before there is a domain, a certificate or a reason to think of it as
+"live" yet:
+
 ```sh
 git clone <repo> /opt/milan
 cd /opt/milan/deploy
+sudo bash harden.sh          # firewall (22, 80, 443 only) + fail2ban on sshd
 cp .env.example .env
 $EDITOR .env                 # domain, ACME email, a generated password
 docker compose up -d --build
@@ -187,6 +193,65 @@ between sessions (the `db-data` volume is untouched by `down` alone):
 docker compose -f docker-compose.yml -f docker-compose.dev.yml down
 ```
 
+## Staging
+
+A second box, provisioned exactly like "First boot" above but with its own
+domain (`deploy/.env.staging.example` -- copy it to `.env` on that box, not
+`.env.example`, which is production's template) and its own database. Not a
+Compose override: it is the same `docker-compose.yml` everything else here
+uses, on different hardware, so there is nothing about staging that behaves
+differently from production except which box it is and which data is in it.
+
+Every tag pushed to the repo lands here **automatically**, with no approval
+step -- `.github/workflows/deploy.yml`'s `staging` job fires once
+`release.yml` has built and probed that tag's images, and runs
+`deploy.sh <tag>` over SSH. That is the point of staging: it always has the
+newest tag before a human decides whether production should.
+
+One-time setup, once the box exists and `harden.sh` + the first boot above
+have run: add `STAGING_SSH_HOST`, `STAGING_SSH_USER` and `STAGING_SSH_KEY`
+(a deploy key whose *public* half is in that box's `~/.ssh/authorized_keys`)
+as repository secrets in GitHub Settings -> Secrets and variables -> Actions.
+Nothing deploys there until those three exist.
+
+## Deploying a release
+
+```sh
+cd /opt/milan/deploy
+./deploy.sh v1.4.0
+```
+
+Backs up first, checks out the tag, pulls the exact API and web images
+`release.yml` already built and probed at that tag from GHCR (rather than
+rebuilding from source on the box -- see `docker-compose.prod.yml`'s own
+comment for why), brings the stack up on them, and waits for the API
+container's own `HEALTHCHECK` to report healthy. Fails loud and does not
+guess at a rollback: if the new tag never comes up healthy, the previous
+images are still on disk and `./deploy.sh <previous-tag>` puts them back.
+
+**Staging runs this automatically on every tag** (see "Staging" above).
+**Production never does** -- `.github/workflows/deploy.yml`'s `production`
+job is `workflow_dispatch` only, so it takes a person opening the Actions
+tab, picking "Deploy", and typing the tag by hand. Same three secrets as
+staging, named `PRODUCTION_SSH_HOST` / `_USER` / `_KEY`. Add required
+reviewers to the `production` environment in Settings -> Environments to
+turn that into a real approval gate rather than just a deliberate click.
+
+Building fresh from source on the box (`git pull && docker compose up -d
+--build`, "Upgrading" below) still works and is not going away -- it is the
+simpler path for a one-off fix that never got tagged, and what to reach for
+if GHCR itself is ever unreachable.
+
+## Monitoring
+
+An external check, not something this repo runs, because the one failure
+mode that matters most -- the whole box is unreachable -- is exactly the one
+a monitor running *on* that box cannot report. [UptimeRobot](https://uptimerobot.com)'s
+free tier is enough: an HTTPS monitor on `https://$MILAN_DOMAIN/api/health`
+(and the same for staging's domain), checked every 5 minutes, alerting by
+email or SMS to a real, watched address -- the same bar `MILAN_ACME_EMAIL`
+already has to clear.
+
 ## Backups
 
 `backup.sh` dumps, then **restores the dump it just took** into a scratch
@@ -220,6 +285,11 @@ the API, drops and recreates rather than `--clean`, restores, and brings the
 API back — which migrates the dump forward if it is older than the code.
 
 ## Upgrading
+
+A tagged release, deployed with "Deploying a release" above, is the normal
+path now -- pulling probed images is faster on small hardware and provably
+the same bytes CI just tested. This is what to reach for instead: a one-off
+fix that never got tagged, or GHCR itself being unreachable.
 
 ```sh
 cd /opt/milan && git pull && cd deploy && docker compose up -d --build
@@ -257,6 +327,16 @@ Run for real on 3 Sep 2026 against Postgres 16, end to end:
 
 Caddy is the one piece still unexercised: starting it would chase a real
 certificate for a domain that does not resolve.
+
+**Not yet verified against a real box** (Sep 2026, added same session as
+"Staging"/"Deploying a release"/`harden.sh` above): there is no VPS yet to
+SSH into, so `deploy.yml`'s two jobs, `deploy.sh`'s git-checkout-and-pull
+path, and `harden.sh` have each only been checked as far as a laptop can --
+`docker compose config` resolves both compose files (including the `!reset`
+override) correctly, every script is shellcheck-clean, and the API and Caddy
+images' own `HEALTHCHECK`s were confirmed to report `healthy` on containers
+run by hand. The first real tag deployed to a real staging box is this
+pipeline's actual test, not this paragraph.
 
 ### A note about shells on Windows
 

@@ -1,0 +1,102 @@
+name: Deploy
+
+# Staging gets every tagged release automatically, the moment release.yml
+# has actually built and probed its images -- not on every push to main,
+# because a tag is the thing somebody chose to call a release. Production
+# is workflow_dispatch only: a human runs it, by hand, after looking at
+# staging, never as a side effect of anything else. That asymmetry is the
+# whole safety net -- nothing here can put an untested tag in front of a
+# real customer's deposit.
+#
+# Both tag sources below are actions-injection risks if interpolated
+# directly into a script: a git tag name may legally contain shell
+# metacharacters (`;`, `$()`, backticks -- git's ref-name rules forbid
+# spaces and a handful of symbols, none of those), and inputs.tag is
+# free-typed. Every step below reads the tag from `env:` instead, which
+# GitHub sets as a real environment variable rather than substituting text
+# into the script -- the difference between data and code the rest of this
+# repo already insists on for SQL and shell alike. `envs:` on the SSH step
+# forwards that same variable into the remote script unchanged, so the tag
+# is validated exactly once, on the runner, before anything sees it twice.
+on:
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to deploy to production, e.g. v1.4.0"
+        required: true
+
+jobs:
+  staging:
+    name: Staging (automatic, every tag)
+    runs-on: ubuntu-latest
+    # workflow_run fires for every completed Release run, including the
+    # workflow_run-triggered build on a plain merge to main -- only a tag
+    # push is a release. environment: staging is a hook for a required
+    # reviewer or wait timer to be added later in Settings -> Environments;
+    # none is required today.
+    if: >-
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      startsWith(github.event.workflow_run.head_branch, 'v')
+    environment: staging
+    concurrency: staging-deploy
+    steps:
+      - name: The tag looks like a real release
+        env:
+          TAG: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::'$TAG' does not look like vX.Y.Z -- refusing to deploy it"
+            exit 1
+          fi
+
+      - name: Deploy ${{ github.event.workflow_run.head_branch }} to staging
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        env:
+          TAG: ${{ github.event.workflow_run.head_branch }}
+        with:
+          host: ${{ secrets.STAGING_SSH_HOST }}
+          username: ${{ secrets.STAGING_SSH_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          envs: TAG
+          script: |
+            set -e
+            cd /opt/milan/deploy
+            ./deploy.sh "$TAG"
+
+  production:
+    name: Production (manual only)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    # A real gate, once configured: add required reviewers to the
+    # "production" environment in Settings -> Environments and this job
+    # waits for an approval before it can reach the SSH step at all --
+    # nothing in this file can grant that on its own.
+    environment: production
+    concurrency: production-deploy
+    steps:
+      - name: The tag looks like a real release
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::'$TAG' does not look like vX.Y.Z -- refusing to deploy it"
+            exit 1
+          fi
+
+      - name: Deploy ${{ inputs.tag }} to production
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        env:
+          TAG: ${{ inputs.tag }}
+        with:
+          host: ${{ secrets.PRODUCTION_SSH_HOST }}
+          username: ${{ secrets.PRODUCTION_SSH_USER }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          envs: TAG
+          script: |
+            set -e
+            cd /opt/milan/deploy
+            ./deploy.sh "$TAG"

@@ -272,6 +272,10 @@ jobs:
         run: |
           cp .env.example .env
           docker compose config --quiet
+          # The registry-pinned override deploy.sh uses for an actual release
+          # -- resolves with no images pulled, so this catches a schema or
+          # !reset mistake without needing GHCR credentials in CI.
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml config --quiet
           docker run --rm -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" \
             -e MILAN_DOMAIN=ci.example.com -e MILAN_ACME_EMAIL=ci@example.com \
             caddy:2.8-alpine caddy validate --config /etc/caddy/Caddyfile

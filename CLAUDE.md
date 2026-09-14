@@ -12,6 +12,83 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 
 ## Current state
 
+**Deploy gained the pieces "one node" was always going to need before a real
+customer's money sat on it** (Sep 2026): resource limits, a rollback-capable
+release path, a second environment, a firewall, and an external heartbeat.
+None of it changes what runs -- `docker-compose.yml`'s services are the same
+three containers -- it changes what happens when one of them misbehaves.
+
+**Every service now has a memory/CPU ceiling and a capped, rotating log**
+(`deploy/docker-compose.yml`). Without either, the actual failure mode on a
+small VPS is not "slow" -- it is the box going down at 3am, OOM with nothing
+to stop at or a json-file log with no cap filling the disk, and the first
+anyone hears of it is a customer at a fair with a screen that will not load.
+
+**Releases can now be pulled instead of rebuilt, and rolled back.**
+`release.yml` has published probed images to GHCR since Phase 5, and until
+now nothing on the VPS ever used them -- "Upgrading" rebuilt from source on
+the box itself every time, which is slower on small hardware and is not
+provably the same bytes CI just tested. `docker-compose.prod.yml` (a Compose
+override using `!reset` to drop `build:` entirely, Compose v2.24+) points
+`api`/`caddy` at a specific tag instead; `deploy.sh <tag>` backs up, checks
+out that tag, pulls both images, brings the stack up, and polls the API
+image's own `HEALTHCHECK` (already baked into `backend/Dockerfile`, unused
+by anything until now) rather than re-deciding what "healthy" means. It
+fails loud with no automatic rollback -- guessing that the previous tag is
+safe to silently reinstate is the same kind of guess this repo does not make
+about money, applied to a deploy. Rolling back is running it again with the
+previous tag. The dashboard's own Caddy image gained a matching
+`HEALTHCHECK` (a plain liveness curl against :80, deliberately not
+requiring 2xx -- the ACME/redirect port answering at all is Caddy being up),
+since nothing had ever asked it that question either.
+
+**Staging exists**: the same `docker-compose.yml`, on its own box, with its
+own `.env` (`deploy/.env.staging.example`) and its own database -- not a
+Compose override, because the whole point is that nothing behaves
+differently from production except which box it is. `.github/workflows/
+deploy.yml`'s `staging` job deploys every tag there automatically, gated on
+`release.yml` having actually built and probed that tag's images first
+(`workflow_run`, mirroring how `release.yml` itself waits on CI); its
+`production` job is `workflow_dispatch` only, so a production deploy is
+always a person opening Actions and typing a tag, never a side effect of
+anything else. `environment: staging`/`production` on each job is a hook for
+required reviewers to be added later in Settings -> Environments; the
+asymmetry between the two jobs is the actual safety net today.
+
+**A background security review of that workflow found a real actions-
+injection hole, same day.** A git tag's ref-name rules forbid spaces and a
+handful of symbols -- `;`, `` ` ``, `$()` are not on that list -- so
+`deploy.yml`'s first draft interpolated the tag straight into a `script:`
+block's text (`./deploy.sh "${{ ... }}"`), and a tag containing any of those
+would have run as shell on the SSH target rather than as a filename. Fixed
+by reading the tag through `env:`/`envs:` instead -- GitHub sets it as a real
+environment variable there rather than substituting text into the script,
+the same data-vs-code line this repo already draws for SQL -- and by
+replacing the case-glob shape check with an anchored regex, since `*`
+swallows trailing garbage a glob was never told to reject. `deploy.sh`
+re-checks the same regex itself rather than trusting the workflow's gate to
+be the only caller ever, matching the same "don't trust the caller's
+gating alone" rule `recordMeasurement` already follows. `appleboy/ssh-action` also moved off
+the floating `@v1` tag to a pinned commit SHA -- stricter than every other
+third-party action in this repo, which all still pin a floating major
+version (`docker/build-push-action@v6` and the rest), and deliberately so:
+this is the one action that runs arbitrary commands against real
+infrastructure over SSH rather than inside a throwaway CI container, so a
+maintainer quietly moving what `@v1` points to is a materially worse outcome
+here than anywhere else it is used today.
+
+**`harden.sh`** is the one-time OS setup "First boot" always should have
+named: ufw (22/80/443 only, SSH allowed before the default-deny takes
+effect, or a fresh box locks out the session that just ran it) and fail2ban
+on sshd. Neither was ever a Docker Compose concern, which is exactly why it
+had never been written down.
+
+**Monitoring is explicitly not code**: an UptimeRobot check against
+`/api/health` on both domains, documented in `deploy/README.md`'s new
+"Monitoring" section rather than built, because the one failure mode that
+matters most -- the whole box is unreachable -- is exactly the one a
+monitor running on that box cannot report on its own.
+
 **The property library had no way to create its own first row.** The same
 unused-`Api`-method sweep that found the two Phase 9 gaps below turned up
 a bigger one: `POST /api/projects` existed, was tested, and was

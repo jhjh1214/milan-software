@@ -32,3 +32,9 @@ COPY --from=build /app/dist/dashboard/browser /srv
 
 # Caddy's own config comes from the compose mount, so the two stay in one file
 # rather than drifting between here and deploy/Caddyfile.
+
+# A plain liveness check, deliberately not asking for a 2xx: a redirect off
+# the ACME/plain-HTTP port 80 (the real site is on 443) is still Caddy
+# answering, and `curl -f` only fails on 4xx/5xx or no response at all.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -fsS http://127.0.0.1:80/ -o /dev/null || exit 1
