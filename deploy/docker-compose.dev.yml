@@ -5,11 +5,26 @@
 # or 8000 is how they get found by someone who should not have them, and
 # Caddy is meant to be the only way in.
 #
-# A laptop running this for local testing is not that VPS: there is no
-# public IP to worry about, and a phone on the same Wi-Fi (or an Android
-# emulator, which reaches the host at 10.0.2.2) needs a direct route to the
-# API that does not go through Caddy, since Caddy's own TLS setup needs a
-# real domain with an A record pointing here, which a laptop does not have.
+# A laptop running this for local testing is not that VPS, but it is not
+# risk-free either -- treat both of the choices below as scoped to exactly
+# what testing needs, not "however Compose's shorthand happens to bind it."
+#
+# `db` is bound to loopback only (127.0.0.1): nothing legitimate needs raw
+# Postgres access from anywhere but this machine -- a GUI DB tool runs here
+# too -- so there is no reason to accept the wider bind. Host port 5433, not
+# 5432: a machine used for local development is exactly the kind that might
+# already have its own native Postgres install listening on the default
+# port, and this file has no business fighting it for the port -- inside the
+# compose network the container is still reached as `db:5432`, unchanged.
+#
+# `api` has to be reachable from elsewhere on the LAN: a phone on the same
+# Wi-Fi (or an Android emulator, which reaches the host at 10.0.2.2) needs a
+# direct route to it that does not go through Caddy, since Caddy's own TLS
+# setup needs a real domain with an A record pointing here, which a laptop
+# does not have. That means anyone else on the same network segment can
+# reach it too, unauthenticated until they hit a real login check (the PIN
+# throttle still applies) -- fine on a home or office Wi-Fi, not something
+# to run on a fair's own public Wi-Fi or any network you do not trust.
 #
 # This file is a Compose override, merged on top of the base file rather
 # than replacing it -- the base file stays exactly what is deployed to the
@@ -26,7 +41,7 @@
 services:
   db:
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5433:5432"
   api:
     ports:
       - "8000:8000"

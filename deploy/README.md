@@ -102,6 +102,15 @@ curl -fsS http://localhost:8000/api/health     # {"status":"ok"}
 `docker-compose.yml` stays exactly what actually deploys, and nothing in the
 override file is meant to ever run on the VPS.
 
+**`api` is reachable from the whole LAN, on purpose and not risk-free.** A
+phone testing this needs a direct route that does not go through Caddy
+(see the override file's own comment for why), which means anyone else on
+the same Wi-Fi can reach it too -- unauthenticated until they hit a real
+login check, but still. Fine on a home or office network; do not run this
+on a fair's own public Wi-Fi or any network you do not otherwise trust.
+`db` is bound to loopback only, since nothing legitimate needs it from
+anywhere but this machine.
+
 Seed it the same way a fresh box gets its first admin, then add a couple more
 accounts and enough data to exercise the newer phases (Inventory, the
 Property Library) rather than just sign-in:
