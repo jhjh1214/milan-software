@@ -162,6 +162,58 @@ describe('Session', () => {
     const revived = TestBed.runInInjectionContext(() => new Session());
     expect(revived.signedIn()).toBe(true);
     expect(revived.user()?.name).toBe('Boss');
+
+    // The cached copy paints immediately; confirmed against the server
+    // right after.
+    http.expectOne('/api/auth/me').flush({
+      id: 'u1',
+      name: 'Boss',
+      role: 'admin',
+      language: 'en',
+    });
+  });
+
+  it('confirms a restored session against the server, and picks up what changed meanwhile', async () => {
+    // §12's own reason for GET /api/auth/me: noticing a role or language
+    // changed in the office while this browser was closed.
+    const promise = attempt();
+    http.expectOne('/api/auth/login').flush({
+      token: 'a-token',
+      user: { id: 'u1', name: 'Boss', role: 'staff', language: 'en' },
+    });
+    await promise;
+
+    const revived = TestBed.runInInjectionContext(() => new Session());
+    expect(revived.isAdmin()).toBe(false);
+
+    http.expectOne('/api/auth/me').flush({
+      id: 'u1',
+      name: 'Boss',
+      role: 'admin',
+      language: 'zh',
+    });
+
+    expect(revived.isAdmin()).toBe(true);
+    expect(revived.user()?.language).toBe('zh');
+  });
+
+  it('a restore that cannot reach the server keeps the cached identity', async () => {
+    // Offline or a 500 is not the same as revoked -- only authInterceptor's
+    // own 401 handling signs somebody out.
+    const promise = attempt();
+    http.expectOne('/api/auth/login').flush({
+      token: 'a-token',
+      user: { id: 'u1', name: 'Boss', role: 'admin', language: 'en' },
+    });
+    await promise;
+
+    const revived = TestBed.runInInjectionContext(() => new Session());
+    http
+      .expectOne('/api/auth/me')
+      .flush({ detail: 'no' }, { status: 500, statusText: 'x' });
+
+    expect(revived.signedIn()).toBe(true);
+    expect(revived.user()?.name).toBe('Boss');
   });
 
   it('signing out clears the persisted copy too', async () => {

@@ -12,6 +12,35 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 
 ## Current state
 
+**A revoked dashboard session used to keep rendering as signed in** (found
+and fixed in a gap sweep after the shell pass above, Sep 2026) — a real
+regression risk the session-persistence work introduced rather than one it
+merely inherited. `Api.token`'s own doc comment already promised "a 401 can
+clear it from anywhere," but nothing ever actually did it: a 401 became a
+worded "you were signed out" message on whichever one screen happened to be
+mid-request, while the sidebar and every other open screen kept showing the
+stale signed-in shell. A new `authInterceptor` (`auth/auth.interceptor.ts`,
+wired in `app.config.ts`) now signs out and returns to `/sign-in` on any 401
+raised while `session.signedIn()` was true -- scoped that way specifically
+so it never fires on a wrong PIN at the login form itself, which
+`Session.signIn` already classifies on its own.
+
+The other half of the same gap: `GET /api/auth/me` already existed, tested,
+and its own backend docstring already said what it was for -- *"the app
+calls it on reconnect to notice a revoked session, and to pick up a role or
+language changed in the office"* -- and the mobile app already calls it on
+resume. Nothing on the dashboard ever called it, because before a session
+could survive a refresh there was nothing stale left to reconnect. Now
+`Session.restore()` does exactly what the route was built for: the cached
+identity paints the shell immediately (that immediacy is the whole reason
+to persist one), confirmed against the server right after, in the
+background -- a role or language changed while the browser was closed is
+picked up, and a token that no longer works is caught by the same
+`authInterceptor` rather than a second, separate code path. 6 new dashboard
+tests (the interceptor's own spec, plus two on `Session` pinning the
+restore-time reconciliation and its own offline-safe fallback). 323
+dashboard tests.
+
 **The dashboard's shell and shared visual language got a second pass**
 (Sep 2026), closing the drift the first design-system pass could not: nine
 screens each still had their own local button, table and header

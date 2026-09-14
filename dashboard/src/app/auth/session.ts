@@ -89,8 +89,22 @@ export class Session {
     this.restore();
   }
 
-  /** Picks a session back up after a refresh. A missing or unreadable entry
-   * is the same as none -- signing in again, never a thrown error. */
+  /**
+   * Picks a session back up after a refresh. A missing or unreadable entry
+   * is the same as none -- signing in again, never a thrown error.
+   *
+   * The cached copy is trusted immediately, so the shell paints without
+   * waiting on a round trip -- that immediacy is the whole reason to
+   * persist a session rather than just refetch one. It is then confirmed
+   * in the background against `GET /api/auth/me`, whose own docstring says
+   * exactly what this is for: noticing a session revoked while this
+   * browser was closed, and picking up a role or language changed in the
+   * office meanwhile. The mobile app already does this on reconnect; nothing
+   * called this route from the dashboard before a session could survive a
+   * refresh, because before that there was nothing stale left to confirm.
+   * A 401 here is handled by `authInterceptor`, not locally -- one place
+   * turns "the server no longer honours this token" into a clean sign-out.
+   */
   private restore(): void {
     try {
       const raw = sessionStorage.getItem(STORAGE_KEY);
@@ -101,7 +115,19 @@ export class Session {
     } catch {
       // Private browsing, blocked storage, or a corrupted entry -- read as
       // "sign in again", not a reason to fail loudly on every page load.
+      return;
     }
+
+    this.api.me().subscribe({
+      next: (account) => {
+        this.user.set({ ...account, role: account.role as Identity['role'] });
+        this.persist();
+      },
+      // Any failure here (offline, a 500) leaves the cached identity in
+      // place rather than signing out on a bad connection -- a genuine 401
+      // is `authInterceptor`'s job, not this subscription's.
+      error: () => undefined,
+    });
   }
 
   /** Called after every change to the token or the identity, so the two

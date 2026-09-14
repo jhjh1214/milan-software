@@ -343,6 +343,20 @@ export class Api {
    * that person signs into reads `GET /api/auth/me` and picks it straight
    * back up, rather than starting over at the default every time.
    */
+  /**
+   * Who this token belongs to, read fresh from the server. The backend's
+   * own docstring says what this is for: "the app calls it on reconnect to
+   * notice a revoked session, and to pick up a role or language changed in
+   * the office" -- the mobile app already does exactly that on resume;
+   * `Session.restore()` is the dashboard's equivalent, now that a session
+   * survives a refresh.
+   */
+  me(): Observable<MyAccountOut> {
+    return this.http.get<MyAccountOut>(`${API_BASE}/auth/me`, {
+      headers: this.authorised(),
+    });
+  }
+
   setMyLanguage(language: string): Observable<MyAccountOut> {
     return this.http.post<MyAccountOut>(
       `${API_BASE}/auth/language`,
