@@ -71,6 +71,9 @@ services:
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_BASE_URL: ${GEMINI_BASE_URL:-}
+      # Raise for a self-hosted model on modest hardware -- 120s is already
+      # generous for a real hosted vendor.
+      RECOGNITION_TIMEOUT_SECONDS: ${RECOGNITION_TIMEOUT_SECONDS:-120}
     depends_on:
       db:
         condition: service_healthy

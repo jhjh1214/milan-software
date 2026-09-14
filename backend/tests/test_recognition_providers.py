@@ -10,6 +10,8 @@ error handling, not any vendor's API actually answering.
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from app.services import recognition_providers as rp
@@ -172,20 +174,9 @@ class TestAnthropicRecognitionProvider:
 # --- OpenAI ------------------------------------------------------------------
 
 
-class _OpenAIFunction:
-    def __init__(self, name: str, arguments: str) -> None:
-        self.name = name
-        self.arguments = arguments
-
-
-class _OpenAIToolCall:
-    def __init__(self, name: str, arguments: str) -> None:
-        self.function = _OpenAIFunction(name, arguments)
-
-
 class _OpenAIMessage:
-    def __init__(self, tool_calls: list | None) -> None:
-        self.tool_calls = tool_calls
+    def __init__(self, content: str | None) -> None:
+        self.content = content
 
 
 class _OpenAIChoice:
@@ -226,7 +217,9 @@ def _patch_openai(monkeypatch, *, response=None, error: Exception | None = None)
 
     def factory(**kwargs):
         captured["init_kwargs"] = kwargs
-        return _FakeOpenAIClient(response, error)
+        client = _FakeOpenAIClient(response, error)
+        captured["client"] = client
+        return client
 
     monkeypatch.setattr(rp, "OpenAI", factory)
     return captured
@@ -241,18 +234,10 @@ class TestOpenAIRecognitionProvider:
         assert result.configured is False
         assert "OPENAI_API_KEY" in result.note
 
-    def test_a_valid_function_call_response_is_parsed(self, monkeypatch) -> None:
-        import json
-
+    def test_a_valid_json_response_is_parsed(self, monkeypatch) -> None:
         monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
         response = _OpenAIResponse(
-            [
-                _OpenAIChoice(
-                    _OpenAIMessage(
-                        [_OpenAIToolCall(rp._TOOL_NAME, json.dumps(VALID_PAYLOAD))]
-                    )
-                )
-            ]
+            [_OpenAIChoice(_OpenAIMessage(json.dumps(VALID_PAYLOAD)))]
         )
         _patch_openai(monkeypatch, response=response)
 
@@ -265,10 +250,30 @@ class TestOpenAIRecognitionProvider:
         assert len(result.openings) == 1
         assert len(result.rooms) == 1
 
+    def test_uses_response_format_not_tool_choice(self, monkeypatch) -> None:
+        # Ollama's OpenAI-compatible endpoint documents tool_choice as
+        # unsupported and was confirmed, against a real local model, to
+        # silently ignore a forced tool call and answer in plain prose
+        # instead -- response_format is what it actually honours.
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+        response = _OpenAIResponse(
+            [_OpenAIChoice(_OpenAIMessage(json.dumps(VALID_PAYLOAD)))]
+        )
+        captured = _patch_openai(monkeypatch, response=response)
+
+        rp.OpenAIRecognitionProvider().extract(
+            image_data=b"x", content_type="image/jpeg"
+        )
+
+        kwargs = captured["client"].chat.completions.last_kwargs
+        assert "tool_choice" not in kwargs
+        assert "tools" not in kwargs
+        assert kwargs["response_format"]["type"] == "json_schema"
+
     def test_a_custom_base_url_reaches_the_client(self, monkeypatch) -> None:
         monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
         monkeypatch.setenv("OPENAI_BASE_URL", "http://localhost:8123/v1")
-        response = _OpenAIResponse([_OpenAIChoice(_OpenAIMessage([]))])
+        response = _OpenAIResponse([_OpenAIChoice(_OpenAIMessage(None))])
         captured = _patch_openai(monkeypatch, response=response)
 
         rp.OpenAIRecognitionProvider().extract(
@@ -277,7 +282,7 @@ class TestOpenAIRecognitionProvider:
 
         assert captured["init_kwargs"]["base_url"] == "http://localhost:8123/v1"
 
-    def test_no_tool_call_is_a_safe_empty_result(self, monkeypatch) -> None:
+    def test_empty_content_is_a_safe_empty_result(self, monkeypatch) -> None:
         monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
         response = _OpenAIResponse([_OpenAIChoice(_OpenAIMessage(None))])
         _patch_openai(monkeypatch, response=response)
@@ -288,15 +293,9 @@ class TestOpenAIRecognitionProvider:
         assert result.configured is True
         assert result.openings == []
 
-    def test_invalid_json_in_the_arguments_is_a_safe_failure(self, monkeypatch) -> None:
+    def test_invalid_json_content_is_a_safe_failure(self, monkeypatch) -> None:
         monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
-        response = _OpenAIResponse(
-            [
-                _OpenAIChoice(
-                    _OpenAIMessage([_OpenAIToolCall(rp._TOOL_NAME, "{not valid json")])
-                )
-            ]
-        )
+        response = _OpenAIResponse([_OpenAIChoice(_OpenAIMessage("{not valid json"))])
         _patch_openai(monkeypatch, response=response)
 
         result = rp.OpenAIRecognitionProvider().extract(
@@ -364,8 +363,6 @@ class TestGeminiRecognitionProvider:
         assert "GEMINI_API_KEY" in result.note
 
     def test_a_valid_json_response_is_parsed(self, monkeypatch) -> None:
-        import json
-
         monkeypatch.setenv("GEMINI_API_KEY", "key-test")
         _patch_gemini(monkeypatch, response=_GeminiResponse(json.dumps(VALID_PAYLOAD)))
 
@@ -390,7 +387,7 @@ class TestGeminiRecognitionProvider:
         http_options = captured["init_kwargs"]["http_options"]
         assert http_options.base_url == "http://localhost:11434"
 
-    def test_no_base_url_set_means_no_http_options_override(self, monkeypatch) -> None:
+    def test_no_base_url_set_means_no_base_url_override(self, monkeypatch) -> None:
         monkeypatch.setenv("GEMINI_API_KEY", "key-test")
         monkeypatch.delenv("GEMINI_BASE_URL", raising=False)
         captured = _patch_gemini(monkeypatch, response=_GeminiResponse("{}"))
@@ -399,7 +396,7 @@ class TestGeminiRecognitionProvider:
             image_data=b"x", content_type="image/jpeg"
         )
 
-        assert captured["init_kwargs"]["http_options"] is None
+        assert captured["init_kwargs"]["http_options"].base_url is None
 
     def test_empty_text_is_a_safe_empty_result(self, monkeypatch) -> None:
         monkeypatch.setenv("GEMINI_API_KEY", "key-test")
@@ -430,6 +427,73 @@ class TestGeminiRecognitionProvider:
         )
         assert result.configured is True
         assert "failed" in result.note
+
+
+# --- Timeout configuration ----------------------------------------------
+
+
+class TestTimeoutSeconds:
+    def test_defaults_to_120(self, monkeypatch) -> None:
+        monkeypatch.delenv("RECOGNITION_TIMEOUT_SECONDS", raising=False)
+        assert rp._timeout_seconds() == 120
+
+    def test_a_configured_value_is_used(self, monkeypatch) -> None:
+        monkeypatch.setenv("RECOGNITION_TIMEOUT_SECONDS", "600")
+        assert rp._timeout_seconds() == 600
+
+    def test_garbage_falls_back_to_the_default(self, monkeypatch) -> None:
+        monkeypatch.setenv("RECOGNITION_TIMEOUT_SECONDS", "not-a-number")
+        assert rp._timeout_seconds() == 120
+
+    def test_zero_or_negative_falls_back_to_the_default(self, monkeypatch) -> None:
+        monkeypatch.setenv("RECOGNITION_TIMEOUT_SECONDS", "0")
+        assert rp._timeout_seconds() == 120
+        monkeypatch.setenv("RECOGNITION_TIMEOUT_SECONDS", "-5")
+        assert rp._timeout_seconds() == 120
+
+
+class TestTimeoutReachesEachClient:
+    # A slow, locally hosted model is the exact case this exists for (see
+    # this module's own docstring) -- each vendor's client actually has to
+    # receive the configured value, not just have a function that computes it.
+
+    def test_anthropic(self, monkeypatch) -> None:
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
+        monkeypatch.setenv("RECOGNITION_TIMEOUT_SECONDS", "900")
+        response = _AnthropicMessage([_AnthropicBlock("tool_use", VALID_PAYLOAD)])
+        captured = _patch_anthropic(monkeypatch, response=response)
+
+        rp.AnthropicRecognitionProvider().extract(
+            image_data=b"x", content_type="image/jpeg"
+        )
+
+        assert captured["init_kwargs"]["timeout"] == 900
+
+    def test_openai(self, monkeypatch) -> None:
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+        monkeypatch.setenv("RECOGNITION_TIMEOUT_SECONDS", "900")
+        response = _OpenAIResponse(
+            [_OpenAIChoice(_OpenAIMessage(json.dumps(VALID_PAYLOAD)))]
+        )
+        captured = _patch_openai(monkeypatch, response=response)
+
+        rp.OpenAIRecognitionProvider().extract(
+            image_data=b"x", content_type="image/jpeg"
+        )
+
+        assert captured["init_kwargs"]["timeout"] == 900
+
+    def test_gemini(self, monkeypatch) -> None:
+        monkeypatch.setenv("GEMINI_API_KEY", "key-test")
+        monkeypatch.setenv("RECOGNITION_TIMEOUT_SECONDS", "900")
+        captured = _patch_gemini(monkeypatch, response=_GeminiResponse("{}"))
+
+        rp.GeminiRecognitionProvider().extract(
+            image_data=b"x", content_type="image/jpeg"
+        )
+
+        # Gemini's HttpOptions.timeout is documented in milliseconds.
+        assert captured["init_kwargs"]["http_options"].timeout == 900_000
 
 
 # --- Shared shape ------------------------------------------------------------

@@ -29,6 +29,18 @@ Every adapter below shares the same shape:
   vision model has no way to know this codebase's own invariant
   otherwise, and a plain-millimetre answer here would silently violate it
   by a factor of ten on every dimension.
+
+`RECOGNITION_TIMEOUT_SECONDS` (default 120) bounds every call, all three
+vendors alike. A real hosted vendor answers in a few seconds; 120s is
+already generous. A locally hosted model wrapped behind one of these,
+running on modest hardware, is the case this needs raising for -- tested
+directly against a real local model on a genuinely complex ten-room plan,
+generation ran at roughly 3 tokens/second, so a detailed plan's full
+reasoning-plus-answer can take several minutes. A timeout is not a bug to
+fix here: it is the same "not usable this time" result a missing key or a
+malformed response already produces (see above), so raising this one
+number is the whole adjustment needed for slow hardware -- nothing about
+the request shape changes.
 """
 
 from __future__ import annotations
@@ -46,6 +58,20 @@ from openai import OpenAI
 from .recognition import ExtractionResult, ProposedOpening, ProposedRoom
 
 logger = logging.getLogger(__name__)
+
+_DEFAULT_TIMEOUT_SECONDS = 120
+
+
+def _timeout_seconds() -> float:
+    raw = os.environ.get("RECOGNITION_TIMEOUT_SECONDS")
+    if not raw:
+        return _DEFAULT_TIMEOUT_SECONDS
+    try:
+        value = float(raw)
+    except ValueError:
+        return _DEFAULT_TIMEOUT_SECONDS
+    return value if value > 0 else _DEFAULT_TIMEOUT_SECONDS
+
 
 _SYSTEM_PROMPT = (
     "You are assisting a curtain, blinds and flooring measurement business "
@@ -91,6 +117,7 @@ _RESULT_SCHEMA = {
                     "nominal_h_tmm",
                     "confidence",
                 ],
+                "additionalProperties": False,
             },
         },
         "rooms": {
@@ -103,10 +130,12 @@ _RESULT_SCHEMA = {
                     "confidence": {"type": "number"},
                 },
                 "required": ["name", "nominal_area_mm2", "confidence"],
+                "additionalProperties": False,
             },
         },
     },
     "required": ["openings", "rooms"],
+    "additionalProperties": False,
 }
 
 _TOOL_NAME = "report_floor_plan"
@@ -178,6 +207,7 @@ class AnthropicRecognitionProvider:
         client = anthropic.Anthropic(
             api_key=api_key,
             base_url=os.environ.get("ANTHROPIC_BASE_URL") or None,
+            timeout=_timeout_seconds(),
         )
 
         try:
@@ -244,8 +274,21 @@ class AnthropicRecognitionProvider:
 
 
 class OpenAIRecognitionProvider:
-    """GPT (or a local model wrapped to speak the Chat Completions API),
-    via vision plus a forced function call for structured output."""
+    """GPT (or a local model wrapped to speak the Chat Completions API), via
+    vision plus a JSON-schema-constrained `response_format`.
+
+    Not tool-calling, on purpose, unlike the Anthropic adapter: OpenAI's own
+    `response_format` structured-output mode is built for exactly this --
+    "answer only in this shape" -- rather than "decide whether to invoke an
+    action," and it is what actually gets honoured wrapping this adapter
+    around a local model server. A real Ollama-served vision model, tested
+    directly: it silently ignores a forced `tool_choice` and answers in
+    plain prose instead (Ollama's own OpenAI-compatibility docs list
+    `tool_choice` as unsupported), but honours `response_format` and
+    produces exactly the requested shape. Real OpenAI supports this mode
+    natively too, so nothing is lost pointing this adapter at the real API
+    instead of a local one.
+    """
 
     name = "openai"
 
@@ -264,6 +307,7 @@ class OpenAIRecognitionProvider:
         client = OpenAI(
             api_key=api_key,
             base_url=os.environ.get("OPENAI_BASE_URL") or None,
+            timeout=_timeout_seconds(),
         )
         data_url = (
             f"data:{content_type};base64,"
@@ -283,17 +327,14 @@ class OpenAIRecognitionProvider:
                         ],
                     },
                 ],
-                tools=[
-                    {
-                        "type": "function",
-                        "function": {
-                            "name": _TOOL_NAME,
-                            "description": _TOOL_DESCRIPTION,
-                            "parameters": _RESULT_SCHEMA,
-                        },
-                    }
-                ],
-                tool_choice={"type": "function", "function": {"name": _TOOL_NAME}},
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": _TOOL_NAME,
+                        "schema": _RESULT_SCHEMA,
+                        "strict": True,
+                    },
+                },
             )
         except Exception as exc:
             logger.warning("OpenAI recognition call failed: %s", exc)
@@ -303,9 +344,8 @@ class OpenAIRecognitionProvider:
                 note=f"the request to OpenAI failed: {exc}",
             )
 
-        tool_calls = response.choices[0].message.tool_calls or []
-        call = next((c for c in tool_calls if c.function.name == _TOOL_NAME), None)
-        if call is None:
+        content = response.choices[0].message.content
+        if not content:
             return ExtractionResult(
                 configured=True,
                 provider=self.name,
@@ -313,8 +353,8 @@ class OpenAIRecognitionProvider:
             )
 
         try:
-            data = json.loads(call.function.arguments)
-        except (json.JSONDecodeError, TypeError):
+            data = json.loads(content)
+        except json.JSONDecodeError:
             return ExtractionResult(
                 configured=True,
                 provider=self.name,
@@ -347,12 +387,12 @@ class GeminiRecognitionProvider:
                 note="GEMINI_API_KEY is not set.",
             )
 
-        base_url = os.environ.get("GEMINI_BASE_URL") or None
         client = genai.Client(
             api_key=api_key,
-            http_options=genai_types.HttpOptions(base_url=base_url)
-            if base_url
-            else None,
+            http_options=genai_types.HttpOptions(
+                base_url=os.environ.get("GEMINI_BASE_URL") or None,
+                timeout=int(_timeout_seconds() * 1000),
+            ),
         )
 
         try:
