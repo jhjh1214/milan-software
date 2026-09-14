@@ -167,6 +167,9 @@
                         <th scope="col">{{ t().inventory.lotRefLabel }}</th>
                         <th scope="col">{{ t().inventory.qtyLabel }}</th>
                         <th scope="col">{{ t().inventory.locationLabel }}</th>
+                        <th scope="col">
+                          <span class="visually-hidden">actions</span>
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -175,7 +178,69 @@
                           <td>{{ lot.lot_ref }}</td>
                           <td class="num">{{ lot.qty_on_hand }}</td>
                           <td>{{ lot.location ?? '—' }}</td>
+                          <td class="actions">
+                            <button
+                              type="button"
+                              class="btn"
+                              (click)="adjustingLotId() === lot.id ? cancelAdjust() : openAdjust(lot)"
+                            >
+                              {{ adjustingLotId() === lot.id ? t().common.cancel : t().inventory.adjustStock }}
+                            </button>
+                          </td>
                         </tr>
+                        @if (adjustingLotId() === lot.id) {
+                          <tr class="expanded">
+                            <td colspan="4">
+                              <form class="adjust" (submit)="submitAdjust(material.id, $event)">
+                                @if (adjustFailure(); as failed) {
+                                  <p class="failure" role="alert">{{ message(failed) }}</p>
+                                }
+                                <div>
+                                  <label [attr.for]="'delta-' + lot.id">
+                                    {{ t().inventory.deltaLabel }}
+                                  </label>
+                                  <input
+                                    [id]="'delta-' + lot.id"
+                                    inputmode="decimal"
+                                    [value]="adjustDelta()"
+                                    (input)="adjustDelta.set($any($event.target).value)"
+                                  />
+                                  <p class="hint">{{ t().inventory.deltaHint }}</p>
+                                </div>
+                                <div>
+                                  <label [attr.for]="'adjust-reason-' + lot.id">
+                                    {{ t().inventory.reasonLabel }}
+                                  </label>
+                                  <select
+                                    [id]="'adjust-reason-' + lot.id"
+                                    [value]="adjustReason()"
+                                    (change)="adjustReason.set($any($event.target).value)"
+                                  >
+                                    @for (r of adjustReasons; track r) {
+                                      <option [value]="r">{{ reasonLabel(r) }}</option>
+                                    }
+                                  </select>
+                                </div>
+                                <div>
+                                  <label [attr.for]="'adjust-note-' + lot.id">
+                                    {{ t().inventory.noteLabel }}
+                                  </label>
+                                  <input
+                                    [id]="'adjust-note-' + lot.id"
+                                    [value]="adjustNote()"
+                                    (input)="adjustNote.set($any($event.target).value)"
+                                  />
+                                </div>
+                                <button type="submit" class="btn btn-primary" [disabled]="!canAdjust()">
+                                  @if (saving()) {
+                                    <span class="spinner" aria-hidden="true"></span>
+                                  }
+                                  {{ t().inventory.adjustStock }}
+                                </button>
+                              </form>
+                            </td>
+                          </tr>
+                        }
                       }
                     </tbody>
                   </table>

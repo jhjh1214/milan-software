@@ -494,5 +494,10 @@ export const EN: Strings = {
     chooseMaterial: 'Choose a material',
     allocateAction: 'Allocate',
     allocated: 'Allocated.',
+    allocationStatusProposed: 'Proposed, awaiting review',
+    allocationStatusApproved: 'Stock set aside',
+    allocationStatusReleased: 'Released back to stock',
+    releaseStock: 'Release stock',
+    releasing: 'Releasing…',
   },
 };

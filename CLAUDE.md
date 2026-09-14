@@ -12,6 +12,39 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 
 ## Current state
 
+**Two more Phase 9 routes existed, tested, with no way to reach them** —
+found the same way the `me()` gap above was: grepping every `Api` method
+the dashboard defines against what actually calls it. Two came back
+unused outside `api.ts` itself and their own tests.
+
+**Stock adjustment.** `adjust_stock` (damage, an offcut returned, a
+stock-take correction, a return to the supplier) has been in
+`app/services/inventory.py` since Phase 9 shipped, and the dashboard's own
+`InventoryStrings` already carried every label the four reasons need
+(`reasonDamage`, `reasonOffcutReturn`, `reasonAdjustment`,
+`reasonReturnToSupplier`) — planned, never wired to a screen. `materials.ts`
+gains an "Adjust" control per lot, next to "Receive stock" in the same
+expanded row: a signed delta, a reason picked from the four the backend
+actually accepts (`receipt` excluded -- that is the separate receiving
+form this screen already has), an optional note. Refreshes the lot and the
+material list on success, the same as receiving stock already did. 2 new
+dashboard tests.
+
+**Releasing an allocation.** `release_allocation` -- reversing an approved
+allocation, "an order cancelled after stock was set aside for it" per its
+own docstring -- existed, was tested, and had no control anywhere. Closing
+it needed one real schema addition, not just a dashboard change:
+`OrderDetailOut` never carried an order's own allocations at all, so there
+was nothing to show a release button against. `order_detail()` now joins
+them in (`reads.py` gained a shared `allocation_out()`, moved out of
+`main.py` where it was private and duplicated across five routes rather
+than copied a sixth time). The order detail screen shows what is already
+claimed against each line -- proposed, approved, or released, never
+rejected, which is the review queue's own history and not a fact about
+the line today -- with a "Release stock" button on an approved one, right
+where an admin is already looking at the line it explains. 1 new backend
+test, 5 new dashboard tests. 823 backend tests, 330 dashboard tests.
+
 **The handset had the same gap, worse: `ApiClient.me()` was dead code, and
 a real bug meant its own manual sign-out branch could never fire either**
 (found while sweeping for other instances of the dashboard gap above, Sep

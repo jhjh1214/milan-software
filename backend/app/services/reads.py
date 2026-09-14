@@ -29,6 +29,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..api.schemas import (
+    AllocationOut,
     BuyerOut,
     DepositPromptOut,
     OrderDetailOut,
@@ -38,6 +39,7 @@ from ..api.schemas import (
     PriceOverrideOut,
 )
 from ..models.db import (
+    Allocation,
     CategoryLock,
     DepositPrompt,
     Order,
@@ -222,6 +224,27 @@ def list_orders(
     return summaries[offset : offset + min(limit, MAX_PAGE)], total or 0
 
 
+def allocation_out(allocation: Allocation) -> AllocationOut:
+    """Shared with `main.py`'s own allocation routes, moved here rather than
+    duplicated -- a plain data-shape mapping with no HTTP in it belongs in
+    the module already carrying the rest of what gets read back."""
+    return AllocationOut(
+        id=allocation.id,
+        order_line_id=allocation.order_line_id,
+        order_id=allocation.order_id,
+        material_id=allocation.material_id,
+        lot_id=allocation.lot_id,
+        qty=allocation.qty,
+        status=allocation.status,
+        proposed_at=allocation.proposed_at,
+        decided_by_user_id=allocation.decided_by_user_id,
+        decided_at=allocation.decided_at,
+        decision_note=allocation.decision_note,
+        allocated_at=allocation.allocated_at,
+        released_at=allocation.released_at,
+    )
+
+
 def order_detail(session: Session, order_id: str) -> OrderDetailOut | None:
     """One order, with its lines, its history and every price moved by hand."""
     order = session.get(Order, order_id)
@@ -240,6 +263,13 @@ def order_detail(session: Session, order_id: str) -> OrderDetailOut | None:
             select(OrderEvent)
             .where(OrderEvent.order_id == order_id)
             .order_by(OrderEvent.at)
+        )
+    )
+    allocations = list(
+        session.scalars(
+            select(Allocation)
+            .where(Allocation.order_id == order_id)
+            .order_by(Allocation.proposed_at)
         )
     )
     overrides = list(
@@ -299,6 +329,7 @@ def order_detail(session: Session, order_id: str) -> OrderDetailOut | None:
         ],
         overrides=[_override_out(row) for row in overrides],
         buyer=_buyer_out(order),
+        allocations=[allocation_out(row) for row in allocations],
     )
 
 

@@ -43,6 +43,7 @@ import { commonMessage, failureOf, type Failure } from '../i18n/failure';
 import { Text } from '../i18n/text';
 import { formatDate, formatSen, urgencyOf, type Urgency } from '../api/money';
 import type {
+  AllocationOut,
   BuyerDetailsIn,
   BuyerOut,
   MaterialOut,
@@ -588,12 +589,72 @@ export class OrderDetail {
           // control again for the same material -- this line or another
           // -- must not keep showing the figure from before it moved.
           this.loadLotsFor(materialId, true);
+          // Reload rather than patch what is on screen: the new allocation
+          // itself now shows against the line, the same "let the server
+          // say what happened" rule the buyer form already follows.
+          this.load();
         },
         error: (err: unknown) => {
           this.savingAllocation.set(false);
           this.allocationFailure.set(failureOf(err));
         },
       });
+  }
+
+  /**
+   * What is already claimed against this line -- SPEC.md §11 Phase 9's own
+   * named gap. Rejected allocations are left off: they are the allocation
+   * review queue's own history, not a fact about the line today.
+   */
+  protected allocationsFor(line: OrderLineOut): readonly AllocationOut[] {
+    return (this.detail()?.allocations ?? []).filter(
+      (a) => a.order_line_id === line.id && a.status !== 'rejected',
+    );
+  }
+
+  protected readonly releasingId = signal<string | null>(null);
+  protected readonly releaseFailure = signal<Failure | null>(null);
+
+  protected releaseMessage(failure: Failure): string {
+    return commonMessage(this.t(), failure);
+  }
+
+  protected allocationStatusLabel(allocation: AllocationOut): string {
+    const words = this.t().inventory;
+    switch (allocation.status) {
+      case 'proposed':
+        return words.allocationStatusProposed;
+      case 'approved':
+        return words.allocationStatusApproved;
+      case 'released':
+        return words.allocationStatusReleased;
+      default:
+        return allocation.status;
+    }
+  }
+
+  /**
+   * An order cancelled after stock was set aside for it. `POST /api/
+   * allocations/{id}/release` already existed, tested, with no way to
+   * reach it -- this is that control's home, next to the allocation it
+   * undoes.
+   */
+  protected release(allocation: AllocationOut): void {
+    if (this.releasingId() !== null) return;
+
+    this.releasingId.set(allocation.id);
+    this.releaseFailure.set(null);
+
+    this.api.releaseAllocation(allocation.id).subscribe({
+      next: () => {
+        this.releasingId.set(null);
+        this.load();
+      },
+      error: (err: unknown) => {
+        this.releasingId.set(null);
+        this.releaseFailure.set(failureOf(err));
+      },
+    });
   }
 
   /** What a line was priced on, in one line somebody can read out. */

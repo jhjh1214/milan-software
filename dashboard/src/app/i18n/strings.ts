@@ -583,6 +583,13 @@ export interface InventoryStrings {
   readonly chooseMaterial: string;
   readonly allocateAction: string;
   readonly allocated: string;
+  /** What is already claimed against a line, and undoing it -- an order
+   * cancelled after stock was set aside for it. */
+  readonly allocationStatusProposed: string;
+  readonly allocationStatusApproved: string;
+  readonly allocationStatusReleased: string;
+  readonly releaseStock: string;
+  readonly releasing: string;
 }
 
 /** Everything the dashboard can say, in one language. */

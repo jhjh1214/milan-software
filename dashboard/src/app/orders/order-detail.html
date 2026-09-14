@@ -68,6 +68,35 @@
             <p class="flag overridden">{{ t().order.priceChangedByHand }}</p>
           }
 
+          <!-- What is already claimed against this line -- an order
+               cancelled after stock was set aside for it is the exact case
+               `release` exists for, and it needs to be visible before it
+               means anything to click. -->
+          @for (a of allocationsFor(line); track a.id) {
+            <p class="allocation-status">
+              <span class="badge badge-neutral">{{ allocationStatusLabel(a) }}</span>
+              {{ a.qty }}
+              @if (a.status === 'approved') {
+                <button
+                  type="button"
+                  class="btn release"
+                  [disabled]="releasingId() !== null"
+                  (click)="release(a)"
+                >
+                  @if (releasingId() === a.id) {
+                    <span class="spinner" aria-hidden="true"></span>
+                    {{ t().inventory.releasing }}
+                  } @else {
+                    {{ t().inventory.releaseStock }}
+                  }
+                </button>
+              }
+            </p>
+            @if (releaseFailure(); as failed) {
+              <p class="failure" role="alert">{{ releaseMessage(failed) }}</p>
+            }
+          }
+
           <!-- SPEC.md §11 Phase 9's named gap: a manual allocation, for a
                material with no exact auto-proposal conversion (§13 F3), or a
                manual split across a second lot. The API already exists and

@@ -246,6 +246,7 @@ from .services.people import (
 )
 from .services.reads import (
     MAX_PAGE,
+    allocation_out,
     list_orders,
     order_detail,
     overrides_between,
@@ -1619,24 +1620,6 @@ def _movement_out(movement: StockMovement) -> StockMovementOut:
     )
 
 
-def _allocation_out(allocation: Allocation) -> AllocationOut:
-    return AllocationOut(
-        id=allocation.id,
-        order_line_id=allocation.order_line_id,
-        order_id=allocation.order_id,
-        material_id=allocation.material_id,
-        lot_id=allocation.lot_id,
-        qty=allocation.qty,
-        status=allocation.status,
-        proposed_at=allocation.proposed_at,
-        decided_by_user_id=allocation.decided_by_user_id,
-        decided_at=allocation.decided_at,
-        decision_note=allocation.decision_note,
-        allocated_at=allocation.allocated_at,
-        released_at=allocation.released_at,
-    )
-
-
 @app.post(
     "/api/materials", response_model=MaterialOut, status_code=status.HTTP_201_CREATED
 )
@@ -1762,7 +1745,7 @@ def list_allocations_route(
                 .order_by(Allocation.proposed_at)
             )
         )
-    return AllocationsOut(allocations=[_allocation_out(a) for a in rows])
+    return AllocationsOut(allocations=[allocation_out(a) for a in rows])
 
 
 @app.post(
@@ -1802,7 +1785,7 @@ def create_manual_allocation_route(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "no such stock lot") from exc
     except ValueError as exc:
         raise HTTPException(HTTP_422_UNPROCESSABLE, str(exc)) from exc
-    return _allocation_out(allocation)
+    return allocation_out(allocation)
 
 
 @app.post("/api/allocations/{allocation_id}/approve", response_model=AllocationOut)
@@ -1827,7 +1810,7 @@ def approve_allocation_route(
         raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(HTTP_422_UNPROCESSABLE, str(exc)) from exc
-    return _allocation_out(allocation)
+    return allocation_out(allocation)
 
 
 @app.post("/api/allocations/{allocation_id}/reject", response_model=AllocationOut)
@@ -1850,7 +1833,7 @@ def reject_allocation_route(
         raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(HTTP_422_UNPROCESSABLE, str(exc)) from exc
-    return _allocation_out(allocation)
+    return allocation_out(allocation)
 
 
 @app.post("/api/allocations/{allocation_id}/release", response_model=AllocationOut)
@@ -1877,7 +1860,7 @@ def release_allocation_route(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "no such stock lot") from exc
     except AllocationWrongStatus as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
-    return _allocation_out(allocation)
+    return allocation_out(allocation)
 
 
 @app.get("/api/inventory/alerts", response_model=ReorderAlertsOut)

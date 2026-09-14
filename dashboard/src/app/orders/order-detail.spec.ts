@@ -19,6 +19,7 @@ import { provideRouter } from '@angular/router';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type {
+  AllocationOut,
   BuyerOut,
   MaterialOut,
   OrderDetailOut,
@@ -75,6 +76,7 @@ const detail = (over: Partial<OrderDetailOut> = {}): OrderDetailOut => ({
   events: [],
   overrides: [],
   buyer: null,
+  allocations: [],
   ...over,
 });
 
@@ -845,6 +847,10 @@ describe('OrderDetail', () => {
         released_at: null,
       });
       fixture.detectChanges();
+      // The new allocation itself now shows against the line -- reloaded
+      // rather than patched, the same rule the buyer form already follows.
+      http.expectOne('/api/orders/o1').flush(detail());
+      fixture.detectChanges();
 
       expect(text()).toContain('Allocated.');
       expect(
@@ -892,6 +898,8 @@ describe('OrderDetail', () => {
         released_at: null,
       });
       fixture.detectChanges();
+      http.expectOne('/api/orders/o1').flush(detail());
+      fixture.detectChanges();
 
       // Opening it again on the same line: the previously-picked material
       // is fetched fresh, not read back out of the stale cache.
@@ -926,6 +934,109 @@ describe('OrderDetail', () => {
         ) as HTMLSelectElement).options,
       ].map((o) => o.textContent?.trim());
       expect(options).toContain('四毫米SPC');
+    });
+  });
+
+  describe('an existing allocation on a line', () => {
+    // An order cancelled after stock was set aside for it is exactly the
+    // case `release_allocation` exists for -- it was already built and
+    // tested, with no way to reach it, until now.
+
+    const allocation = (
+      over: Partial<AllocationOut> = {},
+    ): AllocationOut => ({
+      id: 'alloc-1',
+      order_line_id: 'l1',
+      order_id: 'o1',
+      material_id: 'mat-1',
+      lot_id: 'lot-1',
+      qty: '6',
+      status: 'approved',
+      proposed_at: '2026-09-01T00:00:00Z',
+      decided_by_user_id: 'u-admin',
+      decided_at: '2026-09-01T00:00:00Z',
+      decision_note: null,
+      allocated_at: '2026-09-01T00:00:00Z',
+      released_at: null,
+      ...over,
+    });
+
+    it('shows an approved allocation with a way to release it', async () => {
+      await load(detail({ allocations: [allocation()] }));
+      expect(text()).toContain('Stock set aside');
+      expect(text()).toContain('6');
+      expect(() =>
+        fixture.nativeElement.querySelectorAll('button').length,
+      ).not.toThrow();
+      const release = [
+        ...fixture.nativeElement.querySelectorAll('button'),
+      ].find((b: HTMLButtonElement) => b.textContent?.trim() === 'Release stock');
+      expect(release).not.toBeUndefined();
+    });
+
+    it('a proposed allocation shows no release button -- nothing to undo yet', async () => {
+      await load(detail({ allocations: [allocation({ status: 'proposed' })] }));
+      expect(text()).toContain('Proposed, awaiting review');
+      const release = [
+        ...fixture.nativeElement.querySelectorAll('button'),
+      ].find((b: HTMLButtonElement) => b.textContent?.trim() === 'Release stock');
+      expect(release).toBeUndefined();
+    });
+
+    it('a rejected allocation is left off -- that is the review queue’s own history', async () => {
+      await load(detail({ allocations: [allocation({ status: 'rejected' })] }));
+      expect(text()).not.toContain('Stock set aside');
+      expect(text()).not.toContain('Proposed, awaiting review');
+    });
+
+    it('releasing calls the route and reloads the order', async () => {
+      await load(detail({ allocations: [allocation()] }));
+
+      const release = [
+        ...fixture.nativeElement.querySelectorAll('button'),
+      ].find(
+        (b: HTMLButtonElement) => b.textContent?.trim() === 'Release stock',
+      ) as HTMLButtonElement;
+      release.click();
+      fixture.detectChanges();
+
+      http
+        .expectOne('/api/allocations/alloc-1/release')
+        .flush(allocation({ status: 'released', released_at: '2026-09-02T00:00:00Z' }));
+      fixture.detectChanges();
+
+      http
+        .expectOne('/api/orders/o1')
+        .flush(
+          detail({
+            allocations: [
+              allocation({ status: 'released', released_at: '2026-09-02T00:00:00Z' }),
+            ],
+          }),
+        );
+      fixture.detectChanges();
+
+      expect(text()).toContain('Released back to stock');
+      expect(text()).not.toContain('Release stock');
+    });
+
+    it('a refusal to release is said in words', async () => {
+      await load(detail({ allocations: [allocation()] }));
+
+      const release = [
+        ...fixture.nativeElement.querySelectorAll('button'),
+      ].find(
+        (b: HTMLButtonElement) => b.textContent?.trim() === 'Release stock',
+      ) as HTMLButtonElement;
+      release.click();
+      fixture.detectChanges();
+
+      http
+        .expectOne('/api/allocations/alloc-1/release')
+        .flush({ detail: 'already released' }, { status: 409, statusText: 'Conflict' });
+      fixture.detectChanges();
+
+      expect(text()).toContain('The server answered 409.');
     });
   });
 

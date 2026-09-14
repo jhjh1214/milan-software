@@ -22,8 +22,9 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.api.schemas import CategoryLockIn, OrderIn, OrderLineIn, PriceOverrideIn
-from app.models.db import Base, User
+from app.models.db import Allocation, Base, User
 from app.services.ingest import push_category_lock, push_order
+from app.services.inventory import create_material
 from app.services.reads import (
     list_orders,
     order_detail,
@@ -368,6 +369,41 @@ class TestOneOrder:
         # as a real order that lost its contents.
         with db() as session:
             assert order_detail(session, str(uuid.uuid4())) is None
+
+    def test_it_carries_the_orders_own_allocations(self, db) -> None:
+        # SPEC.md §11 Phase 9's own named gap: an admin looking at a
+        # cancelled order needs to see whether stock is still set aside for
+        # it before `release_allocation` means anything to click.
+        line = a_line()
+        with db() as session:
+            payload = an_order(session, lines=[line])
+            material = create_material(
+                session,
+                family="flooring",
+                variant_compat=[],
+                code="SPC-TEST",
+                names={"zh": "a", "en": "b", "ms": "c"},
+                uom="box",
+            )
+            session.add(
+                Allocation(
+                    id=str(uuid.uuid4()),
+                    order_line_id=line.id,
+                    order_id=payload.id,
+                    material_id=material.id,
+                    lot_id=None,
+                    qty="3",
+                    status="approved",
+                )
+            )
+            session.commit()
+
+            detail = order_detail(session, payload.id)
+            assert detail is not None
+            assert len(detail.allocations) == 1
+            assert detail.allocations[0].order_id == payload.id
+            assert detail.allocations[0].status == "approved"
+            assert detail.allocations[0].qty == "3"
 
 
 class TestTheReviewQueries:

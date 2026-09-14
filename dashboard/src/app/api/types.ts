@@ -210,6 +210,10 @@ export interface OrderDetailOut {
   readonly events: readonly OrderEventOut[];
   readonly overrides: readonly PriceOverrideOut[];
   readonly buyer: BuyerOut | null;
+  /** SPEC.md §11 Phase 9's own named gap: an admin looking at a cancelled
+   * order needs to see whether stock is still set aside for it before
+   * releasing it means anything. */
+  readonly allocations: readonly AllocationOut[];
 }
 
 export interface OverridesOut {

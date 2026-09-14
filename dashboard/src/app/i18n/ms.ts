@@ -507,5 +507,10 @@ export const MS: Strings = {
     chooseMaterial: 'Pilih satu bahan',
     allocateAction: 'Peruntukkan',
     allocated: 'Diperuntukkan.',
+    allocationStatusProposed: 'Dicadangkan, menunggu semakan',
+    allocationStatusApproved: 'Stok telah disisihkan',
+    allocationStatusReleased: 'Dikembalikan ke stok',
+    releaseStock: 'Lepaskan stok',
+    releasing: 'Sedang melepaskan…',
   },
 };

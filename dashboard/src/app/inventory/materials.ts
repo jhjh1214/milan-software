@@ -25,6 +25,18 @@ import type { MaterialOut, ReorderAlertOut, StockLotOut } from '../api/types';
 
 const UOMS = ['metre', 'sqft', 'box', 'piece', 'roll'] as const;
 
+/** The reasons `adjust_stock` (backend/app/services/inventory.py) accepts
+ * from a person directly -- `receipt` is excluded here, since that is the
+ * separate "receiving new stock" form this screen already has. */
+const ADJUST_REASONS = [
+  'damage',
+  'offcut_return',
+  'adjustment',
+  'return_to_supplier',
+] as const;
+
+type AdjustReason = (typeof ADJUST_REASONS)[number];
+
 @Component({
   selector: 'app-materials',
   imports: [CommonModule],
@@ -87,6 +99,23 @@ export class Materials {
     () => !this.saving() && this.lotRef().trim().length > 0 && this.receiveQty().trim().length > 0,
   );
 
+  // --- per-lot: the stock-adjustment form (damage, an offcut returned, a
+  // stock-take correction, a return to the supplier) ---
+  protected readonly adjustReasons = ADJUST_REASONS;
+  protected readonly adjustingLotId = signal<string | null>(null);
+  protected readonly adjustDelta = signal('');
+  protected readonly adjustReason = signal<AdjustReason>('adjustment');
+  protected readonly adjustNote = signal('');
+  protected readonly adjustFailure = signal<Failure | null>(null);
+
+  protected readonly canAdjust = computed(() => {
+    if (this.saving()) return false;
+    const delta = this.adjustDelta().trim();
+    if (delta.length === 0) return false;
+    const asNumber = Number(delta);
+    return !Number.isNaN(asNumber) && asNumber !== 0;
+  });
+
   constructor() {
     this.load();
   }
@@ -117,6 +146,20 @@ export class Materials {
 
   protected retry(): void {
     this.load();
+  }
+
+  protected reasonLabel(reason: AdjustReason): string {
+    const words = this.t().inventory;
+    switch (reason) {
+      case 'damage':
+        return words.reasonDamage;
+      case 'offcut_return':
+        return words.reasonOffcutReturn;
+      case 'return_to_supplier':
+        return words.reasonReturnToSupplier;
+      default:
+        return words.reasonAdjustment;
+    }
   }
 
   protected uomLabel(uom: string): string {
@@ -226,6 +269,7 @@ export class Materials {
     this.receiveQty.set('');
     this.costRm.set('');
     this.location.set('');
+    this.cancelAdjust();
     this.loadLots(material.id);
   }
 
@@ -269,6 +313,55 @@ export class Materials {
         error: (err: unknown) => {
           this.saving.set(false);
           this.failure.set(failureOf(err));
+        },
+      });
+  }
+
+  protected openAdjust(lot: StockLotOut): void {
+    this.adjustingLotId.set(lot.id);
+    this.adjustDelta.set('');
+    this.adjustReason.set('adjustment');
+    this.adjustNote.set('');
+    this.adjustFailure.set(null);
+  }
+
+  protected cancelAdjust(): void {
+    this.adjustingLotId.set(null);
+    this.adjustDelta.set('');
+    this.adjustReason.set('adjustment');
+    this.adjustNote.set('');
+    this.adjustFailure.set(null);
+  }
+
+  protected submitAdjust(materialId: string, event: Event): void {
+    event.preventDefault();
+    this.adjust(materialId);
+  }
+
+  protected adjust(materialId: string): void {
+    const lotId = this.adjustingLotId();
+    if (lotId === null || !this.canAdjust()) return;
+
+    this.adjustFailure.set(null);
+    this.saving.set(true);
+
+    this.api
+      .adjustStock({
+        lot_id: lotId,
+        delta: this.adjustDelta().trim(),
+        reason: this.adjustReason(),
+        note: this.adjustNote().trim() || null,
+      })
+      .subscribe({
+        next: () => {
+          this.saving.set(false);
+          this.cancelAdjust();
+          this.loadLots(materialId);
+          this.load();
+        },
+        error: (err: unknown) => {
+          this.saving.set(false);
+          this.adjustFailure.set(failureOf(err));
         },
       });
   }

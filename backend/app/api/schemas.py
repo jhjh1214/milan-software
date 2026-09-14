@@ -700,6 +700,10 @@ class OrderDetailOut(BaseModel):
     #: runs the export, so it has to be able to see the gap without opening
     #: somebody's handset.
     buyer: BuyerOut | None = None
+    #: SPEC.md §11 Phase 9's own named gap: an admin looking at a cancelled
+    #: order needs to see whether stock is still set aside for it before
+    #: `release_allocation` means anything to click.
+    allocations: list[AllocationOut] = []
 
 
 class OverridesOut(BaseModel):

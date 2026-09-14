@@ -192,6 +192,72 @@ describe('Materials', () => {
     expect(text()).toContain('20');
   });
 
+  it('adjusting stock posts the lot, delta and reason, then refreshes', () => {
+    load([material()]);
+    button('Receive stock').click();
+    http.expectOne('/api/stock/lots?material_id=m1').flush({ lots: [lot()] });
+    fixture.detectChanges();
+
+    button('Adjust').click();
+    fixture.detectChanges();
+
+    el<HTMLInputElement>('#delta-lot1').value = '-2';
+    el<HTMLInputElement>('#delta-lot1').dispatchEvent(new Event('input'));
+    el<HTMLSelectElement>('#adjust-reason-lot1').value = 'damage';
+    el<HTMLSelectElement>('#adjust-reason-lot1').dispatchEvent(new Event('change'));
+    el<HTMLInputElement>('#adjust-note-lot1').value = 'water damage';
+    el<HTMLInputElement>('#adjust-note-lot1').dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    el('form.adjust').dispatchEvent(new Event('submit'));
+
+    const req = http.expectOne('/api/stock/adjust');
+    expect(req.request.body).toEqual({
+      lot_id: 'lot1',
+      delta: '-2',
+      reason: 'damage',
+      note: 'water damage',
+    });
+    req.flush({
+      id: 'move1',
+      material_id: 'm1',
+      lot_id: 'lot1',
+      delta: '-2',
+      reason: 'damage',
+      order_id: null,
+      by_user_id: 'admin1',
+      at: '2026-09-14T00:00:00Z',
+      note: 'water damage',
+    });
+
+    http.expectOne('/api/stock/lots?material_id=m1').flush({
+      lots: [lot({ qty_on_hand: '18' })],
+    });
+    http.expectOne((r) => r.url === '/api/materials').flush({ materials: [material()] });
+    http.expectOne('/api/inventory/alerts').flush({ alerts: [] });
+    fixture.detectChanges();
+
+    expect(text()).toContain('18');
+  });
+
+  it('a zero or blank delta cannot be submitted', () => {
+    load([material()]);
+    button('Receive stock').click();
+    http.expectOne('/api/stock/lots?material_id=m1').flush({ lots: [lot()] });
+    fixture.detectChanges();
+
+    button('Adjust').click();
+    fixture.detectChanges();
+
+    const submit = el<HTMLButtonElement>('form.adjust button[type="submit"]');
+    expect(submit.disabled).toBe(true);
+
+    el<HTMLInputElement>('#delta-lot1').value = '0';
+    el<HTMLInputElement>('#delta-lot1').dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(submit.disabled).toBe(true);
+  });
+
   it('receiving stock posts against the right material and refreshes', () => {
     load([material()]);
     button('Receive stock').click();

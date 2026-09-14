@@ -458,5 +458,10 @@ export const ZH: Strings = {
     chooseMaterial: '选择物料',
     allocateAction: '分配',
     allocated: '已分配。',
+    allocationStatusProposed: '已提议，待审核',
+    allocationStatusApproved: '已预留库存',
+    allocationStatusReleased: '已退回库存',
+    releaseStock: '释放库存',
+    releasing: '释放中…',
   },
 };
