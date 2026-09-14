@@ -419,4 +419,77 @@ describe('UnitTypeReview', () => {
 
     expect(text()).toContain('Could not reach the recognition service');
   });
+
+  describe('adding a project', () => {
+    // POST /api/projects already existed and was tested; nothing on
+    // either client could reach it. A part-timer's own device can only
+    // ever pick from a project it has already seen, never create one.
+
+    it('posts the name, developer and area, and confirms', () => {
+      load([]);
+      button('Add a project').click();
+      fixture.detectChanges();
+
+      el<HTMLInputElement>('#project-name').value = 'Taman Harmoni';
+      el<HTMLInputElement>('#project-name').dispatchEvent(new Event('input'));
+      el<HTMLInputElement>('#project-developer').value = 'ABC Sdn Bhd';
+      el<HTMLInputElement>('#project-developer').dispatchEvent(new Event('input'));
+      el<HTMLInputElement>('#project-area').value = 'Ayer Keroh';
+      el<HTMLInputElement>('#project-area').dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      el('form.add-project').dispatchEvent(new Event('submit'));
+
+      const req = http.expectOne('/api/projects');
+      expect(req.request.body).toEqual({
+        name: 'Taman Harmoni',
+        developer: 'ABC Sdn Bhd',
+        area: 'Ayer Keroh',
+      });
+      req.flush({
+        id: 'p9',
+        name: 'Taman Harmoni',
+        developer: 'ABC Sdn Bhd',
+        area: 'Ayer Keroh',
+        created_at: '2026-09-14T00:00:00Z',
+      });
+      fixture.detectChanges();
+
+      expect(text()).toContain('Added "Taman Harmoni"');
+      expect(fixture.nativeElement.querySelector('form.add-project')).toBeNull();
+    });
+
+    it('a name is required before it can be submitted', () => {
+      load([]);
+      button('Add a project').click();
+      fixture.detectChanges();
+
+      const submit = el<HTMLButtonElement>('form.add-project button[type="submit"]');
+      expect(submit.disabled).toBe(true);
+
+      el<HTMLInputElement>('#project-name').value = '   ';
+      el<HTMLInputElement>('#project-name').dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      expect(submit.disabled).toBe(true);
+    });
+
+    it('a refusal is said in words, and the form stays open', () => {
+      load([]);
+      button('Add a project').click();
+      fixture.detectChanges();
+
+      el<HTMLInputElement>('#project-name').value = 'Taman Harmoni';
+      el<HTMLInputElement>('#project-name').dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      el('form.add-project').dispatchEvent(new Event('submit'));
+      http
+        .expectOne('/api/projects')
+        .flush({ detail: 'no' }, { status: 500, statusText: 'Server Error' });
+      fixture.detectChanges();
+
+      expect(text()).toContain('The server answered 500.');
+      expect(fixture.nativeElement.querySelector('form.add-project')).not.toBeNull();
+    });
+  });
 });

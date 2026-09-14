@@ -46,6 +46,7 @@ import type {
   PersonOut,
   ProductPriceEditOut,
   ProductsOut,
+  ProjectOut,
   ProjectsOut,
   PublishOut,
   ReorderAlertsOut,
@@ -412,6 +413,24 @@ export class Api {
     if (query) params = params.set('q', query);
     return this.http.get<ProjectsOut>(`${API_BASE}/projects`, {
       params,
+      headers: this.authorised(),
+    });
+  }
+
+  /**
+   * The shell a unit type lives under. Not admin-only on the server --
+   * creating one is ordinary data entry, the same trust level as a quote
+   * or a payment -- but a part-timer's own device can only ever pick from
+   * projects it has already seen with a connection in hand (Phase 8's own
+   * design), never create one. Somewhere has to be able to add the first
+   * one, or the whole library has nothing to submit against.
+   */
+  createProject(project: {
+    name: string;
+    developer?: string | null;
+    area?: string | null;
+  }): Observable<ProjectOut> {
+    return this.http.post<ProjectOut>(`${API_BASE}/projects`, project, {
       headers: this.authorised(),
     });
   }

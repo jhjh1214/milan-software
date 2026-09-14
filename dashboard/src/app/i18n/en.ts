@@ -434,6 +434,12 @@ export const EN: Strings = {
     recognitionProposedOpenings: (n) => `${n} opening(s) proposed`,
     recognitionProposedRooms: (n) => `${n} room(s) proposed`,
     recognitionFailed: 'Could not reach the recognition service.',
+    addProject: 'Add a project',
+    projectNameLabel: 'Project name',
+    projectDeveloperLabel: 'Developer (optional)',
+    projectAreaLabel: 'Area (optional)',
+    addProjectAction: 'Add project',
+    projectAdded: (name) => `Added "${name}". It can now be picked on a handset.`,
   },
 
   inventory: {

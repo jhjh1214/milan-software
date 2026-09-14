@@ -12,6 +12,20 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 
 ## Current state
 
+**The property library had no way to create its own first row.** The same
+unused-`Api`-method sweep that found the two Phase 9 gaps below turned up
+a bigger one: `POST /api/projects` existed, was tested, and was
+unreachable from *either* client. Mobile's own project picker is
+deliberately read-only (Phase 8: "a submission can only ever point at a
+project this handset has already seen with a connection in hand"), which
+is correct for a part-timer at a fair -- but it means nothing, anywhere,
+could ever create the project a first submission would need to point at.
+No CLI command for it either. `unit-type-review.ts` gains a small "Add a
+project" control -- name, developer, area, matching `ProjectIn` exactly --
+since the admin review screen is where "the office is setting up a new
+development before anyone visits it" already belongs. 3 new dashboard
+tests. 333 dashboard tests.
+
 **Two more Phase 9 routes existed, tested, with no way to reach them** —
 found the same way the `me()` gap above was: grepping every `Api` method
 the dashboard defines against what actually calls it. Two came back

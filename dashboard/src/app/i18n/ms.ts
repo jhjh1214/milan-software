@@ -447,6 +447,13 @@ export const MS: Strings = {
     recognitionProposedOpenings: (n) => `${n} bukaan dicadangkan`,
     recognitionProposedRooms: (n) => `${n} bilik dicadangkan`,
     recognitionFailed: 'Tidak dapat menghubungi perkhidmatan pengecaman.',
+    addProject: 'Tambah projek',
+    projectNameLabel: 'Nama projek',
+    projectDeveloperLabel: 'Pemaju (pilihan)',
+    projectAreaLabel: 'Kawasan (pilihan)',
+    addProjectAction: 'Tambah projek',
+    projectAdded: (name) =>
+      `"${name}" ditambah. Kini boleh dipilih pada telefon.`,
   },
 
   inventory: {

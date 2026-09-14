@@ -399,6 +399,12 @@ export const ZH: Strings = {
     recognitionProposedOpenings: (n) => `识别出 ${n} 个门窗`,
     recognitionProposedRooms: (n) => `识别出 ${n} 个房间`,
     recognitionFailed: '无法连接识别服务。',
+    addProject: '新增项目',
+    projectNameLabel: '项目名称',
+    projectDeveloperLabel: '发展商（选填）',
+    projectAreaLabel: '地区（选填）',
+    addProjectAction: '新增项目',
+    projectAdded: (name) => `已新增「${name}」。手机现在可以选择这个项目了。`,
   },
 
   inventory: {

@@ -519,6 +519,14 @@ export interface LibraryStrings {
   readonly recognitionProposedOpenings: (n: number) => string;
   readonly recognitionProposedRooms: (n: number) => string;
   readonly recognitionFailed: string;
+  /** Creating the shell a unit type lives under -- a part-timer's own
+   * device can only ever pick from an existing project, never add one. */
+  readonly addProject: string;
+  readonly projectNameLabel: string;
+  readonly projectDeveloperLabel: string;
+  readonly projectAreaLabel: string;
+  readonly addProjectAction: string;
+  readonly projectAdded: (name: string) => string;
 }
 
 /** Materials, stock and allocations. SPEC.md Phase 9. Every action here is

@@ -52,6 +52,26 @@ export class UnitTypeReview {
   protected readonly failure = signal<Failure | null>(null);
   protected readonly note = signal<Note | null>(null);
 
+  /**
+   * The shell a unit type lives under. `POST /api/projects` already
+   * existed and was tested; nothing anywhere -- neither client -- could
+   * reach it. A part-timer's own device can only ever pick from a project
+   * it has already seen with a connection in hand, never create one, so
+   * without this control the very first project in a new area has nowhere
+   * to come from.
+   */
+  protected readonly addingProject = signal(false);
+  protected readonly projectName = signal('');
+  protected readonly projectDeveloper = signal('');
+  protected readonly projectArea = signal('');
+  protected readonly savingProject = signal(false);
+  protected readonly projectFailure = signal<Failure | null>(null);
+  protected readonly projectNote = signal<string | null>(null);
+
+  protected readonly canAddProject = computed(
+    () => !this.savingProject() && this.projectName().trim().length > 0,
+  );
+
   /** The id currently mid-request, so a double click cannot fire twice. */
   protected readonly acting = signal<string | null>(null);
   /** The id whose reject form is open, and what has been typed into it. */
@@ -323,6 +343,48 @@ export class UnitTypeReview {
         this.calibError.set(this.message(failureOf(err)));
       },
     });
+  }
+
+  protected openAddProject(): void {
+    this.addingProject.set(true);
+    this.projectName.set('');
+    this.projectDeveloper.set('');
+    this.projectArea.set('');
+    this.projectFailure.set(null);
+    this.projectNote.set(null);
+  }
+
+  protected cancelAddProject(): void {
+    this.addingProject.set(false);
+  }
+
+  protected submitAddProject(event: Event): void {
+    event.preventDefault();
+    this.addProject();
+  }
+
+  protected addProject(): void {
+    if (!this.canAddProject()) return;
+    this.savingProject.set(true);
+    this.projectFailure.set(null);
+
+    this.api
+      .createProject({
+        name: this.projectName().trim(),
+        developer: this.projectDeveloper().trim() || null,
+        area: this.projectArea().trim() || null,
+      })
+      .subscribe({
+        next: (project) => {
+          this.savingProject.set(false);
+          this.addingProject.set(false);
+          this.projectNote.set(project.name);
+        },
+        error: (err: unknown) => {
+          this.savingProject.set(false);
+          this.projectFailure.set(failureOf(err));
+        },
+      });
   }
 
   protected recognitionFor(floorPlanId: string): ExtractionOut | null {

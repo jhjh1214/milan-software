@@ -1,6 +1,60 @@
 <header class="page-header">
   <h1 class="page-title">{{ t().library.title }}</h1>
+  @if (!addingProject()) {
+    <div class="page-actions">
+      <button type="button" class="btn" (click)="openAddProject()">
+        {{ t().library.addProject }}
+      </button>
+    </div>
+  }
 </header>
+
+@if (addingProject()) {
+  <form class="add-project card" (submit)="submitAddProject($event)">
+    @if (projectFailure(); as failed) {
+      <p class="failure" role="alert">{{ message(failed) }}</p>
+    }
+    <div>
+      <label for="project-name">{{ t().library.projectNameLabel }}</label>
+      <input
+        id="project-name"
+        [value]="projectName()"
+        (input)="projectName.set($any($event.target).value)"
+      />
+    </div>
+    <div>
+      <label for="project-developer">{{ t().library.projectDeveloperLabel }}</label>
+      <input
+        id="project-developer"
+        [value]="projectDeveloper()"
+        (input)="projectDeveloper.set($any($event.target).value)"
+      />
+    </div>
+    <div>
+      <label for="project-area">{{ t().library.projectAreaLabel }}</label>
+      <input
+        id="project-area"
+        [value]="projectArea()"
+        (input)="projectArea.set($any($event.target).value)"
+      />
+    </div>
+    <div class="actions">
+      <button type="submit" class="btn btn-primary" [disabled]="!canAddProject()">
+        @if (savingProject()) {
+          <span class="spinner" aria-hidden="true"></span>
+        }
+        {{ t().library.addProjectAction }}
+      </button>
+      <button type="button" class="btn" (click)="cancelAddProject()">
+        {{ t().common.cancel }}
+      </button>
+    </div>
+  </form>
+}
+
+@if (projectNote(); as name) {
+  <p class="note" role="status">{{ t().library.projectAdded(name) }}</p>
+}
 
 @if (note(); as what) {
   <p class="note" role="status">{{ noteText(what) }}</p>
