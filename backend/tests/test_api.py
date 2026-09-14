@@ -217,6 +217,44 @@ class TestSigningIn:
         assert client.get("/api/auth/me", headers=auth(token)).status_code == 401
 
 
+class TestRateLimiting:
+    """`app.core.rate_limit`'s own tests cover the sliding-window arithmetic
+    directly; these just confirm the middleware is actually wired in.
+
+    A different phone number every request, all wrong, so this exercises the
+    IP throttle alone -- app.services.auth's own per-*phone* backoff (already
+    covered in test_auth.py) would otherwise trip first and this would be
+    testing the wrong mechanism.
+    """
+
+    def test_a_burst_from_one_source_eventually_gets_429(
+        self, client: TestClient
+    ) -> None:
+        from app.main import _LOGIN_RULE  # the current production limit
+
+        responses = [
+            client.post(
+                "/api/auth/login",
+                json={
+                    "phone": f"019{i:07d}",
+                    "pin": "0000",
+                    "device_id": "d1",
+                },
+            )
+            for i in range(_LOGIN_RULE.limit + 1)
+        ]
+        assert [r.status_code for r in responses[:-1]] == [401] * _LOGIN_RULE.limit
+        blocked = responses[-1]
+        assert blocked.status_code == 429
+        assert int(blocked.headers["Retry-After"]) > 0
+
+    def test_health_is_never_rate_limited(self, client: TestClient) -> None:
+        from app.main import _GLOBAL_RULE
+
+        for _ in range(_GLOBAL_RULE.limit + 20):
+            assert client.get("/api/health").status_code == 200
+
+
 class TestEverythingNeedsASession:
     @pytest.mark.parametrize(
         ("method", "path"),

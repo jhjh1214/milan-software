@@ -12,6 +12,91 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 
 ## Current state
 
+**A security review of the API itself, asked for directly rather than found
+by a sweep** (Sep 2026, same session as the deploy work below): rate
+limiting, a request-size ceiling, and a deliberate explanation of two things
+already built rather than missing -- because "add JWT" and "add input
+sanitisation" were both asked for by name, and the honest answer for each is
+that this system already made a different, better-fitting choice, not that
+either was forgotten.
+
+**No JWT, on purpose, and this should not change.** `app/core/security.py`
+already does the harder thing properly: a 256-bit random token, its SHA-256
+fingerprint (never the token itself) is what is stored, and revocation is a
+row update, not a blocklist. SPEC.md §12 requires sessions that never expire
+-- expiry mid-fair with no signal holds a customer's deposit -- and a JWT
+answering that requirement needs either a long-lived signed token with no
+revocation path (a stolen one is valid forever, no matter what an admin does
+in `/api/people/{id}/deactivate`) or a server-side revocation list anyway, at
+which point it is this design with worse failure modes: algorithm-confusion
+and `alg: none` attacks that only exist because a JWT carries its own
+verification instructions, and a stored secret whose rotation invalidates
+every session at once instead of one at a time. Introducing one here would
+be a downgrade dressed as a best practice.
+
+**Input handling was already careful; this looked for the gaps rather than
+assuming there were none.** SQLAlchemy's query builder throughout (`grep`
+for raw `text()`/string-built SQL found none), Pydantic validation on every
+request body, a path-pattern allowlist on `list_id` (`^(fair|standard)$`)
+rather than a free string reaching a query, `base64.b64decode(...,
+validate=True)` rather than silently dropping bad characters, and
+`library.py`'s own `ALLOWED_FLOOR_PLAN_CONTENT_TYPES` -- already commented,
+before this review touched it, as a deliberate stored-XSS guard: serving a
+client-supplied `content_type` back verbatim on `GET /api/floor-plans/{id}/
+image` would let an `image/svg+xml` or `text/html` upload render as a
+document instead of a picture the moment anything fetches that URL outside
+an `<img>` tag. `MAX_FLOOR_PLAN_BYTES` (10MB) already bounded a single
+upload before this review, in all three places that accept one.
+
+**What was actually missing: nothing stopped one source from hammering the
+API at all**, as opposed to `app/services/auth.py`'s existing throttle, which
+answers a narrower question -- is *this phone number* being brute-forced --
+and never accumulates against an attacker spraying many different numbers
+from one address. `app/core/rate_limit.py` is a sliding-window counter,
+per-source-IP, checked by a new `rate_limit_middleware` on every request
+except `/api/health` (the one route a container health check and an
+external uptime monitor both hit on a schedule neither backs off from): a
+tight rule on `/api/auth/login` (20/min) layered under the existing per-phone
+backoff, and a loose backstop everywhere else (300/min) that nothing in
+normal use -- a handful of handsets, one dashboard -- comes near. **In-memory,
+correct only because this API is exactly one worker process** (`backend/
+Dockerfile`'s own comment says why: so Alembic cannot race itself on boot) --
+a second worker or a replica would each keep a blind counter, silently
+multiplying every limit by however many there were, and would need a shared
+store (the database, the way the phone throttle already uses one) first.
+Both the pure sliding-window arithmetic and the middleware wiring are tested
+(`test_rate_limit.py`, a new `TestRateLimiting` in `test_api.py`); a new
+`tests/conftest.py` -- the first in this repo -- resets the limiter's state
+between tests, since it lives on the same module-level `app` object every
+test file's own `client` fixture reuses, and without the reset one test's
+burst of requests would start failing a later, unrelated one. Mutation-
+confirmed: disabling the threshold check killed exactly the four tests that
+should catch it and nothing else.
+
+**`deploy/Caddyfile` gained a request-size ceiling on `/api/*`** (`request_body
+{ max_size 20MB }`, validated with `caddy validate` the same way CI already
+does), ahead of `MAX_FLOOR_PLAN_BYTES` rather than instead of it -- that check
+runs only after FastAPI has already parsed the whole body into memory, so a
+transport-level cap is the layer that also protects against a body that is
+just bytes, no image, sized to hurt. Not functionally exercised end-to-end
+locally: doing so needs a resolvable domain for Caddy's automatic HTTPS, the
+same obstacle CI's own "Compose file and Caddyfile are valid" step already
+names and works around by validating rather than serving.
+
+**Recommended, not built:** a Content-Security-Policy header on the
+dashboard. `dashboard/src/index.html` already preconnects to Google Fonts,
+so a CSP needs `style-src`/`font-src` entries for it, and getting a CSP
+wrong fails closed -- the whole app stops rendering, silently, with nothing
+but a browser console to say why. That is a real risk to carry without a
+browser to load the built app in and watch for violations, which this
+session did not have; flagged rather than guessed at.
+
+CORS middleware was deliberately not added: the dashboard never calls the
+API cross-origin in any real path -- Caddy serves both from one origin in
+production, and `dashboard/proxy.conf.json` proxies `/api` server-side for
+`ng serve` -- so a CORS policy here would be permissive configuration
+guarding a request that can never actually happen from a browser.
+
 **Deploy gained the pieces "one node" was always going to need before a real
 customer's money sat on it** (Sep 2026): resource limits, a rollback-capable
 release path, a second environment, a firewall, and an external heartbeat.

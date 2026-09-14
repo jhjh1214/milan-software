@@ -10,6 +10,16 @@
 
 	# The API. Everything the phones and the dashboard talk to.
 	handle /api/* {
+		# Nothing legitimate here is bigger than a floor-plan photo, and
+		# `library.py`'s own MAX_FLOOR_PLAN_BYTES (10MB, base64 inflates that
+		# by a third) already refuses one larger -- but that check runs only
+		# after FastAPI has parsed the whole body into memory. This refuses
+		# an oversized one before it ever reaches the API at all, which is
+		# the only one of the two that also protects against a body with no
+		# image in it, just bytes.
+		request_body {
+			max_size 20MB
+		}
 		reverse_proxy api:8000
 	}
 

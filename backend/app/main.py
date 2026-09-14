@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import time
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from typing import Annotated
@@ -31,10 +32,12 @@ from fastapi import (
     HTTPException,
     Path,
     Query,
+    Request,
     Response,
     UploadFile,
     status,
 )
+from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -131,6 +134,7 @@ from .api.schemas import (
 from .api.schemas import (
     RoomIn as RoomApiIn,
 )
+from .core.rate_limit import RateLimiter, RateLimitRule
 from .core.security import WeakPin
 from .db import session_scope
 from .models.db import (
@@ -266,6 +270,60 @@ app = FastAPI(
         "issue invoices: SQL Account is the sole issuer of record (SPEC.md §10)."
     ),
 )
+
+#: See `app.core.rate_limit`'s own docstring for why a plain in-process dict
+#: is correct here and would not be if this ever ran as more than one worker.
+_rate_limiter = RateLimiter()
+#: Tighter than the general rule: login is the one unauthenticated route that
+#: touches data, and it is what a phone-and-PIN spray targets. This is a
+#: second layer over `app.services.auth`'s own per-*phone* backoff, not a
+#: replacement for it -- this one catches an attacker rotating through many
+#: numbers from one source, which never touches any single number's counter
+#: twice.
+_LOGIN_RULE = RateLimitRule(limit=20, window_seconds=60)
+#: A generous ceiling nothing in normal use -- a handful of handsets syncing,
+#: one dashboard -- comes anywhere near. Purely a backstop against a single
+#: source hammering the API, scraping data or running the server hot.
+_GLOBAL_RULE = RateLimitRule(limit=300, window_seconds=60)
+
+
+def reset_rate_limits() -> None:
+    """Test-only. `_rate_limiter` is a module-level singleton bound to this
+    `app` object, which every test file's `client` fixture reuses -- without
+    a reset between tests, one test's burst of requests silently counts
+    against the next test's limit."""
+    _rate_limiter.reset()
+
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    """`/api/health` is exempt: it is what the container health check and an
+    external uptime monitor both call, unauthenticated, on a schedule
+    neither of them will back off from."""
+    if request.url.path == "/api/health":
+        return await call_next(request)
+
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.monotonic()
+
+    rules = [("global", _GLOBAL_RULE)]
+    if request.url.path == "/api/auth/login":
+        rules.append(("login", _LOGIN_RULE))
+
+    retry_after = None
+    for name, rule in rules:
+        wait = _rate_limiter.check(name, client_ip, rule, now=now)
+        if wait is not None:
+            retry_after = wait if retry_after is None else max(retry_after, wait)
+
+    if retry_after is not None:
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            content={"detail": "too many requests"},
+            headers={"Retry-After": str(int(retry_after) + 1)},
+        )
+
+    return await call_next(request)
 
 
 def get_session() -> Iterator[Session]:
