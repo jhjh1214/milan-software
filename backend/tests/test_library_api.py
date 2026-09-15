@@ -12,6 +12,7 @@ from __future__ import annotations
 import base64
 import uuid
 from collections.abc import Iterator
+from datetime import UTC, datetime
 
 import pytest
 from fastapi.testclient import TestClient
@@ -22,14 +23,14 @@ from sqlalchemy.pool import StaticPool
 from app import db as db_module
 from app.core.security import hash_pin
 from app.main import app, get_session
-from app.models.db import Base, User
+from app.models.db import Base, RecognitionJob, User
 
 PINS = {"admin": "1357", "staff": "2468", "parttime": "4821"}
 PHONES = {"admin": "0110000001", "staff": "0110000002", "parttime": "0110000003"}
 
 
 @pytest.fixture
-def client() -> Iterator[TestClient]:
+def client(monkeypatch) -> Iterator[TestClient]:
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
@@ -37,6 +38,13 @@ def client() -> Iterator[TestClient]:
     )
     Base.metadata.create_all(engine)
     factory = sessionmaker(bind=engine, expire_on_commit=False)
+
+    # A background recognition job (app/services/recognition_jobs.py) opens
+    # its own session through app.db.session_scope rather than the
+    # request-scoped get_session override below -- point that module's own
+    # globals at this same engine so the job sees what a test set up.
+    monkeypatch.setattr(db_module, "_Session", factory)
+    monkeypatch.setattr(db_module, "_engine", engine)
 
     with Session(engine) as setup:
         for role, phone in PHONES.items():
@@ -639,4 +647,121 @@ class TestUnitTypeSubmissionsApi:
                 "name": "Type C",
             },
         )
+        assert r.status_code == 401, r.text
+
+
+class TestRecognitionJobApi:
+    """The background path: `POST .../recognize-async` starts a job,
+    `GET .../recognition` reads the latest one. Starlette's TestClient runs
+    a `BackgroundTasks` callback synchronously as part of the request it
+    was queued from, so the job is already "done" by the time the POST
+    response comes back -- no polling needed in these tests.
+    """
+
+    def _uploaded_floor_plan(self, client: TestClient, token: str) -> str:
+        project_id = make_project(client, token)
+        unit_type_id = client.post(
+            "/api/unit-types",
+            json={"project_id": project_id, "name": "Type B"},
+            headers=auth(token),
+        ).json()["unit_type"]["id"]
+        return client.post(
+            f"/api/unit-types/{unit_type_id}/floor-plan",
+            files={"file": ("plan.jpg", b"data", "image/jpeg")},
+            headers=auth(token),
+        ).json()["id"]
+
+    def test_starting_a_job_returns_202_and_a_pending_shape(
+        self, client: TestClient
+    ) -> None:
+        token = sign_in(client, "admin")
+        floor_plan_id = self._uploaded_floor_plan(client, token)
+
+        r = client.post(
+            f"/api/floor-plans/{floor_plan_id}/recognize-async",
+            headers=auth(token),
+        )
+        assert r.status_code == 202, r.text
+        assert r.json()["floor_plan_id"] == floor_plan_id
+
+    def test_the_job_is_done_by_the_time_the_response_comes_back(
+        self, client: TestClient
+    ) -> None:
+        token = sign_in(client, "admin")
+        floor_plan_id = self._uploaded_floor_plan(client, token)
+
+        client.post(
+            f"/api/floor-plans/{floor_plan_id}/recognize-async",
+            headers=auth(token),
+        )
+
+        r = client.get(
+            f"/api/floor-plans/{floor_plan_id}/recognition", headers=auth(token)
+        )
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["status"] == "done"
+        # No RECOGNITION_PROVIDER configured in the test environment --
+        # the placeholder's own honest "not configured" answer.
+        assert body["configured"] is False
+        assert body["provider"] == "none"
+        assert body["openings"] == []
+
+    def test_no_job_yet_is_404(self, client: TestClient) -> None:
+        token = sign_in(client, "admin")
+        floor_plan_id = self._uploaded_floor_plan(client, token)
+
+        r = client.get(
+            f"/api/floor-plans/{floor_plan_id}/recognition", headers=auth(token)
+        )
+        assert r.status_code == 404, r.text
+
+    def test_starting_a_job_on_an_unknown_floor_plan_is_404(
+        self, client: TestClient
+    ) -> None:
+        token = sign_in(client, "admin")
+        r = client.post(
+            f"/api/floor-plans/{uuid.uuid4()}/recognize-async",
+            headers=auth(token),
+        )
+        assert r.status_code == 404, r.text
+
+    def test_a_second_job_supersedes_the_first_as_latest(
+        self, client: TestClient
+    ) -> None:
+        token = sign_in(client, "admin")
+        floor_plan_id = self._uploaded_floor_plan(client, token)
+
+        first = client.post(
+            f"/api/floor-plans/{floor_plan_id}/recognize-async",
+            headers=auth(token),
+        ).json()
+
+        # Postgres's `now()` is microsecond-precision, so two real requests
+        # always sort correctly in production; SQLite's is second-precision,
+        # so two jobs started within the same test's own single second would
+        # otherwise tie. Pushed back explicitly so this test is not a coin
+        # flip on how fast it happens to run.
+        with db_module.session_factory()() as session:
+            job = session.get(RecognitionJob, first["id"])
+            job.created_at = datetime(2020, 1, 1, tzinfo=UTC)
+            session.commit()
+
+        second = client.post(
+            f"/api/floor-plans/{floor_plan_id}/recognize-async",
+            headers=auth(token),
+        ).json()
+        assert first["id"] != second["id"]
+
+        latest = client.get(
+            f"/api/floor-plans/{floor_plan_id}/recognition", headers=auth(token)
+        ).json()
+        assert latest["id"] == second["id"]
+
+    def test_nobody_without_a_token_can_start_a_job(self, client: TestClient) -> None:
+        r = client.post(f"/api/floor-plans/{uuid.uuid4()}/recognize-async")
+        assert r.status_code == 401, r.text
+
+    def test_nobody_without_a_token_can_read_a_job(self, client: TestClient) -> None:
+        r = client.get(f"/api/floor-plans/{uuid.uuid4()}/recognition")
         assert r.status_code == 401, r.text

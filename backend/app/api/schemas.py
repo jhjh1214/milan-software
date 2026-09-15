@@ -1191,6 +1191,13 @@ class ProposedOpeningOut(BaseModel):
     nominal_w_tmm: int
     nominal_h_tmm: int
     confidence: float
+    #: A track/rail width accounting for wall space visible beside the
+    #: opening, or None when the provider had nothing to base one on.
+    suggested_track_w_tmm: int | None = None
+    #: A drop accounting for a printed ceiling height only -- almost always
+    #: None, since a floor plan is a top-down drawing (app/services/
+    #: recognition.py's own ProposedOpening docstring explains why).
+    suggested_drop_h_tmm: int | None = None
 
 
 class ProposedRoomOut(BaseModel):
@@ -1211,6 +1218,24 @@ class ExtractionOut(BaseModel):
     note: str = ""
     openings: list[ProposedOpeningOut] = []
     rooms: list[ProposedRoomOut] = []
+
+
+class RecognitionJobOut(BaseModel):
+    """A background recognition run's current state. Still just a
+    proposal, the same as `ExtractionOut` -- nothing here can become an
+    `Opening` or a `Room` except by a person copying it into the form.
+    """
+
+    id: str
+    floor_plan_id: str
+    status: str
+    provider: str | None = None
+    configured: bool | None = None
+    note: str | None = None
+    openings: list[ProposedOpeningOut] = []
+    rooms: list[ProposedRoomOut] = []
+    created_at: datetime
+    completed_at: datetime | None = None
 
 
 class FloorPlanSubmissionIn(BaseModel):

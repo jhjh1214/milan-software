@@ -606,6 +606,12 @@ export interface ProposedOpeningOut {
   readonly nominal_w_tmm: number;
   readonly nominal_h_tmm: number;
   readonly confidence: number;
+  /** A track/rail width accounting for wall space visible beside the
+   * opening, or null when the provider had nothing to base one on. */
+  readonly suggested_track_w_tmm: number | null;
+  /** A drop accounting for a printed ceiling height only -- almost always
+   * null, since a floor plan is a top-down drawing. */
+  readonly suggested_drop_h_tmm: number | null;
 }
 
 export interface ProposedRoomOut {
@@ -620,6 +626,26 @@ export interface ExtractionOut {
   readonly note: string;
   readonly openings: readonly ProposedOpeningOut[];
   readonly rooms: readonly ProposedRoomOut[];
+}
+
+/**
+ * A background recognition run's current state. SPEC.md §14.7's own
+ * suggested shape for a genuinely long-running capability -- a status a
+ * client polls -- since a locally hosted model on modest hardware can take
+ * minutes where a hosted one takes seconds. Still just a proposal, the
+ * same as `ExtractionOut`.
+ */
+export interface RecognitionJobOut {
+  readonly id: string;
+  readonly floor_plan_id: string;
+  readonly status: 'pending' | 'done' | 'failed';
+  readonly provider: string | null;
+  readonly configured: boolean | null;
+  readonly note: string | null;
+  readonly openings: readonly ProposedOpeningOut[];
+  readonly rooms: readonly ProposedRoomOut[];
+  readonly created_at: string;
+  readonly completed_at: string | null;
 }
 
 export interface UnitTypeVersionOut {

@@ -49,6 +49,7 @@ import type {
   ProjectOut,
   ProjectsOut,
   PublishOut,
+  RecognitionJobOut,
   ReorderAlertsOut,
   StockLotOut,
   StockLotsOut,
@@ -493,6 +494,27 @@ export class Api {
           { headers: this.authorised() },
         ),
       ),
+    );
+  }
+
+  /**
+   * Starts recognition in the background and returns immediately -- the
+   * office upload path, where nobody is standing there waiting the way a
+   * fair's own quoting is. Poll `recognitionJob` for the result.
+   */
+  startRecognitionJob(floorPlanId: string): Observable<RecognitionJobOut> {
+    return this.http.post<RecognitionJobOut>(
+      `${API_BASE}/floor-plans/${floorPlanId}/recognize-async`,
+      {},
+      { headers: this.authorised() },
+    );
+  }
+
+  /** The latest background recognition attempt for this floor plan. */
+  recognitionJob(floorPlanId: string): Observable<RecognitionJobOut> {
+    return this.http.get<RecognitionJobOut>(
+      `${API_BASE}/floor-plans/${floorPlanId}/recognition`,
+      { headers: this.authorised() },
     );
   }
 

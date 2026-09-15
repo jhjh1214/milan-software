@@ -1065,6 +1065,54 @@ class FloorPlan(Base):
     version: Mapped[UnitTypeVersion] = relationship(back_populates="floor_plan")
 
 
+class RecognitionJob(Base):
+    """A floor plan's recognition run, worked out in the background. Sep
+    2026, once the office actually wanted to upload a plan and walk away
+    rather than sit watching a locally hosted model think for several
+    minutes -- SPEC.md §14.7's own suggested shape for exactly this: "a
+    status a client polls... without reaching for infrastructure this
+    system does not otherwise run." No job queue, no worker process; a
+    FastAPI `BackgroundTasks` call and this table are the whole mechanism.
+
+    One row per attempt, never edited into a different attempt: a retry is
+    a new row, so a poller reading the *latest* row for a floor plan never
+    sees a stale one's fields overwritten mid-read by a second attempt
+    that started later.
+
+    `openings`/`rooms` mirror `ExtractionResult`'s own fields exactly
+    (`app/services/recognition.py`) -- stored only so the result outlives
+    the one request that kicked it off. Still never production truth:
+    nothing here can become an `Opening` or a `Room` except by a person
+    reading this row and retyping or copying it into the ordinary
+    submission form, the same gate every other proposal in this library
+    already goes through.
+    """
+
+    __tablename__ = "recognition_jobs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    floor_plan_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("floor_plans.id", ondelete="CASCADE"), index=True
+    )
+    #: "pending" | "done" | "failed" -- "failed" is this job's own error
+    #: (e.g. the image could not be read), never what a configured provider
+    #: itself reports about not recognising anything, which is `openings`/
+    #: `rooms` empty on an otherwise "done" row.
+    status: Mapped[str] = mapped_column(String(16), default="pending")
+    provider: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    configured: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    openings: Mapped[list] = mapped_column(JsonColumn, default=list)
+    rooms: Mapped[list] = mapped_column(JsonColumn, default=list)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    requested_by_user_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
 class Material(Base):
     """A stocked material, tracked so a real order actually consumes real
     stock. SPEC.md Phase 9.

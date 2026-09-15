@@ -12,6 +12,62 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 
 ## Current state
 
+**Recognition runs in the background for the one place that can afford to
+wait, and now suggests a track width, not just an opening size** (Sep
+2026), both asked for directly after the real local model tested above
+turned out to take several minutes on a genuinely complex plan.
+
+`app/services/recognition_jobs.py` adds `POST /api/floor-plans/{id}/
+recognize-async` (starts a `RecognitionJob` row, returns immediately) and
+`GET .../recognition` (reads the latest one) -- SPEC.md §14.7's own
+suggested shape for exactly this ("a status a client polls... without
+reaching for infrastructure this system does not otherwise run"): a
+FastAPI `BackgroundTasks` callback threadpooled off the request, one new
+table, no queue, no worker process. `POST /api/recognize` (stateless) is
+untouched and stays the fast path for everything that still needs one.
+
+**The two paths split on a real distinction, not a preference**: a
+part-timer recognising a photo at a fair table needs an answer in seconds,
+so the handset's own "try recognition" was deliberately left calling the
+synchronous route unchanged -- that path should reach a fast hosted
+vendor, or nothing (manual entry is never gated on recognition). An admin
+digitising a plan after an upload is not standing there waiting, so only
+the dashboard's review screen moved to the background job; a locally
+hosted model taking minutes costs nothing there and keeps the image off a
+third-party server entirely. `unit-type-review.ts` polls every 3s via a
+plain `setTimeout` (this codebase's first, deliberately not reaching for
+RxJS's `interval`/`switchMap` for one polling loop) and cleans up via
+`DestroyRef.onDestroy` if the admin navigates away mid-job.
+
+**`ProposedOpening` gained `suggested_track_w_tmm`/`suggested_drop_h_tmm`**
+(`app/services/recognition.py`, all three provider adapters, the dashboard
+review screen), separate from the opening's own `nominal_w_tmm`/
+`nominal_h_tmm` -- what a curtain track needs is not always what the
+window itself measures. Deliberately asymmetric, because the two
+questions are not equally answerable from a floor plan: wall space beside
+an opening is exactly what a top-down drawing shows, so a track-width
+suggestion is legitimate; a floor plan has no elevation view and
+essentially never shows a ceiling height, so the prompt is explicit that
+`suggested_drop_h_tmm` stays null unless one is actually printed on the
+plan, never estimated. In practice this field is almost always null,
+honestly, rather than a guessed "typical ceiling" that would be exactly
+the confident-wrong-number Phase 8 already warns against. Both fields are
+shown, never auto-applied -- there was never a field on this screen they
+could silently fill.
+
+Confirmed while answering this: the property library's existing
+project/unit-type search and the wizard's "start from a saved plan"
+picker already let any signed-in user, including a part-timer, pull up a
+previously digitised window or room -- nothing new was needed there.
+
+19 new backend tests (`test_recognition_jobs.py`,
+`TestRecognitionJobApi` in `test_library_api.py`, plus new
+`suggested_track_w_tmm`/`suggested_drop_h_tmm` parsing cases in
+`test_recognition_providers.py`), mutation-confirmed on the job-ordering
+logic. 5 new/replaced dashboard tests drive the async flow through real
+DOM clicks with vitest's fake timers standing in for the poll interval.
+890 backend tests, 335 dashboard tests.
+
 **Floor-plan recognition has three real providers now, asked for directly**
 (Sep 2026): SPEC.md §14.7 and "Future: assisted digitisation" both
 deliberately left *which* vendor to a later decision, made explicitly this

@@ -2358,6 +2358,67 @@ own privacy section). Those stay open questions for whoever turns one on for
 real, not something this session had grounds to answer on the client's
 behalf.
 
+**Recognition moved off the review screen's own request-response cycle
+(Sep 2026), asked for directly once a real local model's several-minute
+answer time made that impractical for an office upload.** `POST /api/
+floor-plans/{id}/recognize-async` starts a `RecognitionJob` row and returns
+immediately; `GET .../recognition` reads the latest one. §14.7's own
+suggested shape for a genuinely long-running capability call ("a status a
+client polls... without reaching for infrastructure this system does not
+otherwise run") is exactly the mechanism: a FastAPI `BackgroundTasks`
+callback and one table, no queue, no worker process. `POST /api/recognize`
+(stateless) is unchanged and stays the fast path both clients still use
+elsewhere -- the handset's own "try recognition" at a fair, and the
+dashboard's re-check of an already-fetched image -- because neither of
+those is the case this was built for. Only the dashboard's review screen
+moved to the background path; the handset's submission flow was
+deliberately left alone; see the paragraph below for why.
+
+**Two speeds, on purpose, matching two genuinely different moments.** A
+part-timer recognising a photo at a fair table needs an answer in seconds
+or the feature is worse than not having it -- that path should reach a
+fast hosted vendor (or nothing at all; manual entry is always available and
+never gated on recognition succeeding). An admin digitising a plan after
+an upload is not standing there waiting, so a locally hosted model taking
+several minutes costs nothing but is free and keeps the image off a
+third-party server entirely. The background job exists for the second
+case; nothing about the first case's own contract changed.
+
+**A proposed opening can now suggest a track width and a drop, separately
+from the opening's own size (Sep 2026)**, closing the gap between "here is
+the window" and "here is what a curtain track would actually need,"
+answering the part of §13's own open questions this session had grounds to
+answer and naming the part it does not. `ProposedOpening` gained
+`suggested_track_w_tmm` and `suggested_drop_h_tmm`
+(`app/services/recognition.py`), populated by the same three provider
+adapters, each null unless the provider has something honest to base a
+number on:
+
+- **Track width** is legitimately inferable from a floor plan -- it is a
+  top-down drawing, so wall space beside an opening is exactly the kind of
+  thing it shows. The prompt asks for a track width accounting for that
+  space when it is visible, and null when the opening is flush against
+  walls on both sides or the drawing does not make the wall space
+  legible.
+- **Drop height is a different question a floor plan cannot answer.** A
+  floor plan has no elevation view, so it essentially never shows a
+  ceiling height at all -- asking a vision model "how high is the ceiling"
+  from one is asking it to invent an answer no floor plan could ever
+  contain, which is exactly the "confident wrong number" this phase's own
+  opening paragraph already warns against. The prompt is explicit that
+  this field stays null unless the plan itself prints a ceiling height in
+  text; nothing here estimates a "typical" one. In practice this means the
+  field is almost always null, honestly.
+
+Both fields are exactly what §14.5/§14.7 already require of anything a
+capability proposes: shown to the reviewer, changeable, and never applied
+to any field automatically -- there was never a form on this screen they
+could silently fill in the first place. Reviewed and shown only on the
+dashboard's own review screen for now, where an admin actually deliberates
+over a submission; the handset's one-shot submission flow was left
+unchanged, on the same reasoning as the async job above -- a part-timer at
+a fair table is optimising for speed, not for a second field to read.
+
 ---
 
 ## PHASE 9 — Inventory

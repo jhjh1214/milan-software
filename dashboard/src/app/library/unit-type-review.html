@@ -178,28 +178,65 @@
                 <button
                   type="button"
                   class="btn"
-                  [disabled]="recognizing() === plan.id"
-                  (click)="tryRecognition(plan)"
+                  [disabled]="recognitionJobFor(plan.id)?.status === 'pending'"
+                  (click)="startRecognition(plan)"
                 >
-                  @if (recognizing() === plan.id) {
-                    <span class="spinner" aria-hidden="true"></span>
-                    {{ t().library.recognizing }}
-                  } @else {
-                    {{ t().library.tryRecognition }}
-                  }
+                  {{ t().library.tryRecognition }}
                 </button>
               </div>
 
               @if (recognizeFailed() === plan.id) {
                 <p class="failure" role="alert">{{ t().library.recognitionFailed }}</p>
               }
-              @if (recognitionFor(plan.id); as result) {
+              @if (recognitionJobFor(plan.id); as job) {
                 <div class="recognition-result">
-                  @if (!result.configured) {
+                  @if (job.status === 'pending') {
+                    <p class="hint">
+                      <span class="spinner" aria-hidden="true"></span>
+                      {{ t().library.recognizing }}
+                    </p>
+                  } @else if (job.status === 'failed') {
+                    <p class="failure" role="alert">{{ t().library.recognitionFailed }}</p>
+                  } @else if (!job.configured) {
                     <p class="hint">{{ t().library.recognitionNotConfigured }}</p>
                   } @else {
-                    <p>{{ t().library.recognitionProposedOpenings(result.openings.length) }}</p>
-                    <p>{{ t().library.recognitionProposedRooms(result.rooms.length) }}</p>
+                    <p>{{ t().library.recognitionProposedOpenings(job.openings.length) }}</p>
+                    @if (job.openings.length > 0) {
+                      <ul class="openings">
+                        @for (o of job.openings; track $index) {
+                          <li>
+                            {{
+                              t().library.recognitionOpeningDetail(
+                                o.label,
+                                o.room,
+                                feet(o.nominal_w_tmm),
+                                feet(o.nominal_h_tmm)
+                              )
+                            }}
+                            @if (o.suggested_track_w_tmm !== null) {
+                              <span class="hint">
+                                · {{ t().library.recognitionSuggestedTrack(feet(o.suggested_track_w_tmm)) }}
+                              </span>
+                            }
+                            @if (o.suggested_drop_h_tmm !== null) {
+                              <span class="hint">
+                                · {{ t().library.recognitionSuggestedDrop(feet(o.suggested_drop_h_tmm)) }}
+                              </span>
+                            }
+                          </li>
+                        }
+                      </ul>
+                    }
+                    <p>{{ t().library.recognitionProposedRooms(job.rooms.length) }}</p>
+                    @if (job.rooms.length > 0) {
+                      <ul class="rooms">
+                        @for (r of job.rooms; track $index) {
+                          <li>
+                            {{ t().library.recognitionRoomDetail(r.name, sqft(r.nominal_area_mm2)) }}
+                          </li>
+                        }
+                      </ul>
+                    }
                   }
                 </div>
               }

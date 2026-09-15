@@ -50,6 +50,22 @@ from typing import Protocol
 class ProposedOpening:
     """One window or door the provider thinks it saw. Display-only until a
     person copies it into the form -- never written to `Opening` directly.
+
+    `nominal_w_tmm`/`nominal_h_tmm` are the opening itself -- the glass or
+    frame, not the curtain. `suggested_track_w_tmm`/`suggested_drop_h_tmm`
+    are a separate, honest judgement about the *product*: a track commonly
+    runs wider than the window it dresses, and a drop commonly runs closer
+    to the ceiling than the window's own top edge, when the wall around the
+    opening has room for either. Both stay `None` rather than a guessed
+    "typical" number when the provider has nothing to base one on.
+
+    A floor plan is a top-down drawing: it can show wall space beside an
+    opening (so a wider track fits), but it does not show elevation, so it
+    essentially never shows a ceiling height -- `suggested_drop_h_tmm` stays
+    `None` in the overwhelming majority of cases, and should only be filled
+    from a ceiling height actually printed on the plan, never estimated
+    from "what ceilings are usually". A confident-looking number here that
+    turns out to be fabricated is worse than none.
     """
 
     label: str
@@ -60,6 +76,13 @@ class ProposedOpening:
     #: the reviewer so a low-confidence guess reads differently from a
     #: confident one.
     confidence: float
+    #: A track/rail width accounting for visible wall space beside the
+    #: opening -- still a suggestion, confirmed or corrected at the real
+    #: site visit like everything else this library proposes.
+    suggested_track_w_tmm: int | None = None
+    #: A drop accounting for a *printed* ceiling height only -- see the
+    #: class docstring for why this is almost always None.
+    suggested_drop_h_tmm: int | None = None
 
 
 @dataclass(frozen=True)

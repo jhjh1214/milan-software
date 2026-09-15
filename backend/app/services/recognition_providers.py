@@ -88,7 +88,20 @@ _SYSTEM_PROMPT = (
     "-- give an honest confidence from 0 to 1 per item rather than a "
     "uniformly high number. Use any printed scale or dimension labels on "
     "the plan if present; otherwise estimate from typical room and window "
-    "proportions."
+    "proportions.\n\n"
+    "For each opening, nominal_w_tmm/nominal_h_tmm are the window or door "
+    "itself -- the frame, not the curtain. Separately, suggested_track_w_tmm "
+    "is what a curtain track could reasonably span if you can see wall space "
+    "beside the opening it could extend into (a window with walls close on "
+    "both sides has no room to extend, so this should equal nominal_w_tmm or "
+    "be left null; a window with visible wall space to one or both sides can "
+    "suggest a wider track using that space). Set it to null rather than "
+    "guess when you cannot judge the wall space from the drawing.\n\n"
+    "suggested_drop_h_tmm is almost always null. A floor plan is a top-down "
+    "drawing -- it essentially never shows ceiling height. Only fill this in "
+    "if the plan itself prints a ceiling height or floor-to-ceiling "
+    "dimension in text; never estimate a 'typical' ceiling height from "
+    "nothing. A fabricated number here is worse than an honest null."
 )
 
 _USER_PROMPT = (
@@ -109,6 +122,8 @@ _RESULT_SCHEMA = {
                     "nominal_w_tmm": {"type": "integer"},
                     "nominal_h_tmm": {"type": "integer"},
                     "confidence": {"type": "number"},
+                    "suggested_track_w_tmm": {"type": ["integer", "null"]},
+                    "suggested_drop_h_tmm": {"type": ["integer", "null"]},
                 },
                 "required": [
                     "label",
@@ -116,6 +131,8 @@ _RESULT_SCHEMA = {
                     "nominal_w_tmm",
                     "nominal_h_tmm",
                     "confidence",
+                    "suggested_track_w_tmm",
+                    "suggested_drop_h_tmm",
                 ],
                 "additionalProperties": False,
             },
@@ -142,6 +159,10 @@ _TOOL_NAME = "report_floor_plan"
 _TOOL_DESCRIPTION = "Report every window/door opening and every room found."
 
 
+def _optional_int(value: object) -> int | None:
+    return None if value is None else int(value)
+
+
 def _openings_from(raw: object) -> list[ProposedOpening]:
     if not isinstance(raw, list):
         return []
@@ -157,6 +178,12 @@ def _openings_from(raw: object) -> list[ProposedOpening]:
                     nominal_w_tmm=int(item["nominal_w_tmm"]),
                     nominal_h_tmm=int(item["nominal_h_tmm"]),
                     confidence=float(item["confidence"]),
+                    suggested_track_w_tmm=_optional_int(
+                        item.get("suggested_track_w_tmm")
+                    ),
+                    suggested_drop_h_tmm=_optional_int(
+                        item.get("suggested_drop_h_tmm")
+                    ),
                 )
             )
         except (KeyError, TypeError, ValueError):

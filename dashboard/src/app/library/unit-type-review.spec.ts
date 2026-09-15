@@ -17,7 +17,7 @@ import {
 } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { UnitTypeWithVersionsOut } from '../api/types';
 import { Text } from '../i18n/text';
@@ -349,72 +349,187 @@ describe('UnitTypeReview', () => {
     http.expectNone('/api/floor-plans/fp1/calibrate');
   });
 
-  it('trying AI recognition shows the placeholder note when nothing is configured', async () => {
+  it('starting recognition posts to the background endpoint, never the image', () => {
     load([item({ versions: [{ ...item().versions[0], floor_plan: floorPlan() }] })]);
     http.expectOne('/api/floor-plans/fp1/image').flush(new Blob(['x'], { type: 'image/png' }));
     fixture.detectChanges();
 
-    button('Try AI recognition').click();
-    fixture.detectChanges();
+    button('Digitise in background').click();
 
-    // Stateless: the recognise call re-sends the image bytes rather than a
-    // floor plan id, so this re-fetches the blob it already fetched once.
-    http.expectOne('/api/floor-plans/fp1/image').flush(new Blob(['x'], { type: 'image/png' }));
-
-    const req = await waitForRequest('/api/recognize');
-    expect(req.request.body).toEqual(
-      expect.objectContaining({ content_type: 'image/png' }),
-    );
+    const req = http.expectOne('/api/floor-plans/fp1/recognize-async');
+    expect(req.request.method).toBe('POST');
     req.flush({
-      configured: false,
-      provider: 'none',
-      note: 'not configured',
+      id: 'job1',
+      floor_plan_id: 'fp1',
+      status: 'pending',
+      provider: null,
+      configured: null,
+      note: null,
       openings: [],
       rooms: [],
+      created_at: '2026-09-15T00:00:00Z',
+      completed_at: null,
     });
     fixture.detectChanges();
 
-    expect(text()).toContain('AI recognition is not configured yet');
+    expect(text()).toContain('Recognising in the background');
   });
 
-  it('a recognition proposal is shown, never applied to a field', async () => {
+  it('polls until the job leaves pending, then shows the placeholder note when nothing is configured', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    try {
+      load([item({ versions: [{ ...item().versions[0], floor_plan: floorPlan() }] })]);
+      http.expectOne('/api/floor-plans/fp1/image').flush(new Blob(['x'], { type: 'image/png' }));
+      fixture.detectChanges();
+
+      button('Digitise in background').click();
+      http.expectOne('/api/floor-plans/fp1/recognize-async').flush({
+        id: 'job1',
+        floor_plan_id: 'fp1',
+        status: 'pending',
+        provider: null,
+        configured: null,
+        note: null,
+        openings: [],
+        rooms: [],
+        created_at: '2026-09-15T00:00:00Z',
+        completed_at: null,
+      });
+      fixture.detectChanges();
+
+      await vi.advanceTimersByTimeAsync(3000);
+      http.expectOne('/api/floor-plans/fp1/recognition').flush({
+        id: 'job1',
+        floor_plan_id: 'fp1',
+        status: 'done',
+        provider: 'none',
+        configured: false,
+        note: 'not configured',
+        openings: [],
+        rooms: [],
+        created_at: '2026-09-15T00:00:00Z',
+        completed_at: '2026-09-15T00:00:05Z',
+      });
+      fixture.detectChanges();
+
+      expect(text()).toContain('AI recognition is not configured yet');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a completed proposal is shown in full, including a suggested track width, never applied to a field', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    try {
+      load([item({ versions: [{ ...item().versions[0], floor_plan: floorPlan() }] })]);
+      http.expectOne('/api/floor-plans/fp1/image').flush(new Blob(['x'], { type: 'image/png' }));
+      fixture.detectChanges();
+
+      button('Digitise in background').click();
+      http.expectOne('/api/floor-plans/fp1/recognize-async').flush({
+        id: 'job1',
+        floor_plan_id: 'fp1',
+        status: 'pending',
+        provider: null,
+        configured: null,
+        note: null,
+        openings: [],
+        rooms: [],
+        created_at: '2026-09-15T00:00:00Z',
+        completed_at: null,
+      });
+      fixture.detectChanges();
+
+      await vi.advanceTimersByTimeAsync(3000);
+      http.expectOne('/api/floor-plans/fp1/recognition').flush({
+        id: 'job1',
+        floor_plan_id: 'fp1',
+        status: 'done',
+        provider: 'some-vendor',
+        configured: true,
+        note: '',
+        openings: [
+          {
+            label: 'W1',
+            room: 'Living',
+            nominal_w_tmm: 18000,
+            nominal_h_tmm: 24000,
+            confidence: 0.8,
+            suggested_track_w_tmm: 21000,
+            suggested_drop_h_tmm: null,
+          },
+        ],
+        rooms: [],
+        created_at: '2026-09-15T00:00:00Z',
+        completed_at: '2026-09-15T00:00:05Z',
+      });
+      fixture.detectChanges();
+
+      expect(text()).toContain('1 opening(s) proposed');
+      // Still exactly the submission that was there before -- a proposal is
+      // shown beside it, never applied over what was actually submitted.
+      expect(text()).toContain('W1');
+      expect(text()).toContain('suggested track width');
+      // Null stays null: no fabricated drop from a floor plan that cannot
+      // show a ceiling height.
+      expect(text()).not.toContain('suggested drop');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a job that fails in the background is said in words', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout'] });
+    try {
+      load([item({ versions: [{ ...item().versions[0], floor_plan: floorPlan() }] })]);
+      http.expectOne('/api/floor-plans/fp1/image').flush(new Blob(['x'], { type: 'image/png' }));
+      fixture.detectChanges();
+
+      button('Digitise in background').click();
+      http.expectOne('/api/floor-plans/fp1/recognize-async').flush({
+        id: 'job1',
+        floor_plan_id: 'fp1',
+        status: 'pending',
+        provider: null,
+        configured: null,
+        note: null,
+        openings: [],
+        rooms: [],
+        created_at: '2026-09-15T00:00:00Z',
+        completed_at: null,
+      });
+      fixture.detectChanges();
+
+      await vi.advanceTimersByTimeAsync(3000);
+      http.expectOne('/api/floor-plans/fp1/recognition').flush({
+        id: 'job1',
+        floor_plan_id: 'fp1',
+        status: 'failed',
+        provider: null,
+        configured: null,
+        note: 'the request to the provider failed',
+        openings: [],
+        rooms: [],
+        created_at: '2026-09-15T00:00:00Z',
+        completed_at: '2026-09-15T00:00:05Z',
+      });
+      fixture.detectChanges();
+
+      expect(text()).toContain('Could not reach the recognition service');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('starting a job is said in words if the server refuses it', () => {
     load([item({ versions: [{ ...item().versions[0], floor_plan: floorPlan() }] })]);
     http.expectOne('/api/floor-plans/fp1/image').flush(new Blob(['x'], { type: 'image/png' }));
     fixture.detectChanges();
 
-    button('Try AI recognition').click();
-    fixture.detectChanges();
-    http.expectOne('/api/floor-plans/fp1/image').flush(new Blob(['x'], { type: 'image/png' }));
-
-    const req = await waitForRequest('/api/recognize');
-    req.flush({
-      configured: true,
-      provider: 'some-vendor',
-      note: '',
-      openings: [
-        { label: 'W1', room: 'Living', nominal_w_tmm: 18000, nominal_h_tmm: 24000, confidence: 0.8 },
-      ],
-      rooms: [],
-    });
-    fixture.detectChanges();
-
-    expect(text()).toContain('1 opening(s) proposed');
-    // Still exactly the submission that was there before -- a proposal is
-    // shown beside it, never applied over what was actually submitted.
-    expect(text()).toContain('W1');
-  });
-
-  it('a recognition failure is said in words', async () => {
-    load([item({ versions: [{ ...item().versions[0], floor_plan: floorPlan() }] })]);
-    http.expectOne('/api/floor-plans/fp1/image').flush(new Blob(['x'], { type: 'image/png' }));
-    fixture.detectChanges();
-
-    button('Try AI recognition').click();
-    fixture.detectChanges();
-    http.expectOne('/api/floor-plans/fp1/image').flush(new Blob(['x'], { type: 'image/png' }));
-
-    const req = await waitForRequest('/api/recognize');
-    req.flush('server error', { status: 500, statusText: 'Server Error' });
+    button('Digitise in background').click();
+    http
+      .expectOne('/api/floor-plans/fp1/recognize-async')
+      .flush('server error', { status: 500, statusText: 'Server Error' });
     fixture.detectChanges();
 
     expect(text()).toContain('Could not reach the recognition service');

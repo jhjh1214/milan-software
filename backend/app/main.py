@@ -25,6 +25,7 @@ from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import (
+    BackgroundTasks,
     Depends,
     FastAPI,
     File,
@@ -99,6 +100,7 @@ from .api.schemas import (
     QuoteIn,
     RateChangeOut,
     ReceiveStockIn,
+    RecognitionJobOut,
     RecognizeIn,
     RejectAllocationIn,
     RejectUnitTypeIn,
@@ -255,6 +257,14 @@ from .services.reads import (
     order_detail,
     overrides_between,
     prompts_between,
+)
+from .services.recognition_jobs import (
+    NoSuchFloorPlan as NoSuchFloorPlanForRecognition,
+)
+from .services.recognition_jobs import (
+    latest_recognition_job,
+    run_recognition_job,
+    start_recognition_job,
 )
 from .services.reports import (
     fair_performance,
@@ -1521,6 +1531,90 @@ def calibrate_floor_plan_route(
     return _floor_plan_out(plan)
 
 
+def _recognition_job_out(job) -> RecognitionJobOut:
+    return RecognitionJobOut(
+        id=job.id,
+        floor_plan_id=job.floor_plan_id,
+        status=job.status,
+        provider=job.provider,
+        configured=job.configured,
+        note=job.note,
+        openings=[
+            ProposedOpeningOut(
+                label=o.get("label", ""),
+                room=o.get("room", ""),
+                nominal_w_tmm=o.get("nominal_w_tmm", 0),
+                nominal_h_tmm=o.get("nominal_h_tmm", 0),
+                confidence=o.get("confidence", 0.0),
+                suggested_track_w_tmm=o.get("suggested_track_w_tmm"),
+                suggested_drop_h_tmm=o.get("suggested_drop_h_tmm"),
+            )
+            for o in job.openings
+        ],
+        rooms=[
+            ProposedRoomOut(
+                name=r.get("name", ""),
+                nominal_area_mm2=r.get("nominal_area_mm2", 0),
+                confidence=r.get("confidence", 0.0),
+            )
+            for r in job.rooms
+        ],
+        created_at=job.created_at,
+        completed_at=job.completed_at,
+    )
+
+
+@app.post(
+    "/api/floor-plans/{floor_plan_id}/recognize-async",
+    response_model=RecognitionJobOut,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def start_recognition_job_route(
+    floor_plan_id: str,
+    session: SessionDep,
+    who: CurrentDep,
+    background_tasks: BackgroundTasks,
+) -> RecognitionJobOut:
+    """Kicks off recognition on an already-uploaded plan and returns
+    immediately -- the office upload path, where nobody is standing there
+    waiting the way a fair's own quoting is. `GET .../recognition` is how
+    the caller finds out it finished.
+
+    `BackgroundTasks` runs this after the response is sent, in a worker
+    thread (Starlette threadpools a sync callable), so a slow locally
+    hosted model does not block any other request while it thinks.
+    """
+    user, _ = who
+    try:
+        job = start_recognition_job(
+            session, floor_plan_id, requested_by_user_id=user.id
+        )
+    except NoSuchFloorPlanForRecognition as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such floor plan") from exc
+
+    background_tasks.add_task(run_recognition_job, job.id)
+    return _recognition_job_out(job)
+
+
+@app.get(
+    "/api/floor-plans/{floor_plan_id}/recognition",
+    response_model=RecognitionJobOut,
+)
+def recognition_job_route(
+    floor_plan_id: str, session: SessionDep, who: CurrentDep
+) -> RecognitionJobOut:
+    """The latest background recognition attempt for this plan, if one was
+    ever started. 404 rather than an empty/pending placeholder: "never
+    asked" and "asked, still pending" are different things a poller needs
+    to tell apart, and job.status already carries the second one.
+    """
+    _ = who
+    job = latest_recognition_job(session, floor_plan_id)
+    if job is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no recognition job yet")
+    return _recognition_job_out(job)
+
+
 @app.post("/api/recognize", response_model=ExtractionOut)
 def recognize_route(
     payload: RecognizeIn, session: SessionDep, who: CurrentDep
@@ -1560,6 +1654,8 @@ def recognize_route(
                 nominal_w_tmm=o.nominal_w_tmm,
                 nominal_h_tmm=o.nominal_h_tmm,
                 confidence=o.confidence,
+                suggested_track_w_tmm=o.suggested_track_w_tmm,
+                suggested_drop_h_tmm=o.suggested_drop_h_tmm,
             )
             for o in result.openings
         ],

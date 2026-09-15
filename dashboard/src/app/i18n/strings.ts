@@ -519,6 +519,20 @@ export interface LibraryStrings {
   readonly recognitionProposedOpenings: (n: number) => string;
   readonly recognitionProposedRooms: (n: number) => string;
   readonly recognitionFailed: string;
+  readonly recognitionOpeningDetail: (
+    label: string,
+    room: string,
+    widthFt: string,
+    heightFt: string,
+  ) => string;
+  /** A track/rail width the provider suggested beyond the opening's own
+   * width, from wall space it could see in the plan -- shown only when the
+   * provider actually gave one. */
+  readonly recognitionSuggestedTrack: (widthFt: string) => string;
+  /** A drop the provider suggested from a *printed* ceiling height -- almost
+   * never shown, since a floor plan essentially never has one to read. */
+  readonly recognitionSuggestedDrop: (heightFt: string) => string;
+  readonly recognitionRoomDetail: (name: string, sqft: string) => string;
   /** Creating the shell a unit type lives under -- a part-timer's own
    * device can only ever pick from an existing project, never add one. */
   readonly addProject: string;

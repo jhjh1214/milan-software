@@ -70,6 +70,8 @@ VALID_PAYLOAD = {
             "nominal_w_tmm": 12000,
             "nominal_h_tmm": 15000,
             "confidence": 0.8,
+            "suggested_track_w_tmm": 13500,
+            "suggested_drop_h_tmm": None,
         }
     ],
     "rooms": [{"name": "Living Room", "nominal_area_mm2": 12000000, "confidence": 0.7}],
@@ -104,6 +106,8 @@ class TestAnthropicRecognitionProvider:
         assert len(result.openings) == 1
         assert result.openings[0].label == "Window 1"
         assert result.openings[0].nominal_w_tmm == 12000
+        assert result.openings[0].suggested_track_w_tmm == 13500
+        assert result.openings[0].suggested_drop_h_tmm is None
         assert len(result.rooms) == 1
         assert result.rooms[0].nominal_area_mm2 == 12000000
 
@@ -494,6 +498,68 @@ class TestTimeoutReachesEachClient:
 
         # Gemini's HttpOptions.timeout is documented in milliseconds.
         assert captured["init_kwargs"]["http_options"].timeout == 900_000
+
+
+# --- The suggested track/drop fields, shared parsing logic -------------------
+
+
+class TestSuggestedTrackAndDropParsing:
+    """`_openings_from` is one function all three providers share -- these
+    drive it directly rather than through a specific vendor's fake client,
+    since the parsing rule (fields absent or explicitly null both mean
+    "no suggestion") is the same regardless of which one produced the JSON.
+    """
+
+    def test_present_values_are_parsed(self) -> None:
+        result = rp._openings_from(
+            [
+                {
+                    "label": "W1",
+                    "room": "R1",
+                    "nominal_w_tmm": 1000,
+                    "nominal_h_tmm": 2000,
+                    "confidence": 0.9,
+                    "suggested_track_w_tmm": 1400,
+                    "suggested_drop_h_tmm": 2700,
+                }
+            ]
+        )
+        assert result[0].suggested_track_w_tmm == 1400
+        assert result[0].suggested_drop_h_tmm == 2700
+
+    def test_explicit_null_means_no_suggestion(self) -> None:
+        result = rp._openings_from(
+            [
+                {
+                    "label": "W1",
+                    "room": "R1",
+                    "nominal_w_tmm": 1000,
+                    "nominal_h_tmm": 2000,
+                    "confidence": 0.9,
+                    "suggested_track_w_tmm": None,
+                    "suggested_drop_h_tmm": None,
+                }
+            ]
+        )
+        assert result[0].suggested_track_w_tmm is None
+        assert result[0].suggested_drop_h_tmm is None
+
+    def test_missing_keys_also_mean_no_suggestion(self) -> None:
+        # Backward compatible with a provider (or an older cached job) that
+        # never included these keys at all.
+        result = rp._openings_from(
+            [
+                {
+                    "label": "W1",
+                    "room": "R1",
+                    "nominal_w_tmm": 1000,
+                    "nominal_h_tmm": 2000,
+                    "confidence": 0.9,
+                }
+            ]
+        )
+        assert result[0].suggested_track_w_tmm is None
+        assert result[0].suggested_drop_h_tmm is None
 
 
 # --- Shared shape ------------------------------------------------------------

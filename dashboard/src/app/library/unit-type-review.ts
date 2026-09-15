@@ -14,18 +14,23 @@
  */
 
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
 
 import { Api } from '../api/api';
 import { commonMessage, failureOf, type Failure } from '../i18n/failure';
 import { Text } from '../i18n/text';
 import type {
-  ExtractionOut,
   FloorPlanOut,
   OpeningOut,
+  RecognitionJobOut,
   RoomOut,
   UnitTypeWithVersionsOut,
 } from '../api/types';
+
+/** How often to check on a background recognition job. Not urgent -- an
+ * admin who started one is not staring at the screen the way a fair's own
+ * quoting would be, so a few seconds either way costs nothing. */
+const RECOGNITION_POLL_MS = 3000;
 
 /** A point clicked on the floor plan image, in the image's own natural pixels. */
 interface CalibrationPoint {
@@ -46,6 +51,10 @@ type Note =
 })
 export class UnitTypeReview {
   private readonly api = inject(Api);
+
+  private readonly clearPollTimers = inject(DestroyRef).onDestroy(() => {
+    for (const timer of this.pollTimers.values()) clearTimeout(timer);
+  });
 
   protected readonly items = signal<readonly UnitTypeWithVersionsOut[]>([]);
   protected readonly loading = signal(false);
@@ -92,13 +101,23 @@ export class UnitTypeReview {
   protected readonly realDistance = signal('');
   protected readonly calibError = signal<string | null>(null);
 
-  /** Floor plan id -> the proposal last fetched for it, or the failure that
-   * stopped one arriving. SPEC.md Phase 8, "Future: assisted digitisation" --
-   * a proposal is display-only: there is no form on this screen it can
-   * prefill, only the reviewer's own reading of the submission. */
-  protected readonly recognizing = signal<string | null>(null);
-  protected readonly recognitions = signal<Readonly<Record<string, ExtractionOut>>>({});
+  /** Floor plan id -> the background recognition job last known for it, or
+   * the failure that stopped one starting. SPEC.md Phase 8, "Future:
+   * assisted digitisation" -- a proposal is display-only: there is no form
+   * on this screen it can prefill, only the reviewer's own reading of the
+   * submission. Runs in the background rather than blocking this screen
+   * (unlike the handset's own "try recognition", which needs an answer
+   * while someone is standing at a fair table) because nobody reviewing an
+   * upload here is waiting on it the same way -- a locally hosted model on
+   * modest hardware can take several minutes, and this screen should stay
+   * usable for everything else while one runs. */
+  protected readonly recognitionJobs = signal<Readonly<Record<string, RecognitionJobOut>>>(
+    {},
+  );
   protected readonly recognizeFailed = signal<string | null>(null);
+  /** Floor plan id -> the timer for its next poll, so a component destroyed
+   * mid-poll (navigating away) does not keep calling the server. */
+  private readonly pollTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   /** Straight-line pixel distance between the two clicked points, rounded --
    * the one place this screen uses `sqrt`. The server never does: it takes
@@ -387,36 +406,42 @@ export class UnitTypeReview {
       });
   }
 
-  protected recognitionFor(floorPlanId: string): ExtractionOut | null {
-    return this.recognitions()[floorPlanId] ?? null;
+  protected recognitionJobFor(floorPlanId: string): RecognitionJobOut | null {
+    return this.recognitionJobs()[floorPlanId] ?? null;
   }
 
-  /** Re-sends the image already fetched for display -- `/api/recognize` is
-   * stateless, so this needs no floor plan id on the wire, just the bytes
-   * and their content type. Never writes anything: the result is shown
-   * beside the submission for the reviewer to read, the same as everything
-   * else on this screen, not applied to any field automatically. */
-  protected tryRecognition(floorPlan: FloorPlanOut): void {
-    if (floorPlan.content_type === null) return;
-    this.recognizing.set(floorPlan.id);
+  /** Starts recognition in the background and returns immediately -- never
+   * writes anything, and the result (once ready) is shown beside the
+   * submission for the reviewer to read, not applied to any field
+   * automatically, the same as `/api/recognize`'s own synchronous contract.
+   */
+  protected startRecognition(floorPlan: FloorPlanOut): void {
     this.recognizeFailed.set(null);
+    this.api.startRecognitionJob(floorPlan.id).subscribe({
+      next: (job) => {
+        this.recognitionJobs.update((m) => ({ ...m, [floorPlan.id]: job }));
+        this.pollRecognition(floorPlan.id);
+      },
+      error: () => this.recognizeFailed.set(floorPlan.id),
+    });
+  }
 
-    this.api.floorPlanImage(floorPlan.id).subscribe({
-      next: (blob) => {
-        this.api.recognizeFloorPlan(blob, floorPlan.content_type!).subscribe({
-          next: (result) => {
-            this.recognizing.set(null);
-            this.recognitions.update((m) => ({ ...m, [floorPlan.id]: result }));
-          },
-          error: () => {
-            this.recognizing.set(null);
-            this.recognizeFailed.set(floorPlan.id);
-          },
-        });
+  private pollRecognition(floorPlanId: string): void {
+    this.api.recognitionJob(floorPlanId).subscribe({
+      next: (job) => {
+        this.recognitionJobs.update((m) => ({ ...m, [floorPlanId]: job }));
+        if (job.status === 'pending') {
+          this.pollTimers.set(
+            floorPlanId,
+            setTimeout(() => this.pollRecognition(floorPlanId), RECOGNITION_POLL_MS),
+          );
+        } else {
+          this.pollTimers.delete(floorPlanId);
+        }
       },
       error: () => {
-        this.recognizing.set(null);
-        this.recognizeFailed.set(floorPlan.id);
+        this.recognizeFailed.set(floorPlanId);
+        this.pollTimers.delete(floorPlanId);
       },
     });
   }
