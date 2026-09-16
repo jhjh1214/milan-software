@@ -83,6 +83,41 @@ class TestStartRecognitionJob:
             assert job.openings == []
             assert job.rooms == []
 
+    def test_a_second_start_while_one_is_pending_returns_the_same_job(self, db) -> None:
+        # A double click before the button's own disabled state catches up
+        # (or a client retrying a slow response) must not fire a second call
+        # at whatever provider is configured -- worth avoiding even before a
+        # paid vendor makes it a cost question too.
+        with db() as session:
+            floor_plan_id = _a_floor_plan(session)
+            first = start_recognition_job(
+                session, floor_plan_id, requested_by_user_id="admin-1"
+            )
+            session.commit()
+
+            second = start_recognition_job(
+                session, floor_plan_id, requested_by_user_id="admin-1"
+            )
+            session.commit()
+
+            assert second.id == first.id
+
+    def test_a_new_job_is_created_once_the_pending_one_is_done(self, db) -> None:
+        with db() as session:
+            floor_plan_id = _a_floor_plan(session)
+            first = start_recognition_job(
+                session, floor_plan_id, requested_by_user_id="admin-1"
+            )
+            first.status = "done"
+            session.commit()
+
+            second = start_recognition_job(
+                session, floor_plan_id, requested_by_user_id="admin-1"
+            )
+            session.commit()
+
+            assert second.id != first.id
+
     def test_an_unknown_floor_plan_raises(self, db) -> None:
         with db() as session, pytest.raises(NoSuchFloorPlan):
             start_recognition_job(
@@ -215,7 +250,7 @@ class TestLatestRecognitionJob:
             floor_plan_id = _a_floor_plan(session)
             assert latest_recognition_job(session, floor_plan_id) is None
 
-    def test_the_most_recent_of_several_attempts_wins(self, db) -> None:
+    def test_a_second_real_attempt_after_the_first_finished_wins(self, db) -> None:
         # Explicit, clearly-ordered timestamps: two jobs started within the
         # same real second (server_default=func.now(), second-resolution on
         # SQLite) would otherwise make "most recent" a coin flip.
@@ -225,6 +260,9 @@ class TestLatestRecognitionJob:
                 session, floor_plan_id, requested_by_user_id="admin-1"
             )
             first.created_at = datetime(2026, 1, 1, tzinfo=UTC)
+            first.status = "done"  # a real second attempt only happens once
+            # the first one is no longer pending -- see TestStartRecognitionJob
+            # ::test_a_second_start_while_one_is_pending_returns_the_same_job.
             session.commit()
 
             second = start_recognition_job(

@@ -43,10 +43,20 @@ def start_recognition_job(
     """Creates the pending row and nothing else -- the actual provider call
     happens in `run_recognition_job`, off this request's own session and
     thread, so the route can answer immediately and let the caller leave.
+
+    Idempotent on an already-pending job: a double click before the button's
+    own disabled state catches up, or a client retrying a slow response,
+    hands back the same row rather than firing a second call at whatever
+    provider is configured -- worth avoiding on its own even before a paid
+    vendor makes it a cost question too.
     """
     plan = session.get(FloorPlan, floor_plan_id)
     if plan is None or plan.image_data is None:
         raise NoSuchFloorPlan(floor_plan_id)
+
+    existing = latest_recognition_job(session, floor_plan_id)
+    if existing is not None and existing.status == "pending":
+        return existing
 
     job = RecognitionJob(
         id=str(uuid.uuid4()),
