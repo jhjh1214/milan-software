@@ -48,3 +48,6 @@ Thumbs.db
 backend/.venv/
 backend/.pytest_cache/
 backend/.ruff_cache/
+
+# Claude Code hook caches -- rebuilt automatically, never committed
+.claude/hooks/.cache/
