@@ -49,6 +49,9 @@ from .api.schemas import (
     AllocationsOut,
     ApproveAllocationIn,
     BalancesReport,
+    BulkApproveResultOut,
+    BulkApproveUnitTypesIn,
+    BulkApproveUnitTypesOut,
     BundleOut,
     BuyerDetailsIn,
     BuyerDetailsResult,
@@ -216,6 +219,7 @@ from .services.library import (
     WrongStatus,
     add_corrected_version,
     approve_unit_type,
+    bulk_approve_unit_types,
     calibrate_floor_plan,
     create_project,
     create_unit_type,
@@ -1458,6 +1462,35 @@ def reject_unit_type_route(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "no such unit type") from exc
     except WrongStatus as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+
+
+@app.post("/api/unit-types/bulk-approve", response_model=BulkApproveUnitTypesOut)
+def bulk_approve_unit_types_route(
+    payload: BulkApproveUnitTypesIn, session: SessionDep, admin: AdminDep
+) -> BulkApproveUnitTypesOut:
+    """Approves several submissions in one request. Admin only, same as a
+    single approval.
+
+    One bad id in the batch (already decided, or unknown) never aborts or
+    silently drops the rest -- every id's own outcome comes back named, so an
+    admin can see exactly which ones moved and retry the rest individually.
+    There is no bulk-reject: a reject reason is a decision made on purpose,
+    one submission at a time.
+    """
+    results = bulk_approve_unit_types(
+        session, payload.unit_type_ids, by_user_id=admin.id
+    )
+    return BulkApproveUnitTypesOut(
+        results=[
+            BulkApproveResultOut(
+                unit_type_id=r.unit_type_id,
+                ok=r.ok,
+                error=r.error,
+                unit_type=_unit_type_out(r.unit_type) if r.unit_type else None,
+            )
+            for r in results
+        ]
+    )
 
 
 @app.post("/api/unit-types/{unit_type_id}/versions", response_model=UnitTypeDetailOut)

@@ -436,6 +436,14 @@ export const MS: Strings = {
     cancel: 'Jangan dahulu',
     approvedNote: (name) => `${name} kini aktif dalam pustaka.`,
     rejectedNote: (name) => `${name} dihantar balik untuk pembetulan.`,
+    selectAll: 'Pilih semua',
+    selectOne: (name) => `Pilih ${name}`,
+    nSelected: (n) => `${n} dipilih`,
+    approveSelected: 'Luluskan yang dipilih',
+    bulkApprovedNote: (approved, failed) =>
+      failed === 0
+        ? `${approved} diluluskan.`
+        : `${approved} diluluskan, ${failed} tidak dapat diluluskan -- masih dipilih di bawah.`,
     uploadFloorPlan: 'Muat naik imej pelan lantai',
     uploading: 'Sedang memuat naik...',
     calibrate: 'Tetapkan skala',

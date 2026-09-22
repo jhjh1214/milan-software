@@ -33,6 +33,7 @@ Pure of HTTP. The router calls this; the tests call it directly.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from fractions import Fraction
@@ -284,6 +285,50 @@ def approve_unit_type(
     unit_type.updated_at = datetime.now(UTC)
     session.flush()
     return unit_type
+
+
+@dataclass(frozen=True)
+class BulkApproveResult:
+    """One id's outcome inside a batch. `error` names what stopped it --
+    never an exception the caller has to catch specially."""
+
+    unit_type_id: str
+    ok: bool
+    unit_type: UnitType | None = None
+    error: str | None = None  # "not_found" | "wrong_status"
+
+
+def bulk_approve_unit_types(
+    session: Session, unit_type_ids: Sequence[str], *, by_user_id: str
+) -> list[BulkApproveResult]:
+    """Approves each id independently, in one request. Admin-only, same split
+    as `approve_unit_type`.
+
+    One bad id (already decided, or never existed) never sinks the rest of
+    the batch and never aborts it either -- an admin clearing a dozen
+    obviously-good submissions should not lose the eleven good ones because
+    the twelfth was approved from another tab a moment earlier.
+    `approve_unit_type` checks status before mutating anything, so a caught
+    exception here never leaves a partial write to roll back.
+
+    Deliberately no bulk-reject: a reject reason is a decision about one
+    submission, made on purpose, never a batch operation.
+    """
+    results: list[BulkApproveResult] = []
+    for unit_type_id in unit_type_ids:
+        try:
+            unit_type = approve_unit_type(session, unit_type_id, by_user_id=by_user_id)
+        except NoSuchUnitType:
+            results.append(BulkApproveResult(unit_type_id, ok=False, error="not_found"))
+        except WrongStatus:
+            results.append(
+                BulkApproveResult(unit_type_id, ok=False, error="wrong_status")
+            )
+        else:
+            results.append(
+                BulkApproveResult(unit_type_id, ok=True, unit_type=unit_type)
+            )
+    return results
 
 
 def reject_unit_type(

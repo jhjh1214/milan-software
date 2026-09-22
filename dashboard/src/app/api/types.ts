@@ -694,6 +694,19 @@ export interface UnitTypesOut {
   readonly unit_types: readonly UnitTypeWithVersionsOut[];
 }
 
+/** One id's outcome inside a bulk approve. `unit_type` is present only when
+ * `ok` -- a failed id has no fresh row to show. */
+export interface BulkApproveResultOut {
+  readonly unit_type_id: string;
+  readonly ok: boolean;
+  readonly unit_type: UnitTypeOut | null;
+  readonly error: string | null;
+}
+
+export interface BulkApproveUnitTypesOut {
+  readonly results: readonly BulkApproveResultOut[];
+}
+
 // ---------------------------------------------------------------------------
 // Inventory. SPEC.md Phase 9. Every route is admin-only (§13 F2).
 // ---------------------------------------------------------------------------

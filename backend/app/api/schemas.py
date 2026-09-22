@@ -1173,6 +1173,22 @@ class RejectUnitTypeIn(BaseModel):
     reason: str = Field(min_length=1, max_length=2000)
 
 
+class BulkApproveUnitTypesIn(BaseModel):
+    unit_type_ids: list[str] = Field(min_length=1, max_length=200)
+
+
+class BulkApproveResultOut(BaseModel):
+    unit_type_id: str
+    ok: bool
+    #: Present only when `ok` -- a failed id has no fresh row to show.
+    unit_type: UnitTypeOut | None = None
+    error: str | None = None
+
+
+class BulkApproveUnitTypesOut(BaseModel):
+    results: list[BulkApproveResultOut] = []
+
+
 class NewVersionIn(BaseModel):
     """A correction. §7's versioning rule: never an edit, always a new row."""
 

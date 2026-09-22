@@ -93,11 +93,46 @@
     <p>{{ t().library.nothingWaiting }}</p>
   </div>
 } @else {
+  <div class="bulk-bar">
+    <label class="select-all">
+      <input
+        type="checkbox"
+        [checked]="allSelected()"
+        (change)="toggleSelectAll()"
+      />
+      {{ t().library.selectAll }}
+    </label>
+    @if (selected().size > 0) {
+      <span class="selected-count">{{ t().library.nSelected(selected().size) }}</span>
+      <button
+        type="button"
+        class="btn btn-primary"
+        [disabled]="!canBulkApprove()"
+        (click)="bulkApprove()"
+      >
+        @if (acting().size > 0) {
+          <span class="spinner" aria-hidden="true"></span>
+        }
+        {{ t().library.approveSelected }}
+      </button>
+    }
+  </div>
+
   <ul class="queue">
     @for (item of items(); track item.id) {
       <li class="card">
         <div class="card-head">
-          <h2>{{ label(item) }}</h2>
+          <div class="card-title">
+            <label class="select-one">
+              <input
+                type="checkbox"
+                [checked]="isSelected(item)"
+                (change)="toggleSelect(item)"
+                [attr.aria-label]="t().library.selectOne(label(item))"
+              />
+            </label>
+            <h2>{{ label(item) }}</h2>
+          </div>
           <span class="who">{{ t().library.who }}: {{ item.created_by_user_id }}</span>
         </div>
 
@@ -274,7 +309,7 @@
                 [disabled]="!canSendBack()"
                 (click)="confirmReject(item)"
               >
-                @if (acting() === item.id) {
+                @if (acting().has(item.id)) {
                   <span class="spinner" aria-hidden="true"></span>
                 }
                 {{ t().library.sendBack }}
@@ -289,10 +324,10 @@
             <button
               type="button"
               class="btn btn-primary"
-              [disabled]="acting() !== null"
+              [disabled]="acting().size > 0"
               (click)="approve(item)"
             >
-              @if (acting() === item.id) {
+              @if (acting().has(item.id)) {
                 <span class="spinner" aria-hidden="true"></span>
               }
               {{ t().library.approve }}
@@ -300,7 +335,7 @@
             <button
               type="button"
               class="btn btn-danger"
-              [disabled]="acting() !== null"
+              [disabled]="acting().size > 0"
               (click)="startRejecting(item)"
             >
               {{ t().library.reject }}

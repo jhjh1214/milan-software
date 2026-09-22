@@ -607,4 +607,90 @@ describe('UnitTypeReview', () => {
       expect(fixture.nativeElement.querySelector('form.add-project')).not.toBeNull();
     });
   });
+
+  describe('bulk approve', () => {
+    const checkbox = (index: number): HTMLInputElement =>
+      fixture.nativeElement.querySelectorAll('.card input[type="checkbox"]')[
+        index
+      ] as HTMLInputElement;
+
+    it('selecting rows reveals the bulk bar, approving clears every selected row', () => {
+      load([item({ id: 'a' }), item({ id: 'b' })]);
+
+      expect(text()).not.toContain('Approve selected');
+
+      checkbox(0).click();
+      checkbox(1).click();
+      fixture.detectChanges();
+
+      expect(text()).toContain('2 selected');
+      button('Approve selected').click();
+
+      const req = http.expectOne('/api/unit-types/bulk-approve');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ unit_type_ids: ['a', 'b'] });
+      req.flush({
+        results: [
+          { unit_type_id: 'a', ok: true, unit_type: { ...item({ id: 'a' }), status: 'approved' }, error: null },
+          { unit_type_id: 'b', ok: true, unit_type: { ...item({ id: 'b' }), status: 'approved' }, error: null },
+        ],
+      });
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelectorAll('.card').length).toBe(0);
+      expect(text()).toContain('2 approved.');
+    });
+
+    it('a mixed batch removes only the successful rows and keeps the failed one selected', () => {
+      load([item({ id: 'a' }), item({ id: 'b' })]);
+
+      checkbox(0).click();
+      checkbox(1).click();
+      fixture.detectChanges();
+
+      button('Approve selected').click();
+      http.expectOne('/api/unit-types/bulk-approve').flush({
+        results: [
+          { unit_type_id: 'a', ok: true, unit_type: { ...item({ id: 'a' }), status: 'approved' }, error: null },
+          { unit_type_id: 'b', ok: false, unit_type: null, error: 'wrong_status' },
+        ],
+      });
+      fixture.detectChanges();
+
+      // The good one is gone; the bad one is still on screen and still
+      // ticked, so the admin can see and retry it individually.
+      expect(fixture.nativeElement.querySelectorAll('.card').length).toBe(1);
+      expect(text()).toContain('1 approved, 1 could not be approved');
+      expect(checkbox(0).checked).toBe(true);
+    });
+
+    it('select-all ticks and unticks every row', () => {
+      load([item({ id: 'a' }), item({ id: 'b' })]);
+
+      el<HTMLInputElement>('.select-all input').click();
+      fixture.detectChanges();
+      expect(checkbox(0).checked).toBe(true);
+      expect(checkbox(1).checked).toBe(true);
+      expect(text()).toContain('2 selected');
+
+      el<HTMLInputElement>('.select-all input').click();
+      fixture.detectChanges();
+      expect(checkbox(0).checked).toBe(false);
+      expect(text()).not.toContain('selected');
+    });
+
+    it('a single approve or reject still works untouched', () => {
+      // The acting() signature changed (a set, not one id) to make room for
+      // bulk approve -- this pins that the single-row controls still work.
+      load([item()]);
+      button('Approve').click();
+
+      const req = http.expectOne('/api/unit-types/ut1/approve');
+      req.flush({ ...item(), status: 'approved' });
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelectorAll('.card').length).toBe(0);
+      expect(text()).toContain('now live in the library');
+    });
+  });
 });

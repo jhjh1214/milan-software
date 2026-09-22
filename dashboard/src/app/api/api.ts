@@ -25,6 +25,7 @@ import type {
   AllocationOut,
   AllocationsOut,
   BalancesReport,
+  BulkApproveUnitTypesOut,
   BuyerDetailsIn,
   BuyerDetailsResult,
   CardDiffOut,
@@ -420,6 +421,19 @@ export class Api {
     return this.http.post<UnitTypeDetailOut['unit_type']>(
       `${API_BASE}/unit-types/${id}/reject`,
       { reason },
+      { headers: this.authorised() },
+    );
+  }
+
+  /**
+   * Admin only, server-enforced. Approves several submissions in one
+   * request -- one bad id never aborts or silently drops the rest; each
+   * id's own outcome comes back named.
+   */
+  bulkApproveUnitTypes(unitTypeIds: readonly string[]): Observable<BulkApproveUnitTypesOut> {
+    return this.http.post<BulkApproveUnitTypesOut>(
+      `${API_BASE}/unit-types/bulk-approve`,
+      { unit_type_ids: unitTypeIds },
       { headers: this.authorised() },
     );
   }

@@ -172,6 +172,98 @@ class TestWhoMayCallThese:
         )
 
 
+class TestBulkApprove:
+    def _draft(self, client: TestClient, admin_token: str, name: str) -> str:
+        project_id = make_project(client, admin_token)
+        r = client.post(
+            "/api/unit-types",
+            json={"project_id": project_id, "name": name, "openings": OPENINGS},
+            headers=auth(admin_token),
+        )
+        assert r.status_code == 201, r.text
+        return r.json()["unit_type"]["id"]
+
+    def test_every_id_approves_in_one_request(self, client: TestClient) -> None:
+        admin_token = sign_in(client, "admin")
+        a = self._draft(client, admin_token, "Type A")
+        b = self._draft(client, admin_token, "Type B")
+
+        r = client.post(
+            "/api/unit-types/bulk-approve",
+            json={"unit_type_ids": [a, b]},
+            headers=auth(admin_token),
+        )
+        assert r.status_code == 200, r.text
+        results = {row["unit_type_id"]: row for row in r.json()["results"]}
+        assert results[a]["ok"] is True
+        assert results[a]["unit_type"]["status"] == "approved"
+        assert results[b]["ok"] is True
+        assert results[b]["unit_type"]["status"] == "approved"
+
+    def test_a_mixed_batch_reports_each_id_and_still_approves_the_good_ones(
+        self, client: TestClient
+    ) -> None:
+        admin_token = sign_in(client, "admin")
+        good = self._draft(client, admin_token, "Type A")
+        already_approved = self._draft(client, admin_token, "Type B")
+        client.post(
+            f"/api/unit-types/{already_approved}/approve", headers=auth(admin_token)
+        )
+
+        r = client.post(
+            "/api/unit-types/bulk-approve",
+            json={"unit_type_ids": [good, already_approved]},
+            headers=auth(admin_token),
+        )
+        assert r.status_code == 200, r.text
+        results = {row["unit_type_id"]: row for row in r.json()["results"]}
+        assert results[good]["ok"] is True
+        assert results[already_approved]["ok"] is False
+        assert results[already_approved]["error"] == "wrong_status"
+        assert results[already_approved]["unit_type"] is None
+
+        # The proof it is not aborted at the first bad id: the good one is
+        # really persisted, checked back independently of the batch response.
+        detail = client.get(f"/api/unit-types/{good}", headers=auth(admin_token)).json()
+        assert detail["unit_type"]["status"] == "approved"
+
+    def test_an_unknown_id_reports_not_found(self, client: TestClient) -> None:
+        admin_token = sign_in(client, "admin")
+
+        r = client.post(
+            "/api/unit-types/bulk-approve",
+            json={"unit_type_ids": ["not-a-real-id"]},
+            headers=auth(admin_token),
+        )
+        assert r.status_code == 200, r.text
+        (result,) = r.json()["results"]
+        assert result["ok"] is False
+        assert result["error"] == "not_found"
+
+    @pytest.mark.parametrize("role", ["staff", "parttime"])
+    def test_it_needs_an_admin(self, client: TestClient, role: str) -> None:
+        admin_token = sign_in(client, "admin")
+        good = self._draft(client, admin_token, "Type A")
+
+        token = sign_in(client, role)
+        r = client.post(
+            "/api/unit-types/bulk-approve",
+            json={"unit_type_ids": [good]},
+            headers=auth(token),
+        )
+        assert r.status_code == 403
+
+    def test_an_empty_list_is_refused(self, client: TestClient) -> None:
+        admin_token = sign_in(client, "admin")
+
+        r = client.post(
+            "/api/unit-types/bulk-approve",
+            json={"unit_type_ids": []},
+            headers=auth(admin_token),
+        )
+        assert r.status_code == 422
+
+
 class TestTheLifecycleEndToEnd:
     def test_draft_to_approved_carries_the_openings_and_rooms_through(
         self, client: TestClient

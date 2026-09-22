@@ -511,6 +511,14 @@ export interface LibraryStrings {
   readonly cancel: string;
   readonly approvedNote: (name: string) => string;
   readonly rejectedNote: (name: string) => string;
+  /** Bulk approve: select multiple pending submissions and clear them in
+   * one request. There is deliberately no bulk-reject -- a reason is a
+   * decision made on purpose, one submission at a time. */
+  readonly selectAll: string;
+  readonly selectOne: (name: string) => string;
+  readonly nSelected: (n: number) => string;
+  readonly approveSelected: string;
+  readonly bulkApprovedNote: (approved: number, failed: number) => string;
   readonly uploadFloorPlan: string;
   readonly uploading: string;
   readonly calibrate: string;

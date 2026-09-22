@@ -389,6 +389,12 @@ export const ZH: Strings = {
     cancel: '先不要',
     approvedNote: (name) => `${name} 已经通过，现在可以使用了。`,
     rejectedNote: (name) => `${name} 已退回，请修正后重新提交。`,
+    selectAll: '全选',
+    selectOne: (name) => `选取 ${name}`,
+    nSelected: (n) => `已选 ${n} 项`,
+    approveSelected: '核准所选',
+    bulkApprovedNote: (approved, failed) =>
+      failed === 0 ? `已核准 ${approved} 项。` : `已核准 ${approved} 项，${failed} 项未能核准——仍保留选取。`,
     uploadFloorPlan: '上传平面图',
     uploading: '正在上传……',
     calibrate: '设定比例尺',

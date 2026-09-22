@@ -32,6 +32,7 @@ from app.services.library import (
     add_corrected_version,
     approve_unit_type,
     approved_version,
+    bulk_approve_unit_types,
     calibrate_floor_plan,
     create_project,
     create_unit_type,
@@ -299,6 +300,79 @@ class TestTheReviewGate:
                 reject_unit_type(
                     session, "not-a-real-id", by_user_id="admin-1", reason="x"
                 )
+
+
+class TestBulkApprove:
+    def _draft(self, session, name: str = "Type B") -> str:
+        project = create_project(session, name="ABC Development")
+        session.commit()
+        unit_type = create_unit_type(
+            session,
+            project_id=project.id,
+            name=name,
+            created_by_user_id="parttimer-1",
+            openings=OPENINGS,
+        )
+        session.commit()
+        return unit_type.id
+
+    def test_every_id_approves_independently(self, db) -> None:
+        with db() as session:
+            a = self._draft(session, "Type A")
+            b = self._draft(session, "Type B")
+            session.commit()
+
+            results = bulk_approve_unit_types(session, [a, b], by_user_id="admin-1")
+            session.commit()
+
+            assert {r.unit_type_id: r.ok for r in results} == {a: True, b: True}
+            assert unit_type_detail(session, a).status == "approved"
+            assert unit_type_detail(session, b).status == "approved"
+
+    def test_one_bad_id_does_not_sink_the_rest_of_the_batch(self, db) -> None:
+        # The behaviour a naive bare-loop-with-raise implementation would
+        # get wrong: the two good ids must actually persist, not just be
+        # attempted before an exception unwinds the whole call.
+        with db() as session:
+            good_1 = self._draft(session, "Type A")
+            already_approved = self._draft(session, "Type B")
+            approve_unit_type(session, already_approved, by_user_id="admin-1")
+            good_2 = self._draft(session, "Type C")
+            session.commit()
+
+            results = bulk_approve_unit_types(
+                session, [good_1, already_approved, good_2], by_user_id="admin-1"
+            )
+            session.commit()
+
+            by_id = {r.unit_type_id: r for r in results}
+            assert by_id[good_1].ok is True
+            assert by_id[good_2].ok is True
+            assert by_id[already_approved].ok is False
+            assert by_id[already_approved].error == "wrong_status"
+            # The proof: both good ones are really persisted, not just
+            # attempted before the bad one's exception unwound the call.
+            assert unit_type_detail(session, good_1).status == "approved"
+            assert unit_type_detail(session, good_2).status == "approved"
+
+    def test_an_unknown_id_reports_not_found_and_the_batch_continues(self, db) -> None:
+        with db() as session:
+            good = self._draft(session)
+            session.commit()
+
+            results = bulk_approve_unit_types(
+                session, ["not-a-real-id", good], by_user_id="admin-1"
+            )
+            session.commit()
+
+            by_id = {r.unit_type_id: r for r in results}
+            assert by_id["not-a-real-id"].ok is False
+            assert by_id["not-a-real-id"].error == "not_found"
+            assert by_id[good].ok is True
+
+    def test_an_empty_batch_approves_nothing(self, db) -> None:
+        with db() as session:
+            assert bulk_approve_unit_types(session, [], by_user_id="admin-1") == []
 
 
 class TestVersioning:

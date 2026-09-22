@@ -423,6 +423,14 @@ export const EN: Strings = {
     cancel: 'Cancel',
     approvedNote: (name) => `${name} is now live in the library.`,
     rejectedNote: (name) => `${name} was sent back for correction.`,
+    selectAll: 'Select all',
+    selectOne: (name) => `Select ${name}`,
+    nSelected: (n) => `${n} selected`,
+    approveSelected: 'Approve selected',
+    bulkApprovedNote: (approved, failed) =>
+      failed === 0
+        ? `${approved} approved.`
+        : `${approved} approved, ${failed} could not be approved -- still selected below.`,
     uploadFloorPlan: 'Upload a floor plan image',
     uploading: 'Uploading...',
     calibrate: 'Calibrate scale',

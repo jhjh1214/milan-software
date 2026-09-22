@@ -57,6 +57,43 @@ h1 {
   flex-wrap: wrap;
 }
 
+.card-title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.select-one input {
+  position: relative;
+  top: 1px;
+}
+
+/* Not `.card`: same reason the empty state above avoids it -- this bar sits
+   outside the queue list and must never be counted as one of its rows. */
+.bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+}
+
+.select-all {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.selected-count {
+  font-size: 13px;
+  color: var(--color-fg-muted);
+}
+
 h2 {
   margin: 0;
   font-size: 16px;

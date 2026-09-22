@@ -19,6 +19,7 @@ import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { Api } from '../api/api';
 import { commonMessage, failureOf, type Failure } from '../i18n/failure';
 import { Text } from '../i18n/text';
+import { ThinkingDots } from '../shared/thinking-dots';
 import type {
   FloorPlanOut,
   OpeningOut,
@@ -41,11 +42,12 @@ interface CalibrationPoint {
 /** What just happened, before it becomes a sentence in the reader's language. */
 type Note =
   | { readonly kind: 'approved'; readonly name: string }
-  | { readonly kind: 'rejected'; readonly name: string };
+  | { readonly kind: 'rejected'; readonly name: string }
+  | { readonly kind: 'bulkApproved'; readonly approved: number; readonly failed: number };
 
 @Component({
   selector: 'app-unit-type-review',
-  imports: [CommonModule],
+  imports: [CommonModule, ThinkingDots],
   templateUrl: './unit-type-review.html',
   styleUrl: './unit-type-review.css',
 })
@@ -81,15 +83,45 @@ export class UnitTypeReview {
     () => !this.savingProject() && this.projectName().trim().length > 0,
   );
 
-  /** The id currently mid-request, so a double click cannot fire twice. */
-  protected readonly acting = signal<string | null>(null);
+  /** Ids currently mid-request -- a set rather than one id, so a bulk
+   * approve and a single row's own action never fight over one flag. */
+  protected readonly acting = signal<ReadonlySet<string>>(new Set());
   /** The id whose reject form is open, and what has been typed into it. */
   protected readonly rejectingId = signal<string | null>(null);
   protected readonly reason = signal('');
 
   protected readonly canSendBack = computed(
-    () => this.reason().trim().length > 0 && this.acting() === null,
+    () => this.reason().trim().length > 0 && this.acting().size === 0,
   );
+
+  /** Rows an admin has ticked for a bulk approve. Orthogonal to `acting`:
+   * selecting is a separate step from a request being in flight. */
+  protected readonly selected = signal<ReadonlySet<string>>(new Set());
+
+  protected readonly canBulkApprove = computed(
+    () => this.selected().size > 0 && this.acting().size === 0,
+  );
+
+  protected readonly allSelected = computed(
+    () => this.items().length > 0 && this.selected().size === this.items().length,
+  );
+
+  protected isSelected(item: UnitTypeWithVersionsOut): boolean {
+    return this.selected().has(item.id);
+  }
+
+  protected toggleSelect(item: UnitTypeWithVersionsOut): void {
+    this.selected.update((s) => {
+      const next = new Set(s);
+      if (next.has(item.id)) next.delete(item.id);
+      else next.add(item.id);
+      return next;
+    });
+  }
+
+  protected toggleSelectAll(): void {
+    this.selected.set(this.allSelected() ? new Set() : new Set(this.items().map((i) => i.id)));
+  }
 
   /** The unit type id currently mid-upload. */
   protected readonly uploading = signal<string | null>(null);
@@ -198,18 +230,52 @@ export class UnitTypeReview {
   }
 
   protected approve(item: UnitTypeWithVersionsOut): void {
-    if (this.acting() !== null) return;
-    this.acting.set(item.id);
+    if (this.acting().size > 0) return;
+    this.acting.set(new Set([item.id]));
     this.failure.set(null);
 
     this.api.approveUnitType(item.id).subscribe({
       next: () => {
-        this.acting.set(null);
+        this.acting.set(new Set());
         this.items.set(this.items().filter((i) => i.id !== item.id));
         this.note.set({ kind: 'approved', name: this.label(item) });
       },
       error: (err: unknown) => {
-        this.acting.set(null);
+        this.acting.set(new Set());
+        this.failure.set(failureOf(err));
+      },
+    });
+  }
+
+  /**
+   * Approves every selected row in one request. One bad id in the batch
+   * never sinks the rest -- the server reports each id's own outcome, so a
+   * row that failed stays visible and selected for the admin to handle
+   * individually, and everything that succeeded leaves the queue.
+   */
+  protected bulkApprove(): void {
+    if (!this.canBulkApprove()) return;
+    const ids = [...this.selected()];
+    this.acting.set(new Set(ids));
+    this.failure.set(null);
+
+    this.api.bulkApproveUnitTypes(ids).subscribe({
+      next: (out) => {
+        this.acting.set(new Set());
+        const okIds = new Set(out.results.filter((r) => r.ok).map((r) => r.unit_type_id));
+        const failedIds = new Set(
+          out.results.filter((r) => !r.ok).map((r) => r.unit_type_id),
+        );
+        this.items.set(this.items().filter((i) => !okIds.has(i.id)));
+        this.selected.set(failedIds);
+        this.note.set({
+          kind: 'bulkApproved',
+          approved: okIds.size,
+          failed: failedIds.size,
+        });
+      },
+      error: (err: unknown) => {
+        this.acting.set(new Set());
         this.failure.set(failureOf(err));
       },
     });
@@ -228,19 +294,19 @@ export class UnitTypeReview {
 
   protected confirmReject(item: UnitTypeWithVersionsOut): void {
     if (!this.canSendBack()) return;
-    this.acting.set(item.id);
+    this.acting.set(new Set([item.id]));
     this.failure.set(null);
 
     this.api.rejectUnitType(item.id, this.reason().trim()).subscribe({
       next: () => {
-        this.acting.set(null);
+        this.acting.set(new Set());
         this.rejectingId.set(null);
         this.reason.set('');
         this.items.set(this.items().filter((i) => i.id !== item.id));
         this.note.set({ kind: 'rejected', name: this.label(item) });
       },
       error: (err: unknown) => {
-        this.acting.set(null);
+        this.acting.set(new Set());
         this.failure.set(failureOf(err));
       },
     });
@@ -248,7 +314,9 @@ export class UnitTypeReview {
 
   protected noteText(note: Note): string {
     const words = this.t().library;
-    return note.kind === 'approved' ? words.approvedNote(note.name) : words.rejectedNote(note.name);
+    if (note.kind === 'approved') return words.approvedNote(note.name);
+    if (note.kind === 'rejected') return words.rejectedNote(note.name);
+    return words.bulkApprovedNote(note.approved, note.failed);
   }
 
   protected label(item: UnitTypeWithVersionsOut): string {
