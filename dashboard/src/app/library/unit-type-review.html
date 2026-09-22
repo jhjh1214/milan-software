@@ -227,7 +227,7 @@
                 <div class="recognition-result">
                   @if (job.status === 'pending') {
                     <p class="hint">
-                      <span class="spinner" aria-hidden="true"></span>
+                      <app-thinking-dots [label]="t().library.recognizing" />
                       {{ t().library.recognizing }}
                     </p>
                   } @else if (job.status === 'failed') {

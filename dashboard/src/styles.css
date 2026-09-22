@@ -76,6 +76,10 @@
 
   --duration-fast: 120ms;
   --duration-base: 200ms;
+  /* A continuous ambient loop, not a discrete transition -- deliberately
+     slower than the other two, which time a state change rather than a
+     "this is still working" pulse. */
+  --duration-slow: 1200ms;
   --ease: cubic-bezier(0.2, 0, 0, 1);
 
   color-scheme: light;
@@ -557,6 +561,51 @@ tbody tr:hover {
   .skeleton {
     animation: none;
     background: var(--color-surface-muted);
+  }
+}
+
+/* Three dots, breathing -- "AI is working on this" beside recognition's own
+   async job poll. Never the only signal: every use sites this next to
+   words, the same rule `.spinner` already follows. */
+.thinking-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.thinking-dots .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  animation: thinking-pulse var(--duration-slow) var(--ease) infinite;
+}
+
+.thinking-dots .dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.thinking-dots .dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes thinking-pulse {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thinking-dots .dot {
+    animation: none;
+    opacity: 0.8;
   }
 }
 

@@ -44,6 +44,7 @@ import '../../sync/library_submission_payload.dart';
 import '../../sync/sync_state.dart';
 import '../../ui/theme.dart';
 import '../../ui/unit_labels.dart';
+import '../../ui/widgets/ai_thinking_indicator.dart';
 import '../quote/quote_state.dart' show databaseProvider;
 
 /// Where the cached project list lives in `Settings` -- read with no
@@ -639,7 +640,14 @@ class _SubmitFloorPlanScreenState extends ConsumerState<SubmitFloorPlanScreen> {
                 OutlinedButton(
                   onPressed: _recognizing ? null : _tryRecognition,
                   child: _recognizing
-                      ? Text(l.libRecognizing)
+                      ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const AiThinkingIndicator(),
+                            const SizedBox(width: Space.sm),
+                            Text(l.libRecognizing),
+                          ],
+                        )
                       : Text(l.libTryRecognition),
                 ),
                 TextButton(

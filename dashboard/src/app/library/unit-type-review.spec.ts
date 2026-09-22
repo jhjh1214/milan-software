@@ -373,6 +373,8 @@ describe('UnitTypeReview', () => {
     fixture.detectChanges();
 
     expect(text()).toContain('Recognising in the background');
+    // The AI-thinking pulse, beside the text -- never in place of it.
+    expect(fixture.nativeElement.querySelector('.thinking-dots')).toBeTruthy();
   });
 
   it('polls until the job leaves pending, then shows the placeholder note when nothing is configured', async () => {
