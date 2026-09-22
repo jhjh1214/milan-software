@@ -173,6 +173,14 @@ export interface QueueStrings {
   readonly tripTotal: (total: string, oldest: string) => string;
   readonly signedOut: string;
   readonly wentWrong: string;
+  /** The zone-header row's text for a trip with no delivery zone recorded. */
+  readonly unzonedHeading: string;
+  readonly siteAddress: string;
+  readonly siteAddressPlaceholder: string;
+  /** Opens a free Google Maps search on the typed-in address. §13 C10. */
+  readonly navigate: string;
+  readonly addAddress: string;
+  readonly edit: string;
 }
 
 /** The weekly override review. §6.5 — this screen *is* the control. */

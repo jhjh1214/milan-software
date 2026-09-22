@@ -834,8 +834,21 @@ class TestTheMeasurementQueue:
         body = r.json()
         assert body["total_orders"] == 2
         (group,) = body["groups"]
-        assert group["key"] == "phone:0123456789"
+        assert group["key"] == "unzoned:phone:0123456789"
+        assert group["delivery_zone_id"] is None
         assert len(group["jobs"]) == 2
+
+    def test_a_zone_carries_its_labels_from_the_active_card(
+        self, client: TestClient
+    ) -> None:
+        self._an_order(client, delivery_zone_id="zone-kl")
+
+        token = sign_in(client, "staff")
+        body = client.get("/api/measurement-queue", headers=auth(token)).json()
+
+        (group,) = body["groups"]
+        assert group["delivery_zone_id"] == "zone-kl"
+        assert group["delivery_zone_labels"]["en"] == "KL / Seremban / Negeri Sembilan"
 
     def test_the_clock_is_the_server_s(self, client: TestClient) -> None:
         # An order confirmed a moment ago has waited no days. The route reads
@@ -852,6 +865,98 @@ class TestTheMeasurementQueue:
         r = client.get("/api/measurement-queue")
         assert r.status_code == 401
         assert r.headers["WWW-Authenticate"] == "Bearer"
+
+
+class TestSiteAddressNote:
+    """SPEC.md §13 C10's write-up: a free-text note, typed in by staff, so
+    the measurement queue can offer a free Google Maps link before a visit."""
+
+    def _an_order(self, client: TestClient, **over) -> str:
+        order_id = str(uuid.uuid4())
+        payload = {
+            "id": order_id,
+            "quote_id": str(uuid.uuid4()),
+            "channel": "fair",
+            "pinned_rate_card_version": 1,
+            "estimate_total_sen": 55200,
+            "deposit_paid_sen": 30000,
+            "confirmed_at": datetime.now(UTC).isoformat(),
+            "lines": [
+                {
+                    "id": str(uuid.uuid4()),
+                    "quote_line_id": str(uuid.uuid4()),
+                    "sort_order": 0,
+                    "room": "Living room",
+                    "variant": "night_curtain",
+                    "layer": "night",
+                    "est_width_tmm": 36576,
+                    "applied_rule_id": "rule-1",
+                    "applied_rate_card_version": 1,
+                    "standard_rate_sen": 4600,
+                    "rate_sen": 4600,
+                    "billed_qty": "12",
+                    "billed_unit": "ft",
+                    "line_total_sen": 55200,
+                }
+            ],
+        }
+        payload.update(over)
+        token = sign_in(client, "staff")
+        r = client.post("/api/orders", json=payload, headers=auth(token))
+        assert r.status_code == 200, r.text
+        return order_id
+
+    def test_staff_can_set_and_clear_the_note(self, client: TestClient) -> None:
+        order_id = self._an_order(client)
+        token = sign_in(client, "staff")
+
+        r = client.patch(
+            f"/api/orders/{order_id}/site-address",
+            json={"site_address_note": "12 Jalan Melati, Taman Melati"},
+            headers=auth(token),
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["site_address_note"] == "12 Jalan Melati, Taman Melati"
+
+        body = client.get("/api/measurement-queue", headers=auth(token)).json()
+        (job,) = body["groups"][0]["jobs"]
+        assert job["site_address_note"] == "12 Jalan Melati, Taman Melati"
+
+        cleared = client.patch(
+            f"/api/orders/{order_id}/site-address",
+            json={"site_address_note": ""},
+            headers=auth(token),
+        )
+        assert cleared.json()["site_address_note"] is None
+
+    def test_a_part_timer_is_refused(self, client: TestClient) -> None:
+        order_id = self._an_order(client)
+        token = sign_in(client, "parttime")
+
+        r = client.patch(
+            f"/api/orders/{order_id}/site-address",
+            json={"site_address_note": "12 Jalan Melati"},
+            headers=auth(token),
+        )
+        assert r.status_code == 403
+
+    def test_an_unknown_order_is_404(self, client: TestClient) -> None:
+        token = sign_in(client, "staff")
+
+        r = client.patch(
+            f"/api/orders/{uuid.uuid4()}/site-address",
+            json={"site_address_note": "12 Jalan Melati"},
+            headers=auth(token),
+        )
+        assert r.status_code == 404
+
+    def test_it_needs_a_session(self, client: TestClient) -> None:
+        order_id = self._an_order(client)
+        r = client.patch(
+            f"/api/orders/{order_id}/site-address",
+            json={"site_address_note": "12 Jalan Melati"},
+        )
+        assert r.status_code == 401
 
 
 class TestTheReports:

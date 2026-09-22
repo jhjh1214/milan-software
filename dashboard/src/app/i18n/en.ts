@@ -117,6 +117,12 @@ export const EN: Strings = {
     tripTotal: (total, oldest) => `Trip total ${total} · oldest deposit ${oldest}`,
     signedOut: 'Signed out. Sign in again to see the queue.',
     wentWrong: 'Something went wrong loading the queue.',
+    unzonedHeading: 'No delivery zone recorded',
+    siteAddress: 'Site address',
+    siteAddressPlaceholder: 'e.g. 12 Jalan Melati, Taman Melati',
+    navigate: 'Navigate',
+    addAddress: 'Add address',
+    edit: 'Edit',
   },
 
   overrides: {

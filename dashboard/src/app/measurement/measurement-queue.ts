@@ -3,11 +3,17 @@
  *
  * > Measurement queue — grouped by project so one trip covers several units
  *
- * There is no project library until Phase 8 and no address is captured
- * anywhere, so the server groups by customer — keyed on the normalised phone,
- * exactly as a rate lock is. §13 C10 asks what should really group a day's
- * route; if the answer turns out to be "by area", that is an address field and
- * a different key, and nothing on this screen changes.
+ * §13 C10, answered: the server groups by delivery zone first (already
+ * captured on every order at quote time), then by customer within it — keyed
+ * on the normalised phone, exactly as a rate lock is. Zones are ordered by
+ * the longest-waiting order inside them, so route clustering never buries an
+ * overdue customer behind a zone that merely sorts earlier. This screen
+ * renders a heading wherever the zone changes, on top of the flat, already-
+ * ordered list the server sends.
+ *
+ * Each trip can also carry a free-text address note, typed in by staff --
+ * not a real address record, just enough to open a free Google Maps search
+ * link before the visit (no paid routing API; SPEC.md §13 C10's write-up).
  *
  * **The order is who has waited longest**, decided by the server. This screen
  * does not re-sort: a list that reorders itself between two desks looking at
@@ -29,13 +35,19 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { map } from 'rxjs';
+import { forkJoin, map } from 'rxjs';
 
 import { Api } from '../api/api';
 import { commonMessage, failureOf, type Failure } from '../i18n/failure';
 import { Text } from '../i18n/text';
 import { formatDate, formatSen } from '../api/money';
+import { SegmentedControl } from '../shared/segmented-control';
 import type { MeasurementGroup } from '../api/types';
+
+/** One row this screen renders: either a zone heading or a trip beneath it. */
+type QueueRow =
+  | { readonly kind: 'zone-header'; readonly zoneOf: string; readonly label: string }
+  | { readonly kind: 'group'; readonly group: MeasurementGroup };
 
 /** Which trips to show. Lives in the URL and nowhere else. */
 export type QueueFilter = 'all' | 'unbooked' | 'booked';
@@ -83,8 +95,10 @@ export class MeasurementQueue {
   protected readonly loading = signal(false);
   protected readonly failure = signal<Failure | null>(null);
 
+  private readonly text = inject(Text);
+
   /** The words, as a signal: switching language re-renders the queue. */
-  protected readonly t = inject(Text).strings;
+  protected readonly t = this.text.strings;
 
   /** Chosen at render time, so a failure on screen follows the language. */
   protected message(failure: Failure): string {
@@ -192,5 +206,108 @@ export class MeasurementQueue {
   /** What to call a trip with no name and no phone on it. */
   protected nameOf(group: MeasurementGroup): string {
     return group.customer_name ?? this.t().queue.noName;
+  }
+
+  /**
+   * A zone's label in the reader's own language, falling back to English,
+   * then to the raw id, then to "no zone" -- the same fallback chain
+   * `products.ts` already uses for a rate-card row's labels. A group missing
+   * a label is not a reason to hide the trip that needs a route the most.
+   */
+  protected zoneLabel(group: MeasurementGroup): string {
+    if (group.delivery_zone_id === null) return this.t().queue.unzonedHeading;
+    const lang = this.text.language();
+    return (
+      group.delivery_zone_labels?.[lang] ??
+      group.delivery_zone_labels?.['en'] ??
+      group.delivery_zone_id
+    );
+  }
+
+  /**
+   * The visible trips with a zone-heading row inserted wherever the zone
+   * changes. The server already clusters and orders zones (worst-waiting
+   * first); this only walks that list once to mark the boundaries -- it
+   * never re-sorts, matching the rest of this screen's own rule.
+   */
+  protected readonly rows = computed<readonly QueueRow[]>(() => {
+    const rows: QueueRow[] = [];
+    let lastZone: string | null | undefined = undefined;
+    for (const group of this.visible()) {
+      if (group.delivery_zone_id !== lastZone) {
+        rows.push({
+          kind: 'zone-header',
+          zoneOf: group.delivery_zone_id ?? 'unzoned',
+          label: this.zoneLabel(group),
+        });
+        lastZone = group.delivery_zone_id;
+      }
+      rows.push({ kind: 'group', group });
+    }
+    return rows;
+  });
+
+  protected rowKey(row: QueueRow): string {
+    return row.kind === 'group' ? row.group.key : `zone-header:${row.zoneOf}`;
+  }
+
+  /** The address on a trip, from whichever job carries one -- every job in a
+   * group is the same house, so the first note found speaks for all of them. */
+  protected addressOf(group: MeasurementGroup): string | null {
+    return group.jobs.find((j) => j.site_address_note !== null)?.site_address_note ?? null;
+  }
+
+  /** A free Google Maps search link -- no API key, no billing, just the
+   * documented `maps/search` URL scheme opening on that address. */
+  protected navigateHref(address: string): string {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+  }
+
+  protected readonly editingAddress = signal<string | null>(null);
+  protected readonly addressDraft = signal('');
+  protected readonly savingAddress = signal<ReadonlySet<string>>(new Set());
+
+  protected editAddress(group: MeasurementGroup): void {
+    this.editingAddress.set(group.key);
+    this.addressDraft.set(this.addressOf(group) ?? '');
+  }
+
+  protected cancelAddress(): void {
+    this.editingAddress.set(null);
+  }
+
+  /**
+   * Saves the same note onto every job in the trip -- they are one house, so
+   * the address should read the same however the queue happens to have split
+   * that customer's orders into jobs.
+   */
+  protected saveAddress(group: MeasurementGroup): void {
+    const note = this.addressDraft().trim() || null;
+    this.savingAddress.update((s) => new Set(s).add(group.key));
+
+    forkJoin(group.jobs.map((job) => this.api.setSiteAddress(job.order_id, note))).subscribe({
+      next: () => {
+        this.groups.update((all) =>
+          all.map((g) =>
+            g.key !== group.key
+              ? g
+              : { ...g, jobs: g.jobs.map((j) => ({ ...j, site_address_note: note })) },
+          ),
+        );
+        this.savingAddress.update((s) => {
+          const next = new Set(s);
+          next.delete(group.key);
+          return next;
+        });
+        this.editingAddress.set(null);
+      },
+      error: () => {
+        this.savingAddress.update((s) => {
+          const next = new Set(s);
+          next.delete(group.key);
+          return next;
+        });
+      },
+    });
   }
 }

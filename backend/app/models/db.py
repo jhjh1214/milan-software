@@ -463,6 +463,10 @@ class Order(Base):
     customer_phone: Mapped[str | None] = mapped_column(String(40), nullable=True)
     delivery_zone_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     delivery_charge_sen: Mapped[int] = mapped_column(BigInteger, default=0)
+    #: Free text, typed in by staff planning a day's visits -- not a real
+    #: address record (no postcode, no geocoding). Just enough to open a free
+    #: Google Maps search link before a visit. §13 C10's write-up.
+    site_address_note: Mapped[str | None] = mapped_column(String(240), nullable=True)
 
     status: Mapped[str] = mapped_column(String(24), default="confirmed")
 

@@ -115,6 +115,12 @@ export const ZH: Strings = {
     tripTotal: (total, oldest) => `这趟合计 ${total} · 最早的订金 ${oldest}`,
     signedOut: '已登出。重新登入才能看排程。',
     wentWrong: '载入排程时出了点问题。',
+    unzonedHeading: '未记录派送区域',
+    siteAddress: '现场地址',
+    siteAddressPlaceholder: '例如：12 Jalan Melati, Taman Melati',
+    navigate: '导航',
+    addAddress: '新增地址',
+    edit: '编辑',
   },
 
   overrides: {

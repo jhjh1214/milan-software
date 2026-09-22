@@ -219,7 +219,7 @@ class TestOneTripCoversSeveralUnits:
             (group,) = measurement_queue(session, now=NOW).groups
 
             assert len(group.jobs) == 2
-            assert group.key == "phone:0123456789"
+            assert group.key == "unzoned:phone:0123456789"
 
     def test_different_customers_are_different_trips(self, db) -> None:
         with db() as session:
@@ -288,8 +288,8 @@ class TestWhoHasWaitedLongest:
             queue = measurement_queue(session, now=NOW)
 
             assert [g.key for g in queue.groups] == [
-                "phone:0123456789",
-                "phone:0129999999",
+                "unzoned:phone:0123456789",
+                "unzoned:phone:0129999999",
             ]
 
     def test_a_group_waits_as_long_as_its_oldest_order(self, db) -> None:
@@ -328,6 +328,133 @@ class TestWhoHasWaitedLongest:
             (job,) = measurement_queue(session, now=NOW).groups[0].jobs
 
             assert job.waiting_days == 0
+
+
+class TestZoneGrouping:
+    """§13 C10, answered: zone first, then customer within it."""
+
+    def test_same_phone_different_zones_are_two_trips(self, db) -> None:
+        # A zone-only key would merge these back into one trip and send
+        # somebody straight from Muar to KL on the same visit.
+        with db() as session:
+            an_order(session, customer_phone="0123456789", delivery_zone_id="zone-kl")
+            an_order(session, customer_phone="0123456789", delivery_zone_id="zone-muar")
+            session.commit()
+
+            queue = measurement_queue(session, now=NOW)
+
+            assert len(queue.groups) == 2
+            assert {g.delivery_zone_id for g in queue.groups} == {
+                "zone-kl",
+                "zone-muar",
+            }
+
+    def test_same_phone_same_zone_stays_one_trip(self, db) -> None:
+        with db() as session:
+            an_order(session, customer_phone="0123456789", delivery_zone_id="zone-kl")
+            an_order(session, customer_phone="0123456789", delivery_zone_id="zone-kl")
+            session.commit()
+
+            (group,) = measurement_queue(session, now=NOW).groups
+
+            assert len(group.jobs) == 2
+            assert group.delivery_zone_id == "zone-kl"
+
+    def test_an_order_with_no_zone_lands_in_the_unzoned_bucket(self, db) -> None:
+        with db() as session:
+            an_order(session, delivery_zone_id=None)
+            session.commit()
+
+            (group,) = measurement_queue(session, now=NOW).groups
+
+            assert group.delivery_zone_id is None
+            assert group.key.startswith("unzoned:")
+
+    def test_a_zone_missing_from_the_lookup_never_crashes(self, db) -> None:
+        # A zone id can outlive the card that named it -- renamed or removed
+        # since the order was placed. The group still forms; it just has no
+        # label to show.
+        with db() as session:
+            an_order(session, delivery_zone_id="zone-that-no-longer-exists")
+            session.commit()
+
+            (group,) = measurement_queue(session, now=NOW, zone_labels={}).groups
+
+            assert group.delivery_zone_id == "zone-that-no-longer-exists"
+            assert group.delivery_zone_labels is None
+
+    def test_a_known_zone_carries_its_labels(self, db) -> None:
+        with db() as session:
+            an_order(session, delivery_zone_id="zone-kl")
+            session.commit()
+
+            (group,) = measurement_queue(
+                session,
+                now=NOW,
+                zone_labels={"zone-kl": {"zh": "吉隆坡", "en": "KL", "ms": "KL"}},
+            ).groups
+
+            assert group.delivery_zone_labels == {
+                "zh": "吉隆坡",
+                "en": "KL",
+                "ms": "KL",
+            }
+
+    def test_the_zone_with_the_most_overdue_customer_sorts_first(self, db) -> None:
+        # zone-b would sort after zone-a alphabetically, and has fewer orders
+        # -- neither is the rule. It holds the oldest deposit, so it goes
+        # first: route efficiency must never bury an overdue customer.
+        with db() as session:
+            an_order(
+                session,
+                customer_phone="0121111111",
+                delivery_zone_id="zone-a",
+                confirmed_at=CONFIRMED + timedelta(days=20),
+            )
+            an_order(
+                session,
+                customer_phone="0122222222",
+                delivery_zone_id="zone-a",
+                confirmed_at=CONFIRMED + timedelta(days=25),
+            )
+            an_order(
+                session,
+                customer_phone="0123333333",
+                delivery_zone_id="zone-b",
+                confirmed_at=CONFIRMED,
+            )
+            session.commit()
+
+            queue = measurement_queue(session, now=NOW)
+
+            assert [g.delivery_zone_id for g in queue.groups] == [
+                "zone-b",
+                "zone-a",
+                "zone-a",
+            ]
+
+    def test_within_a_zone_the_oldest_first_order_is_preserved(self, db) -> None:
+        with db() as session:
+            an_order(
+                session,
+                customer_phone="0121111111",
+                delivery_zone_id="zone-a",
+                confirmed_at=CONFIRMED + timedelta(days=10),
+            )
+            an_order(
+                session,
+                customer_phone="0122222222",
+                delivery_zone_id="zone-a",
+                confirmed_at=CONFIRMED,
+            )
+            session.commit()
+
+            queue = measurement_queue(session, now=NOW)
+
+            assert [g.customer_phone for g in queue.groups] == [
+                "0122222222",
+                "0121111111",
+            ]
 
 
 class TestWhatTheMeasurerNeedsToKnow:

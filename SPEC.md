@@ -3006,22 +3006,44 @@ unlike approval's own lot picker. 7 new dashboard tests.
   skipped step is a lie in the append-only history. Answering "yes, skip" is a
   one-line change to the transition table and a fixture; answering it wrongly
   puts jobs in the wrong column of the measurement schedule.
-- **C10.** **What groups a measurement trip before the project library
-  exists?** §11 Phase 5 says the queue is *grouped by project so one trip
-  covers several units*, and `projects` / `unit_types` do not arrive until
-  Phase 8. No address is captured anywhere either — an order carries a name,
-  a phone and a delivery zone.
+- ~~**C10.**~~ **ANSWERED — zone first, then customer, ordered by who has
+  waited longest.** §11 Phase 5 says the queue is *grouped by project so one
+  trip covers several units*, and `projects` / `unit_types` still do not
+  cover most orders — a fair walk-in never gets a `project_id` at all, so
+  grouping by project would miss the majority of the queue even now that
+  the library exists. No street-level address is captured anywhere either:
+  the only address on `Order` (`buyer_address_line1/2`, `buyer_postcode`) is
+  written *after* measurement for invoicing, too late to plan the trip that
+  produces it.
 
-  So the queue groups by **customer**, keyed on the normalised phone exactly as
-  a rate lock is (B9). One customer with three units is one trip, which is the
-  case that exists today, and an order with no usable phone is its own group
-  rather than pooled with every other phone-less order — pooling them would
-  invent a trip that does not exist.
+  What every order already carries, unused for this until now, is
+  `delivery_zone_id` — picked at quote time, before a visit is ever
+  scheduled, from the small fixed set of zones on the active rate card. The
+  queue groups by that zone first, then by **customer** within it, keyed on
+  the normalised phone exactly as a rate lock is (B9). An order with no zone
+  lands in its own "unzoned" bucket rather than being guessed into one, and
+  an order with no usable phone is its own group within its zone rather than
+  pooled with every other phone-less order — pooling either would invent a
+  trip that does not exist.
 
-  What is worth asking is how the team actually plans a day: by area, by
-  customer, or by whatever the installer says. If it is by area, the answer is
-  a delivery-zone or postcode grouping and an address field, not the project
-  library, and that is cheaper to add now than to retrofit.
+  A zone's own position in the list is driven by the longest-waiting order
+  inside it, never by zone id — the zone holding the most overdue customer
+  sorts first, so route efficiency and customer urgency point the same
+  direction rather than trading off against each other.
+
+  **True street/taman-level grouping stays open**, blocked on capturing a
+  real address before a visit is ever planned — nothing today does. The
+  free-Google-Maps-link feature built alongside this answer (a
+  `site_address_note` on `Order`, edited from the measurement queue) is a
+  small, deliberately non-structured stand-in: free text a staff member
+  types in from whatever they already have, good enough to open a Maps
+  search, not a real address record. Full address capture (postcode,
+  geocoded lat/lng, captured at quote/order time rather than after the
+  fact) plus paid turn-by-turn routing and route optimisation is a real,
+  separate feature with a recurring third-party cost (Google Maps
+  Platform's Directions/Distance Matrix APIs) that needs the client's
+  explicit sign-off before any of it is built — named here rather than
+  guessed at, the same way SQL Account's own export (§10 E1/E2) is.
 - **C11.** **When does a balance actually fall due, and what is it aged
   from?** The outstanding-balances report ages every row from the **deposit**,
   because that is the only date the system knows: there is no invoice date, no

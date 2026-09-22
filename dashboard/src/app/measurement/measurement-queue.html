@@ -70,8 +70,12 @@
   </div>
 } @else {
   <ul class="trips">
-    @for (group of visible(); track group.key) {
-      <li class="trip" [attr.data-wait]="wait(group.waiting_days)">
+    @for (row of rows(); track rowKey(row)) {
+      @if (row.kind === 'zone-header') {
+        <li class="zone-header">{{ row.label }}</li>
+      } @else {
+        @let group = row.group;
+        <li class="trip" [attr.data-wait]="wait(group.waiting_days)">
         <div class="trip-head">
           <div>
             <h2>{{ nameOf(group) }}</h2>
@@ -158,7 +162,44 @@
             )
           }}
         </p>
-      </li>
+
+        <div class="site-address">
+          @if (editingAddress() === group.key) {
+            <input
+              type="text"
+              class="address-input"
+              [value]="addressDraft()"
+              (input)="addressDraft.set($any($event.target).value)"
+              [attr.aria-label]="t().queue.siteAddress"
+              [placeholder]="t().queue.siteAddressPlaceholder"
+            />
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="savingAddress().has(group.key)"
+              (click)="saveAddress(group)"
+            >
+              {{ t().common.save }}
+            </button>
+            <button type="button" class="btn" (click)="cancelAddress()">
+              {{ t().common.cancel }}
+            </button>
+          } @else if (addressOf(group); as address) {
+            <span class="address-text">{{ address }}</span>
+            <a class="btn" [href]="navigateHref(address)" target="_blank" rel="noopener">
+              {{ t().queue.navigate }}
+            </a>
+            <button type="button" class="btn" (click)="editAddress(group)">
+              {{ t().queue.edit }}
+            </button>
+          } @else {
+            <button type="button" class="btn" (click)="editAddress(group)">
+              {{ t().queue.addAddress }}
+            </button>
+          }
+        </div>
+        </li>
+      }
     }
   </ul>
 }

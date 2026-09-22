@@ -111,6 +111,8 @@ from .api.schemas import (
     SessionOut,
     SetLanguageIn,
     SetPinIn,
+    SiteAddressIn,
+    SiteAddressOut,
     StatusChangeIn,
     StatusChangeResult,
     StockLotOut,
@@ -179,6 +181,7 @@ from .services.ingest import (
     push_order,
     push_payment,
     push_quote,
+    set_site_address_note,
 )
 from .services.inventory import (
     DuplicateMaterialCode,
@@ -887,16 +890,47 @@ def measurement_queue_route(
 ) -> MeasurementQueueOut:
     """What is waiting for a site visit. SPEC.md 11 Phase 5.
 
-    Grouped into trips and ordered by who has waited longest -- not by hold
-    expiry the way the order board is. An order pinned its rate card version
-    when the deposit confirmed it, so measuring it late does not reprice it;
-    what is urgent here is a person who paid in July and has had no phone call.
+    Grouped into trips by delivery zone then customer, zones ordered by who
+    has waited longest -- not by hold expiry the way the order board is. An
+    order pinned its rate card version when the deposit confirmed it, so
+    measuring it late does not reprice it; what is urgent here is a person
+    who paid in July and has had no phone call.
 
     The clock is read once, here, and passed down. Two groups computed against
     two different "now" values could disagree about the same day.
+
+    Zone labels come from whichever active card resolves (fair, falling back
+    to standard) -- `tool/build_standard_card.py` copies `delivery_zones`
+    verbatim from fair when building standard, so either lineage gives the
+    same zone metadata. No active card at all is not fatal: groups still
+    form on the raw zone id, unlabelled.
     """
     _ = who
-    return measurement_queue(session, now=datetime.now(UTC))
+    card = active_card(session, "fair") or active_card(session, "standard")
+    zone_labels = {
+        z["id"]: z.get("labels", {})
+        for z in (card.payload.get("delivery_zones", []) if card else [])
+    }
+    return measurement_queue(session, now=datetime.now(UTC), zone_labels=zone_labels)
+
+
+@app.patch("/api/orders/{order_id}/site-address", response_model=SiteAddressOut)
+def set_site_address_route(
+    order_id: str, payload: SiteAddressIn, session: SessionDep, who: StaffOrAdminDep
+) -> SiteAddressOut:
+    """Staff typing in where a visit actually is, from the measurement queue.
+    SPEC.md §13 C10's write-up.
+
+    Free text, not a real address record -- no postcode, no geocoding, just
+    enough for the dashboard's Navigate link to open a free Google Maps
+    search. Plain replace: only the dashboard ever writes this, so there is
+    no merge or staleness concern the way a device-captured buyer address has.
+    """
+    _ = who
+    order = set_site_address_note(session, order_id, payload.site_address_note)
+    if order is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no such order")
+    return SiteAddressOut(order_id=order.id, site_address_note=order.site_address_note)
 
 
 @app.get("/api/overrides", response_model=OverridesOut)

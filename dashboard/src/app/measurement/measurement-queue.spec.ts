@@ -40,6 +40,7 @@ const job = (over: Partial<MeasurementJob> = {}): MeasurementJob => ({
   confirmed_at: '2026-08-10T14:00:00Z',
   booked_at: null,
   waiting_days: 5,
+  site_address_note: null,
   ...over,
 });
 
@@ -48,6 +49,8 @@ const trip = (over: Partial<MeasurementGroup> = {}): MeasurementGroup => ({
   customer_name: 'Ah Lian',
   customer_phone: '0123456789',
   grouped_by_phone: true,
+  delivery_zone_id: null,
+  delivery_zone_labels: null,
   jobs: [job()],
   oldest_confirmed_at: '2026-08-10T14:00:00Z',
   waiting_days: 5,
@@ -401,6 +404,113 @@ describe('MeasurementQueue', () => {
 
       expect(text()).toContain('Tiada nombor telefon');
       expect(text()).not.toContain('No phone recorded');
+    });
+  });
+
+  describe('grouped by zone, §13 C10', () => {
+    it('shows a heading with the zone label in the reader’s language', async () => {
+      await open('/measurement', [
+        trip({
+          delivery_zone_id: 'zone-kl',
+          delivery_zone_labels: { zh: '吉隆坡', en: 'KL', ms: 'KL' },
+        }),
+      ]);
+
+      const headers = harness.routeNativeElement!.querySelectorAll('.zone-header');
+      expect(headers.length).toBe(1);
+      expect(headers[0].textContent).toBe('KL');
+    });
+
+    it('clusters trips sharing a zone under one heading, in the server’s order', async () => {
+      await open('/measurement', [
+        trip({
+          key: 'a',
+          delivery_zone_id: 'zone-kl',
+          delivery_zone_labels: { en: 'KL' },
+        }),
+        trip({
+          key: 'b',
+          delivery_zone_id: 'zone-kl',
+          delivery_zone_labels: { en: 'KL' },
+        }),
+        trip({
+          key: 'c',
+          delivery_zone_id: 'zone-muar',
+          delivery_zone_labels: { en: 'Muar' },
+        }),
+      ]);
+
+      expect(harness.routeNativeElement!.querySelectorAll('.zone-header').length).toBe(2);
+      expect(harness.routeNativeElement!.querySelectorAll('.trip').length).toBe(3);
+    });
+
+    it('says plainly when a trip has no zone recorded', async () => {
+      await open('/measurement', [trip({ delivery_zone_id: null })]);
+
+      expect(text()).toContain('No delivery zone recorded');
+    });
+
+    it('falls back to English, then the raw id, when a label is missing', async () => {
+      await open('/measurement', [
+        trip({ delivery_zone_id: 'zone-x', delivery_zone_labels: null }),
+      ]);
+
+      const header = harness.routeNativeElement!.querySelector('.zone-header')!;
+      expect(header.textContent).toBe('zone-x');
+    });
+  });
+
+  describe('the site address note, §13 C10’s write-up', () => {
+    it('offers to add an address when none is set', async () => {
+      await open('/measurement', [trip()]);
+      expect(text()).toContain('Add address');
+      expect(harness.routeNativeElement!.querySelector('a.btn[href*="google.com/maps"]')).toBeNull();
+    });
+
+    it('shows the address and a free Google Maps link once one is set', async () => {
+      await open('/measurement', [
+        trip({ jobs: [job({ site_address_note: '12 Jalan Melati, Taman Melati' })] }),
+      ]);
+
+      expect(text()).toContain('12 Jalan Melati, Taman Melati');
+      const link = harness.routeNativeElement!.querySelector(
+        'a.btn[href*="google.com/maps"]',
+      ) as HTMLAnchorElement;
+      expect(link).not.toBeNull();
+      expect(link.getAttribute('href')).toBe(
+        'https://www.google.com/maps/search/?api=1&query=12%20Jalan%20Melati%2C%20Taman%20Melati',
+      );
+    });
+
+    it('saves a typed address and shows it without a further reload', async () => {
+      await open('/measurement', [trip()]);
+
+      const addButton = Array.from(
+        harness.routeNativeElement!.querySelectorAll('button'),
+      ).find((b) => b.textContent?.includes('Add address')) as HTMLButtonElement;
+      addButton.click();
+      harness.detectChanges();
+
+      const input = harness.routeNativeElement!.querySelector(
+        '.address-input',
+      ) as HTMLInputElement;
+      input.value = '12 Jalan Melati';
+      input.dispatchEvent(new Event('input'));
+      harness.detectChanges();
+
+      const saveButton = Array.from(
+        harness.routeNativeElement!.querySelectorAll('button'),
+      ).find((b) => b.textContent?.trim() === 'Save') as HTMLButtonElement;
+      saveButton.click();
+
+      const req = http.expectOne('/api/orders/o1/site-address');
+      expect(req.request.method).toBe('PATCH');
+      expect(req.request.body).toEqual({ site_address_note: '12 Jalan Melati' });
+      req.flush({ order_id: 'o1', site_address_note: '12 Jalan Melati' });
+      harness.detectChanges();
+
+      expect(text()).toContain('12 Jalan Melati');
+      expect(text()).not.toContain('Add address');
     });
   });
 });

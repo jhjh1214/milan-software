@@ -816,6 +816,20 @@ class SetPinIn(BaseModel):
     pin: str = Field(min_length=1, max_length=12)
 
 
+class SiteAddressIn(BaseModel):
+    """A free-text note, not a real address record -- no postcode, no
+    geocoding. Empty or omitted clears it; there is no merge semantics here
+    the way a device-captured buyer address has, because only the dashboard
+    ever writes this field."""
+
+    site_address_note: str | None = Field(default=None, max_length=240)
+
+
+class SiteAddressOut(BaseModel):
+    order_id: str
+    site_address_note: str | None
+
+
 class DeactivateOut(BaseModel):
     person: PersonOut
     #: How many live handsets that just signed out. Worth reporting: somebody
@@ -851,16 +865,20 @@ class MeasurementJob(BaseModel):
     #: Whole days since the deposit was taken. Computed against an injected
     #: clock, so the number in a test is the number in the screen.
     waiting_days: int
+    #: Free text, typed in by staff -- not a real address record. Enough to
+    #: open a free Google Maps search link before the visit. Null until
+    #: somebody enters one for this order.
+    site_address_note: str | None = None
 
 
 class MeasurementGroup(BaseModel):
     """One trip. §11 Phase 5: *grouped by project so one trip covers several
     units*.
 
-    There is no project library until Phase 8, and no address is captured
-    anywhere, so the only grouping the data supports today is the customer --
-    keyed on the normalised phone, exactly as a rate lock is (§13 B9). One
-    customer with three units is one trip, which is the case that exists now.
+    §13 C10, answered: grouped by delivery zone first (already captured on
+    every order at quote time), then by customer within the zone -- keyed on
+    the normalised phone, exactly as a rate lock is (§13 B9). One customer
+    with three units in the same zone is one trip.
 
     An order with no usable phone is its own group rather than being pooled
     with every other phone-less order. Pooling them would invent a trip that
@@ -872,6 +890,12 @@ class MeasurementGroup(BaseModel):
     customer_phone: str | None
     #: False when this group is one order that had no phone to group on.
     grouped_by_phone: bool
+    #: Null when this group's orders had no delivery zone recorded (the
+    #: "unzoned" bucket) -- never a guessed zone.
+    delivery_zone_id: str | None = None
+    #: The zone's `{zh, en, ms}` labels, from the active rate card. Null when
+    #: unzoned, or when the zone id no longer resolves against any card.
+    delivery_zone_labels: dict[str, str] | None = None
     jobs: list[MeasurementJob] = []
     #: The oldest deposit in the group. The queue is ordered by this: the
     #: customer who has waited longest goes first.

@@ -120,6 +120,12 @@ export const MS: Strings = {
       `Jumlah perjalanan ${total} · deposit terawal ${oldest}`,
     signedOut: 'Sudah log keluar. Log masuk semula untuk melihat senarai.',
     wentWrong: 'Ada masalah semasa memuatkan senarai.',
+    unzonedHeading: 'Tiada zon penghantaran direkodkan',
+    siteAddress: 'Alamat tapak',
+    siteAddressPlaceholder: 'cth. 12 Jalan Melati, Taman Melati',
+    navigate: 'Navigasi',
+    addAddress: 'Tambah alamat',
+    edit: 'Edit',
   },
 
   overrides: {

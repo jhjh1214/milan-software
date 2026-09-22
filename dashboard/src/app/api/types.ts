@@ -394,14 +394,17 @@ export interface MeasurementJob {
   /** Null while the visit is still unbooked. Read from the order history. */
   readonly booked_at: string | null;
   readonly waiting_days: number;
+  /** Free text a staff member typed in, not a real address record. Null
+   * until somebody enters one for this order. */
+  readonly site_address_note: string | null;
 }
 
 /**
  * One trip. §11 Phase 5: *grouped by project so one trip covers several units*.
  *
- * There is no project library until Phase 8 and no address is captured
- * anywhere, so the grouping is the customer, keyed on the normalised phone
- * exactly as a rate lock is. §13 C10 asks what should really group a day.
+ * §13 C10, answered: grouped by delivery zone first (already captured on
+ * every order at quote time), then by customer within it, keyed on the
+ * normalised phone exactly as a rate lock is.
  */
 export interface MeasurementGroup {
   readonly key: string;
@@ -409,11 +412,21 @@ export interface MeasurementGroup {
   readonly customer_phone: string | null;
   /** False when this is one order that had no phone to group on. */
   readonly grouped_by_phone: boolean;
+  /** Null when this group's orders had no delivery zone recorded. */
+  readonly delivery_zone_id: string | null;
+  /** The zone's `{zh, en, ms}` labels. Null when unzoned, or when the zone id
+   * no longer resolves against the active card. */
+  readonly delivery_zone_labels: Readonly<Record<string, string>> | null;
   readonly jobs: readonly MeasurementJob[];
   readonly oldest_confirmed_at: string;
   readonly waiting_days: number;
   /** Zero is the trip nobody has called about yet. */
   readonly booked_count: number;
+}
+
+export interface SiteAddressOut {
+  readonly order_id: string;
+  readonly site_address_note: string | null;
 }
 
 export interface MeasurementQueueOut {

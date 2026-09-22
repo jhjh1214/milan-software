@@ -646,6 +646,31 @@ def _merged(current: str | None, incoming: str | None) -> str | None:
     return trimmed or None
 
 
+def set_site_address_note(
+    session: Session, order_id: str, note: str | None
+) -> Order | None:
+    """Staff typing in where a site visit actually is, from whatever they
+    already have -- a fair form, a WhatsApp message. Free text, not a real
+    address record: no postcode, no geocoding, just enough to open a free
+    Google Maps search link (§13 C10's write-up) before the visit.
+
+    Plain replace, unlike ``push_buyer_details``: only the dashboard ever
+    writes this field, so there is no offline handset racing another one and
+    nothing to merge or stale-check.
+
+    Returns ``None`` for an unknown order -- the route turns that into a 404,
+    the ordinary REST answer, rather than the buyer-details endpoint's
+    refused-as-200 (that shape exists because an outbox retries a push; a
+    dashboard PATCH to a stale order id is just a bug worth surfacing loudly).
+    """
+    order = session.get(Order, order_id)
+    if order is None:
+        return None
+    order.site_address_note = (note or "").strip() or None
+    session.flush()
+    return order
+
+
 def push_buyer_details(session: Session, payload: BuyerDetailsIn) -> BuyerDetailsResult:
     """Records what was captured about the buyer. SPEC.md §10.3, §11 Phase 7.
 

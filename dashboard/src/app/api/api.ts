@@ -51,6 +51,7 @@ import type {
   PublishOut,
   RecognitionJobOut,
   ReorderAlertsOut,
+  SiteAddressOut,
   StockLotOut,
   StockLotsOut,
   StockMovementOut,
@@ -173,6 +174,21 @@ export class Api {
     return this.http.get<MeasurementQueueOut>(`${API_BASE}/measurement-queue`, {
       headers: this.authorised(),
     });
+  }
+
+  /**
+   * A free-text note on where a visit actually is, typed in by staff
+   * planning the day's route. Not a real address record -- empty clears it.
+   */
+  setSiteAddress(
+    orderId: string,
+    note: string | null,
+  ): Observable<SiteAddressOut> {
+    return this.http.patch<SiteAddressOut>(
+      `${API_BASE}/orders/${orderId}/site-address`,
+      { site_address_note: note },
+      { headers: this.authorised() },
+    );
   }
 
   /** Every price moved by hand in a window. Admin only, server-enforced. */
