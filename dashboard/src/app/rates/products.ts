@@ -37,6 +37,7 @@ import { Api } from '../api/api';
 import { commonMessage, failureOf, type Failure } from '../i18n/failure';
 import { Text } from '../i18n/text';
 import { formatSen } from '../api/money';
+import { SegmentedControl } from '../shared/segmented-control';
 import type { ListId, ProductOut } from '../api/types';
 
 /** Mirrors `MIN_REASON_LENGTH` in backend/app/pricing/rate_edit.py: short
@@ -67,7 +68,7 @@ function rmTextToSen(raw: string): number | null {
 
 @Component({
   selector: 'app-products',
-  imports: [CommonModule],
+  imports: [CommonModule, SegmentedControl],
   templateUrl: './products.html',
   styleUrl: './products.css',
 })
@@ -80,6 +81,7 @@ export class Products {
 
   protected readonly lists: readonly ListId[] = ['fair', 'standard'];
   protected readonly listId = signal<ListId>('fair');
+  protected readonly listLabel = (id: ListId): string => this.t().products[id];
 
   protected readonly products = signal<readonly ProductOut[]>([]);
   protected readonly version = signal<number | null>(null);

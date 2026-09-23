@@ -6,16 +6,13 @@
 
   <fieldset class="which">
     <legend class="visually-hidden">{{ t().products.whichList }}</legend>
-    @for (id of lists; track id) {
-      <button
-        type="button"
-        [class.on]="listId() === id"
-        [attr.aria-pressed]="listId() === id"
-        (click)="chooseList(id)"
-      >
-        {{ t().products[id] }}
-      </button>
-    }
+    <app-segmented-control
+      [options]="lists"
+      [optionLabel]="listLabel"
+      [selected]="listId()"
+      [capitalize]="true"
+      (select)="chooseList($event!)"
+    />
   </fieldset>
 </header>
 

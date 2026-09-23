@@ -18,20 +18,12 @@
 <nav class="filters" [attr.aria-label]="t().queue.show">
   <span class="filter-label" id="show-label">{{ t().queue.show }}</span>
   <div role="group" aria-labelledby="show-label">
-    @for (f of filters; track f) {
-      <button
-        type="button"
-        [class.on]="filter() === f"
-        [attr.aria-pressed]="filter() === f"
-        (click)="show(f)"
-      >
-        @switch (f) {
-          @case ('unbooked') { {{ t().queue.unbooked }} }
-          @case ('booked') { {{ t().queue.booked }} }
-          @default { {{ t().queue.all }} }
-        }
-      </button>
-    }
+    <app-segmented-control
+      [options]="filters"
+      [optionLabel]="filterLabel"
+      [selected]="filter()"
+      (select)="show($event!)"
+    />
   </div>
 </nav>
 

@@ -18,49 +18,26 @@
   <div class="filter-group">
     <span class="filter-label" id="status-label">{{ t().board.stage }}</span>
     <div role="group" aria-labelledby="status-label">
-      <button
-        type="button"
-        [class.on]="status() === null"
-        (click)="filterBy('status', null)"
-      >
-        {{ t().board.all }}
-      </button>
-      @for (s of statuses; track s) {
-        <button
-          type="button"
-          [class.on]="status() === s"
-          [attr.aria-pressed]="status() === s"
-          (click)="filterBy('status', s)"
-        >
-          <!-- The lifecycle word, not the wire value with its underscores
-               swapped for spaces. §6.6 names these and the handset says the
-               same thing about the same job. -->
-          {{ t().status[s] }}
-        </button>
-      }
+      <app-segmented-control
+        [options]="statuses"
+        [optionLabel]="statusLabel"
+        [selected]="status()"
+        [allLabel]="t().board.all"
+        (select)="filterBy('status', $event)"
+      />
     </div>
   </div>
 
   <div class="filter-group">
     <span class="filter-label" id="channel-label">{{ t().board.whereFrom }}</span>
     <div role="group" aria-labelledby="channel-label">
-      <button
-        type="button"
-        [class.on]="channel() === null"
-        (click)="filterBy('channel', null)"
-      >
-        {{ t().board.all }}
-      </button>
-      @for (c of channels; track c) {
-        <button
-          type="button"
-          [class.on]="channel() === c"
-          [attr.aria-pressed]="channel() === c"
-          (click)="filterBy('channel', c)"
-        >
-          {{ t().channel[c] }}
-        </button>
-      }
+      <app-segmented-control
+        [options]="channels"
+        [optionLabel]="channelLabel"
+        [selected]="channel()"
+        [allLabel]="t().board.all"
+        (select)="filterBy('channel', $event)"
+      />
     </div>
   </div>
 

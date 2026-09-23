@@ -44,36 +44,6 @@ h1 {
   border-radius: var(--radius-sm);
 }
 
-.tabs button,
-.periods button {
-  min-height: 36px;
-  padding: 0 var(--space-4);
-  border: none;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--color-fg-muted);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background var(--duration-fast) var(--ease),
-    color var(--duration-fast) var(--ease),
-    box-shadow var(--duration-fast) var(--ease);
-}
-
-.tabs button:hover,
-.periods button:hover {
-  color: var(--color-fg);
-}
-
-.tabs button.on,
-.periods button.on {
-  background: var(--color-surface);
-  color: var(--color-primary);
-  box-shadow: var(--shadow-sm);
-}
-
 /* The sentence that makes a biased column readable. Not small print: somebody
    who reads the variance without it reads it as fraud. */
 .note {

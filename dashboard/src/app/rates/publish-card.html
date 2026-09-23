@@ -10,16 +10,13 @@
 } @else {
   <fieldset class="which">
     <legend>{{ t().publish.whichList }}</legend>
-    @for (id of lists; track id) {
-      <button
-        type="button"
-        [class.on]="listId() === id"
-        [attr.aria-pressed]="listId() === id"
-        (click)="chooseList(id)"
-      >
-        {{ t().publish[id] }}
-      </button>
-    }
+    <app-segmented-control
+      [options]="lists"
+      [optionLabel]="listLabel"
+      [selected]="listId()"
+      [capitalize]="true"
+      (select)="chooseList($event!)"
+    />
   </fieldset>
 
   <label for="card">{{ t().publish.cardAsJson }}</label>

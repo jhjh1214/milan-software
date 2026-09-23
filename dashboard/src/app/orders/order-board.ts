@@ -26,6 +26,7 @@ import { Api } from '../api/api';
 import { Session } from '../auth/session';
 import { commonMessage, failureOf, type Failure } from '../i18n/failure';
 import { Text } from '../i18n/text';
+import { SegmentedControl } from '../shared/segmented-control';
 import { formatDate, formatSen, urgencyOf, type Urgency } from '../api/money';
 import {
   PIPELINE,
@@ -45,7 +46,7 @@ const CHANNELS: readonly Channel[] = [
 
 @Component({
   selector: 'app-order-board',
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, SegmentedControl],
   templateUrl: './order-board.html',
   styleUrl: './order-board.css',
 })
@@ -179,4 +180,9 @@ export class OrderBoard {
   protected urgency(order: OrderSummary): Urgency {
     return urgencyOf(order.held_until);
   }
+
+  /** The lifecycle word, not the wire value with its underscores swapped
+   * for spaces. §6.6 names these and the handset says the same thing. */
+  protected readonly statusLabel = (s: OrderStatus): string => this.t().status[s];
+  protected readonly channelLabel = (c: Channel): string => this.t().channel[c];
 }

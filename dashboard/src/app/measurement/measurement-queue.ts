@@ -81,7 +81,7 @@ export function waitOf(days: number): Wait {
 
 @Component({
   selector: 'app-measurement-queue',
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, SegmentedControl],
   templateUrl: './measurement-queue.html',
   styleUrl: './measurement-queue.css',
 })
@@ -114,6 +114,12 @@ export class MeasurementQueue {
   );
 
   protected readonly filters = FILTERS;
+
+  protected readonly filterLabel = (f: QueueFilter): string => {
+    if (f === 'unbooked') return this.t().queue.unbooked;
+    if (f === 'booked') return this.t().queue.booked;
+    return this.t().queue.all;
+  };
 
   constructor() {
     this.load();

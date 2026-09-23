@@ -32,6 +32,7 @@ import { Api } from '../api/api';
 import { commonMessage, failureOf, type Failure } from '../i18n/failure';
 import { Text } from '../i18n/text';
 import { formatDate, formatSen } from '../api/money';
+import { SegmentedControl } from '../shared/segmented-control';
 import { summariseDeposits, takeRate } from './deposits';
 import type { CategoryDeclines } from './deposits';
 import type {
@@ -70,7 +71,7 @@ export function weeksFrom(raw: string | null): number {
 
 @Component({
   selector: 'app-reports',
-  imports: [CommonModule],
+  imports: [CommonModule, SegmentedControl],
   templateUrl: './reports.html',
   styleUrl: './reports.css',
 })
@@ -195,6 +196,16 @@ export class Reports {
       queryParamsHandling: 'merge',
     });
   }
+
+  protected readonly panelLabel = (p: Panel): string => {
+    const words = this.t().reports;
+    if (p === 'variance') return words.variance;
+    if (p === 'fairs') return words.fairs;
+    if (p === 'balances') return words.balances;
+    return words.deposits;
+  };
+
+  protected readonly weeksLabel = (w: number): string => this.t().reports.weeks(w);
 
   protected showWeeks(next: number): void {
     void this.router.navigate([], {

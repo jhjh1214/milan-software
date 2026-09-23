@@ -3,21 +3,12 @@
 </header>
 
 <nav class="tabs" [attr.aria-label]="t().reports.title">
-  @for (p of panels; track p) {
-    <button
-      type="button"
-      [class.on]="panel() === p"
-      [attr.aria-pressed]="panel() === p"
-      (click)="showPanel(p)"
-    >
-      @switch (p) {
-        @case ('variance') { {{ t().reports.variance }} }
-        @case ('fairs') { {{ t().reports.fairs }} }
-        @case ('balances') { {{ t().reports.balances }} }
-        @default { {{ t().reports.deposits }} }
-      }
-    </button>
-  }
+  <app-segmented-control
+    [options]="panels"
+    [optionLabel]="panelLabel"
+    [selected]="panel()"
+    (select)="showPanel($event!)"
+  />
 </nav>
 
 @if (failure(); as failed) {
@@ -226,16 +217,12 @@
             {{ t().reports.last }}
           </span>
           <div role="group" aria-labelledby="weeks-label">
-            @for (w of periods; track w) {
-              <button
-                type="button"
-                [class.on]="weeks() === w"
-                [attr.aria-pressed]="weeks() === w"
-                (click)="showWeeks(w)"
-              >
-                {{ t().reports.weeks(w) }}
-              </button>
-            }
+            <app-segmented-control
+              [options]="periods"
+              [optionLabel]="weeksLabel"
+              [selected]="weeks()"
+              (select)="showWeeks($event!)"
+            />
           </div>
         </nav>
 

@@ -29,6 +29,7 @@ import { Api } from '../api/api';
 import { commonMessage, failureOf, type Failure } from '../i18n/failure';
 import { Text } from '../i18n/text';
 import { formatSen } from '../api/money';
+import { SegmentedControl } from '../shared/segmented-control';
 import type { CardDiffOut, ListId, RateChangeOut } from '../api/types';
 
 /** What state the two-step publish is in. */
@@ -36,7 +37,7 @@ type Stage = 'editing' | 'previewed' | 'published';
 
 @Component({
   selector: 'app-publish-card',
-  imports: [CommonModule],
+  imports: [CommonModule, SegmentedControl],
   templateUrl: './publish-card.html',
   styleUrl: './publish-card.css',
 })
@@ -49,6 +50,7 @@ export class PublishCard {
 
   protected readonly lists: readonly ListId[] = ['fair', 'standard'];
   protected readonly listId = signal<ListId>('fair');
+  protected readonly listLabel = (id: ListId): string => this.t().publish[id];
 
   /**
    * The card, as JSON text. Pasted or dropped in.
