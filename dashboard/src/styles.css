@@ -186,6 +186,17 @@ h3 {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
   }
+
+  /* The blanket rule above does not reach these -- `*` never matches a
+     pseudo-element, and the router's view-transition cross-fade
+     (`withViewTransitions()`, app.config.ts) is not a CSS `animation` on a
+     real element to begin with. Browsers do not skip it for reduced motion
+     on their own; this is what actually does. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }
 
 /* Every interactive element in the app shares one focus ring so keyboard

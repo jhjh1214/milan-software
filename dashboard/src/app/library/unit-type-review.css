@@ -35,6 +35,20 @@ h1 {
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
   padding: var(--space-4);
+  /* Plays once, on mount -- a card `@for` inserts into the DOM. There is no
+     matching exit animation: Angular unmounts a removed row immediately
+     when the backing array updates, before any CSS transition could play,
+     and animating that needs `@angular/animations`, a dependency this app
+     has never taken on. The global `prefers-reduced-motion` rule in
+     `styles.css` already zeroes this for anyone who asked for it. */
+  animation: card-enter var(--duration-base) var(--ease);
+}
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
 }
 
 .add-project {
