@@ -1,0 +1,36 @@
+<div class="page">
+  <header class="page-header">
+    <h1 class="page-title">{{ t().home.title }}</h1>
+  </header>
+
+  <div class="stat-grid">
+    <a routerLink="/measurement" class="stat-card">
+      <p class="stat-label">{{ t().nav.measurement }}</p>
+      @if (measurementLoading()) {
+        <span class="skeleton stat-skeleton"></span>
+      } @else {
+        <p class="stat-value">{{ measurementCount() ?? '—' }}</p>
+      }
+    </a>
+
+    @if (session.isAdmin()) {
+      <a routerLink="/library/review" class="stat-card">
+        <p class="stat-label">{{ t().nav.library }}</p>
+        @if (pendingReviewLoading()) {
+          <span class="skeleton stat-skeleton"></span>
+        } @else {
+          <p class="stat-value">{{ pendingReviewCount() ?? '—' }}</p>
+        }
+      </a>
+
+      <a routerLink="/inventory/allocations" class="stat-card">
+        <p class="stat-label">{{ t().nav.stockToApprove }}</p>
+        @if (pendingAllocationLoading()) {
+          <span class="skeleton stat-skeleton"></span>
+        } @else {
+          <p class="stat-value">{{ pendingAllocationCount() ?? '—' }}</p>
+        }
+      </a>
+    }
+  </div>
+</div>

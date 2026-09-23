@@ -87,6 +87,7 @@ export interface StatusStrings {
 }
 
 export interface NavStrings {
+  readonly home: string;
   readonly orders: string;
   readonly measurement: string;
   readonly products: string;
@@ -630,12 +631,20 @@ export interface InventoryStrings {
   readonly releasing: string;
 }
 
+/** The home screen -- what needs attention, composed from what the
+ * dashboard already fetches elsewhere. Every stat reuses its own screen's
+ * `nav` label, so this needs almost no strings of its own. */
+export interface HomeStrings {
+  readonly title: string;
+}
+
 /** Everything the dashboard can say, in one language. */
 export interface Strings {
   readonly common: CommonStrings;
   readonly status: StatusStrings;
   readonly channel: ChannelStrings;
   readonly nav: NavStrings;
+  readonly home: HomeStrings;
   readonly signIn: SignInStrings;
   readonly board: BoardStrings;
   readonly queue: QueueStrings;

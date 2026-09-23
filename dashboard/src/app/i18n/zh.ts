@@ -45,6 +45,7 @@ export const ZH: Strings = {
   },
 
   nav: {
+    home: '首页',
     orders: '订单',
     measurement: '量尺',
     products: '产品价格',
@@ -62,6 +63,10 @@ export const ZH: Strings = {
     sectionPricing: '价格',
     sectionOperations: '营运',
     sectionInsights: '数据洞察',
+  },
+
+  home: {
+    title: '首页',
   },
 
   signIn: {

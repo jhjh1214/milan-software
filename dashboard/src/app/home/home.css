@@ -1,0 +1,29 @@
+a.stat-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    box-shadow var(--duration-base) var(--ease),
+    transform var(--duration-base) var(--ease);
+}
+
+a.stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  a.stat-card {
+    transition: box-shadow var(--duration-fast) var(--ease);
+  }
+
+  a.stat-card:hover {
+    transform: none;
+  }
+}
+
+.stat-skeleton {
+  display: block;
+  width: 40%;
+  height: 26px;
+}

@@ -7,6 +7,10 @@
 
     <nav aria-label="Main" class="nav">
       <div class="nav-group">
+        <a routerLink="/home" routerLinkActive="on" class="nav-link">
+          <app-nav-icon name="home" />
+          <span>{{ t().nav.home }}</span>
+        </a>
         <a routerLink="/orders" routerLinkActive="on" class="nav-link">
           <app-nav-icon name="orders" />
           <span>{{ t().nav.orders }}</span>

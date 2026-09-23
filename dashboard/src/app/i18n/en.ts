@@ -43,6 +43,7 @@ export const EN: Strings = {
   },
 
   nav: {
+    home: 'Home',
     orders: 'Orders',
     measurement: 'Measurement',
     products: 'Product prices',
@@ -60,6 +61,10 @@ export const EN: Strings = {
     sectionPricing: 'Pricing',
     sectionOperations: 'Operations',
     sectionInsights: 'Insights',
+  },
+
+  home: {
+    title: 'Home',
   },
 
   signIn: {

@@ -45,6 +45,7 @@ export const MS: Strings = {
   },
 
   nav: {
+    home: 'Laman utama',
     orders: 'Pesanan',
     measurement: 'Ukuran',
     products: 'Harga produk',
@@ -62,6 +63,10 @@ export const MS: Strings = {
     sectionPricing: 'Harga',
     sectionOperations: 'Operasi',
     sectionInsights: 'Cerapan',
+  },
+
+  home: {
+    title: 'Laman utama',
   },
 
   signIn: {

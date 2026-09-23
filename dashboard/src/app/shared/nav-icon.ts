@@ -16,6 +16,7 @@
 import { Component, input } from '@angular/core';
 
 export type NavIconName =
+  | 'home'
   | 'orders'
   | 'measurement'
   | 'tag'
@@ -44,6 +45,11 @@ export type NavIconName =
       stroke-linejoin="round"
     >
       @switch (name()) {
+        @case ('home') {
+          <path d="M4 11.5 12 4l8 7.5" />
+          <path d="M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9" />
+          <path d="M10 20v-6h4v6" />
+        }
         @case ('orders') {
           <rect x="5" y="3.5" width="14" height="17" rx="2" />
           <path d="M9 3.5V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v.5" />

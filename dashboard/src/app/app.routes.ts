@@ -11,11 +11,19 @@ import { signedIn } from './auth/signed-in.guard';
  * this desk uses today.
  */
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'orders' },
+  { path: '', pathMatch: 'full', redirectTo: 'home' },
   {
     path: 'sign-in',
     loadComponent: () => import('./auth/sign-in').then((m) => m.SignIn),
     title: 'Sign in',
+  },
+  {
+    // Everybody signed in. What needs attention, composed from what the
+    // other screens already fetch -- no new backend read beyond that.
+    path: 'home',
+    canActivate: [signedIn],
+    loadComponent: () => import('./home/home').then((m) => m.Home),
+    title: 'Home',
   },
   {
     path: 'orders',
