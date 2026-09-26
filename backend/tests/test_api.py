@@ -438,6 +438,84 @@ class TestPublishing:
         assert r.json()["published_by"] is not None
 
 
+class TestFairDates:
+    """An admin setting when the fair runs -- the fair card's promo window."""
+
+    BODY = {
+        "code": "MITC-2026-12",
+        "valid_from": "2026-12-04",
+        "valid_to": "2026-12-07",
+        "reason": "December fair booked",
+    }
+
+    def _set(self, client: TestClient, token: str, **over):
+        return client.post(
+            "/api/rate-cards/fair/dates",
+            json={**self.BODY, **over},
+            headers=auth(token),
+        )
+
+    def test_staff_can_read_the_current_dates(self, client: TestClient) -> None:
+        r = client.get(
+            "/api/rate-cards/fair/dates", headers=auth(sign_in(client, "staff"))
+        )
+        assert r.status_code == 200, r.text
+        assert r.json() == {
+            "version": 1,
+            "code": "MITC-2026-08",
+            "valid_from": "2026-08-28",
+            "valid_to": "2026-08-31",
+        }
+
+    def test_a_parttimer_cannot_read_them(self, client: TestClient) -> None:
+        r = client.get(
+            "/api/rate-cards/fair/dates", headers=auth(sign_in(client, "parttime"))
+        )
+        assert r.status_code == 403
+
+    def test_an_admin_can_set_them(self, client: TestClient) -> None:
+        r = self._set(client, sign_in(client, "admin"))
+        assert r.status_code == 200, r.text
+        assert r.json() == {
+            "version": 102,
+            "code": "MITC-2026-12",
+            "valid_from": "2026-12-04",
+            "valid_to": "2026-12-07",
+        }
+
+    def test_staff_cannot_set_them(self, client: TestClient) -> None:
+        # Staff may move a price at a fair; when the fair runs -- and so how
+        # long every hold from it lasts -- is the admin's call.
+        assert self._set(client, sign_in(client, "staff")).status_code == 403
+
+    def test_a_parttimer_cannot_set_them(self, client: TestClient) -> None:
+        assert self._set(client, sign_in(client, "parttime")).status_code == 403
+
+    def test_ending_before_it_starts_is_refused_by_name(
+        self, client: TestClient
+    ) -> None:
+        r = self._set(client, sign_in(client, "admin"), valid_to="2026-12-03")
+        assert r.status_code == 422
+        assert r.json()["detail"] == "ends_before_it_starts"
+
+    def test_no_reason_is_refused(self, client: TestClient) -> None:
+        r = self._set(client, sign_in(client, "admin"), reason=" ")
+        assert r.status_code == 422
+        assert r.json()["detail"] == "no_reason"
+
+    def test_every_handset_gets_the_new_dates_on_its_next_pull(
+        self, client: TestClient
+    ) -> None:
+        self._set(client, sign_in(client, "admin"))
+        bundle = client.get(
+            "/api/bundle",
+            params={"list_id": "fair"},
+            headers=auth(sign_in(client, "parttime")),
+        ).json()
+        assert bundle["rate_card_version"] == 102
+        assert bundle["payload"]["promo"]["valid_to"] == "2026-12-07"
+
+
 class TestLiveProductPriceEdit:
     """A staff or admin member changing one product's price directly, live
     immediately -- no whole-card upload, no preview ceremony."""

@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import copy
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from fractions import Fraction
 
 from sqlalchemy import select
@@ -47,6 +47,7 @@ from ..core.money import Money
 from ..models.db import (
     CategoryLock,
     DepositPrompt,
+    FairDatesEdit,
     IdempotencyRecord,
     Order,
     OrderEvent,
@@ -71,6 +72,11 @@ from ..pricing.engine import (
     ProductRuleViolation,
     price_line,
     total_quote,
+)
+from ..pricing.fair_dates import (
+    FairDates,
+    FairDatesRefusal,
+    decide_fair_dates,
 )
 from ..pricing.final_pricing import MeasuredLine, reprice_order
 from ..pricing.models import (
@@ -1186,6 +1192,92 @@ def edit_product_price(
         before_mvp_rate_sen=decision.record.before_mvp_rate_sen,
         after_mvp_rate_sen=decision.record.after_mvp_rate_sen,
         resulting_version=next_version,
+        reason=decision.record.reason,
+        by_user_id=by_user_id,
+        at=at or datetime.now(UTC),
+    )
+    session.add(edit)
+    session.flush()
+    return edit
+
+
+class NoFairCard(Exception):
+    pass
+
+
+class FairDatesRefused(Exception):
+    def __init__(self, reason: FairDatesRefusal) -> None:
+        self.reason = reason
+        super().__init__(reason.value)
+
+
+def fair_dates_of(payload: dict) -> FairDates | None:
+    """The fair card's promo window, or None when it carries none."""
+    promo = payload.get("promo")
+    if not promo:
+        return None
+    return FairDates(
+        code=promo["code"],
+        valid_from=date.fromisoformat(promo["valid_from"]),
+        valid_to=date.fromisoformat(promo["valid_to"]),
+    )
+
+
+def edit_fair_dates(
+    session: Session,
+    *,
+    code: str,
+    valid_from: date,
+    valid_to: date,
+    reason: str,
+    by_user_id: str,
+    at: datetime | None = None,
+) -> FairDatesEdit:
+    """Sets when the fair runs: the fair card's promo window. Admin only.
+
+    Publishes a new `RateCardVersion` with only the window changed, never an
+    edit in place, and records who and why. Every handset picks the dates up
+    on its next pull, which is also what moves fair mode's own boundaries.
+    A promo `note` already on the card is carried through untouched.
+    """
+    live = active_card(session, "fair")
+    if live is None:
+        raise NoFairCard()
+
+    before = fair_dates_of(live.payload)
+    decision = decide_fair_dates(
+        before=before,
+        code=code,
+        valid_from=valid_from,
+        valid_to=valid_to,
+        reason=reason,
+        by_user_id=by_user_id,
+    )
+    if decision.record is None:
+        assert decision.refused_because is not None
+        raise FairDatesRefused(decision.refused_because)
+    after = decision.record.after
+
+    payload = copy.deepcopy(live.payload)
+    payload["promo"] = {
+        **(payload.get("promo") or {}),
+        "code": after.code,
+        "valid_from": after.valid_from.isoformat(),
+        "valid_to": after.valid_to.isoformat(),
+    }
+    version = next_card_version(session)
+    payload["version"] = version
+    publish_card(session, list_id="fair", payload=payload, published_by=by_user_id)
+
+    edit = FairDatesEdit(
+        id=str(uuid.uuid4()),
+        before_code=None if before is None else before.code,
+        before_valid_from=None if before is None else before.valid_from,
+        before_valid_to=None if before is None else before.valid_to,
+        after_code=after.code,
+        after_valid_from=after.valid_from,
+        after_valid_to=after.valid_to,
+        resulting_version=version,
         reason=decision.record.reason,
         by_user_id=by_user_id,
         at=at or datetime.now(UTC),

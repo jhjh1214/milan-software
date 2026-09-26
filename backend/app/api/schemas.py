@@ -6,7 +6,7 @@ there is no translation layer to get wrong.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
@@ -184,6 +184,27 @@ class ProductPriceEditOut(BaseModel):
     mvp_rate_sen: int | None
     edited_by: str
     at: datetime
+
+
+class FairDatesOut(BaseModel):
+    """When the fair runs -- the fair card's promo window. All three null
+    when the card carries none."""
+
+    version: int
+    code: str | None
+    valid_from: date | None
+    valid_to: date | None
+
+
+class FairDatesEditIn(BaseModel):
+    """An admin setting when the fair runs. `reason` is mandatory: the dates
+    decide which days fair prices are quoted and when every deposit from
+    that fair stops holding its price, so the log is the control."""
+
+    code: str
+    valid_from: date
+    valid_to: date
+    reason: str
 
 
 class ProductOut(BaseModel):

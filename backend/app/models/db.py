@@ -13,12 +13,13 @@ Conventions from §7, all of them load-bearing:
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     JSON,
     BigInteger,
     Boolean,
+    Date,
     DateTime,
     ForeignKey,
     Index,
@@ -119,6 +120,43 @@ class RateCardEdit(Base):
     )
 
     __table_args__ = (Index("ix_rate_card_edits_at", "at"),)
+
+
+class FairDatesEdit(Base):
+    """An admin changing when a fair runs -- the fair card's promo window.
+
+    **APPEND ONLY, and never deletable from the app**, for the same reason as
+    `RateCardEdit`: the dates decide which days a handset quotes fair prices
+    and when every deposit from that fair stops holding its price (SPEC.md
+    §6.1), so each move is recorded against a name with a reason.
+
+    Like a price edit, it publishes a new `RateCardVersion` rather than
+    editing the card in place; this row is the audit trail for that version.
+    A hold already granted keeps the `held_until` it was given -- moving a
+    fair's end afterwards does not reach back into it.
+    """
+
+    __tablename__ = "fair_dates_edits"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+
+    #: Null when the card had no promo window before this edit.
+    before_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    before_valid_from: Mapped[date | None] = mapped_column(Date, nullable=True)
+    before_valid_to: Mapped[date | None] = mapped_column(Date, nullable=True)
+
+    after_code: Mapped[str] = mapped_column(String(64))
+    after_valid_from: Mapped[date] = mapped_column(Date)
+    after_valid_to: Mapped[date] = mapped_column(Date)
+
+    resulting_version: Mapped[int] = mapped_column(Integer)
+    reason: Mapped[str] = mapped_column(Text)
+    by_user_id: Mapped[str] = mapped_column(String(36))
+    at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (Index("ix_fair_dates_edits_at", "at"),)
 
 
 class User(Base):

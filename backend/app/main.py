@@ -64,6 +64,8 @@ from .api.schemas import (
     DepositPromptResult,
     DepositPromptsOut,
     ExtractionOut,
+    FairDatesEditIn,
+    FairDatesOut,
     FairReport,
     FloorPlanOut,
     LockPushResult,
@@ -170,12 +172,16 @@ from .services.auth import (
 )
 from .services.card_diff import diff_cards
 from .services.ingest import (
+    FairDatesRefused,
+    NoFairCard,
     NoSuchProduct,
     RateEditRefused,
     UnknownRateCardVersion,
     active_card,
     advance_order_status,
+    edit_fair_dates,
     edit_product_price,
+    fair_dates_of,
     locks_for_customer,
     publish_card,
     push_buyer_details,
@@ -597,6 +603,53 @@ def publish(payload: PublishIn, session: SessionDep, admin: AdminDep) -> Publish
     return PublishOut(
         version=row.version, list_id=row.list_id, published_by=row.published_by
     )
+
+
+def _fair_dates_out(session: Session) -> FairDatesOut:
+    live = active_card(session, "fair")
+    if live is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no fair price list")
+    dates = fair_dates_of(live.payload)
+    return FairDatesOut(
+        version=live.version,
+        code=None if dates is None else dates.code,
+        valid_from=None if dates is None else dates.valid_from,
+        valid_to=None if dates is None else dates.valid_to,
+    )
+
+
+@app.get("/api/rate-cards/fair/dates", response_model=FairDatesOut)
+def fair_dates_route(session: SessionDep, who: StaffOrAdminDep) -> FairDatesOut:
+    """When the fair runs, for the screens that edit it."""
+    _ = who
+    return _fair_dates_out(session)
+
+
+@app.post("/api/rate-cards/fair/dates", response_model=FairDatesOut)
+def edit_fair_dates_route(
+    payload: FairDatesEditIn, session: SessionDep, admin: AdminDep
+) -> FairDatesOut:
+    """Sets when the fair runs. Admin only, mandatory reason.
+
+    The window decides which days handsets quote fair prices and when every
+    deposit from the fair stops holding its price (SPEC.md §6.1), so it is
+    data an admin edits -- never a date in code -- and each change publishes
+    a new fair card version and an audit row naming who and why.
+    """
+    try:
+        edit_fair_dates(
+            session,
+            code=payload.code,
+            valid_from=payload.valid_from,
+            valid_to=payload.valid_to,
+            reason=payload.reason,
+            by_user_id=admin.id,
+        )
+    except NoFairCard as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no fair price list") from exc
+    except FairDatesRefused as exc:
+        raise HTTPException(HTTP_422_UNPROCESSABLE, exc.reason.value) from exc
+    return _fair_dates_out(session)
 
 
 @app.get("/api/rate-cards/{list_id}/products", response_model=ProductsOut)
