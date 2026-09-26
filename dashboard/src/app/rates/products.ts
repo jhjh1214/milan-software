@@ -39,6 +39,7 @@ import { Text } from '../i18n/text';
 import { formatSen } from '../api/money';
 import { SegmentedControl } from '../shared/segmented-control';
 import type { ListId, ProductOut } from '../api/types';
+import { FairDates } from './fair-dates';
 
 /** Mirrors `MIN_REASON_LENGTH` in backend/app/pricing/rate_edit.py: short
  * enough to type at a fair table, long enough to mean something later. */
@@ -68,7 +69,7 @@ function rmTextToSen(raw: string): number | null {
 
 @Component({
   selector: 'app-products',
-  imports: [CommonModule, SegmentedControl],
+  imports: [CommonModule, SegmentedControl, FairDates],
   templateUrl: './products.html',
   styleUrl: './products.css',
 })
@@ -161,6 +162,12 @@ export class Products {
         this.loading.set(false);
       },
     });
+  }
+
+  /** The fair dates published a new fair card: this list's version moved. */
+  protected reloadAfterFairDates(): void {
+    this.saved.set(null);
+    this.load();
   }
 
   protected retry(): void {

@@ -45,6 +45,7 @@ import type {
   OverridesOut,
   PeopleOut,
   PersonOut,
+  FairDatesOut,
   ProductPriceEditOut,
   ProductsOut,
   ProjectOut,
@@ -305,6 +306,31 @@ export class Api {
   ): Observable<ProductPriceEditOut> {
     return this.http.post<ProductPriceEditOut>(
       `${API_BASE}/rate-cards/${listId}/products/${ruleId}/price`,
+      edit,
+      { headers: this.authorised() },
+    );
+  }
+
+  /** When the fair runs. Staff or admin. */
+  fairDates(): Observable<FairDatesOut> {
+    return this.http.get<FairDatesOut>(`${API_BASE}/rate-cards/fair/dates`, {
+      headers: this.authorised(),
+    });
+  }
+
+  /**
+   * Sets when the fair runs. Admin only, mandatory reason: the window
+   * decides which days fair prices are quoted and when every deposit from
+   * the fair stops holding its price. Publishes a new fair card version.
+   */
+  setFairDates(edit: {
+    code: string;
+    valid_from: string;
+    valid_to: string;
+    reason: string;
+  }): Observable<FairDatesOut> {
+    return this.http.post<FairDatesOut>(
+      `${API_BASE}/rate-cards/fair/dates`,
       edit,
       { headers: this.authorised() },
     );

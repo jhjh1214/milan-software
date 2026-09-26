@@ -16,6 +16,10 @@
   </fieldset>
 </header>
 
+@if (listId() === 'fair') {
+  <app-fair-dates (changed)="reloadAfterFairDates()" />
+}
+
 @if (saved(); as version) {
   <p class="note" role="status">{{ t().products.savedAs(version) }}</p>
 }

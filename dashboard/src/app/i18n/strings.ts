@@ -332,6 +332,36 @@ export interface ProductsStrings {
   readonly wentWrong: string;
 }
 
+/**
+ * When the fair runs -- the fair card's promo window. It decides which days
+ * handsets quote fair prices and when every deposit from the fair stops
+ * holding its price (SPEC.md §6.1), so an admin sets it with a reason.
+ */
+export interface FairDatesStrings {
+  readonly title: string;
+  readonly none: string;
+  readonly runs: (from: string, to: string) => string;
+  /** The consequence, shown before and after saving. */
+  readonly holdsUntil: (date: string) => string;
+  readonly adminOnly: string;
+  readonly edit: string;
+  readonly codeLabel: string;
+  readonly fromLabel: string;
+  readonly toLabel: string;
+  readonly reasonLabel: string;
+  readonly reasonHint: string;
+  readonly save: string;
+  readonly saving: string;
+  readonly cancel: string;
+  readonly savedAs: (version: number) => string;
+  readonly noCode: string;
+  readonly noDates: string;
+  readonly endsBeforeStart: string;
+  readonly noReason: string;
+  readonly noChange: string;
+  readonly notAllowed: string;
+}
+
 /** One order, and why its numbers are what they are. §6.3, §6.5, §10.3. */
 export interface OrderStrings {
   readonly backToOrders: string;
@@ -653,6 +683,7 @@ export interface Strings {
   readonly people: PeopleStrings;
   readonly publish: PublishStrings;
   readonly products: ProductsStrings;
+  readonly fairDates: FairDatesStrings;
   readonly order: OrderStrings;
   readonly buyer: BuyerStrings;
   readonly reports: ReportsStrings;

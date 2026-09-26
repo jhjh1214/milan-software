@@ -1,0 +1,96 @@
+<section class="card fair-dates" aria-labelledby="fair-dates-title">
+  <div class="head">
+    <h2 id="fair-dates-title">{{ t().fairDates.title }}</h2>
+    @if (isAdmin() && !editing() && dates() !== null) {
+      <button type="button" class="btn" (click)="openEdit()">
+        {{ t().fairDates.edit }}
+      </button>
+    }
+  </div>
+
+  @if (failure(); as failed) {
+    <p class="failure" role="alert">{{ message(failed) }}</p>
+  }
+  @if (saved(); as version) {
+    <p class="note" role="status">{{ t().fairDates.savedAs(version) }}</p>
+  }
+
+  @if (dates(); as now) {
+    @if (now.code !== null && now.valid_from !== null && now.valid_to !== null) {
+      <p class="current">
+        <strong>{{ now.code }}</strong>
+        <span>{{ t().fairDates.runs(show(now.valid_from), show(now.valid_to)) }}</span>
+      </p>
+      @if (holdsUntil(); as held) {
+        <p class="hint">{{ t().fairDates.holdsUntil(held) }}</p>
+      }
+    } @else {
+      <p class="hint">{{ t().fairDates.none }}</p>
+    }
+    @if (!isAdmin()) {
+      <p class="hint">{{ t().fairDates.adminOnly }}</p>
+    }
+  }
+
+  @if (editing()) {
+    <form class="edit" (submit)="submit($event)">
+      @if (saveFailure(); as failed) {
+        <p class="failure" role="alert">{{ saveMessage(failed) }}</p>
+      }
+      <div>
+        <label for="fair-code">{{ t().fairDates.codeLabel }}</label>
+        <input
+          id="fair-code"
+          [value]="code()"
+          (input)="code.set($any($event.target).value)"
+        />
+      </div>
+      <div class="dates">
+        <div>
+          <label for="fair-from">{{ t().fairDates.fromLabel }}</label>
+          <input
+            id="fair-from"
+            type="date"
+            [value]="from()"
+            (input)="from.set($any($event.target).value)"
+          />
+        </div>
+        <div>
+          <label for="fair-to">{{ t().fairDates.toLabel }}</label>
+          <input
+            id="fair-to"
+            type="date"
+            [value]="to()"
+            (input)="to.set($any($event.target).value)"
+          />
+        </div>
+      </div>
+      @if (typedHoldsUntil(); as held) {
+        <p class="hint consequence">{{ t().fairDates.holdsUntil(held) }}</p>
+      }
+      <div>
+        <label for="fair-reason">{{ t().fairDates.reasonLabel }}</label>
+        <input
+          id="fair-reason"
+          [value]="reason()"
+          (input)="reason.set($any($event.target).value)"
+        />
+        <p class="hint">{{ t().fairDates.reasonHint }}</p>
+      </div>
+      @if (blockReason(); as blocked) {
+        <p class="hint block-reason">{{ blocked }}</p>
+      }
+      <div class="actions">
+        <button type="submit" class="btn btn-primary" [disabled]="!canSave()">
+          @if (saving()) {
+            <span class="spinner" aria-hidden="true"></span>
+          }
+          {{ saving() ? t().fairDates.saving : t().fairDates.save }}
+        </button>
+        <button type="button" class="btn" (click)="closeEdit()">
+          {{ t().fairDates.cancel }}
+        </button>
+      </div>
+    </form>
+  }
+</section>

@@ -324,6 +324,15 @@ export interface ProductsOut {
 
 /** What editing one product's live price hands back. A new `RateCardVersion`
  * under the hood -- never a row updated in place. */
+/** When the fair runs -- the fair card's promo window. All null when the
+ * card carries none. Dates are `YYYY-MM-DD`. */
+export interface FairDatesOut {
+  readonly version: number;
+  readonly code: string | null;
+  readonly valid_from: string | null;
+  readonly valid_to: string | null;
+}
+
 export interface ProductPriceEditOut {
   readonly rule_id: string;
   readonly list_id: string;

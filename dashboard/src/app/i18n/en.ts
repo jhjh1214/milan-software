@@ -255,6 +255,32 @@ export const EN: Strings = {
     wentWrong: 'Something went wrong.',
   },
 
+  fairDates: {
+    title: 'Fair dates',
+    none: 'No fair dates are set on the fair price list.',
+    runs: (from, to) => `${from} – ${to}`,
+    holdsUntil: (date) =>
+      `Deposits taken at this fair hold their price until ${date}.`,
+    adminOnly: 'Only an admin can change these.',
+    edit: 'Change dates',
+    codeLabel: 'Fair name',
+    fromLabel: 'First day',
+    toLabel: 'Last day',
+    reasonLabel: 'Reason',
+    reasonHint: 'Recorded against you and read back in review.',
+    save: 'Save',
+    saving: 'Saving…',
+    cancel: 'Cancel',
+    savedAs: (version) =>
+      `Saved as version ${version}. Every handset picks up the new dates on its next pull.`,
+    noCode: 'Give the fair a name.',
+    noDates: 'Pick the first and last day.',
+    endsBeforeStart: 'The last day is before the first.',
+    noReason: 'Say why -- a few words is enough.',
+    noChange: 'Those are already the dates.',
+    notAllowed: 'Only an admin can change the fair dates.',
+  },
+
   order: {
     backToOrders: '← Orders',
     numberPending: 'Order number pending sync',

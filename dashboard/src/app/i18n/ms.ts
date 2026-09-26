@@ -263,6 +263,32 @@ export const MS: Strings = {
     wentWrong: 'Ada sesuatu yang tidak kena.',
   },
 
+  fairDates: {
+    title: 'Tarikh pameran',
+    none: 'Tiada tarikh pameran pada senarai harga pameran.',
+    runs: (from, to) => `${from} – ${to}`,
+    holdsUntil: (date) =>
+      `Deposit yang diambil di pameran ini mengekalkan harga hingga ${date}.`,
+    adminOnly: 'Hanya admin boleh menukar ini.',
+    edit: 'Tukar tarikh',
+    codeLabel: 'Nama pameran',
+    fromLabel: 'Hari pertama',
+    toLabel: 'Hari terakhir',
+    reasonLabel: 'Sebab',
+    reasonHint: 'Direkodkan atas nama anda dan disemak kemudian.',
+    save: 'Simpan',
+    saving: 'Menyimpan…',
+    cancel: 'Batal',
+    savedAs: (version) =>
+      `Disimpan sebagai versi ${version}. Setiap telefon mendapat tarikh baharu pada penyegerakan seterusnya.`,
+    noCode: 'Berikan nama pameran.',
+    noDates: 'Pilih hari pertama dan hari terakhir.',
+    endsBeforeStart: 'Hari terakhir sebelum hari pertama.',
+    noReason: 'Nyatakan sebab -- beberapa perkataan sudah cukup.',
+    noChange: 'Itu memang tarikhnya.',
+    notAllowed: 'Hanya admin boleh menukar tarikh pameran.',
+  },
+
   order: {
     backToOrders: '← Pesanan',
     numberPending: 'Nombor pesanan menunggu penyegerakan',
