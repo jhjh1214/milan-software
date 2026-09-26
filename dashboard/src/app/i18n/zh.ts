@@ -126,6 +126,18 @@ export const ZH: Strings = {
     navigate: '导航',
     addAddress: '新增地址',
     edit: '编辑',
+    areaPostcode: (postcode) => `邮区 ${postcode}`,
+    callFirst: '先打这个',
+    sameDrive: '同一趟',
+    daysLeft: (days, deadline) => `还剩 ${days} 天 · ${deadline} 前`,
+    daysOverdue: (days, deadline) => `已过期 ${days} 天 · 原定 ${deadline}`,
+    heldPriceEnds: '展会保留价到期',
+    notReadyTitle: '房子还没好',
+    readyFrom: (date) => `${date} 起可量`,
+    missingPostcode: (orders) => `还有 ${orders} 张单没有邮区`,
+    postcode: '邮区',
+    postcodeInvalid: '邮区是五位数字。',
+    readyFromLabel: '可量日期（交钥匙后）',
   },
 
   overrides: {

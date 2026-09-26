@@ -53,6 +53,7 @@ import type {
   PublishOut,
   RecognitionJobOut,
   ReorderAlertsOut,
+  SiteAddressIn,
   SiteAddressOut,
   StockLotOut,
   StockLotsOut,
@@ -179,16 +180,18 @@ export class Api {
   }
 
   /**
-   * A free-text note on where a visit actually is, typed in by staff
-   * planning the day's route. Not a real address record -- empty clears it.
+   * Where a visit is: the street/taman line, the postcode that groups a
+   * day's trips, and the first day the house can be measured. All three are
+   * always sent -- null clears one -- because the server refuses a body
+   * that leaves one out rather than guessing it meant "clear".
    */
   setSiteAddress(
     orderId: string,
-    note: string | null,
+    site: SiteAddressIn,
   ): Observable<SiteAddressOut> {
     return this.http.patch<SiteAddressOut>(
       `${API_BASE}/orders/${orderId}/site-address`,
-      { site_address_note: note },
+      site,
       { headers: this.authorised() },
     );
   }

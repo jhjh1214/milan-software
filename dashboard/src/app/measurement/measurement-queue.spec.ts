@@ -41,6 +41,11 @@ const job = (over: Partial<MeasurementJob> = {}): MeasurementJob => ({
   booked_at: null,
   waiting_days: 5,
   site_address_note: null,
+  site_postcode: null,
+  site_ready_from: null,
+  deadline: '2027-08-10',
+  days_left: 344,
+  deadline_from_hold: false,
   ...over,
 });
 
@@ -55,6 +60,12 @@ const trip = (over: Partial<MeasurementGroup> = {}): MeasurementGroup => ({
   oldest_confirmed_at: '2026-08-10T14:00:00Z',
   waiting_days: 5,
   booked_count: 0,
+  // What the server sends for a trip with no postcode: its zone, or
+  // `unzoned`. A trip given a zone below lands in that zone's area.
+  area_key: over.delivery_zone_id ?? 'unzoned',
+  site_postcode: null,
+  deadline: '2027-08-10',
+  days_left: 344,
   ...over,
 });
 
@@ -115,11 +126,15 @@ describe('MeasurementQueue', () => {
     url: string,
     groups: MeasurementGroup[],
     total?: number,
+    extra: { not_ready?: MeasurementGroup[]; missing_postcode_count?: number } = {},
   ): Promise<void> => {
     await harness.navigateByUrl(url);
-    http
-      .expectOne('/api/measurement-queue')
-      .flush({ groups, total_orders: total ?? groups.length });
+    http.expectOne('/api/measurement-queue').flush({
+      groups,
+      not_ready: extra.not_ready ?? [],
+      total_orders: total ?? groups.length,
+      missing_postcode_count: extra.missing_postcode_count ?? 0,
+    });
     harness.detectChanges();
   };
 
@@ -235,12 +250,33 @@ describe('MeasurementQueue', () => {
       );
     });
 
-    it('says the days waited in words, not only in colour', async () => {
-      await open('/measurement', [trip({ waiting_days: 41 })]);
+    it('says the deadline in words, not only in colour', async () => {
+      // The colour follows how near the deadline is -- the order the queue
+      // is sorted by -- the same 60/30 days the order board uses.
+      await open('/measurement', [
+        trip({ waiting_days: 41, days_left: 20, deadline: '2026-09-20' }),
+      ]);
 
+      expect(text()).toContain('20 days left · by 20 Sep 2026');
       expect(text()).toContain('Waiting 41 days');
       const card = harness.routeNativeElement!.querySelector('.trip')!;
       expect(card.getAttribute('data-wait')).toBe('overdue');
+    });
+
+    it('says how far past its deadline a trip is', async () => {
+      await open('/measurement', [trip({ days_left: -3, deadline: '2026-09-01' })]);
+      expect(text()).toContain('3 days overdue · was 1 Sep 2026');
+    });
+
+    it('names a held fair price running out as the reason', async () => {
+      await open('/measurement', [
+        trip({
+          deadline: '2026-10-01',
+          days_left: 40,
+          jobs: [job({ deadline: '2026-10-01', days_left: 40, deadline_from_hold: true })],
+        }),
+      ]);
+      expect(text()).toContain('Held fair price ends');
     });
 
     it('counts jobs and windows, not trips', async () => {
@@ -350,7 +386,7 @@ describe('MeasurementQueue', () => {
 
       http
         .expectOne('/api/measurement-queue')
-        .flush({ groups: [trip()], total_orders: 1 });
+        .flush({ groups: [trip()], not_ready: [], total_orders: 1, missing_postcode_count: 0 });
       harness.detectChanges();
       expect(text()).not.toContain('The server answered 500');
     });
@@ -482,7 +518,7 @@ describe('MeasurementQueue', () => {
       );
     });
 
-    it('saves a typed address and shows it without a further reload', async () => {
+    it('saves the address, postcode and ready date, then reloads', async () => {
       await open('/measurement', [trip()]);
 
       const addButton = Array.from(
@@ -496,6 +532,16 @@ describe('MeasurementQueue', () => {
       ) as HTMLInputElement;
       input.value = '12 Jalan Melati';
       input.dispatchEvent(new Event('input'));
+      const postcode = harness.routeNativeElement!.querySelector(
+        '.postcode-input',
+      ) as HTMLInputElement;
+      postcode.value = '75450';
+      postcode.dispatchEvent(new Event('input'));
+      const ready = harness.routeNativeElement!.querySelector(
+        '.ready-input',
+      ) as HTMLInputElement;
+      ready.value = '2026-11-01';
+      ready.dispatchEvent(new Event('input'));
       harness.detectChanges();
 
       const saveButton = Array.from(
@@ -505,12 +551,106 @@ describe('MeasurementQueue', () => {
 
       const req = http.expectOne('/api/orders/o1/site-address');
       expect(req.request.method).toBe('PATCH');
-      expect(req.request.body).toEqual({ site_address_note: '12 Jalan Melati' });
-      req.flush({ order_id: 'o1', site_address_note: '12 Jalan Melati' });
+      // Every field, always -- the server refuses a body that leaves one out.
+      expect(req.request.body).toEqual({
+        site_address_note: '12 Jalan Melati',
+        site_postcode: '75450',
+        site_ready_from: '2026-11-01',
+      });
+      req.flush({
+        order_id: 'o1',
+        site_address_note: '12 Jalan Melati',
+        site_postcode: '75450',
+        site_ready_from: '2026-11-01',
+      });
+
+      // A new postcode or ready date can move the trip, so the queue is
+      // fetched again rather than patched locally.
+      http.expectOne('/api/measurement-queue').flush({
+        groups: [],
+        not_ready: [
+          trip({
+            jobs: [
+              job({
+                site_address_note: '12 Jalan Melati',
+                site_postcode: '75450',
+                site_ready_from: '2026-11-01',
+              }),
+            ],
+          }),
+        ],
+        total_orders: 1,
+        missing_postcode_count: 0,
+      });
       harness.detectChanges();
 
-      expect(text()).toContain('12 Jalan Melati');
-      expect(text()).not.toContain('Add address');
+      expect(text()).toContain('House not ready yet');
+      expect(text()).toContain('Ready from 1 Nov 2026');
+    });
+
+    it('will not save a postcode that is not five digits', async () => {
+      await open('/measurement', [trip()]);
+      (
+        Array.from(harness.routeNativeElement!.querySelectorAll('button')).find((b) =>
+          b.textContent?.includes('Add address'),
+        ) as HTMLButtonElement
+      ).click();
+      harness.detectChanges();
+      const postcode = harness.routeNativeElement!.querySelector(
+        '.postcode-input',
+      ) as HTMLInputElement;
+      postcode.value = '7545';
+      postcode.dispatchEvent(new Event('input'));
+      harness.detectChanges();
+
+      expect(text()).toContain('A postcode is five digits.');
+      const save = Array.from(
+        harness.routeNativeElement!.querySelectorAll('button'),
+      ).find((b) => b.textContent?.trim() === 'Save') as HTMLButtonElement;
+      expect(save.disabled).toBe(true);
+    });
+  });
+
+  describe('one drive covers an area', () => {
+    it('marks the trip to call first, and the rest of its area as the same drive', async () => {
+      await open('/measurement', [
+        trip({ key: 'a', customer_name: 'Urgent', area_key: 'postcode:75000', site_postcode: '75000' }),
+        trip({ key: 'b', customer_name: 'Neighbour', area_key: 'postcode:75000', site_postcode: '75000' }),
+        trip({ key: 'c', customer_name: 'Elsewhere', area_key: 'postcode:75450', site_postcode: '75450' }),
+      ]);
+
+      const cards = Array.from(harness.routeNativeElement!.querySelectorAll('.trip'));
+      expect(cards[0].querySelector('.call-first-badge')?.textContent).toContain('Call first');
+      expect(cards[1].querySelector('.same-drive-badge')?.textContent).toContain('Same drive');
+      expect(cards[2].querySelector('.call-first-badge, .same-drive-badge')).toBeNull();
+    });
+
+    it('heads each area with its postcode', async () => {
+      await open('/measurement', [
+        trip({ key: 'a', area_key: 'postcode:75000', site_postcode: '75000' }),
+        trip({ key: 'c', area_key: 'postcode:75450', site_postcode: '75450' }),
+      ]);
+      const headers = Array.from(
+        harness.routeNativeElement!.querySelectorAll('.zone-header'),
+      ).map((h) => h.textContent?.trim());
+      expect(headers).toEqual(['Postcode 75000', 'Postcode 75450']);
+    });
+
+    it('lists a house not ready yet apart, never as the one to call', async () => {
+      await open('/measurement', [], 1, {
+        not_ready: [
+          trip({ customer_name: 'Keys in November', jobs: [job({ site_ready_from: '2026-11-01' })] }),
+        ],
+      });
+      expect(text()).toContain('House not ready yet');
+      expect(text()).toContain('Keys in November');
+      expect(text()).toContain('Ready from 1 Nov 2026');
+      expect(harness.routeNativeElement!.querySelector('.call-first-badge')).toBeNull();
+    });
+
+    it('says how many orders still need a postcode', async () => {
+      await open('/measurement', [trip()], 3, { missing_postcode_count: 2 });
+      expect(text()).toContain('2 orders still need a postcode');
     });
   });
 });

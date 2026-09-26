@@ -182,6 +182,22 @@ export interface QueueStrings {
   readonly navigate: string;
   readonly addAddress: string;
   readonly edit: string;
+  /** The heading over every trip in one postcode. */
+  readonly areaPostcode: (postcode: string) => string;
+  /** The first trip: the one whose deadline is nearest. */
+  readonly callFirst: string;
+  /** Another trip in the first trip's area: book it for the same drive. */
+  readonly sameDrive: string;
+  readonly daysLeft: (days: number, deadline: string) => string;
+  readonly daysOverdue: (days: number, deadline: string) => string;
+  /** Said when the deadline is a held fair price running out. */
+  readonly heldPriceEnds: string;
+  readonly notReadyTitle: string;
+  readonly readyFrom: (date: string) => string;
+  readonly missingPostcode: (orders: number) => string;
+  readonly postcode: string;
+  readonly postcodeInvalid: string;
+  readonly readyFromLabel: string;
 }
 
 /** The weekly override review. §6.5 — this screen *is* the control. */

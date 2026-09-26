@@ -131,6 +131,18 @@ export const MS: Strings = {
     navigate: 'Navigasi',
     addAddress: 'Tambah alamat',
     edit: 'Edit',
+    areaPostcode: (postcode) => `Poskod ${postcode}`,
+    callFirst: 'Telefon dahulu',
+    sameDrive: 'Perjalanan sama',
+    daysLeft: (days, deadline) => `${days} hari lagi · sebelum ${deadline}`,
+    daysOverdue: (days, deadline) => `Lewat ${days} hari · sepatutnya ${deadline}`,
+    heldPriceEnds: 'Harga pameran yang dikekalkan tamat',
+    notReadyTitle: 'Rumah belum siap',
+    readyFrom: (date) => `Siap dari ${date}`,
+    missingPostcode: (orders) => `${orders} pesanan masih tiada poskod`,
+    postcode: 'Poskod',
+    postcodeInvalid: 'Poskod ialah lima digit.',
+    readyFromLabel: 'Siap dari (kunci diserahkan)',
   },
 
   overrides: {

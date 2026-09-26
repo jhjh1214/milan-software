@@ -11,6 +11,9 @@
       @if (visibleUnmeasured() > 0) {
         · {{ t().queue.stillToMeasure(visibleUnmeasured()) }}
       }
+      @if (missingPostcode() > 0) {
+        · <span class="missing-postcode">{{ t().queue.missingPostcode(missingPostcode()) }}</span>
+      }
     }
   </p>
 </header>
@@ -67,9 +70,18 @@
         <li class="zone-header">{{ row.label }}</li>
       } @else {
         @let group = row.group;
-        <li class="trip" [attr.data-wait]="wait(group.waiting_days)">
+        <li
+          class="trip"
+          [attr.data-wait]="urgency(group.days_left)"
+          [class.call-first]="isCallFirst(group)"
+        >
         <div class="trip-head">
           <div>
+            @if (isCallFirst(group)) {
+              <span class="badge badge-warning call-first-badge">{{ t().queue.callFirst }}</span>
+            } @else if (isSameDrive(group)) {
+              <span class="badge badge-neutral same-drive-badge">{{ t().queue.sameDrive }}</span>
+            }
             <h2>{{ nameOf(group) }}</h2>
             @if (group.customer_phone) {
               <p class="phone">{{ group.customer_phone }}</p>
@@ -79,6 +91,16 @@
           <div class="trip-meta">
             <!-- The number the whole queue is ordered by. Said in words as
                  well as in colour: colour alone is not information. -->
+            <p class="deadline">
+              @if (heldPrice(group)) {
+                <span class="held">{{ t().queue.heldPriceEnds }} ·</span>
+              }
+              @if (group.days_left < 0) {
+                {{ t().queue.daysOverdue(-group.days_left, day(group.deadline)) }}
+              } @else {
+                {{ t().queue.daysLeft(group.days_left, day(group.deadline)) }}
+              }
+            </p>
             <p class="waiting">{{ t().queue.waiting(group.waiting_days) }}</p>
             <p class="booked">
               @if (group.booked_count === 0) {
@@ -165,10 +187,32 @@
               [attr.aria-label]="t().queue.siteAddress"
               [placeholder]="t().queue.siteAddressPlaceholder"
             />
+            <input
+              type="text"
+              class="postcode-input"
+              inputmode="numeric"
+              maxlength="5"
+              [value]="postcodeDraft()"
+              (input)="postcodeDraft.set($any($event.target).value)"
+              [attr.aria-label]="t().queue.postcode"
+              [placeholder]="t().queue.postcode"
+            />
+            <label class="ready-label">
+              {{ t().queue.readyFromLabel }}
+              <input
+                type="date"
+                class="ready-input"
+                [value]="readyDraft()"
+                (input)="readyDraft.set($any($event.target).value)"
+              />
+            </label>
+            @if (!postcodeOk()) {
+              <p class="hint block-reason">{{ t().queue.postcodeInvalid }}</p>
+            }
             <button
               type="button"
               class="btn btn-primary"
-              [disabled]="savingAddress().has(group.key)"
+              [disabled]="savingAddress().has(group.key) || !postcodeOk()"
               (click)="saveAddress(group)"
             >
               {{ t().common.save }}
@@ -177,6 +221,9 @@
               {{ t().common.cancel }}
             </button>
           } @else if (addressOf(group); as address) {
+            @if (postcodeOf(group); as postcode) {
+              <span class="postcode-text">{{ postcode }}</span>
+            }
             <span class="address-text">{{ address }}</span>
             <a class="btn" [href]="navigateHref(address)" target="_blank" rel="noopener">
               {{ t().queue.navigate }}
@@ -194,4 +241,50 @@
       }
     }
   </ul>
+}
+
+@if (notReady().length > 0) {
+  <!-- Keys not handed over yet. Apart, and never the trip to call first:
+       phoning a customer who can only say "not yet" wastes the call. -->
+  <section class="not-ready" aria-labelledby="not-ready-title">
+    <h2 id="not-ready-title">{{ t().queue.notReadyTitle }}</h2>
+    <ul class="trips">
+      @for (group of notReady(); track group.key) {
+        <li class="trip not-ready-trip">
+          <div class="trip-head">
+            <div>
+              <h3>{{ nameOf(group) }}</h3>
+              @if (group.customer_phone) {
+                <p class="phone">{{ group.customer_phone }}</p>
+              }
+            </div>
+            <div class="trip-meta">
+              @if (readyOn(group); as ready) {
+                <p class="ready-from">{{ t().queue.readyFrom(day(ready)) }}</p>
+              }
+              <p class="deadline">
+                @if (group.days_left < 0) {
+                  {{ t().queue.daysOverdue(-group.days_left, day(group.deadline)) }}
+                } @else {
+                  {{ t().queue.daysLeft(group.days_left, day(group.deadline)) }}
+                }
+              </p>
+            </div>
+          </div>
+          <ul class="jobs">
+            @for (job of group.jobs; track job.order_id) {
+              <li class="job">
+                <a [routerLink]="['/orders', job.order_id]">
+                  <span class="reference" [class.pending]="job.order_no === null">
+                    {{ job.order_no ?? t().queue.pendingSync }}
+                  </span>
+                  <span class="estimate">{{ money(job.estimate_total_sen) }}</span>
+                </a>
+              </li>
+            }
+          </ul>
+        </li>
+      }
+    </ul>
+  </section>
 }

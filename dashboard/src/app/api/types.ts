@@ -403,9 +403,18 @@ export interface MeasurementJob {
   /** Null while the visit is still unbooked. Read from the order history. */
   readonly booked_at: string | null;
   readonly waiting_days: number;
-  /** Free text a staff member typed in, not a real address record. Null
-   * until somebody enters one for this order. */
+  /** The street/taman line. Null until somebody has it. */
   readonly site_address_note: string | null;
+  /** Five digits, or null until somebody has it. What groups a day's trips. */
+  readonly site_postcode: string | null;
+  /** The first day the house can be measured (`YYYY-MM-DD`), or null. */
+  readonly site_ready_from: string | null;
+  /** The last day on the customer's promise (`YYYY-MM-DD`): their held
+   * price's expiry, or twelve months from the deposit. */
+  readonly deadline: string;
+  /** Days from today (Malaysia) to the deadline. Negative once passed. */
+  readonly days_left: number;
+  readonly deadline_from_hold: boolean;
 }
 
 /**
@@ -431,17 +440,39 @@ export interface MeasurementGroup {
   readonly waiting_days: number;
   /** Zero is the trip nobody has called about yet. */
   readonly booked_count: number;
+  /** `postcode:75450`, or a zone id (or `unzoned`) when the orders have no
+   * postcode yet. Trips sharing it are one drive. */
+  readonly area_key: string;
+  readonly site_postcode: string | null;
+  /** The soonest deadline among the trip's orders, and days to it. */
+  readonly deadline: string;
+  readonly days_left: number;
 }
 
 export interface SiteAddressOut {
   readonly order_id: string;
   readonly site_address_note: string | null;
+  readonly site_postcode: string | null;
+  readonly site_ready_from: string | null;
+}
+
+/** Where a visit is. Every field is sent, null to clear one. */
+export interface SiteAddressIn {
+  readonly site_address_note: string | null;
+  readonly site_postcode: string | null;
+  readonly site_ready_from: string | null;
 }
 
 export interface MeasurementQueueOut {
+  /** Bookable now, in the order to book: the first trip is the one to call,
+   * and the rest of its area is the same drive. */
   readonly groups: readonly MeasurementGroup[];
+  /** Houses not ready yet, soonest ready first. Never the trip to call. */
+  readonly not_ready: readonly MeasurementGroup[];
   /** Orders, not trips. "12 jobs across 9 trips" is the sentence people say. */
   readonly total_orders: number;
+  /** Orders with no postcode yet: the customers to phone for an address. */
+  readonly missing_postcode_count: number;
 }
 
 /** One salesperson's estimate against the tape. SPEC.md §6.3, §11 Phase 5. */

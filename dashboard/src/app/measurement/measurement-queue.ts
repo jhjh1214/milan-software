@@ -3,21 +3,22 @@
  *
  * > Measurement queue — grouped by project so one trip covers several units
  *
- * §13 C10, answered: the server groups by delivery zone first (already
- * captured on every order at quote time), then by customer within it — keyed
- * on the normalised phone, exactly as a rate lock is. Zones are ordered by
- * the longest-waiting order inside them, so route clustering never buries an
- * overdue customer behind a zone that merely sorts earlier. This screen
- * renders a heading wherever the zone changes, on top of the flat, already-
- * ordered list the server sends.
+ * §13 C10 (client, Sep 2026): book the most urgent visit first, and every
+ * other visit in its area for the same drive. The server groups trips into
+ * areas by postcode (falling back to the delivery zone while an address is
+ * still being collected), orders areas by the nearest deadline inside them
+ * -- a held fair price ending, or twelve months from the deposit -- and lists
+ * houses not ready yet apart. This screen renders a heading wherever the area
+ * changes, marks the first trip "call first" and the rest of its area "same
+ * drive", on top of the flat, already-ordered list the server sends.
  *
- * Each trip can also carry a free-text address note, typed in by staff --
- * not a real address record, just enough to open a free Google Maps search
- * link before the visit (no paid routing API; SPEC.md §13 C10's write-up).
+ * Each trip carries its street/taman line (enough to open a free Google Maps
+ * search link before the visit -- no paid routing API), its postcode, and the
+ * day its keys are handed over.
  *
- * **The order is who has waited longest**, decided by the server. This screen
- * does not re-sort: a list that reorders itself between two desks looking at
- * the same queue is a list nobody trusts.
+ * **The order is decided by the server.** This screen does not re-sort: a
+ * list that reorders itself between two desks looking at the same queue is a
+ * list nobody trusts.
  *
  * **The filter is in the URL**, which §11 Phase 5 makes an acceptance
  * criterion. Somebody has to be able to send a colleague a link to the eleven
@@ -44,10 +45,23 @@ import { formatDate, formatSen } from '../api/money';
 import { SegmentedControl } from '../shared/segmented-control';
 import type { MeasurementGroup } from '../api/types';
 
-/** One row this screen renders: either a zone heading or a trip beneath it. */
+/** One row this screen renders: either an area heading or a trip beneath it. */
 type QueueRow =
   | { readonly kind: 'zone-header'; readonly zoneOf: string; readonly label: string }
   | { readonly kind: 'group'; readonly group: MeasurementGroup };
+
+/** Mirrors the server's `POSTCODE_PATTERN`: a Malaysian postcode. */
+const POSTCODE = /^\d{5}$/;
+
+/**
+ * How near a trip's deadline is, as a state a screen can colour -- the same
+ * 60/30 days the order board counts a hold down with.
+ */
+export function urgencyOf(daysLeft: number): Wait {
+  if (daysLeft <= 30) return 'overdue';
+  if (daysLeft <= 60) return 'slow';
+  return 'fresh';
+}
 
 /** Which trips to show. Lives in the URL and nowhere else. */
 export type QueueFilter = 'all' | 'unbooked' | 'booked';
@@ -91,6 +105,8 @@ export class MeasurementQueue {
   private readonly router = inject(Router);
 
   protected readonly groups = signal<readonly MeasurementGroup[]>([]);
+  protected readonly notReady = signal<readonly MeasurementGroup[]>([]);
+  protected readonly missingPostcode = signal(0);
   protected readonly totalOrders = signal(0);
   protected readonly loading = signal(false);
   protected readonly failure = signal<Failure | null>(null);
@@ -132,11 +148,15 @@ export class MeasurementQueue {
     this.api.measurementQueue().subscribe({
       next: (out) => {
         this.groups.set(out.groups);
+        this.notReady.set(out.not_ready);
+        this.missingPostcode.set(out.missing_postcode_count);
         this.totalOrders.set(out.total_orders);
         this.loading.set(false);
       },
       error: (err: unknown) => {
         this.groups.set([]);
+        this.notReady.set([]);
+        this.missingPostcode.set(0);
         this.totalOrders.set(0);
         this.failure.set(failureOf(err));
         this.loading.set(false);
@@ -230,28 +250,77 @@ export class MeasurementQueue {
     );
   }
 
+  /** An area's heading: its postcode, or its zone while it has none. */
+  protected areaLabel(group: MeasurementGroup): string {
+    return group.site_postcode !== null
+      ? this.t().queue.areaPostcode(group.site_postcode)
+      : this.zoneLabel(group);
+  }
+
   /**
-   * The visible trips with a zone-heading row inserted wherever the zone
-   * changes. The server already clusters and orders zones (worst-waiting
-   * first); this only walks that list once to mark the boundaries -- it
-   * never re-sorts, matching the rest of this screen's own rule.
+   * The visible trips with a heading row inserted wherever the area changes.
+   * The server already clusters and orders areas (nearest deadline first);
+   * this only walks that list once to mark the boundaries -- it never
+   * re-sorts, matching the rest of this screen's own rule.
    */
   protected readonly rows = computed<readonly QueueRow[]>(() => {
     const rows: QueueRow[] = [];
-    let lastZone: string | null | undefined = undefined;
+    let lastArea: string | undefined = undefined;
     for (const group of this.visible()) {
-      if (group.delivery_zone_id !== lastZone) {
+      if (group.area_key !== lastArea) {
         rows.push({
           kind: 'zone-header',
-          zoneOf: group.delivery_zone_id ?? 'unzoned',
-          label: this.zoneLabel(group),
+          zoneOf: group.area_key,
+          label: this.areaLabel(group),
         });
-        lastZone = group.delivery_zone_id;
+        lastArea = group.area_key;
       }
       rows.push({ kind: 'group', group });
     }
     return rows;
   });
+
+  /**
+   * The trip to call first: the server's first, whatever the filter shows --
+   * a filter narrows what is on screen, it does not change whose deadline is
+   * nearest.
+   */
+  protected isCallFirst(group: MeasurementGroup): boolean {
+    return this.groups()[0]?.key === group.key;
+  }
+
+  /** Another trip in the call-first trip's area: the same drive. */
+  protected isSameDrive(group: MeasurementGroup): boolean {
+    const first = this.groups()[0];
+    return (
+      first !== undefined &&
+      first.key !== group.key &&
+      first.area_key === group.area_key
+    );
+  }
+
+  /** A `YYYY-MM-DD` read as a local calendar day, never a UTC instant. */
+  protected day(iso: string): string {
+    return formatDate(`${iso}T00:00:00`);
+  }
+
+  protected urgency = urgencyOf;
+
+  /** Whether the trip's nearest deadline is a held fair price running out. */
+  protected heldPrice(group: MeasurementGroup): boolean {
+    return group.jobs.some(
+      (j) => j.deadline_from_hold && j.deadline === group.deadline,
+    );
+  }
+
+  /** The soonest a not-ready house can be measured. */
+  protected readyOn(group: MeasurementGroup): string | null {
+    const days = group.jobs
+      .map((j) => j.site_ready_from)
+      .filter((d): d is string => d !== null)
+      .sort();
+    return days[0] ?? null;
+  }
 
   protected rowKey(row: QueueRow): string {
     return row.kind === 'group' ? row.group.key : `zone-header:${row.zoneOf}`;
@@ -269,13 +338,32 @@ export class MeasurementQueue {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
   }
 
+  /** The trip's postcode and ready date, from whichever job carries one. */
+  protected postcodeOf(group: MeasurementGroup): string | null {
+    return group.jobs.find((j) => j.site_postcode !== null)?.site_postcode ?? null;
+  }
+
+  protected readyFromOf(group: MeasurementGroup): string | null {
+    return group.jobs.find((j) => j.site_ready_from !== null)?.site_ready_from ?? null;
+  }
+
   protected readonly editingAddress = signal<string | null>(null);
   protected readonly addressDraft = signal('');
+  protected readonly postcodeDraft = signal('');
+  protected readonly readyDraft = signal('');
   protected readonly savingAddress = signal<ReadonlySet<string>>(new Set());
+
+  /** Empty, or five digits -- anything else the server refuses. */
+  protected readonly postcodeOk = computed(() => {
+    const code = this.postcodeDraft().trim();
+    return code === '' || POSTCODE.test(code);
+  });
 
   protected editAddress(group: MeasurementGroup): void {
     this.editingAddress.set(group.key);
     this.addressDraft.set(this.addressOf(group) ?? '');
+    this.postcodeDraft.set(this.postcodeOf(group) ?? '');
+    this.readyDraft.set(this.readyFromOf(group) ?? '');
   }
 
   protected cancelAddress(): void {
@@ -283,29 +371,30 @@ export class MeasurementQueue {
   }
 
   /**
-   * Saves the same note onto every job in the trip -- they are one house, so
-   * the address should read the same however the queue happens to have split
-   * that customer's orders into jobs.
+   * Saves the same site details onto every job in the trip -- they are one
+   * house, so the address should read the same however the queue happens to
+   * have split that customer's orders into jobs. Every field is sent, null to
+   * clear it. Reloads after: a new postcode or ready date can move the trip
+   * to another area, or out of the bookable list altogether.
    */
   protected saveAddress(group: MeasurementGroup): void {
-    const note = this.addressDraft().trim() || null;
+    if (!this.postcodeOk()) return;
+    const site = {
+      site_address_note: this.addressDraft().trim() || null,
+      site_postcode: this.postcodeDraft().trim() || null,
+      site_ready_from: this.readyDraft() || null,
+    };
     this.savingAddress.update((s) => new Set(s).add(group.key));
 
-    forkJoin(group.jobs.map((job) => this.api.setSiteAddress(job.order_id, note))).subscribe({
+    forkJoin(group.jobs.map((job) => this.api.setSiteAddress(job.order_id, site))).subscribe({
       next: () => {
-        this.groups.update((all) =>
-          all.map((g) =>
-            g.key !== group.key
-              ? g
-              : { ...g, jobs: g.jobs.map((j) => ({ ...j, site_address_note: note })) },
-          ),
-        );
         this.savingAddress.update((s) => {
           const next = new Set(s);
           next.delete(group.key);
           return next;
         });
         this.editingAddress.set(null);
+        this.load();
       },
       error: () => {
         this.savingAddress.update((s) => {

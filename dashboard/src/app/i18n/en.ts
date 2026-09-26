@@ -128,6 +128,21 @@ export const EN: Strings = {
     navigate: 'Navigate',
     addAddress: 'Add address',
     edit: 'Edit',
+    areaPostcode: (postcode) => `Postcode ${postcode}`,
+    callFirst: 'Call first',
+    sameDrive: 'Same drive',
+    daysLeft: (days, deadline) =>
+      `${days} day${days === 1 ? '' : 's'} left · by ${deadline}`,
+    daysOverdue: (days, deadline) =>
+      `${days} day${days === 1 ? '' : 's'} overdue · was ${deadline}`,
+    heldPriceEnds: 'Held fair price ends',
+    notReadyTitle: 'House not ready yet',
+    readyFrom: (date) => `Ready from ${date}`,
+    missingPostcode: (orders) =>
+      `${orders} order${orders === 1 ? '' : 's'} still need${orders === 1 ? 's' : ''} a postcode`,
+    postcode: 'Postcode',
+    postcodeInvalid: 'A postcode is five digits.',
+    readyFromLabel: 'Ready from (keys handed over)',
   },
 
   overrides: {
