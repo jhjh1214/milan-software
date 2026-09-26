@@ -23,18 +23,23 @@ still needs somebody to walk it through them. Filtering on the unmeasured count
 would make exactly those orders invisible and they would sit at `confirmed`
 forever, which is the failure nobody would notice.
 
-**Ordered by who has waited longest**, not by hold expiry the way the order
-board is. An order pinned its rate card version when the deposit confirmed it,
-so measuring it late does not reprice it -- the hold protects the customer's
-*next* quote, not this one. What is actually urgent here is a person who paid a
-deposit in July and has not had a phone call.
+**Ordered by whose deadline is nearest, and grouped so one drive covers an
+area** (client, Sep 2026). Visits used to be booked one appointment at a
+time, which sent somebody back and forth to the same taman all month. Now:
 
-Zone clustering must never bury that urgency: a zone's own position in the
-list is driven by the longest-waiting order *inside* it, not by zone id or
-alphabetical order. The zone holding the most overdue customer sorts first,
-so route efficiency and customer urgency point the same direction instead of
-trading off against each other. Within a zone, trips keep the existing
-oldest-first order.
+- **Every order has a deadline.** A customer holding a fair price (§6.1) has
+  that hold's expiry; anyone else has twelve months from their deposit, the
+  fulfilment window every order carries (§3). Among orders with no hold that
+  is exactly "who has waited longest"; a hold ending sooner puts its
+  customer ahead of them.
+- **Trips group into areas** by postcode when the order has one, otherwise
+  by delivery zone, so nothing disappears while an address is still being
+  collected. An area sorts by the most urgent order inside it: the first
+  trip is the one to call first, and every other trip in its area is one to
+  book for the same day.
+- **A house not ready yet** (a future `site_ready_from`, keys not handed
+  over) is listed apart, soonest-ready first, and never anchors a day --
+  phoning a customer who can only say "not yet" wastes the call.
 
 PURE of HTTP, and the clock is injected. `waiting_days` is a number somebody
 reads off a screen and a test has to be able to pin it.
@@ -43,14 +48,15 @@ reads off a screen and a test has to be able to pin it.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..api.schemas import MeasurementGroup, MeasurementJob, MeasurementQueueOut
-from ..models.db import Order, OrderEvent, OrderLine
+from ..models.db import CategoryLock, Order, OrderEvent, OrderLine
 from ..pricing.customer_key import customer_key_for
+from ..pricing.rate_lock import twelve_months_from
 
 #: The two stages a site visit is still outstanding at. `measured` and
 #: everything after it has had its tape taken; `cancelled` is not a trip.
@@ -63,6 +69,12 @@ BOOKED_EVENT = "measurement_booked"
 #: The bucket for an order with no delivery zone recorded. Never merged with
 #: a real zone -- a missing zone is a fact worth showing, not hiding.
 UNZONED = "unzoned"
+
+#: Malaysia's clock. A fixed UTC+8 rather than a tz database lookup: the
+#: country has not observed daylight saving since 1982, and the slim image
+#: ships no tz database for `zoneinfo` to read. Used only to say what day it
+#: is for "days left" and "ready from".
+MALAYSIA = timezone(timedelta(hours=8))
 
 
 def _zone_key(order: Order) -> str:
@@ -118,13 +130,24 @@ def _whole_days(frm: datetime, to: datetime) -> int:
     return max(0, (_utc(to) - _utc(frm)).days)
 
 
+def _area_of(order: Order) -> tuple[str, str | None]:
+    """Which area groups this order's trip, and its postcode if it has one."""
+    if order.site_postcode:
+        return f"postcode:{order.site_postcode}", order.site_postcode
+    return _zone_key(order), None
+
+
+def _local_day(value: datetime) -> date:
+    return _utc(value).astimezone(MALAYSIA).date()
+
+
 def measurement_queue(
     session: Session,
     *,
     now: datetime,
     zone_labels: Mapping[str, dict[str, str]] | None = None,
 ) -> MeasurementQueueOut:
-    """Every order waiting for a site visit, grouped into trips.
+    """Every order waiting for a site visit, grouped into trips and areas.
 
     `zone_labels` maps a `delivery_zone_id` to its `{zh, en, ms}` label map,
     read from the active rate card's own `delivery_zones` -- injected rather
@@ -134,6 +157,7 @@ def measurement_queue(
     of a label, never a crash.
     """
     zone_labels = zone_labels or {}
+    today = _local_day(now)
     orders = list(
         session.scalars(
             select(Order)
@@ -142,18 +166,27 @@ def measurement_queue(
         )
     )
     if not orders:
-        return MeasurementQueueOut(groups=[], total_orders=0)
+        return MeasurementQueueOut()
 
     ids = [order.id for order in orders]
     counts = _line_counts(session, ids)
     booked = _booked_at(session, ids)
+    holds = _hold_ends(session, orders)
 
-    groups: dict[str, MeasurementGroup] = {}
+    ready: dict[str, MeasurementGroup] = {}
+    waiting: dict[str, MeasurementGroup] = {}
     for order in orders:
         zone_id = _zone_key(order)
+        area_key, postcode = _area_of(order)
         phone_key, from_phone = _trip_key(order)
-        key = f"{zone_id}:{phone_key}"
         total, unmeasured, pending = counts.get(order.id, (0, 0, 0))
+
+        hold_end = holds.get(phone_key) if from_phone else None
+        deadline = (
+            hold_end
+            if hold_end is not None
+            else twelve_months_from(_local_day(order.confirmed_at))
+        )
         job = MeasurementJob(
             order_id=order.id,
             order_no=order.order_no,
@@ -169,8 +202,14 @@ def measurement_queue(
             site_address_note=order.site_address_note,
             site_postcode=order.site_postcode,
             site_ready_from=order.site_ready_from,
+            deadline=deadline,
+            days_left=(deadline - today).days,
+            deadline_from_hold=hold_end is not None,
         )
 
+        not_yet = order.site_ready_from is not None and order.site_ready_from > today
+        groups = waiting if not_yet else ready
+        key = f"{area_key}:{phone_key}"
         group = groups.get(key)
         if group is None:
             groups[key] = MeasurementGroup(
@@ -186,6 +225,10 @@ def measurement_queue(
                 oldest_confirmed_at=_utc(order.confirmed_at),
                 waiting_days=job.waiting_days,
                 booked_count=1 if order.status == BOOKED_EVENT else 0,
+                area_key=area_key,
+                site_postcode=postcode,
+                deadline=deadline,
+                days_left=job.days_left,
             )
             continue
 
@@ -196,28 +239,71 @@ def measurement_queue(
         # beats showing a trip with no name on it.
         if group.customer_name is None:
             group.customer_name = order.customer_name
+        if deadline < group.deadline:
+            group.deadline = deadline
+            group.days_left = job.days_left
 
-    # A zone's position is driven by the longest-waiting order it holds
-    # (earliest `oldest_confirmed_at` == most overdue), never by zone id --
-    # otherwise route clustering could bury an urgent customer behind a zone
-    # that merely sorts earlier. Within a zone the existing oldest-first
-    # order is unchanged.
-    zone_urgency: dict[str, datetime] = {}
-    for g in groups.values():
-        zone = g.delivery_zone_id or UNZONED
-        current = zone_urgency.get(zone)
-        if current is None or g.oldest_confirmed_at < current:
-            zone_urgency[zone] = g.oldest_confirmed_at
+    for group in [*ready.values(), *waiting.values()]:
+        group.jobs.sort(key=lambda j: (j.deadline, j.confirmed_at))
+
+    # An area's position is its most urgent trip's deadline, never its key --
+    # so clustering by area can never bury an urgent customer behind an area
+    # that merely sorts earlier. Within the area, most urgent trip first.
+    area_deadline: dict[str, date] = {}
+    for g in ready.values():
+        current = area_deadline.get(g.area_key)
+        if current is None or g.deadline < current:
+            area_deadline[g.area_key] = g.deadline
 
     ordered = sorted(
-        groups.values(),
+        ready.values(),
         key=lambda g: (
-            zone_urgency[g.delivery_zone_id or UNZONED],
+            area_deadline[g.area_key],
+            g.area_key,
+            g.deadline,
             g.oldest_confirmed_at,
             g.key,
         ),
     )
-    return MeasurementQueueOut(groups=ordered, total_orders=len(orders))
+
+    def ready_on(g: MeasurementGroup) -> date:
+        return min(j.site_ready_from for j in g.jobs if j.site_ready_from)
+
+    not_ready = sorted(waiting.values(), key=lambda g: (ready_on(g), g.deadline, g.key))
+    return MeasurementQueueOut(
+        groups=ordered,
+        not_ready=not_ready,
+        total_orders=len(orders),
+        missing_postcode_count=sum(1 for o in orders if not o.site_postcode),
+    )
+
+
+def _hold_ends(session: Session, orders: list[Order]) -> dict[str, date]:
+    """The soonest active held-price expiry per customer, in one query.
+
+    Keyed on the same normalised phone a lock is. An order with no usable
+    phone cannot be matched to a hold, which is the same answer as having
+    none -- its deadline is the plain twelve-month window.
+    """
+    keys = {
+        key.value
+        for key in (
+            customer_key_for(phone=o.customer_phone, quote_id=o.quote_id)
+            for o in orders
+        )
+        if key.from_phone
+    }
+    if not keys:
+        return {}
+    rows = session.execute(
+        select(CategoryLock.customer_key, func.min(CategoryLock.held_until))
+        .where(
+            CategoryLock.status == "active",
+            CategoryLock.customer_key.in_(keys),
+        )
+        .group_by(CategoryLock.customer_key)
+    ).all()
+    return {key: _local_day(until) for key, until in rows if until is not None}
 
 
 def _line_counts(

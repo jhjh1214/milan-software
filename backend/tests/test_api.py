@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import uuid
 from collections.abc import Iterator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -1071,22 +1071,23 @@ class TestSiteAddressNote:
     ) -> None:
         order_id = self._an_order(client)
         token = sign_in(client, "staff")
+        # Relative to the real clock this route reads, so the test means the
+        # same thing whatever day it runs.
+        later = (datetime.now(UTC).date() + timedelta(days=60)).isoformat()
         r = client.patch(
             f"/api/orders/{order_id}/site-address",
-            json=site(site_postcode="75450", site_ready_from="2026-11-01"),
+            json=site(site_postcode="75450", site_ready_from=later),
             headers=auth(token),
         )
         assert r.status_code == 200, r.text
         assert r.json()["site_postcode"] == "75450"
-        assert r.json()["site_ready_from"] == "2026-11-01"
+        assert r.json()["site_ready_from"] == later
 
-        (job,) = client.get("/api/measurement-queue", headers=auth(token)).json()[
-            "groups"
-        ][0]["jobs"]
-        assert (job["site_postcode"], job["site_ready_from"]) == (
-            "75450",
-            "2026-11-01",
-        )
+        # Keys not handed over for two months: listed apart, not bookable yet.
+        queue = client.get("/api/measurement-queue", headers=auth(token)).json()
+        assert queue["groups"] == []
+        (job,) = queue["not_ready"][0]["jobs"]
+        assert (job["site_postcode"], job["site_ready_from"]) == ("75450", later)
 
     def test_an_omitted_field_is_refused_rather_than_cleared(
         self, client: TestClient
@@ -1118,7 +1119,7 @@ class TestSiteAddressNote:
             client,
             site_address_note="3 Jalan Bunga",
             site_postcode="75450",
-            site_ready_from="2027-01-15",
+            site_ready_from="2026-01-15",
         )
         (job,) = client.get(
             "/api/measurement-queue", headers=auth(sign_in(client, "staff"))
@@ -1127,7 +1128,7 @@ class TestSiteAddressNote:
             job["site_address_note"],
             job["site_postcode"],
             job["site_ready_from"],
-        ) == ("3 Jalan Bunga", "75450", "2027-01-15")
+        ) == ("3 Jalan Bunga", "75450", "2026-01-15")
 
 
 class TestSiteDetailsPush:
@@ -1140,7 +1141,7 @@ class TestSiteDetailsPush:
             "captured_at": datetime.now(UTC).isoformat(),
             "site_address_note": "3 Jalan Bunga",
             "site_postcode": "75450",
-            "site_ready_from": "2027-01-15",
+            "site_ready_from": "2026-01-15",
             **over,
         }
         return client.post("/api/orders/site", json=body, headers=auth(token))

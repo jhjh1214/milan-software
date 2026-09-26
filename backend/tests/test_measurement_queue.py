@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Iterator
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from sqlalchemy import create_engine
@@ -29,7 +29,8 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.api.schemas import OrderIn, OrderLineIn, StatusChangeIn
-from app.models.db import Base, Order
+from app.models.db import Base, CategoryLock, Order
+from app.pricing.customer_key import customer_key_for
 from app.services.ingest import advance_order_status, push_order
 from app.services.measurement_queue import measurement_queue
 
@@ -543,3 +544,184 @@ class TestWhatTheMeasurerNeedsToKnow:
 
             assert job.estimate_total_sen == 55200
             assert not hasattr(job, "rate_sen")
+
+
+def a_hold(session: Session, *, phone: str, until: datetime) -> None:
+    """A fair deposit's held price for this customer, expiring `until`."""
+    session.add(
+        CategoryLock(
+            id=str(uuid.uuid4()),
+            customer_key=customer_key_for(phone=phone, quote_id="q").value,
+            category="curtain",
+            held_rate_card_version=1,
+            held_until=until,
+            status="active",
+            opened_at=CONFIRMED,
+        )
+    )
+    session.flush()
+
+
+class TestDeadlines:
+    """Client, Sep 2026: book the most urgent order first. A held fair price
+    ending is urgent; so is a deposit nearing its twelve-month window."""
+
+    def test_with_no_hold_the_deadline_is_twelve_months_from_the_deposit(
+        self, db
+    ) -> None:
+        with db() as session:
+            an_order(session, customer_phone="0123456789")
+            session.commit()
+            (job,) = measurement_queue(session, now=NOW).groups[0].jobs
+            assert job.deadline == date(2027, 8, 10)
+            assert job.deadline_from_hold is False
+            # 31 Aug 2026 to 10 Aug 2027.
+            assert job.days_left == 344
+
+    def test_a_held_price_sets_the_deadline(self, db) -> None:
+        with db() as session:
+            an_order(session, customer_phone="0123456789")
+            a_hold(
+                session, phone="012-345 6789", until=datetime(2027, 3, 1, tzinfo=UTC)
+            )
+            session.commit()
+            (job,) = measurement_queue(session, now=NOW).groups[0].jobs
+            assert job.deadline == date(2027, 3, 1)
+            assert job.deadline_from_hold is True
+
+    def test_a_hold_ending_soon_outranks_an_older_deposit(self, db) -> None:
+        with db() as session:
+            an_order(session, customer_phone="0121111111", channel="showroom")
+            an_order(
+                session,
+                customer_phone="0122222222",
+                confirmed_at=CONFIRMED + timedelta(days=5),
+            )
+            a_hold(session, phone="0122222222", until=datetime(2026, 10, 1, tzinfo=UTC))
+            session.commit()
+            queue = measurement_queue(session, now=NOW)
+            assert [g.customer_phone for g in queue.groups] == [
+                "0122222222",
+                "0121111111",
+            ]
+
+    def test_days_left_goes_negative_once_the_deadline_has_passed(self, db) -> None:
+        with db() as session:
+            an_order(session, customer_phone="0123456789")
+            a_hold(session, phone="0123456789", until=datetime(2026, 8, 29, tzinfo=UTC))
+            session.commit()
+            (job,) = measurement_queue(session, now=NOW).groups[0].jobs
+            assert job.days_left == -2
+
+
+class TestAreas:
+    """One drive covers an area: trips group by postcode, the area holding
+    the most urgent order goes first, and the rest of it books the same day."""
+
+    def test_a_postcode_groups_orders_across_zones(self, db) -> None:
+        with db() as session:
+            an_order(
+                session,
+                customer_phone="0121111111",
+                delivery_zone_id="zone-a",
+                site_postcode="75450",
+            )
+            an_order(
+                session,
+                customer_phone="0122222222",
+                delivery_zone_id="zone-b",
+                site_postcode="75450",
+            )
+            session.commit()
+            queue = measurement_queue(session, now=NOW)
+            assert {g.area_key for g in queue.groups} == {"postcode:75450"}
+            assert all(g.site_postcode == "75450" for g in queue.groups)
+
+    def test_the_most_urgent_order_anchors_its_area_first(self, db) -> None:
+        # 75000 holds the oldest deposit, so its area leads -- and the newer
+        # order in 75000 comes along before anything in 75450, however old.
+        with db() as session:
+            an_order(
+                session,
+                customer_phone="0121111111",
+                site_postcode="75000",
+                confirmed_at=CONFIRMED,
+            )
+            an_order(
+                session,
+                customer_phone="0122222222",
+                site_postcode="75450",
+                confirmed_at=CONFIRMED + timedelta(days=1),
+            )
+            an_order(
+                session,
+                customer_phone="0123333333",
+                site_postcode="75000",
+                confirmed_at=CONFIRMED + timedelta(days=9),
+            )
+            session.commit()
+            queue = measurement_queue(session, now=NOW)
+            assert [(g.site_postcode, g.customer_phone) for g in queue.groups] == [
+                ("75000", "0121111111"),
+                ("75000", "0123333333"),
+                ("75450", "0122222222"),
+            ]
+
+    def test_an_order_with_no_postcode_is_still_in_the_queue(self, db) -> None:
+        with db() as session:
+            an_order(session, customer_phone="0121111111", delivery_zone_id="zone-a")
+            an_order(session, customer_phone="0122222222", site_postcode="75450")
+            session.commit()
+            queue = measurement_queue(session, now=NOW)
+            assert {g.area_key for g in queue.groups} == {"zone-a", "postcode:75450"}
+            assert queue.missing_postcode_count == 1
+
+
+class TestNotReadyYet:
+    """Keys not handed over: listed apart, and never the trip to call first."""
+
+    def test_a_future_ready_date_is_listed_apart(self, db) -> None:
+        with db() as session:
+            an_order(
+                session,
+                customer_phone="0121111111",
+                site_ready_from=date(2026, 12, 1),
+            )
+            an_order(session, customer_phone="0122222222")
+            session.commit()
+            queue = measurement_queue(session, now=NOW)
+            assert [g.customer_phone for g in queue.groups] == ["0122222222"]
+            assert [g.customer_phone for g in queue.not_ready] == ["0121111111"]
+            assert queue.total_orders == 2
+
+    def test_ready_today_is_ready(self, db) -> None:
+        with db() as session:
+            an_order(session, site_ready_from=date(2026, 8, 31))
+            session.commit()
+            queue = measurement_queue(session, now=NOW)
+            assert len(queue.groups) == 1 and queue.not_ready == []
+
+    def test_today_is_malaysias_day_not_utcs(self, db) -> None:
+        # 17:00 UTC on 31 Aug is 1am on 1 Sep in Melaka: a house ready from
+        # 1 Sep is ready.
+        with db() as session:
+            an_order(session, site_ready_from=date(2026, 9, 1))
+            session.commit()
+            late = datetime(2026, 8, 31, 17, 0, tzinfo=UTC)
+            queue = measurement_queue(session, now=late)
+            assert len(queue.groups) == 1 and queue.not_ready == []
+
+    def test_the_soonest_ready_is_listed_first(self, db) -> None:
+        with db() as session:
+            an_order(
+                session, customer_phone="0121111111", site_ready_from=date(2027, 2, 1)
+            )
+            an_order(
+                session, customer_phone="0122222222", site_ready_from=date(2026, 11, 1)
+            )
+            session.commit()
+            queue = measurement_queue(session, now=NOW)
+            assert [g.customer_phone for g in queue.not_ready] == [
+                "0122222222",
+                "0121111111",
+            ]

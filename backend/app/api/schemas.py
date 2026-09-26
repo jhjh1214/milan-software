@@ -936,6 +936,15 @@ class MeasurementJob(BaseModel):
     site_postcode: str | None = None
     #: The first day the house can be measured, or null for ready now.
     site_ready_from: date | None = None
+    #: The last day this order can be fulfilled on the customer's promise:
+    #: their held price's expiry if they hold one (a fair deposit, §6.1),
+    #: otherwise twelve months from the deposit -- the fulfilment window
+    #: every order carries (§3). What the queue is ordered by.
+    deadline: date
+    #: Whole days from today (Malaysia) to the deadline. Negative once passed.
+    days_left: int
+    #: True when the deadline is a held price's expiry, not the plain window.
+    deadline_from_hold: bool = False
 
 
 class MeasurementGroup(BaseModel):
@@ -971,15 +980,36 @@ class MeasurementGroup(BaseModel):
     #: How many of these already have a visit booked. A group where that is
     #: zero is the one nobody has called yet.
     booked_count: int
+    #: Which area this trip is in: ``postcode:75450`` when its orders carry a
+    #: postcode, otherwise its delivery zone id (or ``unzoned``), so an order
+    #: is never hidden while its address is still being collected.
+    area_key: str
+    #: The postcode the area is, or null for a zone-only area.
+    site_postcode: str | None = None
+    #: The soonest deadline among the trip's orders, and days to it.
+    deadline: date
+    days_left: int
 
 
 class MeasurementQueueOut(BaseModel):
-    """Everything waiting for a site visit, grouped into trips."""
+    """Everything waiting for a site visit, grouped into trips.
+
+    ``groups`` is what can be booked now, in the order to book it: areas
+    ordered by the most urgent order they hold, and within an area the
+    most urgent trip first. So the first trip is the one to call first, and
+    every other trip sharing its ``area_key`` is one to book for the same day
+    -- one drive covering them all.
+    """
 
     groups: list[MeasurementGroup] = []
-    #: Orders, not groups. "12 jobs across 9 trips" is the sentence the office
-    #: actually says.
+    #: Trips whose house cannot be measured yet (a future ``site_ready_from``),
+    #: soonest ready first. Never chosen to anchor a day.
+    not_ready: list[MeasurementGroup] = []
+    #: Orders, not groups -- both lists. "12 jobs across 9 trips" is the
+    #: sentence the office actually says.
     total_orders: int = 0
+    #: Orders with no postcode yet: the customers to phone for an address.
+    missing_postcode_count: int = 0
 
 
 class SalespersonVariance(BaseModel):
