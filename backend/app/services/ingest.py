@@ -1095,6 +1095,17 @@ def publish_card(
     return row
 
 
+def next_card_version(session: Session) -> int:
+    """The version a server-built card publishes at.
+
+    Global, not just "one more than this list's active version":
+    `rate_cards.version` is the sole primary key across both lineages, so a
+    number already used by the other list would collide.
+    """
+    existing_versions = session.scalars(select(RateCardVersion.version)).all()
+    return (max(existing_versions) if existing_versions else 0) + 1
+
+
 class NoSuchProduct(Exception):
     pass
 
@@ -1161,11 +1172,7 @@ def edit_product_price(
     if new_rule.get("provisional") and rate_sen > 0:
         new_rule["provisional"] = False
 
-    existing_versions = session.scalars(select(RateCardVersion.version)).all()
-    # A global next version, not just "one more than this list's active
-    # version": `rate_cards.version` is the sole primary key across both
-    # lineages, so a number already used by the other list would collide.
-    next_version = (max(existing_versions) if existing_versions else 0) + 1
+    next_version = next_card_version(session)
     payload["version"] = next_version
 
     publish_card(session, list_id=list_id, payload=payload, published_by=by_user_id)
