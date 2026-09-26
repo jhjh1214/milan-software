@@ -3064,6 +3064,36 @@ unlike approval's own lot picker. 7 new dashboard tests.
   Platform's Directions/Distance Matrix APIs) that needs the client's
   explicit sign-off before any of it is built — named here rather than
   guessed at, the same way SQL Account's own export (§10 E1/E2) is.
+
+  **Updated by the client, Sep 2026: postcode areas, the most urgent visit
+  first, and the rest of its area on the same drive.** Visits were booked one
+  appointment at a time, which sent somebody back and forth to the same area
+  all month. Now:
+
+  - **The address is captured at the deposit when the customer has it**
+    (street/taman, a five-digit postcode, and the first day the house can be
+    measured — keys handed over), and filled in later from the handset or the
+    dashboard when they do not. Never required to take a deposit (hard
+    rule 9). Both write paths stamp `site_captured_at`, and an older capture
+    is refused as stale, so a late outbox push cannot undo the office's edit.
+  - **Every waiting order has a deadline**: its customer's held-price expiry
+    if they hold one (§6.1), otherwise twelve months from the deposit — the
+    fulfilment window every order carries (§3). *Inferred, not stated by the
+    client:* the client asked for showroom orders to rank by days waiting,
+    and twelve months from the deposit orders them exactly that way while
+    letting a hold ending sooner outrank them. Change here if that
+    interleaving is wrong.
+  - **Trips group by postcode**, falling back to the delivery zone for an
+    order with no postcode yet, so nothing disappears while an address is
+    being collected. An area sorts by the nearest deadline inside it: the
+    first trip is the one to call, and every other trip in its area is booked
+    for the same drive.
+  - **A house not ready yet** (a future ready-from date) is listed apart,
+    soonest ready first, and never anchors a day.
+
+  Still not built, for the reason above: geocoding, distance-based routing,
+  or any paid maps API. Postcode grouping answers "which houses are near each
+  other" for free; turn-by-turn order within an area is the driver's call.
 - **C11.** **When does a balance actually fall due, and what is it aged
   from?** The outstanding-balances report ages every row from the **deposit**,
   because that is the only date the system knows: there is no invoice date, no

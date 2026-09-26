@@ -17,13 +17,36 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 expires together. The end is the card's promo `valid_to`; the anniversary of
 the day after is the last good day (SPEC.md §6.1 "When a hold ends").
 `hold_starts_on`/`holdStartsOn` on both engines, `lock_grant_cases` carry
-`fair_ends_on`. First of four agreed pieces: next are an admin fair-dates
-editor (today the dates change only by pasting a whole card's JSON), a
-structured **site** address plus optional `ready_from` date captured at
-deposit (never gating it), and a measurement queue grouped by postcode that
-anchors on the most urgent ready order and lists every other ready order in
-that postcode for the same trip — fair orders by days left on the hold,
-showroom orders by days since deposit.
+`fair_ends_on`.
+
+**All four agreed pieces are built** (Sep 2026):
+
+- **Fair dates are an admin edit** — `GET/POST /api/rate-cards/fair/dates`,
+  audited in `fair_dates_edits` (migration 0014), a new fair card version
+  per change. On the dashboard beside the fair price list, and on the
+  handset's rate card screen; both show when the fair's deposits stop
+  holding their price before saving. Staff see the dates, never the control.
+- **Staff can change one price on the handset** at the fair table, through
+  the same audited live route the dashboard uses, with a mandatory reason.
+  It used to republish a whole card built on the phone, admin-only, with no
+  record of who or why. The whole-list CSV stays admin-only.
+- **Site details** (`site_postcode`, `site_ready_from`, `site_captured_at`
+  on orders, migration 0015; Drift v16) — captured on the quote at the fair,
+  carried by the order push, filled in later from the order screen (its own
+  outbox push, `POST /api/orders/site`) or the dashboard queue. Stale
+  captures are refused both ways. The dashboard PATCH now requires every
+  field explicitly (§13 C14's absent-vs-null trap).
+- **The measurement queue books the most urgent visit first**, grouped by
+  postcode (zone fallback), with a Call first / Same drive marking, deadlines
+  (held-price expiry, else twelve months from deposit — the interleaving of
+  fair and showroom orders is an inference, flagged in §13 C10), and houses
+  not ready yet listed apart.
+
+**Found and fixed on the way:** a whole-card publish reusing a version the
+other list already held crashed on the primary key (500) — now a 409, and
+the handset's CSV publish takes one past either list's version. The
+handset's old price sheet never rendered its offline/read-only messages, and
+read the session synchronously, so one still loading read as signed out.
 
 **Two problems found doing it:**
 - **CI has not run since at least 16 Sep** — GitHub refuses to start jobs
