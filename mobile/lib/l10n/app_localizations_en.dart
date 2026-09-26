@@ -1496,4 +1496,51 @@ class LEn extends L {
   @override
   String get libNeedProjectAndName =>
       'Choose a project and name the unit type first.';
+
+  @override
+  String get ratesReason => 'Reason';
+
+  @override
+  String get ratesReasonHint => 'Recorded against you and read back in review.';
+
+  @override
+  String get ratesNoReason => 'Say why — a few words is enough.';
+
+  @override
+  String get ratesNoChange => 'That is already the price.';
+
+  @override
+  String get ratesRefused =>
+      'The office did not accept that change. Check for updates and try again.';
+
+  @override
+  String get fairDatesTitle => 'Fair dates';
+
+  @override
+  String get fairDatesNone => 'No fair dates are set.';
+
+  @override
+  String fairDatesHoldsUntil(String date) {
+    return 'Deposits taken at this fair hold their price until $date.';
+  }
+
+  @override
+  String get fairDatesChange => 'Change fair dates';
+
+  @override
+  String get fairDatesName => 'Fair name';
+
+  @override
+  String get fairDatesPick => 'Pick the first and last day';
+
+  @override
+  String get fairDatesNoName => 'Give the fair a name.';
+
+  @override
+  String get fairDatesNoChange => 'Those are already the dates.';
+
+  @override
+  String fairDatesSaved(int version) {
+    return 'Fair dates saved as version $version';
+  }
 }

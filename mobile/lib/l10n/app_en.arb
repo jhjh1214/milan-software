@@ -456,5 +456,19 @@
   "libSubmitting": "Sending...",
   "libSubmitted": "Sent. An admin will review it before it can be used in a quote.",
   "libSubmitAnother": "Submit another",
-  "libNeedProjectAndName": "Choose a project and name the unit type first."
+  "libNeedProjectAndName": "Choose a project and name the unit type first.",
+  "ratesReason": "Reason",
+  "ratesReasonHint": "Recorded against you and read back in review.",
+  "ratesNoReason": "Say why — a few words is enough.",
+  "ratesNoChange": "That is already the price.",
+  "ratesRefused": "The office did not accept that change. Check for updates and try again.",
+  "fairDatesTitle": "Fair dates",
+  "fairDatesNone": "No fair dates are set.",
+  "fairDatesHoldsUntil": "Deposits taken at this fair hold their price until {date}.",
+  "fairDatesChange": "Change fair dates",
+  "fairDatesName": "Fair name",
+  "fairDatesPick": "Pick the first and last day",
+  "fairDatesNoName": "Give the fair a name.",
+  "fairDatesNoChange": "Those are already the dates.",
+  "fairDatesSaved": "Fair dates saved as version {version}"
 }

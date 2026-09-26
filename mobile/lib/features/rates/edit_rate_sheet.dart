@@ -4,9 +4,15 @@
 /// says "night curtain goes up two ringgit from Monday" — the case where
 /// exporting a spreadsheet, opening Excel and importing it back is absurd.
 ///
-/// Both routes produce a [RateCardImport] and both show the same diff before
-/// anything is applied, so there is one set of rules about what a price may be
-/// rather than two that can drift apart.
+/// It is also the fair-table one: staff answering a competitor on a single
+/// item. So it goes through the server's live price route — staff or admin,
+/// a mandatory reason recorded against whoever made the change — rather than
+/// republishing a whole card built on this phone, which would leave no record
+/// of who moved the price or why. The server publishes the new version; this
+/// handset pulls it straight back.
+///
+/// The typed values are still read by [editSingleRate], the same parser the
+/// CSV route uses, so there is one set of rules about what a price may be.
 library;
 
 import 'package:flutter/material.dart';
@@ -15,14 +21,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/money.dart';
 import '../../l10n/app_localizations.dart';
 import '../../pricing/models.dart';
+import '../../pricing/price_edit.dart';
 import '../../pricing/rate_card_csv.dart';
 import '../../sync/api_client.dart';
 import '../../sync/sync_state.dart';
 import '../../ui/theme.dart';
 import '../quote/quote_state.dart';
 
-/// Lets the admin pick a product and change its rate. Returns true if a change
-/// was applied.
+/// Lets staff or an admin pick a product and change its rate. Returns true if
+/// a change was published.
 Future<bool> showEditRateSheet(
   BuildContext context,
   WidgetRef ref,
@@ -50,6 +57,8 @@ class _EditRateSheetState extends ConsumerState<_EditRateSheet> {
   final _search = TextEditingController();
   final _rate = TextEditingController();
   final _mvp = TextEditingController();
+  final _reason = TextEditingController();
+  bool _saving = false;
 
   PricingRule? _selected;
   List<String> _errors = const [];
@@ -59,6 +68,7 @@ class _EditRateSheetState extends ConsumerState<_EditRateSheet> {
     _search.dispose();
     _rate.dispose();
     _mvp.dispose();
+    _reason.dispose();
     super.dispose();
   }
 
@@ -188,6 +198,27 @@ class _EditRateSheetState extends ConsumerState<_EditRateSheet> {
                         : null,
                   ),
                 ),
+                const SizedBox(height: Space.md),
+                TextField(
+                  key: const Key('rate-reason'),
+                  controller: _reason,
+                  decoration: InputDecoration(
+                    labelText: l.ratesReason,
+                    helperText: l.ratesReasonHint,
+                    border: const OutlineInputBorder(),
+                    errorText: _errors.contains('reason')
+                        ? l.ratesNoReason
+                        : null,
+                  ),
+                ),
+                for (final message in _messages(l))
+                  Padding(
+                    padding: const EdgeInsets.only(top: Space.md),
+                    child: Text(
+                      message,
+                      style: AppText.caption.copyWith(color: AppColors.alarm),
+                    ),
+                  ),
                 const SizedBox(height: Space.lg),
                 Row(
                   children: [
@@ -203,7 +234,7 @@ class _EditRateSheetState extends ConsumerState<_EditRateSheet> {
                     const SizedBox(width: Space.md),
                     Expanded(
                       child: FilledButton(
-                        onPressed: () => _apply(selected),
+                        onPressed: _saving ? null : () => _apply(selected),
                         child: Text(l.save),
                       ),
                     ),
@@ -223,48 +254,77 @@ class _EditRateSheetState extends ConsumerState<_EditRateSheet> {
       rateText: _rate.text,
       mvpText: _mvp.text,
     );
-    if (import.hasErrors) {
-      setState(() => _errors = import.errors);
+    final reason = _reason.text.trim();
+
+    // The server's own refusals, answered here first so a fair-table edit
+    // gets an instant reply. The server still decides.
+    final errors = [
+      ...import.errors,
+      if (reason.length < minPriceEditReasonLength) 'reason',
+      if (!import.hasErrors && import.actualChanges.isEmpty) 'no_change',
+    ];
+    if (errors.isNotEmpty) {
+      setState(() => _errors = errors);
       return;
     }
-    if (import.actualChanges.isEmpty) {
-      if (mounted) Navigator.of(context).pop(false);
-      return;
-    }
+    final change = import.actualChanges.single;
 
-    // Edited against the list actually in force, so changing fair prices in
-    // August cannot quietly move showroom prices in November.
-    final store = ref.read(rateCardStoreProvider);
-    final list = (await ref.read(activeRateCardProvider.future)).list;
-    final json = applyRateCardImportToJson(await store.loadJson(list), import);
-
-    // Published, not saved. Since Phase 3 a price belongs to the office: the
-    // server takes the new version and every handset picks it up on its next
-    // sync. Saving it here instead would leave this phone quoting a number no
-    // other phone has.
-    final credentials = ref.read(credentialsProvider).valueOrNull;
+    // Published by the server, not saved here. Since Phase 3 a price belongs
+    // to the office; a number saved on this phone would be quoted by no other.
+    // Awaited, never read synchronously: a session still loading reads as
+    // null, and would tell a signed-in admin they may not change anything.
+    final credentials = await ref.read(credentialsProvider.future);
+    if (!mounted) return;
     if (credentials == null) {
-      setState(() => _errors = [L.of(context).ratesPublishOffline]);
+      setState(() => _errors = const ['forbidden']);
       return;
     }
 
+    setState(() {
+      _saving = true;
+      _errors = const [];
+    });
+
+    // Against the list actually in force, so changing fair prices in August
+    // cannot quietly move showroom prices in November.
+    final list = (await ref.read(activeRateCardProvider.future)).list;
     final result = await ref
         .read(apiClientProvider)
-        .publishCard(token: credentials.token, listId: list.id, payload: json);
+        .editProductPrice(
+          token: credentials.token,
+          listId: list.id,
+          ruleId: rule.id,
+          rateSen: change.newRateSen,
+          mvpRateSen: change.newMvpRateSen,
+          reason: reason,
+        );
     if (!mounted) return;
 
     if (result case SyncFailed(:final failure)) {
       setState(() {
+        _saving = false;
         _errors = [
-          failure == SyncFailure.offline
-              ? L.of(context).ratesPublishOffline
-              : L.of(context).ratesReadOnly,
+          switch (failure) {
+            SyncFailure.offline => 'offline',
+            SyncFailure.forbidden || SyncFailure.unauthenticated => 'forbidden',
+            SyncFailure.serverError => 'refused',
+          },
         ];
       });
       return;
     }
 
+    // Pull it straight back, so this handset quotes the published card rather
+    // than a local copy that happens to match it.
     await ref.read(syncProvider.notifier).syncNow();
     if (mounted) Navigator.of(context).pop(true);
   }
+
+  /// Whole-sheet messages, as opposed to the ones under a field.
+  List<String> _messages(L l) => [
+    if (_errors.contains('no_change')) l.ratesNoChange,
+    if (_errors.contains('offline')) l.ratesPublishOffline,
+    if (_errors.contains('forbidden')) l.ratesReadOnly,
+    if (_errors.contains('refused')) l.ratesRefused,
+  ];
 }

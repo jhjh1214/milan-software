@@ -456,5 +456,19 @@
   "libSubmitting": "Menghantar...",
   "libSubmitted": "Dihantar. Admin akan menyemaknya sebelum ia boleh digunakan dalam sebut harga.",
   "libSubmitAnother": "Hantar satu lagi",
-  "libNeedProjectAndName": "Pilih projek dan namakan jenis unit dahulu."
+  "libNeedProjectAndName": "Pilih projek dan namakan jenis unit dahulu.",
+  "ratesReason": "Sebab",
+  "ratesReasonHint": "Direkodkan atas nama anda dan disemak kemudian.",
+  "ratesNoReason": "Nyatakan sebab — beberapa perkataan sudah cukup.",
+  "ratesNoChange": "Itu memang harganya.",
+  "ratesRefused": "Pejabat tidak menerima perubahan itu. Semak kemas kini dan cuba lagi.",
+  "fairDatesTitle": "Tarikh pameran",
+  "fairDatesNone": "Tiada tarikh pameran ditetapkan.",
+  "fairDatesHoldsUntil": "Deposit yang diambil di pameran ini mengekalkan harga hingga {date}.",
+  "fairDatesChange": "Tukar tarikh pameran",
+  "fairDatesName": "Nama pameran",
+  "fairDatesPick": "Pilih hari pertama dan hari terakhir",
+  "fairDatesNoName": "Berikan nama pameran.",
+  "fairDatesNoChange": "Itu memang tarikhnya.",
+  "fairDatesSaved": "Tarikh pameran disimpan sebagai versi {version}"
 }

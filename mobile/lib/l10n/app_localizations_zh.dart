@@ -1442,4 +1442,50 @@ class LZh extends L {
 
   @override
   String get libNeedProjectAndName => '请先选择项目并填写户型名称。';
+
+  @override
+  String get ratesReason => '原因';
+
+  @override
+  String get ratesReasonHint => '会记录在你名下，复核时会查看。';
+
+  @override
+  String get ratesNoReason => '请说明原因，几个字就可以。';
+
+  @override
+  String get ratesNoChange => '价格已经是这样了。';
+
+  @override
+  String get ratesRefused => '公司没有接受这个更改。请先检查更新再试。';
+
+  @override
+  String get fairDatesTitle => '展会日期';
+
+  @override
+  String get fairDatesNone => '还没有设定展会日期。';
+
+  @override
+  String fairDatesHoldsUntil(String date) {
+    return '这次展会收的订金，价格保留到 $date。';
+  }
+
+  @override
+  String get fairDatesChange => '更改展会日期';
+
+  @override
+  String get fairDatesName => '展会名称';
+
+  @override
+  String get fairDatesPick => '选择第一天和最后一天';
+
+  @override
+  String get fairDatesNoName => '请填写展会名称。';
+
+  @override
+  String get fairDatesNoChange => '日期已经是这样了。';
+
+  @override
+  String fairDatesSaved(int version) {
+    return '展会日期已保存为第 $version 版';
+  }
 }

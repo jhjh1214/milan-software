@@ -110,6 +110,15 @@ class FakeServer {
   /// Set to have `POST /api/recognize` refuse, as it would on a bad image.
   bool rejectRecognize = false;
 
+  /// The body of the last live price edit / fair dates change, so a test can
+  /// assert the reason travelled with it.
+  Map<String, dynamic>? lastPriceEditBody;
+  Map<String, dynamic>? lastFairDatesBody;
+
+  /// Set to have the rate-card edit routes refuse, as the server does with a
+  /// 422 naming why.
+  String? refuseRateEditBecause;
+
   /// Set to have the lock endpoints refuse everything.
   bool rejectLocks = false;
 
@@ -452,6 +461,69 @@ class FakeServer {
       }, 201);
     }
 
+    // Both publish a new card at one past the highest version of EITHER list,
+    // the way the real server's single version sequence does.
+    if (path == '/api/rate-cards/fair/dates' && request.method == 'POST') {
+      final body = jsonDecode(request.body) as Map<String, dynamic>;
+      lastFairDatesBody = body;
+      if (refuseRateEditBecause case final reason?) {
+        return _json({'detail': reason}, 422);
+      }
+      final version = _nextVersion();
+      final fair = Map<String, dynamic>.from(cards['fair']!);
+      fair['version'] = version;
+      fair['promo'] = {
+        ...?(fair['promo'] as Map<String, dynamic>?),
+        'code': body['code'],
+        'valid_from': body['valid_from'],
+        'valid_to': body['valid_to'],
+      };
+      cards['fair'] = fair;
+      return _json({
+        'version': version,
+        'code': body['code'],
+        'valid_from': body['valid_from'],
+        'valid_to': body['valid_to'],
+      });
+    }
+
+    final priceEdit = RegExp(
+      r'^/api/rate-cards/(fair|standard)/products/([^/]+)/price$',
+    ).firstMatch(path);
+    if (priceEdit != null && request.method == 'POST') {
+      final body = jsonDecode(request.body) as Map<String, dynamic>;
+      lastPriceEditBody = body;
+      if (refuseRateEditBecause case final reason?) {
+        return _json({'detail': reason}, 422);
+      }
+      final listId = priceEdit.group(1)!;
+      final ruleId = Uri.decodeComponent(priceEdit.group(2)!);
+      final version = _nextVersion();
+      final card = Map<String, dynamic>.from(cards[listId]!);
+      card['version'] = version;
+      card['rules'] = [
+        for (final raw in card['rules'] as List<dynamic>)
+          if ((raw as Map<String, dynamic>)['id'] == ruleId)
+            {
+              ...raw,
+              'rate_sen': body['rate_sen'],
+              'mvp_rate_sen': body['mvp_rate_sen'],
+            }
+          else
+            raw,
+      ];
+      cards[listId] = card;
+      return _json({
+        'rule_id': ruleId,
+        'list_id': listId,
+        'version': version,
+        'rate_sen': body['rate_sen'],
+        'mvp_rate_sen': body['mvp_rate_sen'],
+        'edited_by': 'u1',
+        'at': '2026-08-29T10:00:00Z',
+      });
+    }
+
     if (path == '/api/recognize') {
       if (rejectRecognize) return _json({'detail': 'nope'}, 500);
       return _json({
@@ -465,6 +537,12 @@ class FakeServer {
 
     return _json({'detail': 'not found'}, 404);
   }
+
+  int _nextVersion() =>
+      cards.values
+          .map((c) => c['version'] as int)
+          .fold(0, (a, b) => a > b ? a : b) +
+      1;
 
   http.Response _json(Map<String, dynamic> body, [int status = 200]) =>
       http.Response.bytes(

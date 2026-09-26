@@ -91,6 +91,14 @@ final rateCardProvider = FutureProvider<RateCard>(
   (ref) async => (await ref.watch(activeRateCardProvider.future)).card,
 );
 
+/// The fair card itself, whichever list is in force — its promo window is
+/// when the fair runs. Rebuilds whenever the active card does, which is
+/// what a sync invalidates after pulling a new version of either list.
+final fairCardProvider = FutureProvider<RateCard>((ref) async {
+  await ref.watch(activeRateCardProvider.future);
+  return ref.watch(rateCardStoreProvider).load(PriceList.fair);
+});
+
 /// The RM10,000 figures in force, off the card. SPEC.md §10.3: config, not
 /// code, so a change reaches every handset by publishing a card.
 ///

@@ -562,5 +562,21 @@
   "libSubmitting": "正在发送……",
   "libSubmitted": "已发送，管理员审核后才能用于报价。",
   "libSubmitAnother": "再提交一笔",
-  "libNeedProjectAndName": "请先选择项目并填写户型名称。"
+  "libNeedProjectAndName": "请先选择项目并填写户型名称。",
+  "ratesReason": "原因",
+  "ratesReasonHint": "会记录在你名下，复核时会查看。",
+  "ratesNoReason": "请说明原因，几个字就可以。",
+  "ratesNoChange": "价格已经是这样了。",
+  "ratesRefused": "公司没有接受这个更改。请先检查更新再试。",
+  "fairDatesTitle": "展会日期",
+  "fairDatesNone": "还没有设定展会日期。",
+  "fairDatesHoldsUntil": "这次展会收的订金，价格保留到 {date}。",
+  "@fairDatesHoldsUntil": { "placeholders": { "date": { "type": "String" } } },
+  "fairDatesChange": "更改展会日期",
+  "fairDatesName": "展会名称",
+  "fairDatesPick": "选择第一天和最后一天",
+  "fairDatesNoName": "请填写展会名称。",
+  "fairDatesNoChange": "日期已经是这样了。",
+  "fairDatesSaved": "展会日期已保存为第 {version} 版",
+  "@fairDatesSaved": { "placeholders": { "version": { "type": "int" } } }
 }

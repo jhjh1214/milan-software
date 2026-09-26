@@ -46,6 +46,7 @@ import '../../ui/theme.dart';
 import '../quote/quote_state.dart';
 import '../sync/sync_screen.dart' show provenanceProvider;
 import 'edit_rate_sheet.dart';
+import 'fair_dates_sheet.dart';
 
 class RateCardScreen extends ConsumerStatefulWidget {
   const RateCardScreen({super.key});
@@ -65,6 +66,9 @@ class _RateCardScreenState extends ConsumerState<RateCardScreen> {
 
     final user = ref.watch(credentialsProvider).valueOrNull?.user;
     final mayPublish = user?.mayPublishRates ?? false;
+    final mayEditPrices = user?.mayEditPrices ?? false;
+    final mayEditFairDates = user?.mayEditFairDates ?? false;
+    final fairPromo = ref.watch(fairCardProvider).valueOrNull?.promo;
     final held = ref.watch(provenanceProvider).valueOrNull;
 
     return Scaffold(
@@ -100,8 +104,19 @@ class _RateCardScreenState extends ConsumerState<RateCardScreen> {
 
             const SizedBox(height: Space.lg),
             Text(
-              mayPublish ? l.ratesServerOwned : l.ratesReadOnly,
+              mayEditPrices ? l.ratesServerOwned : l.ratesReadOnly,
               style: AppText.caption,
+            ),
+
+            // When the fair runs. Everyone who quotes may see it; only an
+            // admin may move it, because it sets how long every deposit
+            // from that fair holds its price.
+            const SizedBox(height: Space.lg),
+            _FairDates(
+              promo: fairPromo,
+              onChange: mayEditFairDates && !_busy
+                  ? () => _changeFairDates(fairPromo)
+                  : null,
             ),
 
             const SizedBox(height: Space.xl),
@@ -111,19 +126,22 @@ class _RateCardScreenState extends ConsumerState<RateCardScreen> {
               label: Text(l.ratesCheckUpdates),
             ),
 
-            if (mayPublish) ...[
+            // The one-off adjustment, and the fair-table one: staff answering
+            // a competitor on one item. Audited on the server with a reason.
+            if (mayEditPrices) ...[
               const SizedBox(height: Space.xxl),
-
-              // The one-off adjustment. Exporting a spreadsheet to change a
-              // single number would be absurd, so this is the direct path.
               FilledButton.icon(
+                key: const Key('edit-one-price'),
                 onPressed: _busy ? null : () => _editOne(card),
                 icon: const Icon(Icons.edit_outlined),
                 label: Text(l.ratesEditOne),
               ),
+            ],
+
+            if (mayPublish) ...[
               const SizedBox(height: Space.xl),
 
-              // The whole-list revision.
+              // The whole-list revision. Admin only.
               OutlinedButton.icon(
                 onPressed: _busy ? null : () => _export(card),
                 icon: const Icon(Icons.table_view_outlined),
@@ -190,6 +208,16 @@ class _RateCardScreenState extends ConsumerState<RateCardScreen> {
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(l.ratesApplied(updated.version))));
+  }
+
+  Future<void> _changeFairDates(CardPromo? current) async {
+    final l = L.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final version = await showFairDatesSheet(context, current: current);
+    if (version == null || !mounted) return;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(l.fairDatesSaved(version))));
   }
 
   Future<void> _export(RateCard card) async {
@@ -293,6 +321,61 @@ class _RateCardScreenState extends ConsumerState<RateCardScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+}
+
+/// When the fair runs, and when its deposits stop holding their price.
+class _FairDates extends StatelessWidget {
+  final CardPromo? promo;
+
+  /// Null when this person may not change the dates.
+  final VoidCallback? onChange;
+
+  const _FairDates({required this.promo, required this.onChange});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = L.of(context);
+    final promo = this.promo;
+
+    return Container(
+      padding: const EdgeInsets.all(Space.md),
+      decoration: BoxDecoration(
+        color: AppColors.muted,
+        borderRadius: BorderRadius.circular(Radii.sm),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l.fairDatesTitle, style: AppText.bodyStrong),
+          const SizedBox(height: Space.xs),
+          if (promo == null)
+            Text(l.fairDatesNone, style: AppText.caption)
+          else ...[
+            Text(
+              '${promo.code} · '
+              '${formatDate(promo.validFrom)} – ${formatDate(promo.validTo)}',
+              style: AppText.body,
+            ),
+            Text(
+              l.fairDatesHoldsUntil(
+                formatDate(holdEndsForFairEnding(promo.validTo)),
+              ),
+              style: AppText.caption,
+            ),
+          ],
+          if (onChange != null) ...[
+            const SizedBox(height: Space.sm),
+            OutlinedButton.icon(
+              key: const Key('change-fair-dates'),
+              onPressed: onChange,
+              icon: const Icon(Icons.event_outlined),
+              label: Text(l.fairDatesChange),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
 

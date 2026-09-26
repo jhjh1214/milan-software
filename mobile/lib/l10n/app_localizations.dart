@@ -2635,6 +2635,90 @@ abstract class L {
   /// In zh, this message translates to:
   /// **'请先选择项目并填写户型名称。'**
   String get libNeedProjectAndName;
+
+  /// No description provided for @ratesReason.
+  ///
+  /// In zh, this message translates to:
+  /// **'原因'**
+  String get ratesReason;
+
+  /// No description provided for @ratesReasonHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'会记录在你名下，复核时会查看。'**
+  String get ratesReasonHint;
+
+  /// No description provided for @ratesNoReason.
+  ///
+  /// In zh, this message translates to:
+  /// **'请说明原因，几个字就可以。'**
+  String get ratesNoReason;
+
+  /// No description provided for @ratesNoChange.
+  ///
+  /// In zh, this message translates to:
+  /// **'价格已经是这样了。'**
+  String get ratesNoChange;
+
+  /// No description provided for @ratesRefused.
+  ///
+  /// In zh, this message translates to:
+  /// **'公司没有接受这个更改。请先检查更新再试。'**
+  String get ratesRefused;
+
+  /// No description provided for @fairDatesTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'展会日期'**
+  String get fairDatesTitle;
+
+  /// No description provided for @fairDatesNone.
+  ///
+  /// In zh, this message translates to:
+  /// **'还没有设定展会日期。'**
+  String get fairDatesNone;
+
+  /// No description provided for @fairDatesHoldsUntil.
+  ///
+  /// In zh, this message translates to:
+  /// **'这次展会收的订金，价格保留到 {date}。'**
+  String fairDatesHoldsUntil(String date);
+
+  /// No description provided for @fairDatesChange.
+  ///
+  /// In zh, this message translates to:
+  /// **'更改展会日期'**
+  String get fairDatesChange;
+
+  /// No description provided for @fairDatesName.
+  ///
+  /// In zh, this message translates to:
+  /// **'展会名称'**
+  String get fairDatesName;
+
+  /// No description provided for @fairDatesPick.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择第一天和最后一天'**
+  String get fairDatesPick;
+
+  /// No description provided for @fairDatesNoName.
+  ///
+  /// In zh, this message translates to:
+  /// **'请填写展会名称。'**
+  String get fairDatesNoName;
+
+  /// No description provided for @fairDatesNoChange.
+  ///
+  /// In zh, this message translates to:
+  /// **'日期已经是这样了。'**
+  String get fairDatesNoChange;
+
+  /// No description provided for @fairDatesSaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'展会日期已保存为第 {version} 版'**
+  String fairDatesSaved(int version);
 }
 
 class _LDelegate extends LocalizationsDelegate<L> {

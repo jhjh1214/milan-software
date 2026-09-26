@@ -232,7 +232,9 @@ RateCardImport editSingleRate({
   int? mvpSen;
   if (mvpText.trim().isNotEmpty) {
     mvpSen = _money(mvpText);
-    if (mvpSen == null) {
+    if (mvpSen == null || mvpSen <= 0) {
+      // Zero is refused for the same reason as the rate above -- and the
+      // server's live edit refuses it too. Blank is how to say "no MVP rate".
       errors.add('mvp');
     } else if (rateSen != null && mvpSen > rateSen) {
       errors.add('mvp_above_rate');

@@ -104,6 +104,15 @@ class Identity {
   /// three.
   bool get maySeeRates => role == 'admin' || role == 'staff';
   bool get mayPublishRates => role == 'admin';
+
+  /// One product's price, moved live -- staff too, because at a fair it is
+  /// staff at the table answering a competitor. Every change carries a
+  /// reason recorded against them on the server.
+  bool get mayEditPrices => role == 'admin' || role == 'staff';
+
+  /// When the fair runs. It decides how long every deposit from that fair
+  /// holds its price (SPEC.md §6.1), so it is the admin's call alone.
+  bool get mayEditFairDates => role == 'admin';
 }
 
 /// A signed-in session: the token, and who it belongs to.
@@ -990,6 +999,53 @@ class ApiClient {
     (json) => json,
   );
 
+  /// Changes one product's live price. Staff or admin, mandatory reason,
+  /// audited on the server; publishes a new card version with only this
+  /// product changed. `mvpRateSen` is always sent -- null clears it.
+  Future<SyncResult<Map<String, dynamic>>> editProductPrice({
+    required String token,
+    required String listId,
+    required String ruleId,
+    required int rateSen,
+    required int? mvpRateSen,
+    required String reason,
+  }) => _send(
+    () => _http.post(
+      _url(
+        '/api/rate-cards/$listId/products/${Uri.encodeComponent(ruleId)}/price',
+      ),
+      headers: _headers(token),
+      body: jsonEncode({
+        'rate_sen': rateSen,
+        'mvp_rate_sen': mvpRateSen,
+        'reason': reason,
+      }),
+    ),
+    (json) => json,
+  );
+
+  /// Sets when the fair runs. Admin only, mandatory reason; publishes a new
+  /// fair card version. Dates travel as `YYYY-MM-DD`.
+  Future<SyncResult<Map<String, dynamic>>> setFairDates({
+    required String token,
+    required String code,
+    required DateTime validFrom,
+    required DateTime validTo,
+    required String reason,
+  }) => _send(
+    () => _http.post(
+      _url('/api/rate-cards/fair/dates'),
+      headers: _headers(token),
+      body: jsonEncode({
+        'code': code,
+        'valid_from': isoDay(validFrom),
+        'valid_to': isoDay(validTo),
+        'reason': reason,
+      }),
+    ),
+    (json) => json,
+  );
+
   /// Ends this handset's session on the server.
   Future<SyncResult<Map<String, dynamic>>> logout(String token) => _send(
     () => _http.post(_url('/api/auth/logout'), headers: _headers(token)),
@@ -997,3 +1053,10 @@ class ApiClient {
     (json) => json,
   );
 }
+
+/// A calendar day as `YYYY-MM-DD`, from its own fields -- never through an
+/// instant, which would shift a day across a timezone.
+String isoDay(DateTime day) =>
+    '${day.year.toString().padLeft(4, '0')}-'
+    '${day.month.toString().padLeft(2, '0')}-'
+    '${day.day.toString().padLeft(2, '0')}';

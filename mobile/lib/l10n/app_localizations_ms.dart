@@ -1497,4 +1497,53 @@ class LMs extends L {
   @override
   String get libNeedProjectAndName =>
       'Pilih projek dan namakan jenis unit dahulu.';
+
+  @override
+  String get ratesReason => 'Sebab';
+
+  @override
+  String get ratesReasonHint =>
+      'Direkodkan atas nama anda dan disemak kemudian.';
+
+  @override
+  String get ratesNoReason =>
+      'Nyatakan sebab — beberapa perkataan sudah cukup.';
+
+  @override
+  String get ratesNoChange => 'Itu memang harganya.';
+
+  @override
+  String get ratesRefused =>
+      'Pejabat tidak menerima perubahan itu. Semak kemas kini dan cuba lagi.';
+
+  @override
+  String get fairDatesTitle => 'Tarikh pameran';
+
+  @override
+  String get fairDatesNone => 'Tiada tarikh pameran ditetapkan.';
+
+  @override
+  String fairDatesHoldsUntil(String date) {
+    return 'Deposit yang diambil di pameran ini mengekalkan harga hingga $date.';
+  }
+
+  @override
+  String get fairDatesChange => 'Tukar tarikh pameran';
+
+  @override
+  String get fairDatesName => 'Nama pameran';
+
+  @override
+  String get fairDatesPick => 'Pilih hari pertama dan hari terakhir';
+
+  @override
+  String get fairDatesNoName => 'Berikan nama pameran.';
+
+  @override
+  String get fairDatesNoChange => 'Itu memang tarikhnya.';
+
+  @override
+  String fairDatesSaved(int version) {
+    return 'Tarikh pameran disimpan sebagai versi $version';
+  }
 }
