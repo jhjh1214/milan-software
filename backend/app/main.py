@@ -118,6 +118,8 @@ from .api.schemas import (
     SetPinIn,
     SiteAddressIn,
     SiteAddressOut,
+    SiteDetailsIn,
+    SiteDetailsResult,
     StatusChangeIn,
     StatusChangeResult,
     StockLotOut,
@@ -191,7 +193,8 @@ from .services.ingest import (
     push_order,
     push_payment,
     push_quote,
-    set_site_address_note,
+    push_site_details,
+    set_site_address,
 )
 from .services.inventory import (
     DuplicateMaterialCode,
@@ -987,18 +990,46 @@ def set_site_address_route(
     order_id: str, payload: SiteAddressIn, session: SessionDep, who: StaffOrAdminDep
 ) -> SiteAddressOut:
     """Staff typing in where a visit actually is, from the measurement queue.
-    SPEC.md §13 C10's write-up.
+    SPEC.md §13 C10.
 
-    Free text, not a real address record -- no postcode, no geocoding, just
-    enough for the dashboard's Navigate link to open a free Google Maps
-    search. Plain replace: only the dashboard ever writes this, so there is
-    no merge or staleness concern the way a device-captured buyer address has.
+    The street/taman line (enough for the Navigate link's free Google Maps
+    search), the postcode that groups a day's trips, and the first day the
+    house can be measured. All three replace together, and the edit is
+    stamped so a handset's older capture cannot undo it on arrival.
     """
     _ = who
-    order = set_site_address_note(session, order_id, payload.site_address_note)
+    order = set_site_address(
+        session,
+        order_id,
+        note=payload.site_address_note,
+        postcode=payload.site_postcode,
+        ready_from=payload.site_ready_from,
+        at=datetime.now(UTC),
+    )
     if order is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "no such order")
-    return SiteAddressOut(order_id=order.id, site_address_note=order.site_address_note)
+    return SiteAddressOut(
+        order_id=order.id,
+        site_address_note=order.site_address_note,
+        site_postcode=order.site_postcode,
+        site_ready_from=order.site_ready_from,
+    )
+
+
+@app.post("/api/orders/site", response_model=SiteDetailsResult)
+def push_site_details_route(
+    payload: SiteDetailsIn, session: SessionDep, who: CurrentDep
+) -> SiteDetailsResult:
+    """A handset's site details for an order, after confirmation. §13 C10.
+
+    Its own push, like buyer details: the order went up once, at the fair,
+    and an address the customer did not have then is filled in later. Any
+    signed-in user -- a part-timer who took the deposit is exactly who gets
+    the WhatsApp with the address. A push older than what is stored is
+    refused as stale (200), because the office edits the same fields.
+    """
+    _ = who
+    return push_site_details(session, payload)
 
 
 @app.get("/api/overrides", response_model=OverridesOut)

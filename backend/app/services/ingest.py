@@ -39,6 +39,8 @@ from ..api.schemas import (
     PaymentResult,
     PushResult,
     QuoteIn,
+    SiteDetailsIn,
+    SiteDetailsResult,
     StatusChangeIn,
     StatusChangeResult,
 )
@@ -412,6 +414,18 @@ def push_order(
             customer_phone=payload.customer_phone,
             delivery_zone_id=payload.delivery_zone_id,
             delivery_charge_sen=payload.delivery_charge_sen,
+            site_address_note=_trimmed_or_none(payload.site_address_note),
+            site_postcode=payload.site_postcode,
+            site_ready_from=payload.site_ready_from,
+            # Stamped only when something was captured, so a later push of
+            # a real address is never refused against an empty record.
+            site_captured_at=(
+                payload.confirmed_at
+                if payload.site_address_note
+                or payload.site_postcode
+                or payload.site_ready_from
+                else None
+            ),
             status=status.value,
             estimate_total_sen=payload.estimate_total_sen,
             deposit_paid_sen=payload.deposit_paid_sen,
@@ -652,29 +666,65 @@ def _merged(current: str | None, incoming: str | None) -> str | None:
     return trimmed or None
 
 
-def set_site_address_note(
-    session: Session, order_id: str, note: str | None
-) -> Order | None:
-    """Staff typing in where a site visit actually is, from whatever they
-    already have -- a fair form, a WhatsApp message. Free text, not a real
-    address record: no postcode, no geocoding, just enough to open a free
-    Google Maps search link (§13 C10's write-up) before the visit.
+def _trimmed_or_none(text: str | None) -> str | None:
+    return (text or "").strip() or None
 
-    Plain replace, unlike ``push_buyer_details``: only the dashboard ever
-    writes this field, so there is no offline handset racing another one and
-    nothing to merge or stale-check.
+
+def set_site_address(
+    session: Session,
+    order_id: str,
+    *,
+    note: str | None,
+    postcode: str | None,
+    ready_from: date | None,
+    at: datetime,
+) -> Order | None:
+    """The office setting where a visit is, from the measurement queue.
+
+    Replaces all three fields together -- the form always carries all three
+    -- and stamps ``site_captured_at`` so a handset push captured before this
+    edit is refused as stale rather than undoing it.
 
     Returns ``None`` for an unknown order -- the route turns that into a 404,
-    the ordinary REST answer, rather than the buyer-details endpoint's
-    refused-as-200 (that shape exists because an outbox retries a push; a
-    dashboard PATCH to a stale order id is just a bug worth surfacing loudly).
+    the ordinary REST answer, rather than the device push's refused-as-200
+    (that shape exists because an outbox retries a push; a dashboard PATCH to
+    a stale order id is just a bug worth surfacing loudly).
     """
     order = session.get(Order, order_id)
     if order is None:
         return None
-    order.site_address_note = (note or "").strip() or None
+    order.site_address_note = _trimmed_or_none(note)
+    order.site_postcode = postcode
+    order.site_ready_from = ready_from
+    order.site_captured_at = at
     session.flush()
     return order
+
+
+def push_site_details(session: Session, payload: SiteDetailsIn) -> SiteDetailsResult:
+    """A handset's site details for an order, captured after confirmation.
+
+    Idempotent and safe to retry: the same payload twice reaches the same row.
+    A push captured before what is stored is refused as ``stale`` -- the
+    office may have typed a newer address from the dashboard, and an outbox
+    delivering late must not undo it.
+    """
+    order = session.get(Order, payload.order_id)
+    if order is None:
+        return SiteDetailsResult(
+            order_id=payload.order_id, refused_because="unknown_order"
+        )
+
+    stored_at = order.site_captured_at
+    if stored_at is not None and payload.captured_at < _as_utc(stored_at):
+        return SiteDetailsResult(order_id=order.id, refused_because="stale")
+
+    order.site_address_note = _trimmed_or_none(payload.site_address_note)
+    order.site_postcode = payload.site_postcode
+    order.site_ready_from = payload.site_ready_from
+    order.site_captured_at = payload.captured_at
+    session.flush()
+    return SiteDetailsResult(order_id=order.id)
 
 
 def push_buyer_details(session: Session, payload: BuyerDetailsIn) -> BuyerDetailsResult:

@@ -12,6 +12,9 @@ from pydantic import BaseModel, Field
 
 from ..pricing.price_override import MIN_REASON_LENGTH
 
+#: A Malaysian postcode: exactly five digits.
+POSTCODE_PATTERN = r"^\d{5}$"
+
 
 class QuoteLineIn(BaseModel):
     id: str = Field(min_length=36, max_length=36)
@@ -342,6 +345,11 @@ class OrderIn(BaseModel):
     customer_name: str | None = Field(default=None, max_length=120)
     customer_phone: str | None = Field(default=None, max_length=40)
     delivery_zone_id: str | None = Field(default=None, max_length=64)
+    #: Where the visit is, if the customer had it at the fair. All optional:
+    #: a deposit is never held up for an address (hard rule 9).
+    site_address_note: str | None = Field(default=None, max_length=240)
+    site_postcode: str | None = Field(default=None, pattern=POSTCODE_PATTERN)
+    site_ready_from: date | None = None
     delivery_charge_sen: int = Field(default=0, ge=0)
 
     status: str = "confirmed"
@@ -838,17 +846,51 @@ class SetPinIn(BaseModel):
 
 
 class SiteAddressIn(BaseModel):
-    """A free-text note, not a real address record -- no postcode, no
-    geocoding. Empty or omitted clears it; there is no merge semantics here
-    the way a device-captured buyer address has, because only the dashboard
-    ever writes this field."""
+    """Where a visit is, typed in by the office from the measurement queue.
 
-    site_address_note: str | None = Field(default=None, max_length=240)
+    The street/taman line, the postcode that groups a day's trips (§13 C10),
+    and the first day the house can be measured. **Every field is required
+    in the body**, `null` sent explicitly to clear one: the whole form is
+    always submitted together, and a default would let a caller that meant
+    to touch only the address silently clear a postcode -- the absent-vs-null
+    trap §13 C14 names.
+    """
+
+    site_address_note: str | None = Field(max_length=240)
+    site_postcode: str | None = Field(pattern=POSTCODE_PATTERN)
+    site_ready_from: date | None
 
 
 class SiteAddressOut(BaseModel):
     order_id: str
     site_address_note: str | None
+    site_postcode: str | None
+    site_ready_from: date | None
+
+
+class SiteDetailsIn(BaseModel):
+    """The same site details, pushed from a handset after confirmation.
+
+    Its own push, like buyer details: an order is pushed once at
+    confirmation, and an address the customer did not have at the fair is
+    filled in later. The whole record travels together and REPLACES what is
+    stored -- one form edits all three -- but a push captured before the
+    stored one is refused as ``stale``, because the office's dashboard edits
+    the same fields.
+    """
+
+    order_id: str = Field(min_length=36, max_length=36)
+    captured_at: datetime
+    site_address_note: str | None = Field(max_length=240)
+    site_postcode: str | None = Field(pattern=POSTCODE_PATTERN)
+    site_ready_from: date | None
+
+
+class SiteDetailsResult(BaseModel):
+    order_id: str
+    #: ``unknown_order`` if the order push has not landed; ``stale`` if a
+    #: newer capture is already stored. Null when written.
+    refused_because: str | None = None
 
 
 class DeactivateOut(BaseModel):
@@ -890,6 +932,10 @@ class MeasurementJob(BaseModel):
     #: open a free Google Maps search link before the visit. Null until
     #: somebody enters one for this order.
     site_address_note: str | None = None
+    #: Five digits, or null until somebody has it. What groups a day's trips.
+    site_postcode: str | None = None
+    #: The first day the house can be measured, or null for ready now.
+    site_ready_from: date | None = None
 
 
 class MeasurementGroup(BaseModel):

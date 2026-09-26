@@ -963,9 +963,21 @@ class TestTheMeasurementQueue:
         assert r.headers["WWW-Authenticate"] == "Bearer"
 
 
+def site(note: str | None = "12 Jalan Melati, Taman Melati", **over) -> dict:
+    """The whole site form, as the dashboard always sends it: every field
+    present, null to clear."""
+    return {
+        "site_address_note": note,
+        "site_postcode": None,
+        "site_ready_from": None,
+        **over,
+    }
+
+
 class TestSiteAddressNote:
-    """SPEC.md §13 C10's write-up: a free-text note, typed in by staff, so
-    the measurement queue can offer a free Google Maps link before a visit."""
+    """SPEC.md §13 C10: where a visit is -- the street/taman line, the
+    postcode that groups a day's trips, and when the house can be measured --
+    typed in by staff from the measurement queue."""
 
     def _an_order(self, client: TestClient, **over) -> str:
         order_id = str(uuid.uuid4())
@@ -1008,7 +1020,7 @@ class TestSiteAddressNote:
 
         r = client.patch(
             f"/api/orders/{order_id}/site-address",
-            json={"site_address_note": "12 Jalan Melati, Taman Melati"},
+            json=site(),
             headers=auth(token),
         )
         assert r.status_code == 200, r.text
@@ -1020,7 +1032,7 @@ class TestSiteAddressNote:
 
         cleared = client.patch(
             f"/api/orders/{order_id}/site-address",
-            json={"site_address_note": ""},
+            json=site(""),
             headers=auth(token),
         )
         assert cleared.json()["site_address_note"] is None
@@ -1031,7 +1043,7 @@ class TestSiteAddressNote:
 
         r = client.patch(
             f"/api/orders/{order_id}/site-address",
-            json={"site_address_note": "12 Jalan Melati"},
+            json=site("12 Jalan Melati"),
             headers=auth(token),
         )
         assert r.status_code == 403
@@ -1041,7 +1053,7 @@ class TestSiteAddressNote:
 
         r = client.patch(
             f"/api/orders/{uuid.uuid4()}/site-address",
-            json={"site_address_note": "12 Jalan Melati"},
+            json=site("12 Jalan Melati"),
             headers=auth(token),
         )
         assert r.status_code == 404
@@ -1050,9 +1062,137 @@ class TestSiteAddressNote:
         order_id = self._an_order(client)
         r = client.patch(
             f"/api/orders/{order_id}/site-address",
-            json={"site_address_note": "12 Jalan Melati"},
+            json=site("12 Jalan Melati"),
         )
         assert r.status_code == 401
+
+    def test_the_postcode_and_ready_date_reach_the_queue(
+        self, client: TestClient
+    ) -> None:
+        order_id = self._an_order(client)
+        token = sign_in(client, "staff")
+        r = client.patch(
+            f"/api/orders/{order_id}/site-address",
+            json=site(site_postcode="75450", site_ready_from="2026-11-01"),
+            headers=auth(token),
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["site_postcode"] == "75450"
+        assert r.json()["site_ready_from"] == "2026-11-01"
+
+        (job,) = client.get("/api/measurement-queue", headers=auth(token)).json()[
+            "groups"
+        ][0]["jobs"]
+        assert (job["site_postcode"], job["site_ready_from"]) == (
+            "75450",
+            "2026-11-01",
+        )
+
+    def test_an_omitted_field_is_refused_rather_than_cleared(
+        self, client: TestClient
+    ) -> None:
+        # The absent-vs-null trap (§13 C14): a caller that meant to touch only
+        # the address must not silently wipe a postcode somebody collected.
+        order_id = self._an_order(client)
+        r = client.patch(
+            f"/api/orders/{order_id}/site-address",
+            json={"site_address_note": "12 Jalan Melati"},
+            headers=auth(sign_in(client, "staff")),
+        )
+        assert r.status_code == 422
+
+    @pytest.mark.parametrize("bad", ["7545", "754500", "7545A", " 75450"])
+    def test_a_postcode_is_five_digits(self, client: TestClient, bad: str) -> None:
+        order_id = self._an_order(client)
+        r = client.patch(
+            f"/api/orders/{order_id}/site-address",
+            json=site(site_postcode=bad),
+            headers=auth(sign_in(client, "staff")),
+        )
+        assert r.status_code == 422
+
+    def test_an_address_taken_at_the_fair_arrives_with_the_order(
+        self, client: TestClient
+    ) -> None:
+        self._an_order(
+            client,
+            site_address_note="3 Jalan Bunga",
+            site_postcode="75450",
+            site_ready_from="2027-01-15",
+        )
+        (job,) = client.get(
+            "/api/measurement-queue", headers=auth(sign_in(client, "staff"))
+        ).json()["groups"][0]["jobs"]
+        assert (
+            job["site_address_note"],
+            job["site_postcode"],
+            job["site_ready_from"],
+        ) == ("3 Jalan Bunga", "75450", "2027-01-15")
+
+
+class TestSiteDetailsPush:
+    """A handset filling in where a visit is after the order went up: the
+    customer did not have the address at the fair and WhatsApps it later."""
+
+    def _push(self, client: TestClient, token: str, **over):
+        body = {
+            "order_id": over.pop("order_id"),
+            "captured_at": datetime.now(UTC).isoformat(),
+            "site_address_note": "3 Jalan Bunga",
+            "site_postcode": "75450",
+            "site_ready_from": "2027-01-15",
+            **over,
+        }
+        return client.post("/api/orders/site", json=body, headers=auth(token))
+
+    def test_a_part_timer_can_fill_it_in(self, client: TestClient) -> None:
+        order_id = TestSiteAddressNote()._an_order(client)
+        r = self._push(client, sign_in(client, "parttime"), order_id=order_id)
+        assert r.status_code == 200, r.text
+        assert r.json() == {"order_id": order_id, "refused_because": None}
+
+        (job,) = client.get(
+            "/api/measurement-queue", headers=auth(sign_in(client, "staff"))
+        ).json()["groups"][0]["jobs"]
+        assert job["site_postcode"] == "75450"
+
+    def test_an_older_capture_cannot_undo_the_offices_edit(
+        self, client: TestClient
+    ) -> None:
+        order_id = TestSiteAddressNote()._an_order(client)
+        captured_earlier = datetime.now(UTC).isoformat()
+        client.patch(
+            f"/api/orders/{order_id}/site-address",
+            json=site("Office typed this", site_postcode="75000"),
+            headers=auth(sign_in(client, "staff")),
+        )
+
+        r = self._push(
+            client,
+            sign_in(client, "parttime"),
+            order_id=order_id,
+            captured_at=captured_earlier,
+        )
+        assert r.json()["refused_because"] == "stale"
+        (job,) = client.get(
+            "/api/measurement-queue", headers=auth(sign_in(client, "staff"))
+        ).json()["groups"][0]["jobs"]
+        assert job["site_postcode"] == "75000"
+
+    def test_an_order_not_yet_pushed_is_named(self, client: TestClient) -> None:
+        r = self._push(client, sign_in(client, "parttime"), order_id=str(uuid.uuid4()))
+        assert r.status_code == 200
+        assert r.json()["refused_because"] == "unknown_order"
+
+    def test_a_bad_postcode_is_refused(self, client: TestClient) -> None:
+        order_id = TestSiteAddressNote()._an_order(client)
+        r = self._push(
+            client,
+            sign_in(client, "parttime"),
+            order_id=order_id,
+            site_postcode="7545",
+        )
+        assert r.status_code == 422
 
 
 class TestTheReports:

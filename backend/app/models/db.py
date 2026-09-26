@@ -505,6 +505,20 @@ class Order(Base):
     #: address record (no postcode, no geocoding). Just enough to open a free
     #: Google Maps search link before a visit. §13 C10's write-up.
     site_address_note: Mapped[str | None] = mapped_column(String(240), nullable=True)
+    #: Where the visit is, for grouping a day's trips (§13 C10): a Malaysian
+    #: postcode, five digits. Captured at the fair when the customer has it,
+    #: filled in later when they do not -- never required to take a deposit.
+    site_postcode: Mapped[str | None] = mapped_column(String(5), nullable=True)
+    #: The first day the house can be measured -- keys handed over. Null means
+    #: ready now, or not known; a future date keeps the order out of the
+    #: "book this trip" list until it arrives.
+    site_ready_from: Mapped[date | None] = mapped_column(Date, nullable=True)
+    #: When the site details were last captured, by a handset or the office.
+    #: The ordering signal that refuses a stale push, as `buyer_captured_at`
+    #: is for buyer details -- the handset and the dashboard both write these.
+    site_captured_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     status: Mapped[str] = mapped_column(String(24), default="confirmed")
 

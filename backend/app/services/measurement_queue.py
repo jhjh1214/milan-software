@@ -167,6 +167,8 @@ def measurement_queue(
             booked_at=booked.get(order.id),
             waiting_days=_whole_days(order.confirmed_at, now),
             site_address_note=order.site_address_note,
+            site_postcode=order.site_postcode,
+            site_ready_from=order.site_ready_from,
         )
 
         group = groups.get(key)
