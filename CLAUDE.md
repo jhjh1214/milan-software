@@ -25,15 +25,15 @@ anchors on the most urgent ready order and lists every other ready order in
 that postcode for the same trip — fair orders by days left on the hold,
 showroom orders by days since deposit.
 
-**Two open problems found doing it, neither fixed yet:**
+**Two problems found doing it:**
 - **CI has not run since at least 16 Sep** — GitHub refuses to start jobs
   over a failed payment / spending limit on the account. Every "green" since
   then is local only.
-- **`backend/requirements.txt` cannot be installed.** `google-genai==2.23.0`
-  needs `pydantic>=2.12.5`; `pydantic` is pinned `2.10.4`. The API image
-  cannot build, and `test_recognition*.py` plus four recognition tests
-  elsewhere fail locally on the missing SDK. Arrived with the three-provider
-  commit, invisible because CI was already not running.
+- ~~`backend/requirements.txt` cannot be installed~~ **fixed**: `google-genai
+  ==2.23.0` needs `pydantic>=2.12.5`, and `pydantic` was pinned `2.10.4`
+  since before the three-provider commit. Now `2.12.5`, proven in a fresh
+  venv (918 backend tests, recognition included). The Docker image itself
+  was not rebuilt locally -- Docker Desktop was not running.
 
 **Recognition runs in the background for the one place that can afford to
 wait, and now suggests a track width, not just an opening size** (Sep
