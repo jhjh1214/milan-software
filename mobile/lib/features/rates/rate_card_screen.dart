@@ -256,10 +256,9 @@ class _RateCardScreenState extends ConsumerState<RateCardScreen> {
       // Applied to the list actually in force, so a fair-price edit cannot
       // quietly move showroom prices.
       final list = (await ref.read(activeRateCardProvider.future)).list;
-      final json = applyRateCardImportToJson(
-        await ref.read(rateCardStoreProvider).loadJson(list),
-        import,
-      );
+      final json = await ref
+          .read(rateCardStoreProvider)
+          .publishJsonFor(list, import);
 
       final result = await ref
           .read(apiClientProvider)

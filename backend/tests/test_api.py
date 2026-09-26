@@ -486,6 +486,24 @@ class TestLiveProductPriceEdit:
         r = self._edit(client, sign_in(client, "parttime"))
         assert r.status_code == 403
 
+    def test_a_whole_card_publish_cannot_reuse_the_other_lists_version(
+        self, client: TestClient
+    ) -> None:
+        # The handset's CSV import publishes "this list's version + 1". After
+        # a live edit took fair to 102, standard's own +1 is also 102 -- a
+        # number `rate_cards.version` already holds as its primary key. That
+        # must be a clean refusal naming the problem, never a crash.
+        admin = sign_in(client, "admin")
+        assert self._edit(client, admin).json()["version"] == 102
+
+        card = {**STANDARD, "version": 102}
+        r = client.post(
+            "/api/rate-cards",
+            json={"list_id": "standard", "payload": card},
+            headers=auth(admin),
+        )
+        assert r.status_code == 409, r.text
+
     def test_it_is_live_on_the_very_next_pull(self, client: TestClient) -> None:
         handset = sign_in(client, "parttime")
         self._edit(client, sign_in(client, "staff"))

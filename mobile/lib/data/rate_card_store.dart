@@ -43,6 +43,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 
 import '../pricing/models.dart';
+import '../pricing/rate_card_csv.dart';
 import '../pricing/rate_lock.dart' show Channel, channelFor;
 
 /// The lists the app ships with.
@@ -269,6 +270,29 @@ class RateCardStore {
       }
     }
     return loadBundledJson(list);
+  }
+
+  /// [list]'s card with [import] applied, ready to publish.
+  ///
+  /// The version is one past the highest **either** list holds, not one past
+  /// this list's own. `rate_cards.version` is a single sequence across fair
+  /// and standard on the server (it is the primary key), so fair at 1 and
+  /// standard at 101 means fair's next version is 102, never 2 — a number the
+  /// server refuses with a 409 once another list has used it.
+  Future<Map<String, dynamic>> publishJsonFor(
+    PriceList list,
+    RateCardImport import,
+  ) async {
+    var highest = 0;
+    for (final each in PriceList.values) {
+      final version = (await loadJson(each))['version'] as int;
+      if (version > highest) highest = version;
+    }
+    return applyRateCardImportToJson(
+      await loadJson(list),
+      import,
+      version: highest + 1,
+    );
   }
 
   Future<Map<String, dynamic>> loadBundledJson(PriceList list) async =>

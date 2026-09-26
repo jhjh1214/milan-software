@@ -266,14 +266,19 @@ RateCardImport editSingleRate({
 /// would be silently dropped the first time an admin changed a price. Editing
 /// the map touches only `rate_sen`, `mvp_rate_sen` and `version`, and carries
 /// everything else through untouched by construction.
+///
+/// [version] defaults to one past this card's own; a card about to be
+/// published passes the next version across both lists instead — see
+/// `RateCardStore.publishJsonFor`.
 Map<String, dynamic> applyRateCardImportToJson(
   Map<String, dynamic> json,
-  RateCardImport import,
-) {
+  RateCardImport import, {
+  int? version,
+}) {
   final byId = {for (final c in import.actualChanges) c.ruleId: c};
   final out = Map<String, dynamic>.from(json);
 
-  out['version'] = (json['version'] as int) + 1;
+  out['version'] = version ?? (json['version'] as int) + 1;
   out['rules'] = [
     for (final raw in json['rules'] as List<dynamic>)
       if (byId[(raw as Map<String, dynamic>)['id']] case final change?)

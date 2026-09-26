@@ -33,6 +33,25 @@ void main() {
     );
   });
 
+  test('a publish takes the next version across BOTH lists', () async {
+    // Shipped: fair at 1, standard at 101. The server keeps one version
+    // sequence for both lists, so fair's next is 102 -- 2 would collide the
+    // moment standard (or a live edit) had used it, and be refused with a 409.
+    final card = await store.load(PriceList.fair);
+    final import = readRateCardCsv(
+      'id,product,band,unit,rate_rm,mvp_rate_rm,min_qty\n'
+      'night-curtain-lo,Night Curtain,Up to 10ft,ft,50.00,44.00,',
+      card,
+    );
+
+    final fair = await store.publishJsonFor(PriceList.fair, import);
+    expect(fair['version'], 102);
+    final rule = (fair['rules'] as List<dynamic>)
+        .cast<Map<String, dynamic>>()
+        .firstWhere((r) => r['id'] == 'night-curtain-lo');
+    expect(rule['rate_sen'], 5000);
+  });
+
   test('an applied change survives a restart', () async {
     final original = await store.loadJson(PriceList.fair);
     final card = RateCard.fromJson(original);

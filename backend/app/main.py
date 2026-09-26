@@ -152,6 +152,7 @@ from .models.db import (
     Opening,
     OrderLine,
     Project,
+    RateCardVersion,
     Room,
     StockLot,
     StockMovement,
@@ -575,6 +576,16 @@ def publish(payload: PublishIn, session: SessionDep, admin: AdminDep) -> Publish
                 f"version {version} is not newer than the active {live.version} "
                 f"for '{payload.list_id}'"
             ),
+        )
+
+    # `rate_cards.version` is one sequence across BOTH lists (it is the
+    # primary key), so "newer than this list's own" is not enough: the other
+    # list may already hold the number -- a live price edit jumps past both.
+    # Refused by name, rather than left to crash on the key.
+    if session.get(RateCardVersion, version) is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"version {version} is already used by another price list",
         )
 
     row = publish_card(
