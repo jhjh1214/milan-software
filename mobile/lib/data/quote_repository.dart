@@ -197,6 +197,21 @@ class QuoteRepository {
         ),
       );
 
+  /// Where the visit will be, and when the house can be measured. §13 C10.
+  Future<void> setSite(
+    String quoteId, {
+    required String? address,
+    required String? postcode,
+    required DateTime? readyFrom,
+  }) => (_db.update(_db.quotes)..where((q) => q.id.equals(quoteId))).write(
+    QuotesCompanion(
+      siteAddress: Value(address),
+      sitePostcode: Value(postcode),
+      siteReadyFrom: Value(readyFrom),
+      updatedAt: Value(DateTime.now()),
+    ),
+  );
+
   Future<void> setLanguage(String quoteId, String language) =>
       (_db.update(_db.quotes)..where((q) => q.id.equals(quoteId))).write(
         QuotesCompanion(

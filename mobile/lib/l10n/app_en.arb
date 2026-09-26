@@ -470,5 +470,15 @@
   "fairDatesPick": "Pick the first and last day",
   "fairDatesNoName": "Give the fair a name.",
   "fairDatesNoChange": "Those are already the dates.",
-  "fairDatesSaved": "Fair dates saved as version {version}"
+  "fairDatesSaved": "Fair dates saved as version {version}",
+  "siteTitle": "Site address",
+  "siteOptional": "Optional — for booking the measuring visit",
+  "siteAddressLabel": "Street / taman",
+  "sitePostcodeLabel": "Postcode",
+  "sitePostcodeInvalid": "A postcode is five digits.",
+  "siteReadyLabel": "Ready from (keys handed over)",
+  "siteReadyNow": "Ready now / not known",
+  "siteReadyFrom": "Ready from {date}",
+  "siteReadyClear": "Clear date",
+  "siteSaved": "Site address saved. It goes to the office on the next sync."
 }

@@ -470,5 +470,15 @@
   "fairDatesPick": "Pilih hari pertama dan hari terakhir",
   "fairDatesNoName": "Berikan nama pameran.",
   "fairDatesNoChange": "Itu memang tarikhnya.",
-  "fairDatesSaved": "Tarikh pameran disimpan sebagai versi {version}"
+  "fairDatesSaved": "Tarikh pameran disimpan sebagai versi {version}",
+  "siteTitle": "Alamat tapak",
+  "siteOptional": "Pilihan — untuk menempah lawatan mengukur",
+  "siteAddressLabel": "Jalan / taman",
+  "sitePostcodeLabel": "Poskod",
+  "sitePostcodeInvalid": "Poskod ialah lima digit.",
+  "siteReadyLabel": "Siap dari (kunci diserahkan)",
+  "siteReadyNow": "Siap sekarang / tidak pasti",
+  "siteReadyFrom": "Siap dari {date}",
+  "siteReadyClear": "Kosongkan tarikh",
+  "siteSaved": "Alamat tapak disimpan. Ia dihantar ke pejabat pada penyegerakan seterusnya."
 }

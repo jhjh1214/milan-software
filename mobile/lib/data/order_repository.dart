@@ -41,6 +41,18 @@ class OrderRepository {
                 customerPhone: Value(draft.customerPhone),
                 deliveryZoneId: Value(draft.deliveryZoneId),
                 deliveryChargeSen: Value(draft.deliveryCharge.sen),
+                siteAddress: Value(draft.siteAddress),
+                sitePostcode: Value(draft.sitePostcode),
+                siteReadyFrom: Value(draft.siteReadyFrom),
+                // Stamped only when something was captured, so a later
+                // capture is never refused against an empty record.
+                siteCapturedAt: Value(
+                  draft.siteAddress != null ||
+                          draft.sitePostcode != null ||
+                          draft.siteReadyFrom != null
+                      ? draft.confirmedAt
+                      : null,
+                ),
                 estimateTotalSen: draft.estimateTotal.sen,
                 depositPaidSen: Value(draft.depositPaid.sen),
                 // Left at zero until final pricing. A balance worked out from
@@ -415,6 +427,26 @@ class OrderRepository {
   /// The customer's name lives on the order already and is updated here too,
   /// because an e-invoice needs the buyer's legal name and a fair may have
   /// recorded "Ah Lian's mother".
+  /// Where the visit is, captured after confirmation — the customer did not
+  /// have the address at the fair and sends it later. §13 C10.
+  ///
+  /// Replaces all three fields and stamps [at], which goes up with the push so
+  /// the server can refuse it if the office has typed something newer since.
+  Future<void> recordSiteDetails({
+    required String orderId,
+    required String? address,
+    required String? postcode,
+    required DateTime? readyFrom,
+    required DateTime at,
+  }) => (_db.update(_db.orders)..where((o) => o.id.equals(orderId))).write(
+    OrdersCompanion(
+      siteAddress: Value(address),
+      sitePostcode: Value(postcode),
+      siteReadyFrom: Value(readyFrom),
+      siteCapturedAt: Value(at),
+    ),
+  );
+
   Future<void> recordBuyerDetails({
     required String orderId,
     String? name,

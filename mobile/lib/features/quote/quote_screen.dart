@@ -20,6 +20,7 @@ import '../rates/rate_card_screen.dart';
 import '../sync/sync_screen.dart';
 import 'confirm_order.dart';
 import 'deposit_prompt_sheet.dart';
+import '../site/site_details_sheet.dart';
 import 'line_photo.dart';
 import 'quote_state.dart';
 import 'share_quote.dart';
@@ -109,6 +110,8 @@ class QuoteScreen extends ConsumerWidget {
                         const _DeliveryRow(),
                         const SizedBox(height: Space.md),
                         const _CustomerRow(),
+                        const SizedBox(height: Space.md),
+                        const _SiteRow(),
                         const SizedBox(height: Space.lg),
                         const _Disclaimer(),
                       ],
@@ -778,6 +781,75 @@ class _CustomerRow extends ConsumerWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Where the visit will be, if the customer has it at the fair. §13 C10.
+///
+/// Optional for the same reason the customer row is: at a fair the job is to
+/// lock the deposit. But an address taken here is one the office never has to
+/// phone for, and the postcode is what groups a day's visits into one drive.
+class _SiteRow extends ConsumerWidget {
+  const _SiteRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = L.of(context);
+    final quote = ref.watch(quoteProvider).valueOrNull;
+    if (quote == null) return const SizedBox.shrink();
+
+    final current = SiteEntry(
+      address: quote.siteAddress,
+      postcode: quote.sitePostcode,
+      readyFrom: quote.siteReadyFrom,
+    );
+
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(Radii.lg),
+      child: InkWell(
+        key: const Key('quote-site-row'),
+        borderRadius: BorderRadius.circular(Radii.lg),
+        onTap: () async {
+          final entry = await showSiteDetailsSheet(context, current: current);
+          if (entry == null) return;
+          await ref
+              .read(quoteProvider.notifier)
+              .setSite(
+                address: entry.address,
+                postcode: entry.postcode,
+                readyFrom: entry.readyFrom,
+              );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(Space.lg),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(Radii.lg),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.home_work_outlined,
+                color: AppColors.mutedForeground,
+              ),
+              const SizedBox(width: Space.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l.siteTitle, style: AppText.label),
+                    const SizedBox(height: 2),
+                    Text(siteSummary(l, current), style: AppText.caption),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: AppColors.mutedForeground),
+            ],
           ),
         ),
       ),

@@ -99,6 +99,9 @@ Future<ConversionRefusal?> confirmOrderForDeposit(
     customerPhone: quote.customerPhone,
     deliveryZoneId: quote.deliveryZoneId,
     deliveryCharge: priced.totals.deliveryCharge,
+    siteAddress: quote.siteAddress,
+    sitePostcode: quote.sitePostcode,
+    siteReadyFrom: quote.siteReadyFrom,
     lines: [
       for (final line in priced.lines)
         ConvertibleLine(

@@ -1488,4 +1488,36 @@ class LZh extends L {
   String fairDatesSaved(int version) {
     return '展会日期已保存为第 $version 版';
   }
+
+  @override
+  String get siteTitle => '现场地址';
+
+  @override
+  String get siteOptional => '可以之后再填 — 用来安排上门测量';
+
+  @override
+  String get siteAddressLabel => '路名 / 花园';
+
+  @override
+  String get sitePostcodeLabel => '邮区';
+
+  @override
+  String get sitePostcodeInvalid => '邮区是五位数字。';
+
+  @override
+  String get siteReadyLabel => '可量日期（交钥匙后）';
+
+  @override
+  String get siteReadyNow => '现在就可以量 / 不清楚';
+
+  @override
+  String siteReadyFrom(String date) {
+    return '$date 起可量';
+  }
+
+  @override
+  String get siteReadyClear => '清除日期';
+
+  @override
+  String get siteSaved => '现场地址已保存，下次同步时送去公司。';
 }

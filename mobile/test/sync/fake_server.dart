@@ -82,6 +82,11 @@ class FakeServer {
   /// When set, POST /api/orders/buyer refuses every capture with this reason.
   String? refuseBuyerDetailsBecause;
 
+  /// When set, POST /api/orders/site refuses every capture with this reason;
+  /// the last body sent is kept so a test can read what went up.
+  String? refuseSiteDetailsBecause;
+  Map<String, dynamic>? lastSiteDetailsBody;
+
   /// When set, POST /api/orders/measurement refuses every push with this
   /// reason.
   String? refuseMeasurementBecause;
@@ -335,6 +340,16 @@ class FakeServer {
         'complete': refuseBuyerDetailsBecause == null,
         'missing': <String>[],
         'refused_because': refuseBuyerDetailsBecause,
+      });
+    }
+
+    if (path == '/api/orders/site') {
+      final body =
+          jsonDecode(utf8.decode(request.bodyBytes)) as Map<String, dynamic>;
+      lastSiteDetailsBody = body;
+      return _json({
+        'order_id': body['order_id'],
+        'refused_because': refuseSiteDetailsBecause,
       });
     }
 

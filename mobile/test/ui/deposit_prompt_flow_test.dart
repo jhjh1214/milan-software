@@ -592,4 +592,60 @@ void main() {
       reason: 'the question is still live',
     );
   });
+
+  group('where the visit is, taken at the fair (§13 C10)', () {
+    testWidgets('the site row saves onto the quote', (tester) async {
+      await pumpApp(tester, channel: Channel.fair);
+      await addACurtain(tester);
+      if (find.text('不锁价，照今天的价').evaluate().isNotEmpty) {
+        await tester.tap(find.text('不锁价，照今天的价'));
+        await tester.pumpAndSettle();
+      }
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('quote-site-row')),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.byKey(const Key('quote-site-row')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('site-address')),
+        '3 Jalan Bunga',
+      );
+      await tester.enterText(find.byKey(const Key('site-postcode')), '75450');
+      await tester.tap(find.byKey(const Key('site-save')));
+      await tester.pumpAndSettle();
+
+      final quote = (await db.latestQuote())!;
+      expect(quote.siteAddress, '3 Jalan Bunga');
+      expect(quote.sitePostcode, '75450');
+      expect(find.textContaining('75450'), findsOneWidget);
+    });
+
+    testWidgets('the deposit carries it onto the order', (tester) async {
+      await pumpApp(tester, channel: Channel.fair);
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(Scaffold).first),
+      );
+      await container
+          .read(quoteProvider.notifier)
+          .setSite(
+            address: '3 Jalan Bunga',
+            postcode: '75450',
+            readyFrom: DateTime(2026, 11, 1),
+          );
+      await addACurtain(tester);
+      await tester.tap(find.text('收 RM 300.00'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('现金'));
+      await tester.pumpAndSettle();
+
+      final order = await db.select(db.orders).getSingle();
+      expect(order.siteAddress, '3 Jalan Bunga');
+      expect(order.sitePostcode, '75450');
+      expect(order.siteReadyFrom, DateTime(2026, 11, 1));
+      // Stamped at confirmation, so a later capture can be ordered against it.
+      expect(order.siteCapturedAt, isNotNull);
+    });
+  });
 }

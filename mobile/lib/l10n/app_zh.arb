@@ -578,5 +578,16 @@
   "fairDatesNoName": "请填写展会名称。",
   "fairDatesNoChange": "日期已经是这样了。",
   "fairDatesSaved": "展会日期已保存为第 {version} 版",
-  "@fairDatesSaved": { "placeholders": { "version": { "type": "int" } } }
+  "@fairDatesSaved": { "placeholders": { "version": { "type": "int" } } },
+  "siteTitle": "现场地址",
+  "siteOptional": "可以之后再填 — 用来安排上门测量",
+  "siteAddressLabel": "路名 / 花园",
+  "sitePostcodeLabel": "邮区",
+  "sitePostcodeInvalid": "邮区是五位数字。",
+  "siteReadyLabel": "可量日期（交钥匙后）",
+  "siteReadyNow": "现在就可以量 / 不清楚",
+  "siteReadyFrom": "{date} 起可量",
+  "@siteReadyFrom": { "placeholders": { "date": { "type": "String" } } },
+  "siteReadyClear": "清除日期",
+  "siteSaved": "现场地址已保存，下次同步时送去公司。"
 }

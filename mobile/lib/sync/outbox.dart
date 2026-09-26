@@ -121,6 +121,15 @@ class Outboxer {
     Map<String, dynamic> payload,
   ) => _enqueue('buyer_details', orderId, payload);
 
+  /// Queues where a visit is, captured after the order went up. §13 C10.
+  ///
+  /// Keyed on the order id: each capture carries the whole record, so a later
+  /// one supersedes an earlier one still waiting and only the newest goes up.
+  Future<void> enqueueSiteDetails(
+    String orderId,
+    Map<String, dynamic> payload,
+  ) => _enqueue('site_details', orderId, payload);
+
   /// Queues one site measurement to go up. §11 Phase 6.
   ///
   /// Keyed on the **line id**, not the order — a measurement is naturally per
@@ -211,6 +220,7 @@ class Outboxer {
         'order' => await api.pushOrder(credentials.token, body),
         'order_status' => await api.pushStatusChange(credentials.token, body),
         'buyer_details' => await api.pushBuyerDetails(credentials.token, body),
+        'site_details' => await api.pushSiteDetails(credentials.token, body),
         'measurement' => await api.pushMeasurement(credentials.token, body),
         'lock' => await api.pushLock(credentials.token, body),
         'deposit_prompt' => await api.pushDepositPrompt(
@@ -290,6 +300,14 @@ class Outboxer {
               // silent success — CLAUDE.md's promise that a stale push
               // "reads as a failure" only ever held for the dashboard's own
               // correction form until this branch existed.
+              disagreed.add(row.entityId);
+            }
+          } else if (response is SiteDetailsAccepted) {
+            await db.dropOutbox(row.id);
+            if (response.refusedBecause != null) {
+              // `stale`: the office typed something newer, which stands.
+              // `unknown_order`: the capture arrived before its order. Either
+              // way it must not read as a silent success.
               disagreed.add(row.entityId);
             }
           } else if (response is MeasurementAccepted) {

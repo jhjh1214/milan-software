@@ -415,6 +415,17 @@ class BuyerDetailsAccepted {
   });
 }
 
+/// What the server made of a site-details capture. §13 C10.
+class SiteDetailsAccepted {
+  final String orderId;
+
+  /// `unknown_order` when the order push has not landed, `stale` when the
+  /// office (or another handset) captured something newer. Null when written.
+  final String? refusedBecause;
+
+  const SiteDetailsAccepted({required this.orderId, this.refusedBecause});
+}
+
 /// What the server made of a site measurement. §11 Phase 6.
 class MeasurementAccepted {
   final String orderId;
@@ -997,6 +1008,22 @@ class ApiClient {
       body: jsonEncode({'list_id': listId, 'payload': payload}),
     ),
     (json) => json,
+  );
+
+  /// Where a visit is, captured after the order went up. §13 C10.
+  Future<SyncResult<SiteDetailsAccepted>> pushSiteDetails(
+    String token,
+    Map<String, dynamic> details,
+  ) => _send(
+    () => _http.post(
+      _url('/api/orders/site'),
+      headers: _headers(token),
+      body: jsonEncode(details),
+    ),
+    (json) => SiteDetailsAccepted(
+      orderId: json['order_id'] as String,
+      refusedBecause: json['refused_because'] as String?,
+    ),
   );
 
   /// Changes one product's live price. Staff or admin, mandatory reason,

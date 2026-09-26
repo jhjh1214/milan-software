@@ -25,6 +25,7 @@ library;
 
 import '../core/money.dart';
 import '../data/database.dart';
+import 'api_client.dart' show isoDay;
 
 /// Builds the request body for `POST /api/orders`.
 ///
@@ -45,6 +46,11 @@ Map<String, dynamic> orderPayload({
   'customer_phone': order.customerPhone,
   'delivery_zone_id': order.deliveryZoneId,
   'delivery_charge_sen': order.deliveryChargeSen,
+  'site_address_note': order.siteAddress,
+  'site_postcode': order.sitePostcode,
+  'site_ready_from': order.siteReadyFrom == null
+      ? null
+      : isoDay(order.siteReadyFrom!),
   'status': order.status,
   'estimate_total_sen': order.estimateTotalSen,
   'deposit_paid_sen': order.depositPaidSen,
@@ -175,6 +181,24 @@ Map<String, dynamic> buyerDetailsPayload({
   'postcode': order.buyerPostcode,
   'msic_code': order.buyerMsicCode,
   'einvoice_requested': order.einvoiceRequested,
+};
+
+/// Builds the request body for `POST /api/orders/site`. §13 C10.
+///
+/// The whole record, replacing what the server holds -- one form edits all
+/// three fields together -- stamped with when it was captured so the server
+/// can refuse it if the office has typed something newer since.
+Map<String, dynamic> siteDetailsPayload({
+  required OrderRow order,
+  required DateTime capturedAt,
+}) => {
+  'order_id': order.id,
+  'captured_at': capturedAt.toUtc().toIso8601String(),
+  'site_address_note': order.siteAddress,
+  'site_postcode': order.sitePostcode,
+  'site_ready_from': order.siteReadyFrom == null
+      ? null
+      : isoDay(order.siteReadyFrom!),
 };
 
 /// Builds the request body for `POST /api/orders/measurement`.

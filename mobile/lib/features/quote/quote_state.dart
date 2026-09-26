@@ -252,6 +252,11 @@ class QuoteState {
   final String? customerName;
   final String? customerPhone;
 
+  /// Where the visit will be, if the customer has it (§13 C10). Optional.
+  final String? siteAddress;
+  final String? sitePostcode;
+  final DateTime? siteReadyFrom;
+
   /// Where this quote was taken, fixed when it started. It decides whether an
   /// RM300 can lock anything (§13 B1) and whether the category prompt appears
   /// at all (§6.2).
@@ -264,6 +269,9 @@ class QuoteState {
     this.deliveryZoneId,
     this.customerName,
     this.customerPhone,
+    this.siteAddress,
+    this.sitePostcode,
+    this.siteReadyFrom,
     this.channel = Channel.showroom,
   });
 }
@@ -296,6 +304,9 @@ class QuoteNotifier extends AsyncNotifier<QuoteState> {
       deliveryZoneId: quote.deliveryZoneId,
       customerName: quote.customerName,
       customerPhone: quote.customerPhone,
+      siteAddress: quote.siteAddress,
+      sitePostcode: quote.sitePostcode,
+      siteReadyFrom: quote.siteReadyFrom,
       channel: Channel.fromWire(quote.channel),
     );
   }
@@ -399,6 +410,24 @@ class QuoteNotifier extends AsyncNotifier<QuoteState> {
     final current = state.valueOrNull;
     if (current == null) return;
     await _repo.setCustomer(current.quoteId, name, phone);
+    await _refresh();
+  }
+
+  /// Where the visit will be. All optional; copied onto the order when the
+  /// deposit confirms it.
+  Future<void> setSite({
+    String? address,
+    String? postcode,
+    DateTime? readyFrom,
+  }) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    await _repo.setSite(
+      current.quoteId,
+      address: address,
+      postcode: postcode,
+      readyFrom: readyFrom,
+    );
     await _refresh();
   }
 

@@ -64,6 +64,14 @@ class Quotes extends Table {
   /// has already agreed a number.
   TextColumn get deliveryZoneId => text().nullable()();
 
+  /// Where the visit will be, if the customer has it at the fair — the
+  /// street/taman line, a five-digit postcode, and the first day the house
+  /// can be measured (keys handed over). All optional: a deposit is never
+  /// held up for an address. Copied onto the order at confirmation.
+  TextColumn get siteAddress => text().nullable()();
+  TextColumn get sitePostcode => text().nullable()();
+  DateTimeColumn get siteReadyFrom => dateTime().nullable()();
+
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -246,6 +254,17 @@ class Orders extends Table {
   TextColumn get customerPhone => text().nullable()();
   TextColumn get deliveryZoneId => text().nullable()();
   IntColumn get deliveryChargeSen => integer().withDefault(const Constant(0))();
+
+  /// Where the visit is, and the first day the house can be measured. Taken
+  /// from the quote at confirmation, filled in later when the customer did
+  /// not have it at the fair. §13 C10: what groups a day's trips.
+  TextColumn get siteAddress => text().nullable()();
+  TextColumn get sitePostcode => text().nullable()();
+  DateTimeColumn get siteReadyFrom => dateTime().nullable()();
+
+  /// When the site details were last captured here. Sent with a later
+  /// capture so the server can refuse one older than the office's own edit.
+  DateTimeColumn get siteCapturedAt => dateTime().nullable()();
 
   /// `confirmed`, `measurement_booked`, `measured`, `material_selected`,
   /// `in_production`, `ready`, `installed`, `closed`, `cancelled`.
@@ -720,7 +739,7 @@ class AppDatabase extends _$AppDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -844,6 +863,17 @@ class AppDatabase extends _$AppDatabase {
           // ignore: experimental_member_use
           TableMigration(orderLines, newColumns: [orderLines.directAreaSqft]),
         );
+      }
+      // v16: where a visit is, and when the house is ready (§13 C10). Plain
+      // nullable additions, so `addColumn` is enough.
+      if (from < 16) {
+        await m.addColumn(quotes, quotes.siteAddress);
+        await m.addColumn(quotes, quotes.sitePostcode);
+        await m.addColumn(quotes, quotes.siteReadyFrom);
+        await m.addColumn(orders, orders.siteAddress);
+        await m.addColumn(orders, orders.sitePostcode);
+        await m.addColumn(orders, orders.siteReadyFrom);
+        await m.addColumn(orders, orders.siteCapturedAt);
       }
     },
     beforeOpen: (details) async {

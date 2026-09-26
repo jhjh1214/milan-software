@@ -33,9 +33,11 @@ import '../../l10n/app_localizations.dart';
 import '../../pricing/order_status.dart';
 import '../measure/measure_screen.dart' show MeasureScreen;
 import '../../ui/theme.dart';
+import '../../sync/order_payload.dart' show siteDetailsPayload;
 import '../../sync/sync_state.dart';
 import '../quote/confirm_order.dart';
 import '../quote/quote_state.dart';
+import '../site/site_details_sheet.dart';
 import 'buyer_details_screen.dart';
 import 'cancel_order_sheet.dart';
 import 'override_price_sheet.dart';
@@ -156,6 +158,53 @@ class _Body extends ConsumerWidget {
     _refresh(ref);
   }
 
+  /// Where the visit is, filled in after the deposit — the customer did not
+  /// have it at the fair and sends it later. §13 C10.
+  ///
+  /// Saved here and queued, never sent from here: this is often typed in a
+  /// house or a car park with no signal, and the office only needs it before
+  /// it plans the drive.
+  Future<void> _editSite(BuildContext context, WidgetRef ref) async {
+    final l = L.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final entry = await showSiteDetailsSheet(
+      context,
+      current: SiteEntry(
+        address: order.siteAddress,
+        postcode: order.sitePostcode,
+        readyFrom: order.siteReadyFrom,
+      ),
+    );
+    if (entry == null) return;
+
+    final at = DateTime.now();
+    await ref
+        .read(orderRepositoryProvider)
+        .recordSiteDetails(
+          orderId: order.id,
+          address: entry.address,
+          postcode: entry.postcode,
+          readyFrom: entry.readyFrom,
+          at: at,
+        );
+    final db = ref.read(databaseProvider);
+    final saved = await (db.select(
+      db.orders,
+    )..where((o) => o.id.equals(order.id))).getSingle();
+    await ref
+        .read(outboxerProvider)
+        .enqueueSiteDetails(
+          order.id,
+          siteDetailsPayload(order: saved, capturedAt: at),
+        );
+
+    ref.invalidate(outboxDepthProvider);
+    _refresh(ref);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(l.siteSaved)));
+  }
+
   void _refresh(WidgetRef ref) {
     ref.invalidate(orderProvider(order.id));
     ref.invalidate(orderHistoryProvider(order.id));
@@ -220,6 +269,36 @@ class _Body extends ConsumerWidget {
             ),
             onPressed: () => _takeBuyerDetails(context, ref),
             child: Text(l.buyerEdit),
+          ),
+        ],
+
+        // Where the visit is. Until the house is measured it is what the
+        // office plans the drive around, so it stays editable until then.
+        if (!status.isTerminal) ...[
+          const SizedBox(height: Space.md),
+          OutlinedButton(
+            key: const Key('order-site-row'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(Touch.min),
+            ),
+            onPressed: () => _editSite(context, ref),
+            child: Column(
+              children: [
+                Text(l.siteTitle),
+                Text(
+                  siteSummary(
+                    l,
+                    SiteEntry(
+                      address: order.siteAddress,
+                      postcode: order.sitePostcode,
+                      readyFrom: order.siteReadyFrom,
+                    ),
+                  ),
+                  style: AppText.caption,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
         ],
 

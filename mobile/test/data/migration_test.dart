@@ -148,6 +148,25 @@ void main() {
   }
 
   /// Undoes exactly what v12 added: the buyer's details for an e-invoice.
+  /// Undoes exactly what v16 added: where a visit is, on quotes and orders.
+  Future<void> undoV16(AppDatabase db) async {
+    for (final column in const [
+      'site_address',
+      'site_postcode',
+      'site_ready_from',
+    ]) {
+      await db.customStatement('ALTER TABLE quotes DROP COLUMN $column');
+    }
+    for (final column in const [
+      'site_address',
+      'site_postcode',
+      'site_ready_from',
+      'site_captured_at',
+    ]) {
+      await db.customStatement('ALTER TABLE orders DROP COLUMN $column');
+    }
+  }
+
   Future<void> undoV12(AppDatabase db) async {
     for (final column in const [
       'buyer_tin',
@@ -218,6 +237,7 @@ void main() {
   /// that already has them -- which throws, and is exactly the failure this
   /// suite exists to catch, arriving as a false one.
   Future<void> windBackTo(AppDatabase db, int version) async {
+    if (version < 16) await undoV16(db);
     if (version < 15) await undoV15(db);
     if (version < 14) await undoV14(db);
     if (version < 13) await undoV13(db);
@@ -229,7 +249,7 @@ void main() {
 
   test('a fresh database opens at the current version', () async {
     final db = await open();
-    expect(await userVersion(db), 15);
+    expect(await userVersion(db), 16);
     expect(await tablesIn(db), contains('price_overrides'));
     expect(await tablesIn(db), contains('library_submissions'));
     await db.close();
@@ -256,7 +276,7 @@ void main() {
     final after = await open();
     expect(
       await userVersion(after),
-      15,
+      16,
       reason: 'every step from 9 should have run, and recorded itself',
     );
     expect(
@@ -350,7 +370,7 @@ void main() {
     await first.close();
 
     final second = await open();
-    expect(await userVersion(second), 15);
+    expect(await userVersion(second), 16);
     expect(await tablesIn(second), contains('price_overrides'));
     await second.close();
   });
@@ -383,7 +403,7 @@ void main() {
       final after = await open();
       expect(
         await userVersion(after),
-        15,
+        16,
         reason: 'the upgrade should have run and recorded itself',
       );
 
@@ -453,7 +473,7 @@ void main() {
       await first.close();
 
       final second = await open();
-      expect(await userVersion(second), 15);
+      expect(await userVersion(second), 16);
       await second.close();
     });
   });
@@ -466,7 +486,7 @@ void main() {
       await before.close();
 
       final after = await open();
-      expect(await userVersion(after), 15);
+      expect(await userVersion(after), 16);
 
       final order = await (after.select(
         after.orders,
@@ -535,7 +555,7 @@ void main() {
       await first.close();
 
       final second = await open();
-      expect(await userVersion(second), 15);
+      expect(await userVersion(second), 16);
       await second.close();
     });
   });
@@ -548,7 +568,7 @@ void main() {
       await before.close();
 
       final after = await open();
-      expect(await userVersion(after), 15);
+      expect(await userVersion(after), 16);
 
       final line = await (after.select(
         after.orderLines,
@@ -641,7 +661,7 @@ void main() {
       await first.close();
 
       final second = await open();
-      expect(await userVersion(second), 15);
+      expect(await userVersion(second), 16);
       await second.close();
     });
   });
@@ -654,7 +674,7 @@ void main() {
       await before.close();
 
       final after = await open();
-      expect(await userVersion(after), 15);
+      expect(await userVersion(after), 16);
 
       final line = await (after.select(
         after.orderLines,
@@ -705,7 +725,7 @@ void main() {
       await first.close();
 
       final second = await open();
-      expect(await userVersion(second), 15);
+      expect(await userVersion(second), 16);
       await second.close();
     });
   });
@@ -724,7 +744,7 @@ void main() {
         await before.close();
 
         final after = await open();
-        expect(await userVersion(after), 15);
+        expect(await userVersion(after), 16);
 
         final line = await (after.select(
           after.orderLines,
@@ -807,7 +827,78 @@ void main() {
         await first.close();
 
         final second = await open();
-        expect(await userVersion(second), 15);
+        expect(await userVersion(second), 16);
+        await second.close();
+      });
+    },
+  );
+
+  group(
+    'v15 → v16 — where a visit is, and when the house is ready (§13 C10)',
+    () {
+      test('the order already on the handset survives it', () async {
+        final before = await open();
+        await seedOrderLine(before);
+        await windBackTo(before, 15);
+        await before.close();
+
+        final after = await open();
+        expect(await userVersion(after), 16);
+        final order = await (after.select(
+          after.orders,
+        )..where((o) => o.id.equals('o-1'))).getSingle();
+        expect(order.estimateTotalSen, 96000);
+        expect(order.sitePostcode, null);
+        expect(order.siteReadyFrom, null);
+        await after.close();
+      });
+
+      test('the new columns are writable, on both tables', () async {
+        final before = await open();
+        await seedOrderLine(before);
+        await windBackTo(before, 15);
+        await before.close();
+
+        final after = await open();
+        await (after.update(
+          after.orders,
+        )..where((o) => o.id.equals('o-1'))).write(
+          OrdersCompanion(
+            siteAddress: const Value('3 Jalan Bunga, Taman Bunga'),
+            sitePostcode: const Value('75450'),
+            siteReadyFrom: Value(DateTime(2026, 11, 1)),
+            siteCapturedAt: Value(DateTime.utc(2026, 9, 1, 3)),
+          ),
+        );
+        await (after.update(
+          after.quotes,
+        )..where((q) => q.id.equals('q-1'))).write(
+          QuotesCompanion(
+            siteAddress: const Value('3 Jalan Bunga'),
+            sitePostcode: const Value('75450'),
+            siteReadyFrom: Value(DateTime(2026, 11, 1)),
+          ),
+        );
+
+        final order = await (after.select(
+          after.orders,
+        )..where((o) => o.id.equals('o-1'))).getSingle();
+        expect(order.sitePostcode, '75450');
+        expect(order.siteReadyFrom, DateTime(2026, 11, 1));
+        final quote = await (after.select(
+          after.quotes,
+        )..where((q) => q.id.equals('q-1'))).getSingle();
+        expect(quote.siteAddress, '3 Jalan Bunga');
+        await after.close();
+      });
+
+      test('running the upgrade twice does not throw', () async {
+        // `addColumn` is not idempotent: a loosened guard fails with a
+        // duplicate column name, on launch, on a handset that already migrated.
+        final first = await open();
+        await first.close();
+        final second = await open();
+        expect(await userVersion(second), 16);
         await second.close();
       });
     },

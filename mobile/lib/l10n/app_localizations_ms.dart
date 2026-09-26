@@ -1546,4 +1546,37 @@ class LMs extends L {
   String fairDatesSaved(int version) {
     return 'Tarikh pameran disimpan sebagai versi $version';
   }
+
+  @override
+  String get siteTitle => 'Alamat tapak';
+
+  @override
+  String get siteOptional => 'Pilihan — untuk menempah lawatan mengukur';
+
+  @override
+  String get siteAddressLabel => 'Jalan / taman';
+
+  @override
+  String get sitePostcodeLabel => 'Poskod';
+
+  @override
+  String get sitePostcodeInvalid => 'Poskod ialah lima digit.';
+
+  @override
+  String get siteReadyLabel => 'Siap dari (kunci diserahkan)';
+
+  @override
+  String get siteReadyNow => 'Siap sekarang / tidak pasti';
+
+  @override
+  String siteReadyFrom(String date) {
+    return 'Siap dari $date';
+  }
+
+  @override
+  String get siteReadyClear => 'Kosongkan tarikh';
+
+  @override
+  String get siteSaved =>
+      'Alamat tapak disimpan. Ia dihantar ke pejabat pada penyegerakan seterusnya.';
 }

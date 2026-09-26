@@ -1543,4 +1543,37 @@ class LEn extends L {
   String fairDatesSaved(int version) {
     return 'Fair dates saved as version $version';
   }
+
+  @override
+  String get siteTitle => 'Site address';
+
+  @override
+  String get siteOptional => 'Optional — for booking the measuring visit';
+
+  @override
+  String get siteAddressLabel => 'Street / taman';
+
+  @override
+  String get sitePostcodeLabel => 'Postcode';
+
+  @override
+  String get sitePostcodeInvalid => 'A postcode is five digits.';
+
+  @override
+  String get siteReadyLabel => 'Ready from (keys handed over)';
+
+  @override
+  String get siteReadyNow => 'Ready now / not known';
+
+  @override
+  String siteReadyFrom(String date) {
+    return 'Ready from $date';
+  }
+
+  @override
+  String get siteReadyClear => 'Clear date';
+
+  @override
+  String get siteSaved =>
+      'Site address saved. It goes to the office on the next sync.';
 }

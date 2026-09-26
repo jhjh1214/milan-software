@@ -151,6 +151,11 @@ class OrderDraft {
   final String? deliveryZoneId;
   final Money deliveryCharge;
 
+  /// Where the visit is, if the customer had it at the fair (§13 C10).
+  final String? siteAddress;
+  final String? sitePostcode;
+  final DateTime? siteReadyFrom;
+
   /// What the quote came to. Kept for good, beside the final, so §6.3's
   /// variance report has something to compare against.
   final Money estimateTotal;
@@ -181,6 +186,9 @@ class OrderDraft {
     this.customerPhone,
     this.deliveryZoneId,
     this.deliveryCharge = Money.zero,
+    this.siteAddress,
+    this.sitePostcode,
+    this.siteReadyFrom,
   });
 
   /// True while any line is still on estimated dimensions. Everything is, at
@@ -298,6 +306,9 @@ ConversionResult confirmQuoteAsOrder({
   String? customerPhone,
   String? deliveryZoneId,
   Money deliveryCharge = Money.zero,
+  String? siteAddress,
+  String? sitePostcode,
+  DateTime? siteReadyFrom,
 }) {
   if (lines.isEmpty) {
     return const ConversionResult.refused(ConversionRefusal.noLines);
@@ -332,6 +343,9 @@ ConversionResult confirmQuoteAsOrder({
       customerPhone: customerPhone,
       deliveryZoneId: deliveryZoneId,
       deliveryCharge: deliveryCharge,
+      siteAddress: siteAddress,
+      sitePostcode: sitePostcode,
+      siteReadyFrom: siteReadyFrom,
       estimateTotal: estimateTotal,
       depositPaid: depositPaid,
       confirmedAt: at,

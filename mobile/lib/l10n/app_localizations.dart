@@ -2719,6 +2719,66 @@ abstract class L {
   /// In zh, this message translates to:
   /// **'展会日期已保存为第 {version} 版'**
   String fairDatesSaved(int version);
+
+  /// No description provided for @siteTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'现场地址'**
+  String get siteTitle;
+
+  /// No description provided for @siteOptional.
+  ///
+  /// In zh, this message translates to:
+  /// **'可以之后再填 — 用来安排上门测量'**
+  String get siteOptional;
+
+  /// No description provided for @siteAddressLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'路名 / 花园'**
+  String get siteAddressLabel;
+
+  /// No description provided for @sitePostcodeLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'邮区'**
+  String get sitePostcodeLabel;
+
+  /// No description provided for @sitePostcodeInvalid.
+  ///
+  /// In zh, this message translates to:
+  /// **'邮区是五位数字。'**
+  String get sitePostcodeInvalid;
+
+  /// No description provided for @siteReadyLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'可量日期（交钥匙后）'**
+  String get siteReadyLabel;
+
+  /// No description provided for @siteReadyNow.
+  ///
+  /// In zh, this message translates to:
+  /// **'现在就可以量 / 不清楚'**
+  String get siteReadyNow;
+
+  /// No description provided for @siteReadyFrom.
+  ///
+  /// In zh, this message translates to:
+  /// **'{date} 起可量'**
+  String siteReadyFrom(String date);
+
+  /// No description provided for @siteReadyClear.
+  ///
+  /// In zh, this message translates to:
+  /// **'清除日期'**
+  String get siteReadyClear;
+
+  /// No description provided for @siteSaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'现场地址已保存，下次同步时送去公司。'**
+  String get siteSaved;
 }
 
 class _LDelegate extends LocalizationsDelegate<L> {

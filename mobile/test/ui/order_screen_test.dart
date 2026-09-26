@@ -431,4 +431,57 @@ void main() {
       expect((await db.select(db.orderLines).get()).single.lineTotalSen, 55200);
     });
   });
+
+  group('where the visit is (§13 C10)', () {
+    Future<void> openSite(WidgetTester tester) async {
+      await pumpScreen(tester, signedInAs: partTimer);
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('order-site-row')),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.byKey(const Key('order-site-row')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('an address sent after the fair is saved and queued', (
+      tester,
+    ) async {
+      await openSite(tester);
+      await tester.enterText(
+        find.byKey(const Key('site-address')),
+        '3 Jalan Bunga',
+      );
+      await tester.enterText(find.byKey(const Key('site-postcode')), '75450');
+      await tester.tap(find.byKey(const Key('site-save')));
+      await tester.pumpAndSettle();
+
+      final order = await (db.select(
+        db.orders,
+      )..where((o) => o.id.equals(orderId))).getSingle();
+      expect(order.siteAddress, '3 Jalan Bunga');
+      expect(order.sitePostcode, '75450');
+      expect(order.siteCapturedAt, isNotNull);
+
+      final queued = await db.pendingOutbox();
+      expect(queued.map((r) => r.entityType), contains('site_details'));
+      expect(find.textContaining('75450'), findsOneWidget);
+    });
+
+    testWidgets('a postcode that is not five digits is not saved', (
+      tester,
+    ) async {
+      await openSite(tester);
+      await tester.enterText(find.byKey(const Key('site-postcode')), '7545');
+      await tester.tap(find.byKey(const Key('site-save')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('A postcode is five digits.'), findsOneWidget);
+      final order = await (db.select(
+        db.orders,
+      )..where((o) => o.id.equals(orderId))).getSingle();
+      expect(order.sitePostcode, isNull);
+      expect(await db.pendingOutbox(), isEmpty);
+    });
+  });
 }
