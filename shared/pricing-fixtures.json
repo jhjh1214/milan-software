@@ -8,10 +8,11 @@
     {
       "id": "grant-a-fair-deposit-opens-a-lock",
       "source": "SPEC.md §6.1",
-      "why": "The base case. RM300 at the fair buys twelve months of this category's prices.",
+      "why": "The base case. RM300 at the fair buys this category's prices for twelve months, counted from the day AFTER the fair ends (client, Sep 2026) -- the fair ended 31 August, so the year starts 1 September and the anniversary, 1 September 2027, is the last good day.",
       "channel": "fair",
       "category": "curtain",
       "deposit_date": "2026-08-29",
+      "fair_ends_on": "2026-08-31",
       "deposit_sen": 30000,
       "min_deposit_sen": 30000,
       "rate_card_version": 1,
@@ -20,7 +21,7 @@
         "granted": true,
         "held_rate_card_version": 1,
         "held_discount_pct": "0",
-        "held_until": "2027-08-29"
+        "held_until": "2027-09-01"
       }
     },
     {
@@ -30,6 +31,7 @@
       "channel": "showroom",
       "category": "curtain",
       "deposit_date": "2027-03-12",
+      "fair_ends_on": null,
       "deposit_sen": 30000,
       "min_deposit_sen": 30000,
       "rate_card_version": 101,
@@ -46,6 +48,7 @@
       "channel": "home_visit",
       "category": "flooring",
       "deposit_date": "2027-03-12",
+      "fair_ends_on": null,
       "deposit_sen": 30000,
       "min_deposit_sen": 30000,
       "rate_card_version": 101,
@@ -62,6 +65,7 @@
       "channel": "phone",
       "category": "wallpaper",
       "deposit_date": "2027-03-12",
+      "fair_ends_on": null,
       "deposit_sen": 30000,
       "min_deposit_sen": 30000,
       "rate_card_version": 101,
@@ -78,6 +82,7 @@
       "channel": "referral",
       "category": "curtain",
       "deposit_date": "2027-03-12",
+      "fair_ends_on": null,
       "deposit_sen": 30000,
       "min_deposit_sen": 30000,
       "rate_card_version": 101,
@@ -94,6 +99,7 @@
       "channel": "fair",
       "category": "curtain",
       "deposit_date": "2026-08-29",
+      "fair_ends_on": "2026-08-31",
       "deposit_sen": 25000,
       "min_deposit_sen": 30000,
       "rate_card_version": 1,
@@ -110,6 +116,7 @@
       "channel": "fair",
       "category": "curtain",
       "deposit_date": "2026-08-29",
+      "fair_ends_on": "2026-08-31",
       "deposit_sen": 50000,
       "min_deposit_sen": 30000,
       "rate_card_version": 1,
@@ -118,7 +125,7 @@
         "granted": true,
         "held_rate_card_version": 1,
         "held_discount_pct": "0",
-        "held_until": "2027-08-29"
+        "held_until": "2027-09-01"
       }
     },
     {
@@ -128,6 +135,7 @@
       "channel": "fair",
       "category": "flooring",
       "deposit_date": "2026-08-29",
+      "fair_ends_on": "2026-08-31",
       "deposit_sen": 30000,
       "min_deposit_sen": 30000,
       "rate_card_version": 1,
@@ -136,16 +144,17 @@
         "granted": true,
         "held_rate_card_version": 1,
         "held_discount_pct": "1/10",
-        "held_until": "2027-08-29"
+        "held_until": "2027-09-01"
       }
     },
     {
       "id": "grant-twelve-months-from-a-leap-day-lands-on-the-28th",
       "source": "SPEC.md §6.1, held_until",
-      "why": "29 February has no anniversary. Clamped to the last day of the month, which is what every calendar does with a monthly anniversary and what a person reading '12 months' would say.",
+      "why": "A fair ending 28 February 2028 starts the year on 29 February, which has no anniversary. Clamped to the last day of the month, which is what every calendar does with a monthly anniversary and what a person reading '12 months' would say.",
       "channel": "fair",
       "category": "curtain",
-      "deposit_date": "2028-02-29",
+      "deposit_date": "2028-02-27",
+      "fair_ends_on": "2028-02-28",
       "deposit_sen": 30000,
       "min_deposit_sen": 30000,
       "rate_card_version": 1,
@@ -160,10 +169,11 @@
     {
       "id": "grant-twelve-months-from-a-month-end-keeps-the-month-end",
       "source": "SPEC.md §6.1, held_until",
-      "why": "31 August exists next year too, so no clamping happens and the hold runs the full year.",
+      "why": "A fair ending 30 August starts the year on 31 August. 31 August exists next year too, so no clamping happens and the hold runs the full year.",
       "channel": "fair",
       "category": "curtain",
-      "deposit_date": "2026-08-31",
+      "deposit_date": "2026-08-30",
+      "fair_ends_on": "2026-08-30",
       "deposit_sen": 30000,
       "min_deposit_sen": 30000,
       "rate_card_version": 1,
@@ -178,10 +188,11 @@
     {
       "id": "grant-a-deposit-on-the-day-before-a-leap-day-is-untouched",
       "source": "SPEC.md §6.1, held_until",
-      "why": "The fencepost next to the clamp. 28 February exists every year, so it must not be dragged anywhere.",
+      "why": "The fencepost next to the clamp. A fair ending 27 February starts the year on 28 February, which exists every year, so it must not be dragged anywhere.",
       "channel": "fair",
       "category": "curtain",
-      "deposit_date": "2028-02-28",
+      "deposit_date": "2028-02-27",
+      "fair_ends_on": "2028-02-27",
       "deposit_sen": 30000,
       "min_deposit_sen": 30000,
       "rate_card_version": 1,
@@ -196,10 +207,11 @@
     {
       "id": "grant-a-deposit-into-a-leap-year-keeps-the-29th",
       "source": "SPEC.md §6.1, held_until",
-      "why": "The other direction. A 29 February in the destination year is a real date and the hold should reach it.",
+      "why": "The other direction. A year starting 28 February 2027 ends on 28 February 2028 -- the 29th exists that year, but the anniversary is still the 28th.",
       "channel": "fair",
       "category": "curtain",
-      "deposit_date": "2027-02-28",
+      "deposit_date": "2027-02-27",
+      "fair_ends_on": "2027-02-27",
       "deposit_sen": 30000,
       "min_deposit_sen": 30000,
       "rate_card_version": 1,
@@ -218,6 +230,83 @@
       "channel": "fair",
       "category": "flooring",
       "deposit_date": "2026-08-29",
+      "fair_ends_on": "2026-08-31",
+      "deposit_sen": 30000,
+      "min_deposit_sen": 30000,
+      "rate_card_version": 1,
+      "promo_pct": "0",
+      "expect": {
+        "granted": true,
+        "held_rate_card_version": 1,
+        "held_discount_pct": "0",
+        "held_until": "2027-09-01"
+      }
+    },
+    {
+      "id": "grant-wallpaper-is-a-category-of-its-own",
+      "source": "SPEC.md §6.1",
+      "why": "Three categories. Wallpaper needs its own RM300 and gets its own row.",
+      "channel": "fair",
+      "category": "wallpaper",
+      "deposit_date": "2026-08-29",
+      "fair_ends_on": "2026-08-31",
+      "deposit_sen": 30000,
+      "min_deposit_sen": 30000,
+      "rate_card_version": 1,
+      "promo_pct": "0",
+      "expect": {
+        "granted": true,
+        "held_rate_card_version": 1,
+        "held_discount_pct": "0",
+        "held_until": "2027-09-01"
+      }
+    },
+    {
+      "id": "grant-every-deposit-at-one-fair-shares-one-expiry",
+      "source": "SPEC.md §6.1, held_until (client, Sep 2026)",
+      "why": "A customer who paid on the fair's first day holds exactly as long as one who paid on its last. The countdown belongs to the fair, not to the day the money changed hands.",
+      "channel": "fair",
+      "category": "curtain",
+      "deposit_date": "2026-08-28",
+      "fair_ends_on": "2026-08-31",
+      "deposit_sen": 30000,
+      "min_deposit_sen": 30000,
+      "rate_card_version": 1,
+      "promo_pct": "0",
+      "expect": {
+        "granted": true,
+        "held_rate_card_version": 1,
+        "held_discount_pct": "0",
+        "held_until": "2027-09-01"
+      }
+    },
+    {
+      "id": "grant-a-fair-ending-on-new-years-eve-rolls-into-the-next-year",
+      "source": "SPEC.md §6.1, held_until (client, Sep 2026)",
+      "why": "The day after 31 December is 1 January of the NEXT year, so the anniversary is 1 January two years on from the fair's own year.",
+      "channel": "fair",
+      "category": "curtain",
+      "deposit_date": "2026-12-30",
+      "fair_ends_on": "2026-12-31",
+      "deposit_sen": 30000,
+      "min_deposit_sen": 30000,
+      "rate_card_version": 1,
+      "promo_pct": "0",
+      "expect": {
+        "granted": true,
+        "held_rate_card_version": 1,
+        "held_discount_pct": "0",
+        "held_until": "2028-01-01"
+      }
+    },
+    {
+      "id": "grant-a-card-with-no-fair-dates-counts-from-the-deposit",
+      "source": "SPEC.md §6.1, held_until (client, Sep 2026)",
+      "why": "A fair card published without a promo window has no end to count from. The hold runs twelve months from the deposit, as it always did -- never shorter than a year from the day the customer paid.",
+      "channel": "fair",
+      "category": "curtain",
+      "deposit_date": "2026-08-29",
+      "fair_ends_on": null,
       "deposit_sen": 30000,
       "min_deposit_sen": 30000,
       "rate_card_version": 1,
@@ -230,12 +319,13 @@
       }
     },
     {
-      "id": "grant-wallpaper-is-a-category-of-its-own",
-      "source": "SPEC.md §6.1",
-      "why": "Three categories. Wallpaper needs its own RM300 and gets its own row.",
+      "id": "grant-a-deposit-after-the-fair-end-never-shortens-the-hold",
+      "source": "SPEC.md §6.1, held_until (client, Sep 2026)",
+      "why": "Should not happen -- fair mode closes with the promo window -- but a card edited mid-fair or a wrong handset clock could produce it. The year then starts on the deposit day itself, so the customer never holds less than twelve months from paying.",
       "channel": "fair",
-      "category": "wallpaper",
-      "deposit_date": "2026-08-29",
+      "category": "curtain",
+      "deposit_date": "2026-09-03",
+      "fair_ends_on": "2026-08-31",
       "deposit_sen": 30000,
       "min_deposit_sen": 30000,
       "rate_card_version": 1,
@@ -244,7 +334,7 @@
         "granted": true,
         "held_rate_card_version": 1,
         "held_discount_pct": "0",
-        "held_until": "2027-08-29"
+        "held_until": "2027-09-03"
       }
     }
   ],
@@ -4216,5 +4306,6 @@
         ]
       }
     }
-  ]
+  ],
+  "_lock_grant_held_until": "Client, Sep 2026: the twelve months count from the day AFTER the fair ends (the card's promo valid_to), not from the deposit date, so every deposit at one fair expires together. The anniversary of that day is the last good day; any grace beyond it is the office's call, through an override, not a rule here. With no fair end on the card, or a deposit after it, the year starts on the deposit day -- never less than twelve months from paying."
 }

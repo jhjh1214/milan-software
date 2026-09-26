@@ -272,6 +272,7 @@ LockGrant openCategoryLock({
   required Channel channel,
   required DepositCategory category,
   required DateTime depositDate,
+  required DateTime? fairEndsOn,
   required int depositSen,
   required int minDepositSen,
   required int rateCardVersion,
@@ -290,13 +291,48 @@ LockGrant openCategoryLock({
       category: category,
       heldRateCardVersion: rateCardVersion,
       heldDiscountPct: promoPct,
-      heldUntil: twelveMonthsFrom(depositDate),
+      heldUntil: twelveMonthsFrom(
+        holdStartsOn(depositDate: depositDate, fairEndsOn: fairEndsOn),
+      ),
       status: LockStatus.active,
     ),
   );
 }
 
-/// The last day a hold taken on [depositDate] is good for.
+/// The first day of a hold's twelve months. SPEC.md §6.1.
+///
+/// Client, Sep 2026: the year counts from the day **after the fair ends**, so
+/// every deposit taken at one fair expires together — a customer who paid on
+/// the first day holds no less than one who paid on the last. The fair's end
+/// is the card's own promo `validTo`, which an admin sets; nothing here knows
+/// when any fair runs.
+///
+/// Never shorter than a year from paying: a card with no fair dates, or a
+/// deposit that somehow lands after the end (a card edited mid-fair, a wrong
+/// handset clock), counts from the deposit day itself, exactly as every hold
+/// did before this rule.
+///
+/// The day after is built as `DateTime(y, m, d + 1)` — a calendar day, never
+/// 24 hours added to an instant.
+DateTime holdStartsOn({
+  required DateTime depositDate,
+  required DateTime? fairEndsOn,
+}) {
+  final deposited = DateTime(
+    depositDate.year,
+    depositDate.month,
+    depositDate.day,
+  );
+  if (fairEndsOn == null) return deposited;
+  final dayAfter = DateTime(
+    fairEndsOn.year,
+    fairEndsOn.month,
+    fairEndsOn.day + 1,
+  );
+  return deposited.isAfter(dayAfter) ? deposited : dayAfter;
+}
+
+/// The last day a hold starting on [depositDate] is good for.
 ///
 /// The same day of the month, twelve months on, **clamped to the end of the
 /// month**. 29 February has no anniversary, so a leap-day deposit runs to 28

@@ -44,6 +44,9 @@ void main() {
       channel: Channel.fair,
       category: category,
       depositDate: depositDay,
+      // A card with no fair dates: the year counts from the deposit day,
+      // which keeps this test about storage rather than the grant rule.
+      fairEndsOn: null,
       depositSen: 30000,
       minDepositSen: 30000,
       rateCardVersion: 1,
@@ -242,6 +245,9 @@ void main() {
       channel: Channel.showroom,
       category: DepositCategory.curtain,
       depositDate: depositDay,
+      // A card with no fair dates: the year counts from the deposit day,
+      // which keeps this test about storage rather than the grant rule.
+      fairEndsOn: null,
       depositSen: 30000,
       minDepositSen: 30000,
       rateCardVersion: 1,

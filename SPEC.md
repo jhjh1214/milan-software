@@ -144,7 +144,8 @@ CAPTURE  (showroom daily / home visit / fair twice a year)
   staff or part-timer builds a rough estimate from approximate sizes
   customer pays RM300 minimum deposit PER PRODUCT CATEGORY
   -> ORDER IS CONFIRMED. Not a quote, not a lead. A confirmed sale.
-  -> at a fair, promo rates held 12 months for that category, unlimited windows
+  -> at a fair, promo rates held 12 months (from the day after the fair
+     ends, §6.1) for that category, unlimited windows
 
 LATER  (days to 12 months, often waiting on house handover)
   book measurement -> site visit -> exact dimensions
@@ -870,10 +871,29 @@ category_locks
   held_rate_card_version  int
   held_promo_id           uuid
   held_discount_pct       numeric(5,2)    -- denormalised; promos rows may change
-  held_until              date            -- deposit date + 12 months
+  held_until              date            -- day after the fair ends + 12 months
   status                  enum(active, expired, cancelled, refunded)
   UNIQUE(customer_key, category) WHERE status = 'active'
 ```
+
+### When a hold ends
+
+**Client, Sep 2026: the twelve months count from the day after the fair
+ends, not from the deposit.** Every deposit taken at one fair expires on the
+same day, so a customer who paid on the fair's first morning holds exactly as
+long as one who paid on its last night. The fair's end is the card's own promo
+`valid_to` — data an admin sets, never a date in code.
+
+The anniversary of that day is the **last good day**: a fair ending 31 August
+2026 starts the year on 1 September and holds through 1 September 2027. Any
+grace the office gives beyond it is a person's decision, made through a price
+override (§6.5), not a rule the system enforces.
+
+Two fallbacks, both toward the customer and never shorter than a year from
+paying: a fair card with no promo window counts from the deposit day, and so
+does a deposit that somehow lands after the fair's end (a card edited
+mid-fair, a wrong handset clock). `hold_starts_on` / `holdStartsOn` is the one
+function that decides this, on both engines, held to `lock_grant_cases`.
 
 ### What a lock hangs on
 

@@ -165,6 +165,9 @@ void main() {
           channel: Channel.fromWire(c['channel'] as String),
           category: DepositCategory.values.byName(c['category'] as String),
           depositDate: DateTime.parse(c['deposit_date'] as String),
+          fairEndsOn: c['fair_ends_on'] == null
+              ? null
+              : DateTime.parse(c['fair_ends_on'] as String),
           depositSen: c['deposit_sen'] as int,
           minDepositSen: c['min_deposit_sen'] as int,
           rateCardVersion: c['rate_card_version'] as int,
@@ -209,6 +212,7 @@ void main() {
           channel: channel,
           category: DepositCategory.curtain,
           depositDate: DateTime(2026, 8, 29),
+          fairEndsOn: DateTime(2026, 8, 31),
           depositSen: 30000,
           minDepositSen: 30000,
           rateCardVersion: 1,
@@ -226,6 +230,7 @@ void main() {
         channel: Channel.showroom,
         category: DepositCategory.curtain,
         depositDate: DateTime(2026, 8, 29),
+        fairEndsOn: DateTime(2026, 8, 31),
         depositSen: 30000,
         minDepositSen: 30000,
         rateCardVersion: 1,

@@ -153,6 +153,9 @@ def test_the_fixtures_agree_with_the_grant_rule(case: dict) -> None:
         channel=Channel(case["channel"]),
         category=DepositCategory(case["category"]),
         deposit_date=date.fromisoformat(case["deposit_date"]),
+        fair_ends_on=(
+            date.fromisoformat(case["fair_ends_on"]) if case["fair_ends_on"] else None
+        ),
         deposit_sen=case["deposit_sen"],
         min_deposit_sen=case["min_deposit_sen"],
         rate_card_version=case["rate_card_version"],
@@ -182,6 +185,7 @@ class TestOnlyAFairCanLock:
                 channel=channel,
                 category=DepositCategory.CURTAIN,
                 deposit_date=date(2026, 8, 29),
+                fair_ends_on=date(2026, 8, 31),
                 deposit_sen=30000,
                 min_deposit_sen=30000,
                 rate_card_version=1,
@@ -197,6 +201,7 @@ class TestOnlyAFairCanLock:
             channel=Channel.SHOWROOM,
             category=DepositCategory.CURTAIN,
             deposit_date=date(2026, 8, 29),
+            fair_ends_on=date(2026, 8, 31),
             deposit_sen=30000,
             min_deposit_sen=30000,
             rate_card_version=1,

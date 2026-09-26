@@ -157,10 +157,13 @@ void main() {
     expect(locks.single.heldRateCardVersion, card.version);
     expect(
       locks.single.heldUntil,
-      DateTime(2027, 8, 29),
-      reason: 'twelve months from the deposit',
+      DateTime(2027, 9, 1),
+      reason:
+          'twelve months from the day after the card\'s fair ends (31 Aug), '
+          'not from the deposit day -- the screen must pass the promo window',
     );
-    expect(locks.single.isActiveOn(DateTime(2027, 8, 29)), isTrue);
+    expect(locks.single.isActiveOn(DateTime(2027, 9, 1)), isTrue);
+    expect(locks.single.isActiveOn(DateTime(2027, 9, 2)), isFalse);
   });
 
   testWidgets('the RM300 is recorded as money, not only as a hold', (

@@ -271,6 +271,9 @@ Future<void> _askFor(
         channel: quote.channel,
         category: gap.category,
         depositDate: now,
+        // The fair's end is the card's promo window, set by an admin. Every
+        // deposit at one fair then expires on the same day.
+        fairEndsOn: card.promo?.validTo,
         depositSen: card.config.minDepositSen,
         minDepositSen: card.config.minDepositSen,
         rateCardVersion: card.version,

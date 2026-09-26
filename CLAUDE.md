@@ -12,6 +12,29 @@ Full detail in `SPEC.md`. This file is the context that must never be violated.
 
 ## Current state
 
+**A fair hold now runs twelve months from the day after the fair ends**
+(client, Sep 2026), not from the deposit date — every deposit at one fair
+expires together. The end is the card's promo `valid_to`; the anniversary of
+the day after is the last good day (SPEC.md §6.1 "When a hold ends").
+`hold_starts_on`/`holdStartsOn` on both engines, `lock_grant_cases` carry
+`fair_ends_on`. First of four agreed pieces: next are an admin fair-dates
+editor (today the dates change only by pasting a whole card's JSON), a
+structured **site** address plus optional `ready_from` date captured at
+deposit (never gating it), and a measurement queue grouped by postcode that
+anchors on the most urgent ready order and lists every other ready order in
+that postcode for the same trip — fair orders by days left on the hold,
+showroom orders by days since deposit.
+
+**Two open problems found doing it, neither fixed yet:**
+- **CI has not run since at least 16 Sep** — GitHub refuses to start jobs
+  over a failed payment / spending limit on the account. Every "green" since
+  then is local only.
+- **`backend/requirements.txt` cannot be installed.** `google-genai==2.23.0`
+  needs `pydantic>=2.12.5`; `pydantic` is pinned `2.10.4`. The API image
+  cannot build, and `test_recognition*.py` plus four recognition tests
+  elsewhere fail locally on the missing SDK. Arrived with the three-provider
+  commit, invisible because CI was already not running.
+
 **Recognition runs in the background for the one place that can afford to
 wait, and now suggests a track width, not just an opening size** (Sep
 2026), both asked for directly after the real local model tested above

@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from calendar import monthrange
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from enum import Enum
 from fractions import Fraction
 
@@ -202,12 +202,32 @@ def twelve_months_from(deposit_date: date) -> date:
     return date(year, month, min(deposit_date.day, last_day))
 
 
+def hold_starts_on(*, deposit_date: date, fair_ends_on: date | None) -> date:
+    """The first day of a hold's twelve months. SPEC.md §6.1.
+
+    Client, Sep 2026: the year counts from the day **after the fair ends**,
+    so every deposit taken at one fair expires together -- a customer who paid
+    on the first day holds no less than one who paid on the last. The fair's
+    end is the card's own promo ``valid_to``, which an admin sets; nothing
+    here knows when any fair runs.
+
+    Never later than it has to be and never shorter than a year from paying:
+    a card with no fair dates, or a deposit that somehow lands after the end
+    (a card edited mid-fair, a wrong handset clock), counts from the deposit
+    day itself, exactly as every hold did before this rule.
+    """
+    if fair_ends_on is None:
+        return deposit_date
+    return max(deposit_date, fair_ends_on + timedelta(days=1))
+
+
 def open_category_lock(
     *,
     id: str,
     channel: Channel,
     category: DepositCategory,
     deposit_date: date,
+    fair_ends_on: date | None,
     deposit_sen: int,
     min_deposit_sen: int,
     rate_card_version: int,
@@ -239,7 +259,9 @@ def open_category_lock(
             category=category,
             held_rate_card_version=rate_card_version,
             held_discount_pct=promo_pct,
-            held_until=twelve_months_from(deposit_date),
+            held_until=twelve_months_from(
+                hold_starts_on(deposit_date=deposit_date, fair_ends_on=fair_ends_on)
+            ),
             status=LockStatus.ACTIVE,
         )
     )
