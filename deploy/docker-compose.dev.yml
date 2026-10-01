@@ -32,11 +32,21 @@
 #
 #   cd deploy
 #   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db api
+#   (`db api` alone skips the dashboard and the seed.)
 #
-# Deliberately excludes `caddy`: it has nothing to serve locally (no real
-# domain, no certificate to get) and the dashboard has its own dev server
-# for local work (`npm start` in dashboard/, proxied or pointed at
-# http://localhost:8000 directly).
+# The whole demo stack, seeded, in one command:
+#
+#   cd deploy
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+#
+# then open http://localhost:8080 (dashboard) -- see deploy/README.md "Local
+# development" for the seeded logins.
+#
+# `caddy` still serves the dashboard, but under Caddyfile.dev: plain HTTP on
+# :8080, no domain and no certificate. The production Caddyfile and ports are
+# swapped out here only, never edited. `seed` is a one-shot that fills the
+# database with demo users, both rate cards and a little inventory; it is
+# idempotent, so it is safe on every `up`.
 
 services:
   db:
@@ -45,3 +55,33 @@ services:
   api:
     ports:
       - "8000:8000"
+  caddy:
+    # `!override`, not a merge: Compose would otherwise append to the base
+    # list and still try to bind 80/443 and mount the production Caddyfile.
+    ports: !override
+      - "8080:80"
+    volumes: !override
+      - ./Caddyfile.dev:/etc/caddy/Caddyfile:ro
+  seed:
+    # The api image, already built by the `api` service: same code, same
+    # DATABASE_URL, so seeding goes through exactly what the operator CLI uses.
+    image: milan-api
+    build:
+      context: ../backend
+    restart: "no"
+    command: ["python", "/seed/seed_dev.py"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      SEED_API_URL: http://api:8000
+      # Running a script by path puts the script's directory on sys.path, not
+      # the image's /srv, so `import app` needs this.
+      PYTHONPATH: /srv
+    # Inherited from the api image and meaningless for a process that exits.
+    healthcheck:
+      disable: true
+    volumes:
+      - ./seed_dev.py:/seed/seed_dev.py:ro
+      - ../shared:/shared:ro
+    depends_on:
+      api:
+        condition: service_healthy

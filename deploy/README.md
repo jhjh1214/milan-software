@@ -90,23 +90,42 @@ docker compose exec api python -m app.cli cards publish /tmp/card.json --list-id
 
 ## Local development
 
-The same `db` and `api` services, minus Caddy, with `db` and `api` published
-to the host instead of reachable only on the compose network. Caddy is left
-out on purpose: it has nothing to serve locally (no real domain, no
-certificate to get), and the dashboard's own dev server (`ng serve`,
-already proxying `/api` to `http://localhost:8000` -- see
-`dashboard/proxy.conf.json`) and Flutter's `flutter run` are the normal way
-to work on either client day to day.
+The whole stack -- database, API, dashboard -- seeded with demo data, in one
+command and with no domain or certificate:
 
 ```sh
 cd deploy
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build db api
-curl -fsS http://localhost:8000/api/health     # {"status":"ok"}
+cp .env.example .env        # first time only; the defaults are fine locally
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 ```
 
+| What | Where |
+|---|---|
+| Dashboard | http://localhost:8080 |
+| API | http://localhost:8000 (`/api/health`) |
+| Postgres | `127.0.0.1:5433` |
+
+Seeded logins, all with PIN **4821**: `0123456789` (admin, "Boss"),
+`0123456780` (staff), `0123456781` (part-timer). Both rate cards, one project
+and one SPC material with a stock lot are in too.
+
 `docker-compose.dev.yml` is a Compose *override*, not a replacement --
-`docker-compose.yml` stays exactly what actually deploys, and nothing in the
-override file is meant to ever run on the VPS.
+`docker-compose.yml` and `Caddyfile` stay exactly what actually deploys, and
+nothing in the override (the `seed` one-shot service, `seed_dev.py`,
+`Caddyfile.dev`, the published ports) is meant to ever run on the VPS. Under
+the override Caddy serves the dashboard on plain HTTP `:8080` using
+`Caddyfile.dev`, with the same routing as production minus ACME and HSTS.
+
+The `seed` service is idempotent -- it skips whatever already exists -- so it is
+safe on every `up`. To start from nothing, remove the volume
+(`... down -v`, **this deletes the local database**) and `up` again. After
+changing dashboard or backend code, re-run `up -d --build`.
+
+For day-to-day dashboard work you can still use `ng serve` (already proxying
+`/api` to `http://localhost:8000`, see `dashboard/proxy.conf.json`) and
+Flutter's `flutter run` against the same API.
+
+The rest of this section is what `seed_dev.py` automates, for doing it by hand.
 
 **`api` is reachable from the whole LAN, on purpose and not risk-free.** A
 phone testing this needs a direct route that does not go through Caddy

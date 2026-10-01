@@ -1,0 +1,42 @@
+# Local development only -- mounted over Caddyfile by docker-compose.dev.yml.
+# The production Caddyfile is untouched and is still what deploys.
+#
+# Same routing as production (API under /api, everything else the dashboard
+# with SPA fallback), minus what only makes sense with a real domain: no
+# automatic HTTPS/ACME (a laptop has no domain to get a certificate for),
+# no HSTS (a browser that sees it for localhost will refuse plain HTTP there
+# afterwards), no on-disk access log.
+
+{
+	auto_https off
+	admin off
+}
+
+:80 {
+	encode zstd gzip
+
+	handle /api/* {
+		request_body {
+			max_size 20MB
+		}
+		reverse_proxy api:8000
+	}
+
+	@asset path *.js *.css *.map *.woff2 *.woff *.ico *.png *.jpg *.svg *.webmanifest
+	handle @asset {
+		root * /srv
+		file_server
+	}
+
+	handle {
+		root * /srv
+		header Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+}
