@@ -429,7 +429,7 @@ class _Preview extends StatelessWidget {
         padding: const EdgeInsets.all(Space.lg),
         decoration: BoxDecoration(
           color: AppColors.alarmSurface,
-          borderRadius: BorderRadius.circular(Radii.lg),
+          borderRadius: BorderRadius.circular(Radii.md),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -463,7 +463,7 @@ class _Preview extends StatelessWidget {
       padding: const EdgeInsets.all(Space.lg),
       decoration: BoxDecoration(
         color: AppColors.muted,
-        borderRadius: BorderRadius.circular(Radii.lg),
+        borderRadius: BorderRadius.circular(Radii.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

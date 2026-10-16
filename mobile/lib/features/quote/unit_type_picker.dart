@@ -481,10 +481,10 @@ class _PickerRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: Space.md),
       child: Material(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(Radii.lg),
+        borderRadius: BorderRadius.circular(Radii.md),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(Radii.lg),
+          borderRadius: BorderRadius.circular(Radii.md),
           child: Container(
             constraints: const BoxConstraints(minHeight: Touch.primary),
             padding: const EdgeInsets.symmetric(
@@ -492,7 +492,7 @@ class _PickerRow extends StatelessWidget {
               vertical: Space.lg,
             ),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(Radii.lg),
+              borderRadius: BorderRadius.circular(Radii.md),
               border: Border.all(color: AppColors.border),
             ),
             child: Row(

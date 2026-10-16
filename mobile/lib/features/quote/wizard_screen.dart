@@ -1046,15 +1046,15 @@ class _UpgradeChoice extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: selected ? AppColors.muted : AppColors.surface,
-      borderRadius: BorderRadius.circular(Radii.lg),
+      borderRadius: BorderRadius.circular(Radii.md),
       child: InkWell(
         onTap: locked ? null : onTap,
-        borderRadius: BorderRadius.circular(Radii.lg),
+        borderRadius: BorderRadius.circular(Radii.md),
         child: Container(
           constraints: const BoxConstraints(minHeight: Touch.primary),
           padding: const EdgeInsets.all(Space.lg),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(Radii.lg),
+            borderRadius: BorderRadius.circular(Radii.md),
             border: Border.all(
               color: selected ? AppColors.accent : AppColors.border,
               width: selected ? 2 : 1,
@@ -1176,10 +1176,10 @@ class _BigChoice extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: AppColors.surface,
-      borderRadius: BorderRadius.circular(Radii.lg),
+      borderRadius: BorderRadius.circular(Radii.md),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(Radii.lg),
+        borderRadius: BorderRadius.circular(Radii.md),
         child: Container(
           constraints: const BoxConstraints(minHeight: Touch.primary),
           padding: const EdgeInsets.symmetric(
@@ -1187,7 +1187,7 @@ class _BigChoice extends StatelessWidget {
             vertical: Space.lg,
           ),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(Radii.lg),
+            borderRadius: BorderRadius.circular(Radii.md),
             border: Border.all(color: AppColors.border),
           ),
           child: Row(

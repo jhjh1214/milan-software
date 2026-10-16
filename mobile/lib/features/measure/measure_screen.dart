@@ -241,10 +241,13 @@ class _VarianceChip extends StatelessWidget {
     final over = variance.sen > 0;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Space.md,
+        vertical: Space.xs,
+      ),
       decoration: BoxDecoration(
         color: over ? AppColors.destructive : AppColors.secondary,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(Radii.sm),
       ),
       child: Text(
         over
@@ -286,7 +289,7 @@ class _LineCard extends ConsumerWidget {
                 // this row is without reading a label. §11 Phase 6.
                 if (photo != null)
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(Radii.sm),
                     child: Image.file(
                       File(photo),
                       width: 56,

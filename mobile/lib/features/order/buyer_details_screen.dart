@@ -147,7 +147,7 @@ class _BuyerDetailsScreenState extends ConsumerState<BuyerDetailsScreen> {
         _why(l, order),
         const SizedBox(height: 16),
         _stillNeeded(l, missing),
-        const SizedBox(height: 20),
+        const SizedBox(height: Space.xl),
 
         TextField(
           controller: _c('name', order.customerName),
@@ -159,7 +159,7 @@ class _BuyerDetailsScreenState extends ConsumerState<BuyerDetailsScreen> {
           ),
           onChanged: (_) => setState(() {}),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: Space.xl),
 
         Text(l.buyerIdentifierSection, style: AppText.title),
         const SizedBox(height: 4),
@@ -192,7 +192,7 @@ class _BuyerDetailsScreenState extends ConsumerState<BuyerDetailsScreen> {
           decoration: InputDecoration(labelText: l.buyerIdNumber),
           onChanged: (_) => setState(() {}),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: Space.xl),
 
         Text(l.buyerAddressSection, style: AppText.title),
         const SizedBox(height: 12),
@@ -239,7 +239,7 @@ class _BuyerDetailsScreenState extends ConsumerState<BuyerDetailsScreen> {
           decoration: InputDecoration(labelText: l.buyerState),
           onChanged: (_) => setState(() {}),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: Space.xl),
 
         TextField(
           controller: _c('msic', order.buyerMsicCode),
@@ -323,7 +323,7 @@ class _BuyerDetailsScreenState extends ConsumerState<BuyerDetailsScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: surface,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(Radii.md),
       ),
       child: Text(text, style: AppText.body.copyWith(color: colour)),
     );

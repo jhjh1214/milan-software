@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../ui/theme.dart';
 import 'quote_state.dart';
 
 /// Overridable so widget tests can supply a stub instead of a camera.
@@ -75,10 +76,10 @@ class LinePhoto extends ConsumerWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: () => captureLinePhoto(context, ref, lineId),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(Radii.md),
           child: exists
               ? ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(Radii.md),
                   child: Image.file(
                     file,
                     width: size,
@@ -95,7 +96,7 @@ class LinePhoto extends ConsumerWidget {
 
   Widget _placeholder(BuildContext context) => Container(
     decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(Radii.md),
       border: Border.all(color: const Color(0xFFCBD5E1)),
       color: const Color(0xFFF1F3F5),
     ),

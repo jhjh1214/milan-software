@@ -38,8 +38,8 @@ class MilanQuoteApp extends ConsumerWidget {
 
       builder: (context, child) {
         return AnnotatedRegion<SystemUiOverlayStyle>(
-          value: SystemUiOverlayStyle.light.copyWith(
-            statusBarColor: AppColors.primary,
+          value: SystemUiOverlayStyle.dark.copyWith(
+            statusBarColor: AppColors.background,
             systemNavigationBarColor: AppColors.surface,
             systemNavigationBarIconBrightness: Brightness.dark,
           ),
