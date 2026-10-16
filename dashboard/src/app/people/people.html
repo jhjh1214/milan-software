@@ -2,7 +2,7 @@
   <h1 class="page-title">{{ t().people.title }}</h1>
   @if (!adding()) {
     <div class="page-actions">
-      <button type="button" class="primary" (click)="openAdd()">
+      <button type="button" class="btn btn-primary" (click)="openAdd()">
         {{ t().people.addSomebody }}
       </button>
     </div>
@@ -15,7 +15,7 @@
 @if (failure(); as failed) {
   <p class="failure" role="alert">
     {{ message(failed) }}
-    <button type="button" (click)="retry()">{{ t().common.reload }}</button>
+    <button type="button" class="btn" (click)="retry()">{{ t().common.reload }}</button>
   </p>
 }
 
@@ -27,11 +27,7 @@
   <form class="add" (submit)="submitAdd($event)">
     <div>
       <label for="name">{{ t().people.name }}</label>
-      <input
-        id="name"
-        [value]="name()"
-        (input)="name.set($any($event.target).value)"
-      />
+      <input id="name" [value]="name()" (input)="name.set($any($event.target).value)" />
     </div>
     <div>
       <label for="phone">{{ t().people.phone }}</label>
@@ -56,24 +52,20 @@
     </div>
     <div>
       <label for="role">{{ t().people.role }}</label>
-      <select
-        id="role"
-        [value]="role()"
-        (change)="role.set($any($event.target).value)"
-      >
+      <select id="role" [value]="role()" (change)="role.set($any($event.target).value)">
         @for (r of roles; track r) {
           <option [value]="r">{{ t().role[r] }}</option>
         }
       </select>
     </div>
     <div class="actions">
-      <button type="submit" class="primary" [disabled]="!canAdd()">
+      <button type="submit" class="btn btn-primary" [disabled]="!canAdd()">
         @if (saving()) {
           <span class="spinner" aria-hidden="true"></span>
         }
         {{ saving() ? t().common.saving : t().people.add }}
       </button>
-      <button type="button" (click)="adding.set(false)">
+      <button type="button" class="btn" (click)="adding.set(false)">
         {{ t().common.cancel }}
       </button>
     </div>
@@ -139,19 +131,14 @@
             } @else if (person.is_active) {
               <button
                 type="button"
-                class="btn"
+                class="btn btn-sm"
                 [disabled]="saving()"
                 (click)="startDeactivating(person)"
               >
                 {{ t().people.removeAccess }}
               </button>
             } @else {
-              <button
-                type="button"
-                class="btn"
-                [disabled]="saving()"
-                (click)="reactivate(person)"
-              >
+              <button type="button" class="btn btn-sm" [disabled]="saving()" (click)="reactivate(person)">
                 {{ t().people.letBackIn }}
               </button>
             }
@@ -187,13 +174,13 @@
     <div class="actions">
       <button
         type="button"
-        class="danger"
+        class="btn btn-danger-solid danger"
         [disabled]="!nameMatches()"
         (click)="deactivate()"
       >
         {{ t().people.removeAccess }}
       </button>
-      <button type="button" (click)="cancelDeactivating()">
+      <button type="button" class="btn" (click)="cancelDeactivating()">
         {{ t().people.keepIt }}
       </button>
     </div>

@@ -17,7 +17,7 @@
 <nav class="filters" [attr.aria-label]="t().board.stage">
   <div class="filter-group">
     <span class="filter-label" id="status-label">{{ t().board.stage }}</span>
-    <div role="group" aria-labelledby="status-label">
+    <div class="segmented" role="group" aria-labelledby="status-label">
       <app-segmented-control
         [options]="statuses"
         [optionLabel]="statusLabel"
@@ -30,7 +30,7 @@
 
   <div class="filter-group">
     <span class="filter-label" id="channel-label">{{ t().board.whereFrom }}</span>
-    <div role="group" aria-labelledby="channel-label">
+    <div class="segmented" role="group" aria-labelledby="channel-label">
       <app-segmented-control
         [options]="channels"
         [optionLabel]="channelLabel"

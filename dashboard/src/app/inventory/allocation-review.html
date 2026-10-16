@@ -23,7 +23,17 @@
     }
   </div>
 } @else if (items().length === 0) {
-  <div class="empty-state">
+  <div class="empty-state empty-state-boxed">
+    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" />
+      <path
+        d="M8.5 12.5l2.3 2.3 4.7-5"
+        stroke="currentColor"
+        stroke-width="1.6"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
     <p>{{ t().inventory.nothingWaiting }}</p>
   </div>
 } @else {

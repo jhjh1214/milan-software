@@ -55,16 +55,16 @@ import { Theme } from './theme';
       width: 36px;
       height: 36px;
       padding: 0;
-      border: 1px solid var(--color-border);
+      border: none;
       border-radius: var(--radius-sm);
-      background: var(--color-surface);
+      background: transparent;
       color: var(--color-fg-muted);
       cursor: pointer;
-      transition: border-color 120ms, color 120ms;
+      transition: background 120ms, color 120ms;
     }
 
     .theme-toggle:hover {
-      border-color: var(--color-fg-faint);
+      background: var(--color-surface-muted);
       color: var(--color-fg);
     }
   `,

@@ -2,7 +2,7 @@
   <h1 class="page-title">{{ t().reports.title }}</h1>
 </header>
 
-<nav class="tabs" [attr.aria-label]="t().reports.title">
+<nav class="tabs segmented" [attr.aria-label]="t().reports.title">
   <app-segmented-control
     [options]="panels"
     [optionLabel]="panelLabel"
@@ -216,7 +216,7 @@
           <span class="filter-label" id="weeks-label">
             {{ t().reports.last }}
           </span>
-          <div role="group" aria-labelledby="weeks-label">
+          <div class="segmented" role="group" aria-labelledby="weeks-label">
             <app-segmented-control
               [options]="periods"
               [optionLabel]="weeksLabel"

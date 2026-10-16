@@ -1,20 +1,12 @@
 :host {
   display: block;
-  padding: var(--space-6) var(--space-5) var(--space-7);
-  max-width: 900px;
-  margin: 0 auto;
 }
 
 /* A segmented control, matching the order board's own list/channel filters --
    one shared shape for "pick one of a few" everywhere it appears. */
 .which {
   border: none;
-  padding: 3px;
   margin: 0;
-  display: inline-flex;
-  gap: 2px;
-  background: var(--color-surface-muted);
-  border-radius: var(--radius-sm);
 }
 
 .mvp-toggle label {
@@ -23,7 +15,7 @@
   gap: var(--space-2);
   text-transform: none;
   font-weight: normal;
-  font-size: 14px;
+  font-size: var(--text-base);
   color: var(--color-fg);
 }
 
@@ -34,7 +26,7 @@
 
 .hint {
   margin: var(--space-1) 0 0;
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-fg-muted);
 }
 
@@ -43,20 +35,25 @@
   font-weight: 600;
 }
 
-.actions {
-  display: flex;
-  gap: var(--space-2);
+td.actions {
+  display: table-cell;
+  white-space: nowrap;
 }
 
-table.card {
-  border-spacing: 0;
-  overflow: hidden;
+td.actions .btn + .btn {
+  margin-left: var(--space-2);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
 .basis {
   display: block;
   margin-top: 2px;
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-fg-muted);
 }
 
@@ -89,12 +86,3 @@ tr.expanded td {
   flex-basis: 100%;
 }
 
-th:first-child,
-td:first-child {
-  padding-left: var(--space-4);
-}
-
-th:last-child,
-td:last-child {
-  padding-right: var(--space-4);
-}

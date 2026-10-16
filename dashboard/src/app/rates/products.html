@@ -4,7 +4,7 @@
     <p class="page-subtitle">{{ t().products.whichList }}</p>
   </div>
 
-  <fieldset class="which">
+  <fieldset class="which segmented">
     <legend class="visually-hidden">{{ t().products.whichList }}</legend>
     <app-segmented-control
       [options]="lists"
@@ -76,7 +76,7 @@
           <td class="actions">
             <button
               type="button"
-              class="btn"
+              class="btn btn-sm"
               (click)="editingId() === product.id ? closeEdit() : openEdit(product)"
             >
               {{ editingId() === product.id ? t().products.cancel : t().products.edit }}

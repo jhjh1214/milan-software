@@ -20,7 +20,7 @@
 
 <nav class="filters" [attr.aria-label]="t().queue.show">
   <span class="filter-label" id="show-label">{{ t().queue.show }}</span>
-  <div role="group" aria-labelledby="show-label">
+  <div class="segmented" role="group" aria-labelledby="show-label">
     <app-segmented-control
       [options]="filters"
       [optionLabel]="filterLabel"

@@ -3,9 +3,6 @@
 
 :host {
   display: block;
-  padding: var(--space-6) var(--space-5) var(--space-7);
-  max-width: 1400px;
-  margin: 0 auto;
 }
 
 .board-head {
@@ -17,7 +14,7 @@
 }
 
 h1 {
-  font-size: 26px;
+  font-size: var(--text-2xl);
   margin: 0;
   letter-spacing: -0.01em;
 }
@@ -25,7 +22,7 @@ h1 {
 .count {
   margin: var(--space-1) 0 0;
   color: var(--color-fg-muted);
-  font-size: 14px;
+  font-size: var(--text-base);
 }
 
 .filters {
@@ -38,7 +35,6 @@ h1 {
   background: var(--color-surface);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
 }
 
 .filter-group {
@@ -48,35 +44,9 @@ h1 {
 }
 
 .filter-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-size: var(--text-xs);
+  font-weight: 600;
   color: var(--color-fg-muted);
-}
-
-/* A segmented control, not a row of separate buttons: one shared outer
-   edge, buttons flush against each other, the active one lifted onto its
-   own surface. This is the shape a "pick one" filter reads as everywhere
-   from a phone's Settings app to Stripe's own dashboard. */
-.filter-group [role='group'] {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 2px;
-  padding: 3px;
-  background: var(--color-surface-muted);
-  border-radius: var(--radius-sm);
-}
-
-.filter-group select {
-  min-height: 36px;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  color: var(--color-fg);
-  font: inherit;
-  font-size: 14px;
 }
 
 .cards {
@@ -90,28 +60,13 @@ h1 {
 
 .card {
   border: 1px solid var(--color-border-subtle);
-  border-left: 4px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
-  transition:
-    box-shadow var(--duration-base) var(--ease),
-    transform var(--duration-base) var(--ease);
+  transition: border-color var(--duration-fast) var(--ease);
 }
 
 .card:has(a:hover) {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .card {
-    transition: box-shadow var(--duration-fast) var(--ease);
-  }
-
-  .card:has(a:hover) {
-    transform: none;
-  }
+  border-color: var(--color-border);
 }
 
 .card a {
@@ -122,24 +77,25 @@ h1 {
 }
 
 .card a:focus-visible {
-  outline: 3px solid var(--color-accent);
+  outline: 2px solid var(--color-accent);
   outline-offset: -3px;
   border-radius: var(--radius-sm);
 }
 
 /* The one thing colour means here. Amber inside 60 days, red inside 30, and a
    fourth state once it has gone — an expired hold is not urgent, it is a
-   customer who paid RM300 and got nothing, which is a different conversation. */
+   customer who paid RM300 and got nothing, which is a different conversation.
+   Drawn as an inset edge on the card, not a thick bar beside it. */
 .card[data-urgency='soon'] {
-  border-left-color: var(--color-warning);
+  box-shadow: inset 3px 0 0 var(--color-warning);
 }
 
 .card[data-urgency='urgent'] {
-  border-left-color: var(--color-danger);
+  box-shadow: inset 3px 0 0 var(--color-danger);
 }
 
 .card[data-urgency='gone'] {
-  border-left-color: var(--color-danger);
+  box-shadow: inset 3px 0 0 var(--color-danger);
   background: var(--color-danger-bg);
 }
 
@@ -152,8 +108,8 @@ h1 {
 }
 
 .reference {
-  font-weight: 700;
-  font-size: 14px;
+  font-weight: 600;
+  font-size: var(--text-base);
   /* Tabular figures so a column of order numbers lines up. */
   font-variant-numeric: tabular-nums;
 }
@@ -166,14 +122,14 @@ h1 {
 
 .customer {
   margin: 0 0 var(--space-3);
-  font-size: 15px;
+  font-size: var(--text-base);
   font-weight: 600;
 }
 
 .total {
   margin: 0;
-  font-size: 20px;
-  font-weight: 700;
+  font-size: var(--text-xl);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--color-fg);
 }
@@ -182,7 +138,7 @@ h1 {
 .hold,
 .flag {
   margin: 3px 0 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-fg-muted);
 }
 
@@ -192,7 +148,7 @@ h1 {
 }
 
 .flag {
-  color: var(--color-primary);
+  color: var(--color-accent);
   font-weight: 600;
 }
 
@@ -202,8 +158,6 @@ h1 {
 
 .skeleton-card {
   padding: var(--space-4);
-  border-left-color: var(--color-border);
-  box-shadow: none;
 }
 
 .skeleton-card .skeleton {

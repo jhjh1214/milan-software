@@ -3,14 +3,11 @@
 
 :host {
   display: block;
-  padding: var(--space-6) var(--space-5) var(--space-7);
-  max-width: 1100px;
-  margin: 0 auto;
 }
 
 h1 {
   margin: 0;
-  font-size: 26px;
+  font-size: var(--text-2xl);
   letter-spacing: -0.01em;
 }
 
@@ -21,7 +18,7 @@ h1 {
 }
 
 .range {
-  font-size: 14px;
+  font-size: var(--text-base);
   font-weight: 600;
   color: var(--color-fg-muted);
   font-variant-numeric: tabular-nums;
@@ -32,8 +29,8 @@ h1 {
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-sm);
   background: var(--color-surface-muted);
-  font-size: 16px;
-  font-weight: 700;
+  font-size: var(--text-md);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
@@ -41,35 +38,12 @@ h1 {
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
 }
 
 /* Money coming off is the ordinary case and is marked, not alarmed about.
    The alarm on this screen is the size of the total, not its direction. */
 .net.down {
   color: var(--color-warning);
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-th {
-  text-align: left;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-fg-muted);
-  padding: 0 var(--space-3) var(--space-2) 0;
-  border-bottom: 1px solid var(--color-border);
-}
-
-td {
-  padding: 10px var(--space-3) 10px 0;
-  border-bottom: 1px solid var(--color-border-subtle);
-  vertical-align: top;
 }
 
 /* Right-aligned and tabular, so a column of money lines up on the decimal and

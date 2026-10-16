@@ -1,59 +1,57 @@
 /**
  * Design tokens and base styles for the whole dashboard.
  *
- * Every screen already used roughly this palette (#1e3a5f navy, #2563eb blue,
- * #56637a muted text) scattered as literal hex values in each component's own
- * CSS. This file makes it one system instead of nine independent guesses: a
- * token changed here changes everywhere, and a screen that used a slightly
- * different grey by accident stops being possible.
+ * The look is deliberately quiet: system typeface, neutral greys, one blue
+ * that means "you can act on this", flat surfaces separated by a hairline
+ * rather than a shadow, and no gradients anywhere. Colour is for state
+ * (success, warning, danger) and for the one accent; everything else is
+ * grey, so the thing that needs attention is the only thing that is not.
  *
  * Light values live on `:root`. Dark is `prefers-color-scheme: dark` by
  * default, with `[data-theme]` on `<html>` (set by `Theme`, `app/theme/
- * theme.ts`) able to force either mode regardless of the OS setting — the
- * same three-state pattern used for the language pick, because an office PC's
- * OS theme is not always the reader's own choice.
+ * theme.ts`) able to force either mode regardless of the OS setting.
  *
- * Dark mode uses desaturated, lighter tonal variants rather than a literal
- * inversion — an inverted navy is closer to black than a colour, and reads as
- * a mistake rather than a theme.
+ * Every screen asks for a role (`--color-danger`), never a hex. A token
+ * changed here changes everywhere.
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap');
-
 :root {
-  /* Brand and semantic colour. Names describe ROLE, not the hex behind them —
-     a component asking for --color-danger should never need to know it is
-     #DC2626 today. */
-  --color-bg: #f8fafc;
+  --color-bg: #f5f5f7;
   --color-surface: #ffffff;
-  --color-surface-muted: #f1f4f8;
-  --color-fg: #0f172a;
-  --color-fg-muted: #56637a;
-  --color-fg-faint: #94a3b8;
-  --color-border: #cbd5e1;
-  --color-border-subtle: #e2e8f0;
+  --color-surface-muted: #ededf0;
+  --color-fg: #1d1d1f;
+  --color-fg-muted: #6e6e73;
+  --color-fg-faint: #86868b;
+  --color-border: #d2d2d7;
+  --color-border-subtle: #e5e5ea;
 
-  --color-primary: #1e3a5f;
-  --color-primary-hover: #163050;
+  /* One blue. Primary actions fill with it; links, focus and "where you are"
+     are drawn in it. */
+  --color-primary: #0071e3;
+  --color-primary-hover: #0066cc;
   --color-on-primary: #ffffff;
 
-  --color-accent: #2563eb;
-  --color-accent-hover: #1d4ed8;
-  --color-accent-bg: #eff6ff;
+  --color-accent: #0071e3;
+  --color-accent-hover: #0066cc;
+  --color-accent-bg: #e8f1fc;
+  --color-focus: rgb(0 113 227 / 0.28);
 
-  --color-success: #059669;
-  --color-success-bg: #ecfdf5;
-  --color-warning: #d97706;
-  --color-warning-bg: #fffbeb;
-  --color-danger: #dc2626;
-  --color-danger-bg: #fee2e2;
+  --color-success: #1d7d36;
+  --color-success-bg: #e6f5ea;
+  --color-warning: #a65200;
+  --color-warning-bg: #fff3df;
+  --color-danger: #d70015;
+  --color-danger-bg: #ffebe9;
   --color-on-danger: #ffffff;
-  --color-disabled: #94a3b8;
+  --color-disabled: #aeaeb2;
 
-  --shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.06);
-  --shadow-md: 0 4px 12px -2px rgb(15 23 42 / 0.1), 0 2px 4px -2px rgb(15 23 42 / 0.06);
+  /* Shadow is for layers that really float (a menu, a dialog). A card on the
+     page is a border, not a shadow. */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.06);
+  --shadow-md: 0 8px 28px -6px rgb(0 0 0 / 0.18), 0 2px 8px -2px rgb(0 0 0 / 0.1);
+  --scrim: rgb(0 0 0 / 0.32);
 
-  /* 4px rhythm, per CLAUDE.md's spacing conventions elsewhere in the repo. */
+  /* 4px rhythm. */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -62,23 +60,37 @@
   --space-6: 32px;
   --space-7: 48px;
 
-  --radius-sm: 6px;
-  --radius-md: 10px;
+  /* Controls and chips 8, surfaces 12, large overlays 16. --radius-pill is
+     for badges and avatars only. */
+  --radius-sm: 8px;
+  --radius-md: 12px;
   --radius-lg: 16px;
+  --radius-pill: 999px;
 
-  /* Source Sans 3 covers Latin (English and Malay) and falls through to the
-     OS's own CJK font for Chinese — loading a Latin-only webfont never blocks
-     or misrenders a Chinese screen, it simply does not apply to it. */
+  /* One content width and one gutter for every screen, so the left edge of a
+     page title never moves between pages. */
+  --page-max: 1120px;
+
+  /* One type scale. A screen picks a step; it does not pick a pixel value. */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 28px;
+  --text-display: 34px;
+
+  /* The platform's own typeface: San Francisco on Apple devices, Segoe UI on
+     Windows. Nothing is downloaded, and Chinese falls through to the OS's
+     own CJK face. */
   --font-body:
-    'Source Sans 3', -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei',
-    'Noto Sans SC', sans-serif;
-  --font-heading: 'Lexend', var(--font-body);
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Helvetica Neue',
+    'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
+  --font-heading: var(--font-body);
 
   --duration-fast: 120ms;
   --duration-base: 200ms;
-  /* A continuous ambient loop, not a discrete transition -- deliberately
-     slower than the other two, which time a state change rather than a
-     "this is still working" pulse. */
   --duration-slow: 1200ms;
   --ease: cubic-bezier(0.2, 0, 0, 1);
 
@@ -87,67 +99,72 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --color-bg: #0b1220;
-    --color-surface: #121a2b;
-    --color-surface-muted: #1a2436;
-    --color-fg: #e7ecf3;
-    --color-fg-muted: #9aa8bd;
-    --color-fg-faint: #64748b;
-    --color-border: #2a3548;
-    --color-border-subtle: #202a3c;
+    --color-bg: #000000;
+    --color-surface: #1c1c1e;
+    --color-surface-muted: #2c2c2e;
+    --color-fg: #f5f5f7;
+    --color-fg-muted: #a1a1a6;
+    --color-fg-faint: #6e6e73;
+    --color-border: #3a3a3c;
+    --color-border-subtle: #2c2c2e;
 
-    --color-primary: #4f7cb0;
-    --color-primary-hover: #6791c0;
-    --color-on-primary: #071019;
+    --color-primary: #0a7cff;
+    --color-primary-hover: #2e8fff;
+    --color-on-primary: #ffffff;
 
-    --color-accent: #60a5fa;
-    --color-accent-hover: #7fb5fb;
-    --color-accent-bg: #14243f;
+    --color-accent: #2997ff;
+    --color-accent-hover: #55adff;
+    --color-accent-bg: #0b2a4a;
+    --color-focus: rgb(41 151 255 / 0.4);
 
-    --color-success: #34d399;
-    --color-success-bg: #052e22;
-    --color-warning: #fbbf24;
-    --color-warning-bg: #3a2a05;
-    --color-danger: #f87171;
-    --color-danger-bg: #3a0d0d;
+    --color-success: #30d158;
+    --color-success-bg: #0d2c18;
+    --color-warning: #ff9f0a;
+    --color-warning-bg: #35230a;
+    --color-danger: #ff453a;
+    --color-danger-bg: #3a1311;
     --color-on-danger: #1a0a0a;
-    --color-disabled: #475569;
+    --color-disabled: #48484a;
 
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
-    --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
+    --shadow-md: 0 8px 28px -6px rgb(0 0 0 / 0.7), 0 2px 8px -2px rgb(0 0 0 / 0.5);
+    --scrim: rgb(0 0 0 / 0.6);
 
     color-scheme: dark;
   }
 }
 
 :root[data-theme='dark'] {
-  --color-bg: #0b1220;
-  --color-surface: #121a2b;
-  --color-surface-muted: #1a2436;
-  --color-fg: #e7ecf3;
-  --color-fg-muted: #9aa8bd;
-  --color-fg-faint: #64748b;
-  --color-border: #2a3548;
-  --color-border-subtle: #202a3c;
+  --color-bg: #000000;
+  --color-surface: #1c1c1e;
+  --color-surface-muted: #2c2c2e;
+  --color-fg: #f5f5f7;
+  --color-fg-muted: #a1a1a6;
+  --color-fg-faint: #6e6e73;
+  --color-border: #3a3a3c;
+  --color-border-subtle: #2c2c2e;
 
-  --color-primary: #4f7cb0;
-  --color-primary-hover: #6791c0;
-  --color-on-primary: #071019;
+  --color-primary: #0a7cff;
+  --color-primary-hover: #2e8fff;
+  --color-on-primary: #ffffff;
 
-  --color-accent: #60a5fa;
-  --color-accent-hover: #7fb5fb;
+  --color-accent: #2997ff;
+  --color-accent-hover: #55adff;
+  --color-accent-bg: #0b2a4a;
+  --color-focus: rgb(41 151 255 / 0.4);
 
-  --color-success: #34d399;
-  --color-success-bg: #052e22;
-  --color-warning: #fbbf24;
-  --color-warning-bg: #3a2a05;
-  --color-danger: #f87171;
-  --color-danger-bg: #3a0d0d;
+  --color-success: #30d158;
+  --color-success-bg: #0d2c18;
+  --color-warning: #ff9f0a;
+  --color-warning-bg: #35230a;
+  --color-danger: #ff453a;
+  --color-danger-bg: #3a1311;
   --color-on-danger: #1a0a0a;
-  --color-disabled: #475569;
+  --color-disabled: #48484a;
 
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
-  --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
+  --shadow-md: 0 8px 28px -6px rgb(0 0 0 / 0.7), 0 2px 8px -2px rgb(0 0 0 / 0.5);
+  --scrim: rgb(0 0 0 / 0.6);
 
   color-scheme: dark;
 }
@@ -166,7 +183,7 @@ body {
   background: var(--color-bg);
   color: var(--color-fg);
   font-family: var(--font-body);
-  font-size: 16px;
+  font-size: var(--text-md);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -176,6 +193,7 @@ h2,
 h3 {
   font-family: var(--font-heading);
   font-weight: 600;
+  letter-spacing: -0.02em;
   color: var(--color-fg);
 }
 
@@ -199,22 +217,20 @@ h3 {
   }
 }
 
-/* Every interactive element in the app shares one focus ring so keyboard
-   navigation looks and feels the same everywhere. */
+/* Every interactive element shares one focus ring, so keyboard navigation
+   looks the same everywhere. Text fields draw theirs as a soft halo instead
+   (below). */
 a:focus-visible,
 button:focus-visible,
-input:focus-visible,
 select:focus-visible,
-textarea:focus-visible,
 [tabindex]:focus-visible {
-  outline: 3px solid var(--color-accent);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
 /* --- Shared component classes ---------------------------------------
-   Global rather than per-component so nine screens cannot independently
-   drift into nine slightly different buttons. Angular's view encapsulation
-   still lets any component override a more specific selector locally. */
+   Global rather than per-component so screens cannot independently drift
+   into slightly different buttons. */
 
 button {
   font: inherit;
@@ -225,14 +241,16 @@ button {
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  min-height: 40px;
+  min-height: 36px;
   padding: 0 var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-fg);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--text-base);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
   transition:
     background var(--duration-fast) var(--ease),
@@ -240,18 +258,17 @@ button {
     color var(--duration-fast) var(--ease);
 }
 
-.btn:hover {
-  border-color: var(--color-fg-faint);
+.btn:hover:not(:disabled) {
+  background: var(--color-surface-muted);
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: default;
-  border-color: var(--color-border);
 }
 
 .btn:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: scale(0.98);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -264,36 +281,80 @@ button {
   border-color: var(--color-primary);
   background: var(--color-primary);
   color: var(--color-on-primary);
-  box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
   border-color: var(--color-primary-hover);
+  background: var(--color-primary-hover);
 }
 
+/* Destructive but reversible-in-spirit: red text, quiet frame. */
 .btn-danger {
-  border-color: var(--color-danger);
   color: var(--color-danger);
-  background: var(--color-surface);
 }
 
 .btn-danger:hover:not(:disabled) {
   background: var(--color-danger-bg);
 }
 
+/* For the confirming click of an action that cannot be undone. */
+.btn-danger-solid {
+  border-color: var(--color-danger);
+  background: var(--color-danger);
+  color: var(--color-on-danger);
+}
+
+.btn-danger-solid:hover:not(:disabled) {
+  border-color: var(--color-danger);
+  background: var(--color-danger);
+  filter: brightness(0.92);
+}
+
+.btn-lg {
+  min-height: 44px;
+  padding: 0 var(--space-5);
+  font-size: var(--text-md);
+}
+
+/* Row-level actions sit inside dense tables; the standard control would
+   double the row height. */
+.btn-sm {
+  min-height: 30px;
+  padding: 0 var(--space-3);
+  font-size: var(--text-sm);
+}
+
+/* A row of buttons wraps as a row, never as a button whose label breaks. */
+.actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
 }
 
-/* One page container, one header shape, everywhere. Nine screens each
-   inventing their own "title + count + primary action" row is exactly how
-   a dashboard ends up with nine slightly different first impressions. */
+/* Stacked surfaces get one gap, so a message card never touches the table
+   beneath it. */
+.card + .card {
+  margin-top: var(--space-4);
+}
+
+/* Every routed screen sits in the shell's `.main-content`. Width and padding
+   are decided here once, not by each screen's own :host. Sign-in is the one
+   full-bleed screen and lays itself out. */
+.main-content > :not(router-outlet):not(app-sign-in) {
+  display: block;
+  max-width: var(--page-max);
+  padding: var(--space-6) var(--space-5) var(--space-7);
+}
+
 .page {
-  max-width: 1100px;
+  max-width: var(--page-max);
   margin: 0 auto;
   padding: var(--space-6) var(--space-5) var(--space-7);
 }
@@ -309,41 +370,82 @@ button {
 
 .page-title {
   margin: 0;
-  font-size: 26px;
-  letter-spacing: -0.01em;
+  font-size: var(--text-2xl);
 }
 
 .page-subtitle {
   margin: var(--space-1) 0 0;
   color: var(--color-fg-muted);
-  font-size: 14px;
+  font-size: var(--text-base);
   max-width: 60ch;
 }
 
 .page-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
   flex-shrink: 0;
 }
 
 label {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: 500;
   color: var(--color-fg-muted);
 }
 
 input,
 select,
 textarea {
-  min-height: 44px;
+  min-height: 40px;
   padding: 0 var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-fg);
   font: inherit;
-  font-size: 16px;
+  font-size: var(--text-md);
+  transition:
+    border-color var(--duration-fast) var(--ease),
+    box-shadow var(--duration-fast) var(--ease);
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 4px var(--color-focus);
+}
+
+/* The file picker's own button, drawn as every other button. */
+input[type='file'] {
+  padding: 0 var(--space-2) 0 0;
+  font-size: var(--text-base);
+  color: var(--color-fg-muted);
+}
+
+input[type='file']::file-selector-button {
+  min-height: 38px;
+  margin: 0 var(--space-3) 0 0;
+  padding: 0 var(--space-4);
+  border: none;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface-muted);
+  color: var(--color-fg);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* A quiet chevron in place of the browser's own arrow. */
+select {
+  appearance: none;
+  padding-right: var(--space-6);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%2386868b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-3) center;
+  cursor: pointer;
 }
 
 input:disabled,
@@ -356,29 +458,44 @@ textarea:disabled {
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: var(--text-base);
 }
 
 th {
-  padding: var(--space-3) var(--space-3);
-  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-border-subtle);
   color: var(--color-fg-muted);
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: var(--text-sm);
+  font-weight: 500;
   text-align: left;
 }
 
 td {
-  padding: var(--space-3) var(--space-3);
+  padding: var(--space-3);
   border-bottom: 1px solid var(--color-border-subtle);
+  vertical-align: middle;
 }
 
-/* A table living inside `.card` reads as one surface rather than a grid
-   floating on the page -- the last row's border would otherwise double up
-   against the card's own edge. */
-.card table tr:last-child td {
+/* A table drawn as a card keeps its text off the card's edge and its corners
+   clipped to the radius. */
+table.card {
+  overflow: hidden;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+table.card th:first-child,
+table.card td:first-child {
+  padding-left: var(--space-4);
+}
+
+table.card th:last-child,
+table.card td:last-child {
+  padding-right: var(--space-4);
+}
+
+/* The last row's rule would double up against the card's own edge. */
+table.card tbody tr:last-child td {
   border-bottom: none;
 }
 
@@ -387,12 +504,24 @@ tbody tr {
 }
 
 tbody tr:hover {
-  background: var(--color-surface-muted);
+  background: var(--color-bg);
+}
+
+/* On a phone-width window a wide table scrolls inside its card instead of
+   spilling out of it. */
+@media (max-width: 720px) {
+  table.card {
+    display: block;
+    overflow-x: auto;
+  }
+
+  table.card td {
+    white-space: nowrap;
+  }
 }
 
 /* Numbers in a column, so money and dimensions do not shift as digits
-   change — the UX guidance this project's own reports depend on reading
-   accurately at a glance. */
+   change. */
 .num {
   font-variant-numeric: tabular-nums;
 }
@@ -402,9 +531,9 @@ tbody tr:hover {
   align-items: center;
   gap: var(--space-1);
   padding: 2px var(--space-2);
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -432,20 +561,27 @@ tbody tr:hover {
   color: var(--color-fg-muted);
 }
 
+/* A confirmation of something that just happened. */
+.note[role='status'] {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
 .failure {
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-sm);
   background: var(--color-danger-bg);
   color: var(--color-danger);
-  font-size: 14px;
+  font-size: var(--text-base);
 }
 
+/* Information, not success: the accent tint, in ordinary text colour. */
 .note {
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-sm);
-  background: var(--color-success-bg);
-  color: var(--color-success);
-  font-size: 14px;
+  background: var(--color-accent-bg);
+  color: var(--color-fg);
+  font-size: var(--text-base);
 }
 
 /* Tables can overflow on a narrow window before they overflow the screen
@@ -455,8 +591,25 @@ tbody tr:hover {
   overflow-x: auto;
 }
 
-/* A row of headline numbers -- the shape every report's "totals so far"
-   line was reaching for with a plain `<p>`. */
+/* "Pick one" -- a filter, a tab strip, a list chooser. The track is a quiet
+   grey, the chosen option sits on its own surface. It never wraps its
+   options onto a second row: on a narrow window it scrolls sideways. */
+.segmented {
+  display: inline-flex;
+  gap: 2px;
+  max-width: 100%;
+  padding: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-sm);
+}
+
+.segmented::-webkit-scrollbar {
+  display: none;
+}
+
+/* A row of headline numbers. */
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -469,23 +622,20 @@ tbody tr:hover {
   background: var(--color-surface);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
 }
 
 .stat-label {
   margin: 0 0 var(--space-1);
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: var(--text-sm);
+  font-weight: 500;
   color: var(--color-fg-muted);
 }
 
 .stat-value {
   margin: 0;
-  font-family: var(--font-heading);
-  font-size: 26px;
-  font-weight: 700;
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
 }
@@ -500,7 +650,7 @@ tbody tr:hover {
 
 .stat-hint {
   margin: var(--space-1) 0 0;
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-fg-muted);
 }
 
@@ -508,20 +658,17 @@ tbody tr:hover {
    not important enough to be the page's own <h1>. */
 .section-title {
   margin: 0 0 var(--space-3);
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-fg-muted);
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-fg);
 }
 
 /* A spinning ring, for inside a busy button or beside "loading" text. Never
-   the only signal something is happening — every use sites this next to
-   words, for the same reason a colour is never the only signal a state. */
+   the only signal something is happening. */
 .spinner {
   display: inline-block;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border: 2px solid currentColor;
   border-right-color: transparent;
   border-radius: 50%;
@@ -542,42 +689,34 @@ tbody tr:hover {
   }
 }
 
-/* A row of grey bars standing in for content that has not arrived yet.
-   Used instead of a bare "loading…" line wherever a screen's shape is known
-   ahead of the data — a table, a card, a list of names. */
+/* Grey bars standing in for content that has not arrived yet. A slow fade,
+   not a travelling highlight. */
 .skeleton {
   display: block;
   height: 1em;
   border-radius: var(--radius-sm);
-  background: linear-gradient(
-    90deg,
-    var(--color-surface-muted) 25%,
-    var(--color-border-subtle) 37%,
-    var(--color-surface-muted) 63%
-  );
-  background-size: 400% 100%;
-  animation: shimmer 1.4s ease infinite;
+  background: var(--color-surface-muted);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
 }
 
-@keyframes shimmer {
-  0% {
-    background-position: 100% 50%;
-  }
+@keyframes skeleton-pulse {
+  0%,
   100% {
-    background-position: 0 50%;
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .skeleton {
     animation: none;
-    background: var(--color-surface-muted);
   }
 }
 
 /* Three dots, breathing -- "AI is working on this" beside recognition's own
-   async job poll. Never the only signal: every use sites this next to
-   words, the same rule `.spinner` already follows. */
+   async job poll. Never the only signal. */
 .thinking-dots {
   display: inline-flex;
   align-items: center;
@@ -630,13 +769,21 @@ tbody tr:hover {
   text-align: center;
 }
 
+/* An empty state that is the whole screen's content sits on its own surface,
+   like the cards it stands in for. Not used inside a card or table. */
+.empty-state-boxed {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
 .empty-state svg {
   color: var(--color-fg-faint);
 }
 
 .empty-state p {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--text-base);
 }
 
 .visually-hidden {

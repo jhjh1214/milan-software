@@ -141,12 +141,12 @@
             }
           </td>
           <td class="actions">
-            <button type="button" class="btn" (click)="toggleExpand(material)">
+            <button type="button" class="btn btn-sm" (click)="toggleExpand(material)">
               {{ expanded() === material.id ? t().common.cancel : t().inventory.receiveStock }}
             </button>
             <button
               type="button"
-              class="btn btn-danger"
+              class="btn btn-sm btn-danger"
               [disabled]="saving()"
               (click)="deactivate(material)"
             >
@@ -181,7 +181,7 @@
                           <td class="actions">
                             <button
                               type="button"
-                              class="btn"
+                              class="btn btn-sm"
                               (click)="adjustingLotId() === lot.id ? cancelAdjust() : openAdjust(lot)"
                             >
                               {{ adjustingLotId() === lot.id ? t().common.cancel : t().inventory.adjustStock }}

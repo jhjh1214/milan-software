@@ -194,3 +194,55 @@ dashboard tests, all re-verified against the new markup rather than
 rewritten. That a purely visual pass needed no test changed (bar the one
 `.card`-counting collision above) is itself evidence nothing behavioural
 moved along with it.
+
+## Third pass: quieter, flatter, and out of the way (Oct 2026)
+
+**Supersedes the Colour and Type sections above** where they disagree; the
+sections that follow from it (dark mode as its own palette, skeleton and
+empty states, the motion rules) stand.
+
+The direction, asked for directly: minimal, Apple-like, no gradients, and
+nothing on screen that does not need to be.
+
+- **One blue, otherwise grey.** `#0071e3` (light) / `#0a7cff` buttons and
+  `#2997ff` text (dark) is the only accent: primary buttons, links, focus,
+  "where you are". Page `#f5f5f7`, surfaces white, text `#1d1d1f`; dark is
+  true black with `#1c1c1e` surfaces. Colour otherwise means state only.
+  The navy brand colour is gone.
+- **The platform's own typeface.** `-apple-system` / Segoe UI; Lexend and
+  Source Sans 3 are no longer loaded, so there is no third-party font
+  request at all.
+- **Flat.** Cards and stat cards are a hairline border, no shadow. Shadow
+  exists only for things that float (the account menu, the dialog). Hover
+  lifts, left accent bars and every gradient (the sign-in brand panel, the
+  skeleton shimmer) are removed. Urgency on a card is a 3px inset edge.
+- **Sentence-case small labels** replace uppercase tracked ones everywhere.
+- **Radii 8 / 12 / 16.**
+- **Buttons never break their label** (`white-space: nowrap`); a row of them
+  wraps as a row (`.actions-row`, `.btn-sm` inside tables). `.segmented` is
+  one shared track for every "pick one" control and scrolls sideways instead
+  of wrapping.
+- **Language and theme are not on screen.** Language is asked once, at an
+  account's first sign-in on a browser (`account/language-prompt.ts`,
+  remembered in `localStorage` per account id), and afterwards lives in the
+  account menu at the foot of the sidebar (`account/account-menu.ts`) beside
+  the theme switch and sign out. The always-visible three-button picker is
+  deleted. The sign-in screen is a single centred column.
+- **One page container.** Width and padding come from `--page-max` and a
+  single rule on `.main-content`, not each screen's `:host`.
+
+**The handset matches** (`mobile/lib/ui/theme.dart`): same neutrals and the
+same blue, a flat light app bar with a hairline instead of the navy slab,
+bordered flat cards, no ink ripple (a pressed row takes a faint tint),
+radii 8 / 12 / 16, the platform's own typeface. It stays light-only — SPEC.md
+§8.1 is binding for a bright fair hall — and keeps its 48/56dp touch targets.
+Its app bar's six icons overflowed a 390dp phone by 42dp, which no test
+caught because tests run at a wider default size; language, the price list,
+floor-plan submission and the admin reviews now sit behind one "more" menu,
+leaving the tier toggle and the sync badge on show.
+
+Bugs found by looking at the running app rather than the code: the shell
+reserved the sidebar's 248px even when signed out (so sign-in was offset);
+`/rates` and `/inventory` stayed highlighted on their child screens; a table
+cell styled `display: flex` broke its row rule; four screens re-declared the
+global table styles with zero left padding.

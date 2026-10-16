@@ -1,6 +1,5 @@
-/* A branded half and a form half. Below a laptop-narrow window the brand
-   half steps out of the way entirely -- there is exactly one thing to do
-   here and it should not have to compete with anything for room. */
+/* One centred column on a plain ground. There is exactly one thing to do
+   here, so nothing else is on the screen. */
 
 :host {
   display: block;
@@ -8,62 +7,11 @@
 }
 
 .sign-in-shell {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  min-height: 100dvh;
-}
-
-.brand-panel {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-6);
-  background:
-    radial-gradient(120% 140% at 15% 10%, rgb(255 255 255 / 0.08), transparent 55%),
-    linear-gradient(155deg, var(--color-primary) 0%, #0f2540 100%);
-  color: #fff;
-}
-
-.brand-panel-inner {
-  max-width: 360px;
-}
-
-.brand-panel .brand-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  margin-bottom: var(--space-4);
-  border-radius: var(--radius-md);
-  background: rgb(255 255 255 / 0.12);
-  border: 1px solid rgb(255 255 255 / 0.2);
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 26px;
-}
-
-.brand-panel h2 {
-  margin: 0 0 var(--space-2);
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 34px;
-  color: #fff;
-  letter-spacing: -0.01em;
-}
-
-.brand-panel p {
-  margin: 0;
-  color: rgb(255 255 255 / 0.72);
-  font-size: 15px;
-}
-
-.form-panel {
+  position: relative;
   display: grid;
   place-items: center;
-  position: relative;
+  min-height: 100dvh;
   padding: var(--space-5);
-  background: var(--color-bg);
 }
 
 .corner {
@@ -75,27 +23,28 @@
 .sign-in {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
   width: 100%;
-  max-width: 360px;
-  padding: var(--space-6) var(--space-5);
+  max-width: 340px;
 }
 
 .logo-placeholder {
-  width: 64px;
-  height: 64px;
-  margin: 0 auto var(--space-2);
-  border: 1px dashed var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto;
   border-radius: var(--radius-md);
-  background: var(--color-surface-muted);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: var(--text-2xl);
+  font-weight: 600;
 }
 
-/* Only shown at all below the breakpoint where the brand panel disappears --
-   otherwise the wordmark would say "Milan" twice on the same screen. */
-.form-panel h1 {
-  display: none;
-  margin: 0 0 var(--space-4);
-  font-size: 24px;
+h1 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-2xl);
   text-align: center;
 }
 
@@ -107,29 +56,14 @@
 
 input {
   width: 100%;
+  min-height: 44px;
 }
 
 button[type='submit'] {
-  margin-top: var(--space-3);
+  margin-top: var(--space-2);
   width: 100%;
-  min-height: 48px;
-  font-size: 16px;
 }
 
 .failure {
   margin: 0;
-}
-
-@media (max-width: 860px) {
-  .sign-in-shell {
-    grid-template-columns: 1fr;
-  }
-
-  .brand-panel {
-    display: none;
-  }
-
-  .form-panel h1 {
-    display: block;
-  }
 }

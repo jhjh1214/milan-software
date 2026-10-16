@@ -2,22 +2,17 @@
 
 :host {
   display: block;
-  padding: var(--space-6) var(--space-5) var(--space-7);
-  max-width: 900px;
-  margin: 0 auto;
 }
 
 h1 {
   margin: 0 0 var(--space-5);
-  font-size: 26px;
+  font-size: var(--text-2xl);
   letter-spacing: -0.01em;
 }
 
 h2 {
-  font-size: 14px;
+  font-size: var(--text-base);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   color: var(--color-fg-muted);
   margin: var(--space-5) 0 var(--space-2);
 }
@@ -28,28 +23,12 @@ h2.warn {
 
 .which {
   border: none;
-  padding: 3px;
   margin: 0 0 var(--space-5);
-  display: inline-flex;
-  gap: 2px;
-  background: var(--color-surface-muted);
-  border-radius: var(--radius-sm);
-}
-
-.which legend {
-  float: left;
-  width: 100%;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-fg-muted);
-  margin-bottom: var(--space-2);
 }
 
 label {
   display: block;
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-fg-muted);
   margin-bottom: 6px;
@@ -63,49 +42,14 @@ textarea {
   background: var(--color-surface);
   color: var(--color-fg);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 13px;
+  font-size: var(--text-sm);
   resize: vertical;
 }
 
 .or {
   margin: var(--space-2) 0 var(--space-4);
-  font-size: 14px;
+  font-size: var(--text-base);
   color: var(--color-fg-muted);
-}
-
-button.primary,
-button.danger {
-  min-height: 48px;
-  padding: 0 20px;
-  border: none;
-  border-radius: var(--radius-sm);
-  font: inherit;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-button.primary {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-}
-
-button.primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-}
-
-/* The publish button is the one that changes what every handset quotes
-   tomorrow, and it should not look like the button that only shows a list. */
-button.danger {
-  background: var(--color-danger);
-  color: var(--color-on-danger);
-  margin-top: var(--space-4);
-}
-
-button:disabled {
-  background: var(--color-disabled);
-  color: #fff;
-  cursor: default;
 }
 
 .diff {
@@ -114,12 +58,11 @@ button:disabled {
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
 }
 
 .summary {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--text-base);
 }
 
 .net {
@@ -130,27 +73,6 @@ button:disabled {
 .nothing {
   margin: 0;
   color: var(--color-fg-muted);
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-th {
-  text-align: left;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-fg-muted);
-  padding: 0 var(--space-3) var(--space-2) 0;
-  border-bottom: 1px solid var(--color-border);
-}
-
-td {
-  padding: 8px var(--space-3) 8px 0;
-  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 /* Right-aligned and tabular, so an outlier is visible without reading any
@@ -168,29 +90,21 @@ td {
 ul {
   margin: 0;
   padding-left: 20px;
-  font-size: 14px;
+  font-size: var(--text-base);
 }
 
-.note {
+.note:not([role='status']) {
   margin: var(--space-2) 0 0;
-  font-size: 13px;
+  padding: 0;
+  background: none;
+  font-size: var(--text-sm);
   color: var(--color-fg-muted);
 }
 
 .done {
-  padding: var(--space-4);
-  border: 1px solid var(--color-success);
-  border-radius: var(--radius-md);
-  background: var(--color-success-bg);
-  color: var(--color-success);
   margin-bottom: var(--space-4);
 }
 
-.failure {
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-danger);
-  border-radius: var(--radius-md);
-  background: var(--color-danger-bg);
-  color: var(--color-danger);
-  margin: var(--space-3) 0;
+.publish {
+  margin-top: var(--space-4);
 }

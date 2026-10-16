@@ -1,15 +1,15 @@
 <h1>{{ t().publish.title }}</h1>
 
 @if (stage() === 'published') {
-  <p class="done" role="status">
+  <p class="note done" role="status">
     {{ t().publish.publishedAs(publishedVersion() ?? 0) }}
   </p>
-  <button type="button" class="primary" (click)="startAgain()">
+  <button type="button" class="btn btn-primary primary" (click)="startAgain()">
     {{ t().publish.publishAnother }}
   </button>
 } @else {
-  <fieldset class="which">
-    <legend>{{ t().publish.whichList }}</legend>
+  <fieldset class="which segmented">
+    <legend class="visually-hidden">{{ t().publish.whichList }}</legend>
     <app-segmented-control
       [options]="lists"
       [optionLabel]="listLabel"
@@ -39,7 +39,7 @@
 
   <button
     type="button"
-    class="primary"
+    class="btn btn-primary btn-lg primary"
     [disabled]="!canPreview()"
     (click)="preview()"
   >
@@ -59,14 +59,7 @@
         </p>
       } @else {
         <p class="summary">
-          {{
-            t().publish.summary(
-              d.changed.length,
-              d.added.length,
-              d.removed.length,
-              d.unchanged
-            )
-          }}
+          {{ t().publish.summary(d.changed.length, d.added.length, d.removed.length, d.unchanged) }}
           @if (d.changed.length > 0) {
             <span class="net">{{ t().publish.net(money(d.total_delta_sen)) }}</span>
           }
@@ -110,9 +103,7 @@
           <h2 class="warn">{{ t().publish.productsThatDisappear }}</h2>
           <ul>
             @for (c of d.removed; track c.rule_id) {
-              <li>
-                {{ c.label }} — {{ t().publish.wasPriced(money(c.old_rate_sen ?? 0)) }}
-              </li>
+              <li>{{ c.label }} — {{ t().publish.wasPriced(money(c.old_rate_sen ?? 0)) }}</li>
             }
           </ul>
         }
@@ -129,7 +120,12 @@
     </section>
 
     @if (canPublish()) {
-      <button type="button" class="danger" [disabled]="busy()" (click)="publish()">
+      <button
+        type="button"
+        class="btn btn-danger-solid btn-lg danger publish"
+        [disabled]="busy()"
+        (click)="publish()"
+      >
         @if (busy()) {
           <span class="spinner" aria-hidden="true"></span>
         }
