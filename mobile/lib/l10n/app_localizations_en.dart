@@ -24,6 +24,9 @@ class LEn extends L {
   String get language => 'Language';
 
   @override
+  String get moreMenu => 'More';
+
+  @override
   String get quoteTitle => 'Quotation';
 
   @override

@@ -24,6 +24,9 @@ class LMs extends L {
   String get language => 'Bahasa';
 
   @override
+  String get moreMenu => 'Lagi';
+
+  @override
   String get quoteTitle => 'Sebut Harga';
 
   @override

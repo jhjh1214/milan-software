@@ -544,7 +544,10 @@ void main() {
     // controls are not there to be found. The server refuses too — this is the
     // courtesy, not the control.
     await pumpWithStore(tester, memoryStore(InMemoryRateCardStorage()));
-    await tester.tap(find.byIcon(Icons.price_change_outlined));
+    // Secondary screens sit behind the app bar's "more" menu.
+    await tester.tap(find.byIcon(Icons.more_horiz));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('价格表'));
     await tester.pumpAndSettle();
 
     expect(find.text('改单项价格'), findsNothing);
@@ -779,7 +782,8 @@ void main() {
       height: "9'",
     );
 
-    await tester.tap(find.byIcon(Icons.language));
+    // Language is chosen from the "more" menu, not shown all day.
+    await tester.tap(find.byIcon(Icons.more_horiz));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bahasa Melayu'));
     await tester.pumpAndSettle();
@@ -793,7 +797,7 @@ void main() {
     );
     expect(find.textContaining('sama atau lebih rendah'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.language));
+    await tester.tap(find.byIcon(Icons.more_horiz));
     await tester.pumpAndSettle();
     await tester.tap(find.text('English'));
     await tester.pumpAndSettle();

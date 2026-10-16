@@ -129,6 +129,12 @@ abstract class L {
   /// **'语言'**
   String get language;
 
+  /// No description provided for @moreMenu.
+  ///
+  /// In zh, this message translates to:
+  /// **'更多'**
+  String get moreMenu;
+
   /// No description provided for @quoteTitle.
   ///
   /// In zh, this message translates to:

@@ -43,18 +43,9 @@ class QuoteScreen extends ConsumerWidget {
         title: Text(l.quoteTitle),
         actions: [
           _TierToggle(tier: tier),
-          _LanguageMenu(),
-          IconButton(
-            icon: const Icon(Icons.price_change_outlined),
-            tooltip: l.ratesTitle,
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const RateCardScreen()),
-            ),
-          ),
-          const _OverridesButton(),
-          const _LibrarySubmissionButton(),
           const _SyncButton(),
-          const SizedBox(width: Space.sm),
+          const _MoreMenu(),
+          const SizedBox(width: Space.xs),
         ],
       ),
       body: pricedAsync.when(
@@ -396,7 +387,7 @@ class _LineCard extends ConsumerWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(Radii.lg),
+        borderRadius: BorderRadius.circular(Radii.md),
         border: Border.all(color: AppColors.border),
       ),
       padding: const EdgeInsets.all(Space.lg),
@@ -584,7 +575,7 @@ class _FloorRow extends StatelessWidget {
       padding: const EdgeInsets.all(Space.lg),
       decoration: BoxDecoration(
         color: AppColors.muted,
-        borderRadius: BorderRadius.circular(Radii.lg),
+        borderRadius: BorderRadius.circular(Radii.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -628,7 +619,7 @@ class _OrderIssueRow extends ConsumerWidget {
       padding: const EdgeInsets.all(Space.lg),
       decoration: BoxDecoration(
         color: AppColors.warningSurface,
-        borderRadius: BorderRadius.circular(Radii.lg),
+        borderRadius: BorderRadius.circular(Radii.md),
         border: Border.all(color: AppColors.warning, width: 1.5),
       ),
       child: Row(
@@ -671,14 +662,14 @@ class _CustomerRow extends ConsumerWidget {
 
     return Material(
       color: AppColors.surface,
-      borderRadius: BorderRadius.circular(Radii.lg),
+      borderRadius: BorderRadius.circular(Radii.md),
       child: InkWell(
-        borderRadius: BorderRadius.circular(Radii.lg),
+        borderRadius: BorderRadius.circular(Radii.md),
         onTap: () => _edit(context, ref, name, phone),
         child: Container(
           padding: const EdgeInsets.all(Space.lg),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(Radii.lg),
+            borderRadius: BorderRadius.circular(Radii.md),
             border: Border.all(color: AppColors.border),
           ),
           child: Row(
@@ -810,10 +801,10 @@ class _SiteRow extends ConsumerWidget {
 
     return Material(
       color: AppColors.surface,
-      borderRadius: BorderRadius.circular(Radii.lg),
+      borderRadius: BorderRadius.circular(Radii.md),
       child: InkWell(
         key: const Key('quote-site-row'),
-        borderRadius: BorderRadius.circular(Radii.lg),
+        borderRadius: BorderRadius.circular(Radii.md),
         onTap: () async {
           final entry = await showSiteDetailsSheet(context, current: current);
           if (entry == null) return;
@@ -828,7 +819,7 @@ class _SiteRow extends ConsumerWidget {
         child: Container(
           padding: const EdgeInsets.all(Space.lg),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(Radii.lg),
+            borderRadius: BorderRadius.circular(Radii.md),
             border: Border.all(color: AppColors.border),
           ),
           child: Row(
@@ -882,14 +873,14 @@ class _DeliveryRow extends ConsumerWidget {
 
     return Material(
       color: zone == null ? AppColors.surface : AppColors.muted,
-      borderRadius: BorderRadius.circular(Radii.lg),
+      borderRadius: BorderRadius.circular(Radii.md),
       child: InkWell(
-        borderRadius: BorderRadius.circular(Radii.lg),
+        borderRadius: BorderRadius.circular(Radii.md),
         onTap: () => _pick(context, ref, card, quote.deliveryZoneId),
         child: Container(
           padding: const EdgeInsets.all(Space.lg),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(Radii.lg),
+            borderRadius: BorderRadius.circular(Radii.md),
             border: Border.all(color: AppColors.border),
           ),
           child: Row(
@@ -1002,7 +993,7 @@ class _Disclaimer extends StatelessWidget {
       padding: const EdgeInsets.all(Space.lg),
       decoration: BoxDecoration(
         color: AppColors.warningSurface,
-        borderRadius: BorderRadius.circular(Radii.lg),
+        borderRadius: BorderRadius.circular(Radii.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1112,67 +1103,120 @@ class _TotalBar extends ConsumerWidget {
   }
 }
 
-/// The way to the sync screen, carrying the queue depth as a badge.
+/// Everything that is not the quote itself, behind one button.
 ///
-/// The badge is the whole point of putting it here. A part-timer who can see
-/// "3 waiting" understands a dead connection; one who cannot assumes the orders
-/// vanished, and starts writing them on paper as well.
-/// The way into the weekly override review. Admin only, and hidden otherwise.
+/// Six icons in a phone's app bar do not fit -- they overflowed by 42dp at
+/// 390dp wide -- and most of them are used a few times a day: the price list,
+/// the floor-plan submission, the admin's two reviews, the language.
+/// Language lives here rather than on show for the same reason it does on the
+/// dashboard: it is chosen once, not all day.
 ///
-/// §6.5 puts the entire control on this screen being read: *"without it the log
-/// is never read and the control does not exist."* Somewhere findable is
-/// therefore part of the control, not a convenience — a review screen three
-/// menus deep is one nobody opens on a Monday morning.
-class _OverridesButton extends ConsumerWidget {
-  const _OverridesButton();
+/// The override review is admin-only and hidden otherwise. §6.5 puts the
+/// entire control on that screen being read: *"without it the log is never
+/// read and the control does not exist."* One tap into a menu is findable; a
+/// screen three menus deep is one nobody opens on a Monday morning.
+enum _MoreAction {
+  rates,
+  floorPlan,
+  overrides,
+  declines,
+  zh,
+  en,
+  ms;
+
+  String? get languageCode => switch (this) {
+    zh => 'zh',
+    en => 'en',
+    ms => 'ms',
+    _ => null,
+  };
+}
+
+class _MoreMenu extends ConsumerWidget {
+  const _MoreMenu();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = L.of(context);
     final isAdmin =
         ref.watch(credentialsProvider).valueOrNull?.user.role == 'admin';
-    if (!isAdmin) return const SizedBox.shrink();
+    final current = ref.watch(languageProvider);
 
-    return PopupMenuButton<int>(
-      icon: const Icon(Icons.fact_check_outlined),
-      tooltip: l.overridesThisWeek,
-      itemBuilder: (context) => [
-        PopupMenuItem(value: 0, child: Text(l.overridesThisWeek)),
-        PopupMenuItem(value: 1, child: Text(l.declinesTitle)),
-      ],
-      onSelected: (which) => Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => which == 0
-              ? const OverridesReviewScreen()
-              : const DeclinesReportScreen(),
+    PopupMenuItem<_MoreAction> item(
+      _MoreAction action,
+      String label, {
+      IconData? icon,
+    }) {
+      final selected =
+          action.languageCode != null && action.languageCode == current;
+      return PopupMenuItem(
+        value: action,
+        child: Row(
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 20, color: AppColors.mutedForeground),
+              const SizedBox(width: Space.md),
+            ],
+            Expanded(child: Text(label)),
+            if (selected)
+              const Icon(Icons.check, size: 18, color: AppColors.primary),
+          ],
         ),
-      ),
+      );
+    }
+
+    return PopupMenuButton<_MoreAction>(
+      icon: const Icon(Icons.more_horiz),
+      tooltip: l.moreMenu,
+      onSelected: (action) {
+        final language = action.languageCode;
+        if (language != null) {
+          ref.read(languageProvider.notifier).state = language;
+          return;
+        }
+        final screen = switch (action) {
+          _MoreAction.rates => const RateCardScreen(),
+          _MoreAction.floorPlan => const SubmitFloorPlanScreen(),
+          _MoreAction.overrides => const OverridesReviewScreen(),
+          _ => const DeclinesReportScreen(),
+        };
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute<void>(builder: (_) => screen));
+      },
+      itemBuilder: (context) => [
+        item(
+          _MoreAction.rates,
+          l.ratesTitle,
+          icon: Icons.price_change_outlined,
+        ),
+        item(_MoreAction.floorPlan, l.libTitle, icon: Icons.map_outlined),
+        if (isAdmin) ...[
+          item(
+            _MoreAction.overrides,
+            l.overridesThisWeek,
+            icon: Icons.fact_check_outlined,
+          ),
+          item(
+            _MoreAction.declines,
+            l.declinesTitle,
+            icon: Icons.event_outlined,
+          ),
+        ],
+        const PopupMenuDivider(),
+        item(_MoreAction.zh, l.languageChinese),
+        item(_MoreAction.en, l.languageEnglish),
+        item(_MoreAction.ms, l.languageMalay),
+      ],
     );
   }
 }
 
-/// The way to a part-timer's own floor-plan submission. SPEC.md Phase 8.
+/// The way to the sync screen, carrying the queue depth as a badge.
 ///
-/// Available to everyone, not admin-gated -- the part-timer's own workflow
-/// this exists for is exactly the one described in the fair scenario: a
-/// customer WhatsApps a floor plan to a phone that has no desk and no
-/// dashboard.
-class _LibrarySubmissionButton extends StatelessWidget {
-  const _LibrarySubmissionButton();
-
-  @override
-  Widget build(BuildContext context) {
-    final l = L.of(context);
-    return IconButton(
-      tooltip: l.libTitle,
-      icon: const Icon(Icons.map_outlined),
-      onPressed: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const SubmitFloorPlanScreen()),
-      ),
-    );
-  }
-}
-
+/// The badge is the whole point of putting it here. A part-timer who can see
+/// "3 waiting" understands a dead connection; one who cannot assumes the orders
+/// vanished, and starts writing them on paper as well.
 class _SyncButton extends ConsumerWidget {
   const _SyncButton();
 
@@ -1209,30 +1253,12 @@ class _TierToggle extends ConsumerWidget {
           .read(quoteProvider.notifier)
           .setTier(isMvp ? CustomerTier.standard : CustomerTier.mvp),
       style: TextButton.styleFrom(
-        foregroundColor: AppColors.onPrimary,
         minimumSize: const Size(Touch.min, Touch.min),
       ),
       child: Text(
         isMvp ? l.tierMvp : l.tierStandard,
         style: TextStyle(fontWeight: isMvp ? FontWeight.w700 : FontWeight.w400),
       ),
-    );
-  }
-}
-
-class _LanguageMenu extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l = L.of(context);
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.language),
-      tooltip: l.language,
-      onSelected: (code) => ref.read(languageProvider.notifier).state = code,
-      itemBuilder: (context) => [
-        PopupMenuItem(value: 'zh', child: Text(l.languageChinese)),
-        PopupMenuItem(value: 'en', child: Text(l.languageEnglish)),
-        PopupMenuItem(value: 'ms', child: Text(l.languageMalay)),
-      ],
     );
   }
 }
