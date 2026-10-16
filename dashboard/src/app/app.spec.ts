@@ -27,6 +27,12 @@ describe('App', () => {
   let api: Api;
 
   beforeEach(() => {
+    // The first-sign-in language prompt remembers, per account, that it has
+    // been answered; a previous test's answer must not hide it from this one.
+    localStorage.clear();
+    // A signed-in session persists to `sessionStorage`; without this a test
+    // that signs in leaves the next one signed in too.
+    sessionStorage.clear();
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
@@ -54,6 +60,14 @@ describe('App', () => {
 
   const text = (): string => fixture.nativeElement.textContent as string;
 
+  /** Personal settings are behind the account button, not on show. */
+  const openMenu = (): void => {
+    const trigger: HTMLButtonElement =
+      fixture.nativeElement.querySelector('app-account-menu .trigger');
+    trigger.click();
+    fixture.detectChanges();
+  };
+
   it('shows no chrome before anybody signs in', () => {
     // There is exactly one thing to do on the sign-in screen, and a nav bar
     // would suggest otherwise.
@@ -67,7 +81,32 @@ describe('App', () => {
     fixture.detectChanges();
     expect(text()).toContain('Orders');
     expect(text()).toContain('Boss');
+  });
+
+  it('keeps language, theme and sign-out out of sight until the account button is used', () => {
+    signedInAs('staff');
+    fixture.detectChanges();
+    expect(text()).not.toContain('Sign out');
+    expect(fixture.nativeElement.querySelector('.languages')).toBeNull();
+
+    openMenu();
     expect(text()).toContain('Sign out');
+    expect(fixture.nativeElement.querySelector('.languages')).not.toBeNull();
+  });
+
+  it('closes the menu on Escape and on a click elsewhere', () => {
+    signedInAs('staff');
+    fixture.detectChanges();
+
+    openMenu();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.menu')).toBeNull();
+
+    openMenu();
+    document.body.click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.menu')).toBeNull();
   });
 
   it('offers the price log to an admin', () => {
@@ -90,8 +129,9 @@ describe('App', () => {
     signedInAs('admin');
     fixture.detectChanges();
 
+    openMenu();
     const button: HTMLButtonElement =
-      fixture.nativeElement.querySelector('.who button.sign-out');
+      fixture.nativeElement.querySelector('.menu .sign-out');
     button.click();
     fixture.detectChanges();
 
@@ -103,10 +143,12 @@ describe('App', () => {
   describe('the language the bar speaks', () => {
     // SPEC.md §13 C9. The handset has been trilingual since Phase 2; the
     // office was English on an assumption that turned out to be wrong.
-    const languages = (): HTMLButtonElement[] =>
-      Array.from(
+    const languages = (): HTMLButtonElement[] => {
+      if (!fixture.nativeElement.querySelector('.menu')) openMenu();
+      return Array.from(
         fixture.nativeElement.querySelectorAll('.languages button'),
       ) as HTMLButtonElement[];
+    };
 
     it('follows the signed-in person, not the browser', () => {
       // CLAUDE.md: switchable per user, not per device. Two people share this
@@ -171,14 +213,63 @@ describe('App', () => {
     });
   });
 
+  describe('the first-sign-in language prompt', () => {
+    const dialog = (): HTMLElement | null =>
+      fixture.nativeElement.querySelector('[role="dialog"]');
+    const choices = (): HTMLButtonElement[] =>
+      Array.from(
+        fixture.nativeElement.querySelectorAll('[role="dialog"] button'),
+      ) as HTMLButtonElement[];
+
+    it('asks once, in all three languages, before anything else is read', () => {
+      signedInAs('staff');
+      fixture.detectChanges();
+
+      expect(dialog()).not.toBeNull();
+      expect(dialog()?.textContent).toContain('选择语言');
+      expect(dialog()?.textContent).toContain('Choose your language');
+      expect(dialog()?.textContent).toContain('Pilih bahasa');
+    });
+
+    it('choosing a language applies it and never asks that account again', () => {
+      signedInAs('staff');
+      fixture.detectChanges();
+
+      choices()[2].click(); // Bahasa Melayu
+      fixture.detectChanges();
+
+      expect(dialog()).toBeNull();
+      expect(document.documentElement.lang).toBe('ms');
+      expect(text()).toContain('Pesanan');
+
+      // A fresh page load for the same account on the same browser.
+      const again = TestBed.createComponent(App);
+      again.detectChanges();
+      expect(again.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    });
+
+    it('does not ask an account that has already answered on this browser', () => {
+      localStorage.setItem('milan.language-confirmed.u1', '1');
+      signedInAs('staff');
+      fixture.detectChanges();
+      expect(dialog()).toBeNull();
+    });
+
+    it('does not appear before anybody has signed in', () => {
+      fixture.detectChanges();
+      expect(dialog()).toBeNull();
+    });
+  });
+
   it('the theme toggle switches light and dark on the whole page', () => {
     localStorage.clear();
     document.documentElement.removeAttribute('data-theme');
     signedInAs('admin');
     fixture.detectChanges();
 
+    openMenu();
     const button: HTMLButtonElement =
-      fixture.nativeElement.querySelector('.theme-toggle');
+      fixture.nativeElement.querySelector('.menu .theme-toggle');
     button.click();
     fixture.detectChanges();
 

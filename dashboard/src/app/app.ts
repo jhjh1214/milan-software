@@ -1,11 +1,11 @@
-import { Component, computed, effect, inject } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Component, effect, inject } from '@angular/core';
+import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
+import { AccountMenu } from './account/account-menu';
+import { LanguagePrompt } from './account/language-prompt';
 import { Session } from './auth/session';
-import { LanguagePicker } from './i18n/language-picker';
 import { Text } from './i18n/text';
 import { NavIcon } from './shared/nav-icon';
-import { ThemeToggle } from './theme/theme-toggle';
 
 /**
  * The shell: a sidebar with the way between screens, and nothing else.
@@ -29,8 +29,8 @@ import { ThemeToggle } from './theme/theme-toggle';
     RouterOutlet,
     RouterLink,
     RouterLinkActive,
-    LanguagePicker,
-    ThemeToggle,
+    AccountMenu,
+    LanguagePrompt,
     NavIcon,
   ],
   templateUrl: './app.html',
@@ -38,24 +38,10 @@ import { ThemeToggle } from './theme/theme-toggle';
 })
 export class App {
   protected readonly session = inject(Session);
-  private readonly router = inject(Router);
   private readonly text = inject(Text);
 
   /** The words, as a signal: switching language re-renders the bar. */
   protected readonly t = this.text.strings;
-
-  /** One letter for the avatar. Decorative -- the full name sits in text
-   * right beside it, never conveyed by the initial alone. */
-  protected readonly initial = computed(() => {
-    const name = this.session.user()?.name ?? '';
-    return name.trim().charAt(0).toUpperCase() || '?';
-  });
-
-  protected readonly roleLabel = computed(() => {
-    const role = this.session.user()?.role;
-    if (role === null || role === undefined) return '';
-    return this.t().role[role];
-  });
 
   constructor() {
     // `index.html` carries no `lang`, because which language this page speaks
@@ -65,10 +51,5 @@ export class App {
     effect(() => {
       document.documentElement.lang = this.text.language();
     });
-  }
-
-  protected signOut(): void {
-    this.session.signOut();
-    void this.router.navigate(['/sign-in']);
   }
 }

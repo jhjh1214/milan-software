@@ -39,7 +39,7 @@
               <app-nav-icon name="history" />
               <span>{{ t().nav.priceChanges }}</span>
             </a>
-            <a routerLink="/rates" routerLinkActive="on" class="nav-link">
+            <a routerLink="/rates" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: true }" class="nav-link">
               <app-nav-icon name="document" />
               <span>{{ t().nav.priceList }}</span>
             </a>
@@ -50,7 +50,7 @@
       @if (session.isAdmin()) {
         <div class="nav-group">
           <p class="nav-heading">{{ t().nav.sectionOperations }}</p>
-          <a routerLink="/inventory" routerLinkActive="on" class="nav-link">
+          <a routerLink="/inventory" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: true }" class="nav-link">
             <app-nav-icon name="box" />
             <span>{{ t().nav.inventory }}</span>
           </a>
@@ -79,34 +79,13 @@
     </nav>
 
     <div class="sidebar-footer">
-      <div class="controls">
-        <!-- Here rather than on the sign-in screen: somebody whose account
-             says English can still be handed the machine by a colleague
-             reading Chinese, and neither should have to sign out to read it. -->
-        <app-language-picker />
-        <app-theme-toggle />
-      </div>
-
-      <div class="who">
-        <span class="avatar" aria-hidden="true">{{ initial() }}</span>
-        <div class="who-info">
-          <span class="who-name">{{ session.user()?.name }}</span>
-          <span class="who-role">{{ roleLabel() }}</span>
-        </div>
-        <button
-          type="button"
-          class="sign-out"
-          [attr.title]="t().nav.signOut"
-          (click)="signOut()"
-        >
-          <app-nav-icon name="sign-out" />
-          <span class="visually-hidden">{{ t().nav.signOut }}</span>
-        </button>
-      </div>
+      <app-account-menu />
     </div>
   </aside>
+
+  <app-language-prompt />
 }
 
-<main class="main-content">
+<main class="main-content" [class.with-sidebar]="session.signedIn()">
   <router-outlet />
 </main>
