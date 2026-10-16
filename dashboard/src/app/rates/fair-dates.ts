@@ -68,6 +68,9 @@ export class FairDates {
 
   protected readonly show = showDate;
 
+  /** Waiting on the first answer: neither the dates nor a refusal yet. */
+  protected readonly loading = computed(() => this.dates() === null && this.failure() === null);
+
   /** When deposits at the fair as it stands stop holding their price. */
   protected readonly holdsUntil = computed<string | null>(() => {
     const to = this.dates()?.valid_to ?? null;

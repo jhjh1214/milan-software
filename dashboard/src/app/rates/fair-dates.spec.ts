@@ -85,6 +85,39 @@ describe('FairDates', () => {
     fixture.detectChanges();
   };
 
+  it('shows a skeleton and marks itself busy until the dates arrive', () => {
+    TestBed.inject(Session).user.set({ id: 'u1', name: 'Someone', role: 'admin', language: 'en' });
+    fixture = TestBed.createComponent(FairDates);
+    fixture.detectChanges();
+
+    expect(el('section').getAttribute('aria-busy')).toBe('true');
+    expect(el('[role="status"]').textContent).toContain('Loading');
+    expect(fixture.nativeElement.querySelectorAll('.skeleton').length).toBeGreaterThan(0);
+    // Nothing to edit yet, so no control to offer.
+    expect(button('Change dates')).toBeUndefined();
+
+    http.expectOne('/api/rate-cards/fair/dates').flush(AUGUST);
+    fixture.detectChanges();
+
+    expect(el('section').getAttribute('aria-busy')).toBe('false');
+    expect(fixture.nativeElement.querySelector('.skeleton')).toBeNull();
+    expect(text()).toContain('MITC-2026-08');
+  });
+
+  it('drops the skeleton and says why when the dates cannot be loaded', () => {
+    TestBed.inject(Session).user.set({ id: 'u1', name: 'Someone', role: 'admin', language: 'en' });
+    fixture = TestBed.createComponent(FairDates);
+    fixture.detectChanges();
+    http
+      .expectOne('/api/rate-cards/fair/dates')
+      .flush({ detail: 'boom' }, { status: 500, statusText: 'Server Error' });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.skeleton')).toBeNull();
+    expect(el('[role="alert"]')).toBeTruthy();
+    expect(el('section').getAttribute('aria-busy')).toBe('false');
+  });
+
   it('shows when the fair runs and when its holds end', () => {
     open('staff');
     expect(text()).toContain('MITC-2026-08');

@@ -1,4 +1,4 @@
-<section class="card fair-dates" aria-labelledby="fair-dates-title">
+<section class="card fair-dates" aria-labelledby="fair-dates-title" [attr.aria-busy]="loading()">
   <div class="head">
     <h2 id="fair-dates-title">{{ t().fairDates.title }}</h2>
     @if (isAdmin() && !editing() && dates() !== null) {
@@ -13,6 +13,16 @@
   }
   @if (saved(); as version) {
     <p class="note" role="status">{{ t().fairDates.savedAs(version) }}</p>
+  }
+
+  @if (loading()) {
+    <!-- The shape of what is coming: the code and dates line, then the hold
+         line. The bars are decoration; the words are for a screen reader. -->
+    <div class="loading" role="status">
+      <span class="visually-hidden">{{ t().common.loading }}</span>
+      <span class="skeleton" aria-hidden="true" style="width: 55%"></span>
+      <span class="skeleton" aria-hidden="true" style="width: 35%"></span>
+    </div>
   }
 
   @if (dates(); as now) {
